@@ -674,15 +674,13 @@ async fn obtain_response(
 
     // Canonicalize youtube.com apex domain to www.youtube.com to avoid TLS renegotiation failure
     let target_url_str = if url.host_str() == Some("youtube.com") {
-        let mut u = url.clone();
-        let _ = u.set_host(Some("www.youtube.com"));
-        u
+        url.as_str().replacen("://youtube.com", "://www.youtube.com", 1)
     } else {
-        url.clone()
+        url.as_str().to_string()
     };
 
     // https://url.spec.whatwg.org/#percent-encoded-bytes
-    let encoded_url = utf8_percent_encode(target_url_str.as_str(), FRAGMENT).to_string();
+    let encoded_url = utf8_percent_encode(&target_url_str, FRAGMENT).to_string();
 
     let request = if let Some(chunk_requester) = body_sender {
         let (sink, stream) = if source_is_null {

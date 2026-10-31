@@ -59,22 +59,92 @@ inline void TranslateWin32Key(WPARAM wParam, LPARAM lParam, std::string& outKey,
     case VK_SHIFT: outKey = "Shift"; outCode = ((lParam & 0x01000000) != 0) ? "ShiftRight" : "ShiftLeft"; return;
     case VK_CONTROL: outKey = "Control"; outCode = ((lParam & 0x01000000) != 0) ? "ControlRight" : "ControlLeft"; return;
     case VK_MENU: outKey = "Alt"; outCode = ((lParam & 0x01000000) != 0) ? "AltRight" : "AltLeft"; return;
+    case VK_CAPITAL: outKey = "CapsLock"; outCode = "CapsLock"; return;
+    case VK_NUMLOCK: outKey = "NumLock"; outCode = "NumLock"; return;
+    case VK_SCROLL: outKey = "ScrollLock"; outCode = "ScrollLock"; return;
+    case VK_PAUSE: outKey = "Pause"; outCode = "Pause"; return;
+    case VK_SNAPSHOT: outKey = "PrintScreen"; outCode = "PrintScreen"; return;
+    case VK_APPS: outKey = "ContextMenu"; outCode = "ContextMenu"; return;
+    case VK_F1: outKey = "F1"; outCode = "F1"; return;
+    case VK_F2: outKey = "F2"; outCode = "F2"; return;
+    case VK_F3: outKey = "F3"; outCode = "F3"; return;
+    case VK_F4: outKey = "F4"; outCode = "F4"; return;
+    case VK_F5: outKey = "F5"; outCode = "F5"; return;
+    case VK_F6: outKey = "F6"; outCode = "F6"; return;
+    case VK_F7: outKey = "F7"; outCode = "F7"; return;
+    case VK_F8: outKey = "F8"; outCode = "F8"; return;
+    case VK_F9: outKey = "F9"; outCode = "F9"; return;
+    case VK_F10: outKey = "F10"; outCode = "F10"; return;
+    case VK_F11: outKey = "F11"; outCode = "F11"; return;
+    case VK_F12: outKey = "F12"; outCode = "F12"; return;
     default: break;
+    }
+
+    // Assign standard physical keyboard code
+    if (wParam >= 'A' && wParam <= 'Z') {
+        outCode = "Key" + std::string(1, static_cast<char>(wParam));
+    } else if (wParam >= '0' && wParam <= '9') {
+        outCode = "Digit" + std::string(1, static_cast<char>(wParam));
+    } else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9) {
+        outCode = "Numpad" + std::to_string(wParam - VK_NUMPAD0);
+    } else if (wParam == VK_MULTIPLY) {
+        outCode = "NumpadMultiply";
+    } else if (wParam == VK_ADD) {
+        outCode = "NumpadAdd";
+    } else if (wParam == VK_SUBTRACT) {
+        outCode = "NumpadSubtract";
+    } else if (wParam == VK_DECIMAL) {
+        outCode = "NumpadDecimal";
+    } else if (wParam == VK_DIVIDE) {
+        outCode = "NumpadDivide";
+    } else if (wParam == VK_OEM_1) {
+        outCode = "Semicolon";
+    } else if (wParam == VK_OEM_PLUS) {
+        outCode = "Equal";
+    } else if (wParam == VK_OEM_COMMA) {
+        outCode = "Comma";
+    } else if (wParam == VK_OEM_MINUS) {
+        outCode = "Minus";
+    } else if (wParam == VK_OEM_PERIOD) {
+        outCode = "Period";
+    } else if (wParam == VK_OEM_2) {
+        outCode = "Slash";
+    } else if (wParam == VK_OEM_3) {
+        outCode = "Backquote";
+    } else if (wParam == VK_OEM_4) {
+        outCode = "BracketLeft";
+    } else if (wParam == VK_OEM_5) {
+        outCode = "Backslash";
+    } else if (wParam == VK_OEM_6) {
+        outCode = "BracketRight";
+    } else if (wParam == VK_OEM_7) {
+        outCode = "Quote";
     }
 
     // Try translating using current keyboard state to get exact Unicode character and casing
     BYTE kbdState[256] = {};
     GetKeyboardState(kbdState);
+
+    // Explicitly synchronize modifier keys with GetKeyState to prevent stuck modifiers
+    bool isShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    bool isCaps = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+    kbdState[VK_SHIFT] = isShift ? 0x80 : 0;
+    kbdState[VK_CAPITAL] = isCaps ? 0x01 : 0;
+    kbdState[VK_CONTROL] = (GetKeyState(VK_CONTROL) & 0x8000) ? 0x80 : 0;
+    kbdState[VK_MENU] = (GetKeyState(VK_MENU) & 0x8000) ? 0x80 : 0;
+
     UINT scanCode = (lParam >> 16) & 0xFF;
     wchar_t unicodeBuf[4] = {};
-    int count = ToUnicode(static_cast<UINT>(wParam), scanCode, kbdState, unicodeBuf, 4, 0);
+    int count = ToUnicode(static_cast<UINT>(wParam), scanCode, kbdState, unicodeBuf, 4, 0x4);
+    if (count <= 0) {
+        count = ToUnicode(static_cast<UINT>(wParam), scanCode, kbdState, unicodeBuf, 4, 0);
+    }
     if (count > 0 && unicodeBuf[0] >= 32) {
         char utf8Buf[8] = {};
         int utf8Len = WideCharToMultiByte(CP_UTF8, 0, unicodeBuf, count, utf8Buf, sizeof(utf8Buf) - 1, nullptr, nullptr);
         if (utf8Len > 0) {
             utf8Buf[utf8Len] = '\0';
             outKey = utf8Buf;
-            outCode = "";
             return;
         }
     }
@@ -82,13 +152,11 @@ inline void TranslateWin32Key(WPARAM wParam, LPARAM lParam, std::string& outKey,
     // Fallback: single character ASCII if printable
     if (wParam >= 32 && wParam < 127) {
         char ch = static_cast<char>(wParam);
-        if (!(kbdState[VK_SHIFT] & 0x80) && !(kbdState[VK_CAPITAL] & 0x01)) {
-            if (ch >= 'A' && ch <= 'Z') {
-                ch = ch + ('a' - 'A');
-            }
+        bool shouldUpper = isShift ^ isCaps;
+        if (ch >= 'A' && ch <= 'Z') {
+            ch = shouldUpper ? ch : (ch + ('a' - 'A'));
         }
         outKey = std::string(1, ch);
-        outCode = "";
         return;
     }
 

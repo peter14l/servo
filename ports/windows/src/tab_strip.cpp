@@ -214,6 +214,30 @@ void TabStrip::UpdateTabFavicon(ServoViewHost* host, HBITMAP hBitmap, uint32_t w
     }
 }
 
+void TabStrip::CloseOtherTabs(int keepIndex) {
+    if (keepIndex < 0 || keepIndex >= static_cast<int>(m_tabs.size())) return;
+    int cur = static_cast<int>(m_tabs.size()) - 1;
+    while (cur >= 0) {
+        if (cur != keepIndex) {
+            CloseTab(cur);
+            if (cur < keepIndex) keepIndex--;
+        }
+        cur--;
+    }
+}
+
+void TabStrip::CloseTabsToRight(int fromIndex) {
+    if (fromIndex < 0 || fromIndex >= static_cast<int>(m_tabs.size())) return;
+    while (static_cast<int>(m_tabs.size()) > fromIndex + 1) {
+        CloseTab(static_cast<int>(m_tabs.size()) - 1);
+    }
+}
+
+void TabStrip::DuplicateTab(int index) {
+    if (index < 0 || index >= static_cast<int>(m_tabs.size())) return;
+    AddTab(m_tabs[index]->url);
+}
+
 void TabStrip::LayoutTabs() {
     RECT rc;
     GetClientRect(m_hwnd, &rc);
@@ -444,6 +468,41 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             if (PtInRect(&m_tabs[i]->bounds, pt)) {
                 CloseTab(static_cast<int>(i));
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    case WM_RBUTTONUP: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        for (size_t i = 0; i < m_tabs.size(); ++i) {
+            if (PtInRect(&m_tabs[i]->bounds, pt)) {
+                int clickedIndex = static_cast<int>(i);
+                HMENU hMenu = CreatePopupMenu();
+                AppendMenuW(hMenu, MF_STRING, 1, L"Reload Tab\tCtrl+R");
+                AppendMenuW(hMenu, MF_STRING, 2, L"Duplicate Tab");
+                AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+                AppendMenuW(hMenu, MF_STRING, 3, L"Close Tab\tCtrl+W");
+                AppendMenuW(hMenu, MF_STRING, 4, L"Close Other Tabs");
+                AppendMenuW(hMenu, MF_STRING, 5, L"Close Tabs to the Right");
+
+                POINT screenPt = pt;
+                ClientToScreen(m_hwnd, &screenPt);
+                int cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screenPt.x, screenPt.y, m_hwnd, nullptr);
+                DestroyMenu(hMenu);
+
+                if (cmd == 1) {
+                    if (m_tabs[clickedIndex]->viewHost) m_tabs[clickedIndex]->viewHost->Reload();
+                } else if (cmd == 2) {
+                    DuplicateTab(clickedIndex);
+                } else if (cmd == 3) {
+                    CloseTab(clickedIndex);
+                } else if (cmd == 4) {
+                    CloseOtherTabs(clickedIndex);
+                } else if (cmd == 5) {
+                    CloseTabsToRight(clickedIndex);
+                }
                 return 0;
             }
         }

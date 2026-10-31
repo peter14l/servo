@@ -21,6 +21,7 @@ set(SOURCES
     src/omnibox.cpp
     src/find_bar.cpp
     src/download_manager.cpp
+    src/settings_dialog.cpp
     src/browser.manifest
 )
 
@@ -33,6 +34,7 @@ set(HEADERS
     src/omnibox.h
     src/find_bar.h
     src/download_manager.h
+    src/settings_dialog.h
     src/fluent_theme.h
 )
 

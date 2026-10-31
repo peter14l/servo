@@ -7,6 +7,7 @@
 #include "omnibox.h"
 #include "find_bar.h"
 #include "download_manager.h"
+#include "settings_dialog.h"
 #include "servo_view_host.h"
 #include <windowsx.h>
 #include <vector>
@@ -226,6 +227,10 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
+    if (url == "about:settings" || url == "servo://settings" || url == "settings") {
+        OpenSettings();
+        return;
+    }
     auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
     if (tab && tab->viewHost) {
         tab->viewHost->LoadUrl(url);
@@ -328,6 +333,53 @@ void BrowserWindow::ToggleFullscreen() {
         SetWindowPos(m_hwnd, nullptr, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         m_isFullscreen = false;
+    }
+}
+
+void BrowserWindow::ToggleDownloads() {
+    if (m_downloadManager) {
+        m_downloadManager->Show(!m_downloadManager->IsVisible());
+    }
+}
+
+void BrowserWindow::OpenSettings() {
+    SettingsDialog::ShowModal(m_hwnd, this);
+}
+
+void BrowserWindow::OpenUrlInNewTab(const std::string& url) {
+    if (m_tabStrip) {
+        m_tabStrip->AddTab(url);
+    }
+}
+
+void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
+    if (settings.themeMode == 0) {
+        m_isDark = false;
+    } else if (settings.themeMode == 1) {
+        m_isDark = true;
+    } else {
+        SyncDarkMode();
+    }
+    if (m_tabStrip) m_tabStrip->SetDarkMode(m_isDark);
+    if (m_omnibox) m_omnibox->SetDarkMode(m_isDark);
+}
+
+void BrowserWindow::PrintPage() {
+    PRINTDLGW pd = { sizeof(PRINTDLGW) };
+    pd.hwndOwner = m_hwnd;
+    pd.Flags = PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE;
+    if (PrintDlgW(&pd)) {
+        if (pd.hDC) DeleteDC(pd.hDC);
+        if (pd.hDevMode) GlobalFree(pd.hDevMode);
+        if (pd.hDevNames) GlobalFree(pd.hDevNames);
+    }
+}
+
+void BrowserWindow::ViewPageSource() {
+    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
+    if (tab && tab->viewHost) {
+        std::string srcUrl = "view-source:" + tab->viewHost->GetUrl();
+        OpenUrlInNewTab(srcUrl);
     }
 }
 
@@ -499,6 +551,22 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         // --- Tools & Overlays ---
+        if (ctrl && (wParam == VK_OEM_COMMA || wParam == 'H')) {
+            OpenSettings();
+            return 0;
+        }
+        if (ctrl && wParam == 'P') {
+            PrintPage();
+            return 0;
+        }
+        if (ctrl && wParam == 'U') {
+            ViewPageSource();
+            return 0;
+        }
+        if (ctrl && wParam == 'N') {
+            OpenUrlInNewTab("https://servo.org");
+            return 0;
+        }
         if (ctrl && wParam == 'F') {
             if (m_findBar) m_findBar->Show(!m_findBar->IsVisible());
             return 0;

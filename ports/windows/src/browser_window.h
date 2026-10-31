@@ -51,6 +51,12 @@ public:
     void SetDevToolsInfo(uint16_t port, const std::string& token);
     void HandleNewDownload(struct ServoDownloadItem* download);
     void HandleDownloadUpdated(struct ServoDownloadItem* download);
+    void ToggleDownloads();
+    void OpenSettings();
+    void OpenUrlInNewTab(const std::string& url);
+    void ApplySettings(const struct BrowserSettings& settings);
+    void PrintPage();
+    void ViewPageSource();
 
     void ZoomIn();
     void ZoomOut();

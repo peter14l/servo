@@ -25,6 +25,7 @@ namespace icons {
     constexpr const wchar_t* Downloads = L"\uE896";
     constexpr const wchar_t* Find = L"\uE773";
     constexpr const wchar_t* More = L"\uE712";
+    constexpr const wchar_t* Settings = L"\uE713";
     constexpr const wchar_t* ChevronUp = L"\uE70E";
     constexpr const wchar_t* ChevronDown = L"\uE70D";
     constexpr const wchar_t* Globe = L"\uE774";

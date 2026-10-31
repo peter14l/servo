@@ -327,6 +327,15 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_MOUSEWHEEL: {
         short delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        if (GetKeyState(VK_CONTROL) & 0x8000) {
+            // Ctrl + Wheel: Smooth Zoom In / Zoom Out
+            if (m_browserWindow) {
+                if (delta > 0) m_browserWindow->ZoomIn();
+                else if (delta < 0) m_browserWindow->ZoomOut();
+            }
+            return 0;
+        }
+
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
         if (m_webview) {
@@ -336,6 +345,18 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             );
         }
         return 0;
+    }
+
+    case WM_XBUTTONUP: {
+        WORD btn = GET_XBUTTON_WPARAM(wParam);
+        if (btn == XBUTTON1) {
+            GoBack();
+            return TRUE;
+        } else if (btn == XBUTTON2) {
+            GoForward();
+            return TRUE;
+        }
+        return FALSE;
     }
 
     case WM_MOUSEHWHEEL: {
@@ -537,8 +558,12 @@ void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoCon
     AppendMenuW(hMenu, MF_STRING, 3, L"Reload\tF5");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_STRING, 4, L"Copy\tCtrl+C");
+    AppendMenuW(hMenu, MF_STRING, 6, L"Select All\tCtrl+A");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(hMenu, MF_STRING, 7, L"View Page Source\tCtrl+U");
     AppendMenuW(hMenu, MF_STRING, 5, L"Inspect Element\tF12");
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(hMenu, MF_STRING, 8, L"Settings...\tCtrl+,");
 
     POINT pt;
     GetCursorPos(&pt);
@@ -554,6 +579,18 @@ void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoCon
     case 5:
         if (self->m_browserWindow) {
             self->m_browserWindow->OpenDevTools();
+        }
+        break;
+    case 6: action = 11; break; // Select All
+    case 7:
+        if (self->m_browserWindow) {
+            std::string srcUrl = "view-source:" + self->GetUrl();
+            self->m_browserWindow->OpenUrlInNewTab(srcUrl);
+        }
+        break;
+    case 8:
+        if (self->m_browserWindow) {
+            self->m_browserWindow->OpenSettings();
         }
         break;
     }

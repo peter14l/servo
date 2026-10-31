@@ -101,18 +101,28 @@ public:
 
     void SetUrl(const std::string& url);
     void SetLoading(bool loading);
+    void SetLoadingProgress(float progress);
     void UpdateNavigationState(bool canBack, bool canForward);
     void FocusAndSelectAll();
     void FocusForSearch();
     void SetDarkMode(bool isDark);
 
+    void UpdateSuggestions(const std::wstring& query);
+    void HideSuggestions();
+    bool IsSuggestionsVisible() const;
+    void SelectNextSuggestion();
+    void SelectPreviousSuggestion();
+    std::wstring GetSelectedSuggestionText() const;
+
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK EditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+    static LRESULT CALLBACK SuggestionsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
     void LayoutControls();
     void Paint(HDC hdc);
+    void PaintSuggestions(HDC hdc);
 
     HWND m_hwnd;
     BrowserWindow* m_browserWindow;
@@ -123,6 +133,15 @@ private:
     RECT m_reloadBtnBounds;
     RECT m_homeBtnBounds;
     RECT m_omniboxBounds;
+    RECT m_downloadsBtnBounds;
+    RECT m_settingsBtnBounds;
+
+    HWND m_suggestionsHwnd;
+    std::vector<std::wstring> m_suggestions;
+    int m_selectedSuggestion;
+
+    float m_loadProgress;
+    UINT_PTR m_progressTimerId;
 
     bool m_canBack;
     bool m_canForward;

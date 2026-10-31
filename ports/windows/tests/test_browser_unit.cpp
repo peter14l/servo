@@ -504,6 +504,8 @@ void test_fluent_theme_tokens_and_icons() {
     TEST_ASSERT(std::wstring(fluent::icons::Close) == L"\uE8BB", "Fluent Close icon");
     TEST_ASSERT(std::wstring(fluent::icons::AddTab) == L"\uE710", "Fluent AddTab icon");
     TEST_ASSERT(std::wstring(fluent::icons::Lock) == L"\uE72E", "Fluent Lock icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Downloads) == L"\uE896", "Fluent Downloads icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Settings) == L"\uE713", "Fluent Settings icon");
 }
 
 // -----------------------------------------------------------------------------

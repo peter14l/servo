@@ -55,6 +55,9 @@ public:
     void PreviousTab();
     void SelectTabByIndex(int index);
     void ReopenClosedTab();
+    void CloseOtherTabs(int keepIndex);
+    void CloseTabsToRight(int fromIndex);
+    void DuplicateTab(int index);
     void SetDarkMode(bool isDark);
 
     void UpdateActiveTitle(const std::wstring& title);

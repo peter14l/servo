@@ -82,6 +82,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.notify_page_title_changed = OnTitleChanged;
         delegate.notify_load_status_changed = OnLoadStatusChanged;
         delegate.notify_cursor_changed = OnCursorChanged;
+        delegate.notify_favicon_changed = reinterpret_cast<decltype(delegate.notify_favicon_changed)>(OnFaviconChanged);
         delegate.show_alert_dialog = reinterpret_cast<decltype(delegate.show_alert_dialog)>(OnAlertDialog);
         delegate.show_confirm_dialog = reinterpret_cast<decltype(delegate.show_confirm_dialog)>(OnConfirmDialog);
         delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
@@ -421,6 +422,62 @@ void ServoViewHost::OnCursorChanged(struct WebView* webview, int32_t cursorType,
     LPCWSTR idc = servo_view::MapServoCursorToWin32(cursorType);
     self->m_currentCursor = LoadCursorW(nullptr, idc);
     ::SetCursor(self->m_currentCursor);
+}
+
+void ServoViewHost::OnFaviconChanged(struct WebView* webview, const char* url, void* userData) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (self) {
+        self->HandleFaviconChanged(url);
+    }
+}
+
+void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
+    if (!m_webview) return;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t format = 0;
+    size_t len = 0;
+    ServoError err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, nullptr, &len);
+    if ((err == SERVO_ERROR_CAPACITY || err == SERVO_ERROR_OK) && len > 0 && width > 0 && height > 0) {
+        std::vector<uint8_t> buffer(len);
+        err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, buffer.data(), &len);
+        if (err == SERVO_ERROR_OK) {
+            BITMAPINFO bmi = {};
+            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmi.bmiHeader.biWidth = width;
+            bmi.bmiHeader.biHeight = -(LONG)height; // top-down DIB
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = 32;
+            bmi.bmiHeader.biCompression = BI_RGB;
+
+            void* bits = nullptr;
+            HDC screenDC = GetDC(nullptr);
+            HBITMAP hBitmap = CreateDIBSection(screenDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+            ReleaseDC(nullptr, screenDC);
+
+            if (hBitmap && bits) {
+                uint8_t* dst = static_cast<uint8_t*>(bits);
+                const uint8_t* src = buffer.data();
+                size_t numPixels = (size_t)width * height;
+                for (size_t p = 0; p < numPixels; ++p) {
+                    uint8_t r = (format == 0) ? src[p * 4 + 0] : src[p * 4 + 2];
+                    uint8_t g = src[p * 4 + 1];
+                    uint8_t b = (format == 0) ? src[p * 4 + 2] : src[p * 4 + 0];
+                    uint8_t a = src[p * 4 + 3];
+
+                    // Premultiply alpha for GDI AlphaBlend
+                    dst[p * 4 + 0] = (uint8_t)((b * a) / 255);
+                    dst[p * 4 + 1] = (uint8_t)((g * a) / 255);
+                    dst[p * 4 + 2] = (uint8_t)((r * a) / 255);
+                    dst[p * 4 + 3] = a;
+                }
+
+                if (m_browserWindow) {
+                    m_browserWindow->OnTabFaviconUpdated(this, hBitmap, width, height);
+                }
+            }
+        }
+    }
 }
 
 void ServoViewHost::OnAlertDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData) {

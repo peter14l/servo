@@ -44,6 +44,7 @@ public:
     void OnActiveTabUrlChanged(const char* url);
     void OnActiveTabTitleChanged(const char* title);
     void OnActiveTabLoadStatusChanged(int32_t status);
+    void OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
     void UpdateActiveTabUI(const std::string& url, const std::wstring& title);
 
     void OpenDevTools();

@@ -12,6 +12,8 @@
 
 class BrowserWindow;
 
+std::string NormalizeOmniboxInput(const std::string& raw);
+
 class OmniboxToolbar {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);

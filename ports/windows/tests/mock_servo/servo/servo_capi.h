@@ -64,6 +64,15 @@ inline int servo_webview_present(WebView* webview) {
     return 0;
 }
 
+#define SERVO_ERROR_OK 0
+#define SERVO_ERROR_NULL_ARGUMENT -1
+#define SERVO_ERROR_INVALID_UTF8 -2
+#define SERVO_ERROR_INVALID_STATE -3
+#define SERVO_ERROR_NOT_FOUND -4
+#define SERVO_ERROR_CAPACITY -5
+
+typedef int32_t ServoError;
+
 inline int servo_webview_set_page_zoom(WebView* webview, float zoom) {
     (void)webview;
     (void)zoom;
@@ -73,6 +82,23 @@ inline int servo_webview_set_page_zoom(WebView* webview, float zoom) {
 inline float servo_webview_page_zoom(const WebView* webview) {
     (void)webview;
     return 1.0f;
+}
+
+inline int servo_webview_get_favicon_image(
+    const WebView* webview,
+    uint32_t* width,
+    uint32_t* height,
+    uint32_t* format,
+    uint8_t* buffer,
+    size_t* buffer_len
+) {
+    (void)webview;
+    (void)width;
+    (void)height;
+    (void)format;
+    (void)buffer;
+    (void)buffer_len;
+    return SERVO_ERROR_NOT_FOUND;
 }
 
 #ifdef __cplusplus

@@ -10,7 +10,7 @@
 #include <algorithm>
 
 static const wchar_t* TAB_STRIP_CLASS_NAME = L"ServoTabStripWindow";
-static const int TAB_HEIGHT = 38;
+static const int TAB_HEIGHT = 36;
 static const int TAB_MAX_WIDTH = 220;
 static const int TAB_MIN_WIDTH = 100;
 static const int ADD_BTN_WIDTH = 34;
@@ -197,6 +197,23 @@ void TabStrip::UpdateActiveUrl(const std::string& url) {
     }
 }
 
+void TabStrip::UpdateTabFavicon(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height) {
+    for (auto& tab : m_tabs) {
+        if (tab->viewHost.get() == host) {
+            if (tab->faviconBitmap) {
+                DeleteObject(tab->faviconBitmap);
+            }
+            tab->faviconBitmap = hBitmap;
+            tab->faviconWidth = width;
+            tab->faviconHeight = height;
+            if (m_hwnd) {
+                InvalidateRect(m_hwnd, nullptr, FALSE);
+            }
+            break;
+        }
+    }
+}
+
 void TabStrip::LayoutTabs() {
     RECT rc;
     GetClientRect(m_hwnd, &rc);
@@ -209,16 +226,18 @@ void TabStrip::LayoutTabs() {
 
     int curX = 8;
     for (int i = 0; i < count; ++i) {
-        m_tabs[i]->bounds = { curX, 4, curX + tabWidth - 2, TAB_HEIGHT };
-        // Close button at right edge of tab
+        // Tab sits from y=4 to y=34 (30px high)
+        m_tabs[i]->bounds = { curX, 4, curX + tabWidth - 2, 34 };
+        // Close button: 16x16, vertically centered in 30px tab (y = 4 + 7 = 11)
         m_tabs[i]->closeButtonBounds = {
-            m_tabs[i]->bounds.right - 24, 10,
-            m_tabs[i]->bounds.right - 6, 28
+            m_tabs[i]->bounds.right - 22, 11,
+            m_tabs[i]->bounds.right - 6, 27
         };
         curX += tabWidth;
     }
 
-    m_addTabButtonBounds = { curX + 4, 6, curX + 4 + ADD_BTN_WIDTH - 8, TAB_HEIGHT - 6 };
+    // Add Tab button '+' (26x26, vertically centered)
+    m_addTabButtonBounds = { curX + 4, 6, curX + 30, 32 };
 }
 
 void TabStrip::Paint(HDC hdc) {
@@ -237,6 +256,14 @@ void TabStrip::Paint(HDC hdc) {
     FillRect(memDC, &rc, bgBrush);
     DeleteObject(bgBrush);
 
+    // Bottom dividing line across tab strip separating from Omnibox
+    HPEN sepPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
+    HPEN oldSP = (HPEN)SelectObject(memDC, sepPen);
+    MoveToEx(memDC, 0, rc.bottom - 1, nullptr);
+    LineTo(memDC, rc.right, rc.bottom - 1);
+    SelectObject(memDC, oldSP);
+    DeleteObject(sepPen);
+
     HFONT oldFont = (HFONT)SelectObject(memDC, m_font);
     SetBkMode(memDC, TRANSPARENT);
 
@@ -246,41 +273,73 @@ void TabStrip::Paint(HDC hdc) {
         bool isHovered = (static_cast<int>(i) == m_hoveredIndex);
         const auto& tab = m_tabs[i];
 
-        // Tab surface
-        COLORREF tabBg = isActive ? colors.TabBackgroundActive
-                                  : (isHovered ? colors.TabBackgroundHover : colors.TabBackgroundInactive);
+        // Draw subtle vertical divider between inactive tabs
+        if (i > 0 && !isActive && static_cast<int>(i - 1) != m_activeIndex) {
+            HPEN divPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
+            HPEN oldDP = (HPEN)SelectObject(memDC, divPen);
+            MoveToEx(memDC, tab->bounds.left - 1, tab->bounds.top + 7, nullptr);
+            LineTo(memDC, tab->bounds.left - 1, tab->bounds.bottom - 7);
+            SelectObject(memDC, oldDP);
+            DeleteObject(divPen);
+        }
 
-        HBRUSH tabBrush = CreateSolidBrush(tabBg);
-        HPEN tabPen = CreatePen(PS_SOLID, 1, (isActive || isHovered) ? colors.TabBorder : tabBg);
-        HBRUSH oldB = (HBRUSH)SelectObject(memDC, tabBrush);
-        HPEN oldP = (HPEN)SelectObject(memDC, tabPen);
+        // Tab surface (active card or hovered card)
+        if (isActive || isHovered) {
+            COLORREF tabBg = isActive ? colors.TabBackgroundActive : colors.TabBackgroundHover;
+            HBRUSH tabBrush = CreateSolidBrush(tabBg);
+            HPEN tabPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
+            HBRUSH oldB = (HBRUSH)SelectObject(memDC, tabBrush);
+            HPEN oldP = (HPEN)SelectObject(memDC, tabPen);
 
-        // WinUI 3 TabView shape: rounded top corners (6px radius), extending below client bottom
-        RoundRect(memDC, tab->bounds.left, tab->bounds.top, tab->bounds.right, tab->bounds.bottom + 6, 6, 6);
+            // Clean 5px rounded card
+            RoundRect(memDC, tab->bounds.left, tab->bounds.top, tab->bounds.right, tab->bounds.bottom, 6, 6);
 
-        SelectObject(memDC, oldB);
-        SelectObject(memDC, oldP);
-        DeleteObject(tabBrush);
-        DeleteObject(tabPen);
+            SelectObject(memDC, oldB);
+            SelectObject(memDC, oldP);
+            DeleteObject(tabBrush);
+            DeleteObject(tabPen);
+        }
 
         // Active tab top accent indicator line
         if (isActive) {
             HPEN accentPen = CreatePen(PS_SOLID, 2, colors.Accent);
             HPEN oldAP = (HPEN)SelectObject(memDC, accentPen);
-            MoveToEx(memDC, tab->bounds.left + 4, tab->bounds.top, nullptr);
-            LineTo(memDC, tab->bounds.right - 4, tab->bounds.top);
+            MoveToEx(memDC, tab->bounds.left + 6, tab->bounds.top + 1, nullptr);
+            LineTo(memDC, tab->bounds.right - 6, tab->bounds.top + 1);
             SelectObject(memDC, oldAP);
             DeleteObject(accentPen);
         }
 
-        // Tab text
+        // Favicon or fallback globe icon (vertically centered in 30px tab: y = 4 + 7 = 11)
+        int iconX = tab->bounds.left + 8;
+        int iconY = tab->bounds.top + 7;
+        const int iconSize = 16;
+        if (tab->faviconBitmap) {
+            HDC iconDC = CreateCompatibleDC(memDC);
+            HBITMAP oldIconBmp = (HBITMAP)SelectObject(iconDC, tab->faviconBitmap);
+            BLENDFUNCTION bf = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+            AlphaBlend(memDC, iconX, iconY, iconSize, iconSize,
+                       iconDC, 0, 0, tab->faviconWidth ? tab->faviconWidth : iconSize,
+                       tab->faviconHeight ? tab->faviconHeight : iconSize, bf);
+            SelectObject(iconDC, oldIconBmp);
+            DeleteDC(iconDC);
+        } else {
+            // Draw Fluent Globe icon
+            SelectObject(memDC, m_iconFont);
+            SetTextColor(memDC, isActive ? colors.TextPrimary : colors.TextSecondary);
+            RECT iconRect = { iconX, iconY, iconX + iconSize, iconY + iconSize };
+            DrawTextW(memDC, fluent::icons::Globe, -1, &iconRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            SelectObject(memDC, m_font);
+        }
+
+        // Tab text - vertically centered
         SetTextColor(memDC, isActive ? colors.TextPrimary : colors.TextSecondary);
-        RECT textRect = { tab->bounds.left + 10, tab->bounds.top + 6, tab->closeButtonBounds.left - 4, tab->bounds.bottom - 4 };
+        RECT textRect = { iconX + iconSize + 6, tab->bounds.top, tab->closeButtonBounds.left - 4, tab->bounds.bottom };
         DrawTextW(memDC, tab->title.c_str(), -1, &textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
         // Close button using Segoe Fluent Icons Close
         SelectObject(memDC, m_iconFont);
-        SetTextColor(memDC, isHovered ? colors.TextPrimary : colors.TextTertiary);
+        SetTextColor(memDC, (isActive || isHovered) ? colors.TextPrimary : colors.TextTertiary);
         RECT closeRect = tab->closeButtonBounds;
         DrawTextW(memDC, fluent::icons::Close, -1, &closeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         SelectObject(memDC, m_font);

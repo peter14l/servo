@@ -34,7 +34,7 @@ static std::string UrlEncode(const std::string& value) {
     return escaped.str();
 }
 
-static std::string NormalizeOmniboxInput(const std::string& raw) {
+std::string NormalizeOmniboxInput(const std::string& raw) {
     // 1. Trim leading and trailing whitespace
     size_t first = raw.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) return "";
@@ -54,6 +54,20 @@ static std::string NormalizeOmniboxInput(const std::string& raw) {
         first = input.find_first_not_of(" \t\r\n");
         if (first == std::string::npos) return "";
         input = input.substr(first);
+    }
+
+    // Rewrite apex youtube.com to www.youtube.com to prevent TLS renegotiation failure
+    if (input == "youtube.com") {
+        return "https://www.youtube.com/";
+    }
+    if (input.rfind("youtube.com/", 0) == 0) {
+        return "https://www." + input;
+    }
+    if (input.rfind("https://youtube.com", 0) == 0) {
+        return "https://www." + input.substr(8);
+    }
+    if (input.rfind("http://youtube.com", 0) == 0) {
+        return "https://www." + input.substr(7);
     }
 
     // 3. Explicit scheme present
@@ -128,10 +142,11 @@ OmniboxToolbar::OmniboxToolbar(HWND parentHwnd, BrowserWindow* browserWindow)
 
     SetWindowSubclass(m_editHwnd, EditSubclassProc, EDIT_SUBCLASS_ID, reinterpret_cast<DWORD_PTR>(this));
 
-    m_font = fluent::CreateFluentFont(15);
+    m_font = fluent::CreateFluentFont(14);
     m_iconFont = fluent::CreateFluentIconFont(14);
 
     SendMessageW(m_editHwnd, WM_SETFONT, (WPARAM)m_font, TRUE);
+    SendMessageW(m_editHwnd, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(4, 4));
 }
 
 OmniboxToolbar::~OmniboxToolbar() {
@@ -200,8 +215,10 @@ void OmniboxToolbar::LayoutControls() {
     m_omniboxBounds = { x, y, x + editWidth, y + btnSize };
 
     if (m_editHwnd) {
-        // Space 32px on the left for the HTTPS lock icon inside the omnibox
-        SetWindowPos(m_editHwnd, nullptr, x + 32, y + 5, editWidth - 40, btnSize - 10, SWP_NOZORDER | SWP_NOACTIVATE);
+        // Center the 18px single-line edit control vertically inside the 32px pill
+        int editHeight = 18;
+        int editY = y + (btnSize - editHeight) / 2;
+        SetWindowPos(m_editHwnd, nullptr, x + 30, editY, editWidth - 38, editHeight, SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 

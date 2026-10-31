@@ -24,7 +24,7 @@
 #endif
 
 static const wchar_t* BROWSER_WINDOW_CLASS_NAME = L"ServoBrowserMainWindow";
-static const int TOP_CHROME_HEIGHT = 82; // 38 (Tabs) + 44 (Omnibox)
+static const int TOP_CHROME_HEIGHT = 80; // 36 (Tabs) + 44 (Omnibox)
 
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
@@ -112,22 +112,21 @@ BrowserWindow::BrowserWindow(struct Servo* servo)
 BrowserWindow::~BrowserWindow() = default;
 
 void BrowserWindow::ApplyMicaAltTheme() {
-    LogDebug("Mica Alt is currently disabled for testing.");
-    // Disabled Mica Alt for testing
-    /*
     if (!m_hwnd) return;
+    LogDebug("Applying Mica Alt theme...");
 
-    // 1. Enable Windows 11 Mica Alt (DWMSBT_TABBEDWINDOW = 4)
-    int backdrop = DWMSBT_TABBEDWINDOW;
-    DwmSetWindowAttribute(m_hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
-
-    // 2. Sync dark mode
+    // 1. Sync dark mode
     SyncDarkMode();
+
+    // 2. Enable Windows 11 Mica Alt (DWMSBT_TABBEDWINDOW = 4)
+    int backdrop = DWMSBT_TABBEDWINDOW;
+    HRESULT hr = DwmSetWindowAttribute(m_hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
+    LogDebug("DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_TABBEDWINDOW) returned 0x%08X", hr);
 
     // 3. Extend frame into client area for seamless titlebar
     MARGINS margins = { -1 };
-    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
-    */
+    hr = DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    LogDebug("DwmExtendFrameIntoClientArea returned 0x%08X", hr);
 }
 
 void BrowserWindow::SyncDarkMode() {
@@ -160,11 +159,11 @@ void BrowserWindow::LayoutChildren() {
     int height = rc.bottom;
 
     if (m_tabStrip) {
-        m_tabStrip->SetBounds(0, 0, width, 38);
+        m_tabStrip->SetBounds(0, 0, width, 36);
     }
 
     if (m_omnibox) {
-        m_omnibox->SetBounds(0, 38, width, 44);
+        m_omnibox->SetBounds(0, 36, width, 44);
     }
 
     auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
@@ -366,6 +365,12 @@ void BrowserWindow::OnActiveTabLoadStatusChanged(int32_t status) {
     auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
     if (tab && tab->viewHost && m_omnibox) {
         m_omnibox->UpdateNavigationState(tab->viewHost->CanGoBack(), tab->viewHost->CanGoForward());
+    }
+}
+
+void BrowserWindow::OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height) {
+    if (m_tabStrip) {
+        m_tabStrip->UpdateTabFavicon(host, hBitmap, width, height);
     }
 }
 

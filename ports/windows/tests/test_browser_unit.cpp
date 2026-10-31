@@ -24,6 +24,8 @@
 #include "../src/servo_raw_window.h"
 #include "../src/fluent_theme.h"
 #include "../src/servo_view_utils.h"
+#include "../src/tab_strip.h"
+#include "../src/omnibox.h"
 
 // Test harness macros
 static int g_tests_run = 0;
@@ -86,88 +88,34 @@ void test_raw_window_handle_layout() {
 // -----------------------------------------------------------------------------
 // 2. Omnibox URL & Search Query Parsing Edge Cases
 // -----------------------------------------------------------------------------
-static std::string url_encode(const std::string& value) {
-    std::ostringstream escaped;
-    escaped.fill('0');
-    escaped << std::hex;
-
-    for (unsigned char c : value) {
-        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-            escaped << c;
-        } else if (c == ' ') {
-            escaped << '+';
-        } else {
-            escaped << '%' << std::uppercase << std::setw(2) << int(c) << std::nouppercase;
-        }
-    }
-
-    return escaped.str();
-}
-
-std::string normalize_omnibox_input(const std::string& raw) {
-    // 1. Trim leading and trailing whitespace
-    size_t first = raw.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos) return "";
-    size_t last = raw.find_last_not_of(" \t\r\n");
-    std::string input = raw.substr(first, (last - first + 1));
-
-    if (input.empty()) return "";
-
-    // 2. Strip '? ' or '?' search prefix if present
-    if (input.rfind("? ", 0) == 0) {
-        input = input.substr(2);
-        first = input.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos) return "";
-        input = input.substr(first);
-    } else if (input.rfind("?", 0) == 0 && input.size() > 1 && input[1] != '/') {
-        input = input.substr(1);
-        first = input.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos) return "";
-        input = input.substr(first);
-    }
-
-    // 3. Explicit scheme present
-    if (input.find("://") != std::string::npos || input.rfind("about:", 0) == 0) {
-        return input;
-    }
-
-    // 4. Localhost or loopback IP (with or without port)
-    if (input == "localhost" || input.rfind("localhost:", 0) == 0 ||
-        input.rfind("127.0.0.1", 0) == 0) {
-        return "http://" + input;
-    }
-
-    // 5. Domain name without spaces
-    if (input.find('.') != std::string::npos && input.find(' ') == std::string::npos) {
-        return "https://" + input;
-    }
-
-    // 6. Search query via DuckDuckGo HTML endpoint
-    return "https://duckduckgo.com/html/?q=" + url_encode(input);
-}
-
 void test_omnibox_normalization_edge_cases() {
-    TEST_ASSERT(normalize_omnibox_input("https://servo.org") == "https://servo.org", "Standard HTTPS URL");
-    TEST_ASSERT(normalize_omnibox_input("http://servo.org/docs") == "http://servo.org/docs", "Standard HTTP URL");
-    TEST_ASSERT(normalize_omnibox_input("about:blank") == "about:blank", "about:blank scheme");
-    TEST_ASSERT(normalize_omnibox_input("about:version") == "about:version", "about:version scheme");
+    TEST_ASSERT(NormalizeOmniboxInput("https://servo.org") == "https://servo.org", "Standard HTTPS URL");
+    TEST_ASSERT(NormalizeOmniboxInput("http://servo.org/docs") == "http://servo.org/docs", "Standard HTTP URL");
+    TEST_ASSERT(NormalizeOmniboxInput("about:blank") == "about:blank", "about:blank scheme");
+    TEST_ASSERT(NormalizeOmniboxInput("about:version") == "about:version", "about:version scheme");
+
+    // YouTube apex domain rewrite
+    TEST_ASSERT(NormalizeOmniboxInput("youtube.com") == "https://www.youtube.com/", "YouTube apex domain");
+    TEST_ASSERT(NormalizeOmniboxInput("youtube.com/feed/subscriptions") == "https://www.youtube.com/feed/subscriptions", "YouTube apex path");
+    TEST_ASSERT(NormalizeOmniboxInput("https://youtube.com") == "https://www.youtube.com", "YouTube https scheme rewrite");
+    TEST_ASSERT(NormalizeOmniboxInput("http://youtube.com/watch?v=abc") == "https://www.youtube.com/watch?v=abc", "YouTube http scheme rewrite");
 
     // Domain edge cases
-    TEST_ASSERT(normalize_omnibox_input("servo.org") == "https://servo.org", "Bare domain prefix https");
-    TEST_ASSERT(normalize_omnibox_input("google.com/search?q=rust") == "https://google.com/search?q=rust", "Domain with path & query");
-    TEST_ASSERT(normalize_omnibox_input("   servo.org   ") == "https://servo.org", "Whitespace trimming");
+    TEST_ASSERT(NormalizeOmniboxInput("servo.org") == "https://servo.org", "Bare domain prefix https");
+    TEST_ASSERT(NormalizeOmniboxInput("google.com/search?q=rust") == "https://google.com/search?q=rust", "Domain with path & query");
+    TEST_ASSERT(NormalizeOmniboxInput("   servo.org   ") == "https://servo.org", "Whitespace trimming");
 
     // Localhost edge cases
-    TEST_ASSERT(normalize_omnibox_input("localhost") == "http://localhost", "Localhost without port");
-    TEST_ASSERT(normalize_omnibox_input("localhost:8080") == "http://localhost:8080", "Localhost with port");
-    TEST_ASSERT(normalize_omnibox_input("127.0.0.1:3000") == "http://127.0.0.1:3000", "Loopback IP with port");
+    TEST_ASSERT(NormalizeOmniboxInput("localhost") == "http://localhost", "Localhost without port");
+    TEST_ASSERT(NormalizeOmniboxInput("localhost:8080") == "http://localhost:8080", "Localhost with port");
+    TEST_ASSERT(NormalizeOmniboxInput("127.0.0.1:3000") == "http://127.0.0.1:3000", "Loopback IP with port");
 
     // Search query edge cases
-    TEST_ASSERT(normalize_omnibox_input("servo browser engine") == "https://duckduckgo.com/html/?q=servo+browser+engine", "Multi-word search query");
-    TEST_ASSERT(normalize_omnibox_input("what is rust?") == "https://duckduckgo.com/html/?q=what+is+rust%3F", "Search query with punctuation");
-    TEST_ASSERT(normalize_omnibox_input("? rust servo") == "https://duckduckgo.com/html/?q=rust+servo", "Search query with ? prefix");
-    TEST_ASSERT(normalize_omnibox_input("") == "", "Empty string handling");
-    TEST_ASSERT(normalize_omnibox_input("     ") == "", "Pure whitespace string handling");
+    TEST_ASSERT(NormalizeOmniboxInput("servo browser engine") == "https://duckduckgo.com/html/?q=servo+browser+engine", "Multi-word search query");
+    TEST_ASSERT(NormalizeOmniboxInput("what is rust?") == "https://duckduckgo.com/html/?q=what+is+rust%3F", "Search query with punctuation");
+    TEST_ASSERT(NormalizeOmniboxInput("? rust servo") == "https://duckduckgo.com/html/?q=rust+servo", "Search query with ? prefix");
+    TEST_ASSERT(NormalizeOmniboxInput("") == "", "Empty string handling");
+    TEST_ASSERT(NormalizeOmniboxInput("     ") == "", "Pure whitespace string handling");
 }
 
 // -----------------------------------------------------------------------------
@@ -585,6 +533,31 @@ void test_cursor_and_keyboard_mapping() {
     TEST_ASSERT(key == " " && code == "Space", "VK_SPACE maps to Space");
 }
 
+void test_tab_favicon_lifecycle() {
+    // Verify fluent Globe icon
+    TEST_ASSERT(std::wstring(fluent::icons::Globe) == L"\uE774", "Fluent Globe icon codepoint");
+
+    // Verify BrowserTab favicon destruction lifecycle
+    {
+        BrowserTab tab = {};
+        tab.id = 1;
+        tab.title = L"Test Tab";
+        TEST_ASSERT(tab.faviconBitmap == nullptr, "Initial faviconBitmap is null");
+        TEST_ASSERT(tab.faviconWidth == 0, "Initial faviconWidth is 0");
+        TEST_ASSERT(tab.faviconHeight == 0, "Initial faviconHeight is 0");
+
+        // Simulate assigning a mock bitmap
+        HDC screenDC = GetDC(nullptr);
+        HBITMAP bmp = CreateCompatibleBitmap(screenDC, 16, 16);
+        ReleaseDC(nullptr, screenDC);
+        tab.faviconBitmap = bmp;
+        tab.faviconWidth = 16;
+        tab.faviconHeight = 16;
+        TEST_ASSERT(tab.faviconBitmap != nullptr, "Favicon bitmap assigned");
+        // tab destructor will safely DeleteObject(tab.faviconBitmap)
+    }
+}
+
 // -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
@@ -605,6 +578,7 @@ int main() {
     RUN_TEST(test_zoom_calculations);
     RUN_TEST(test_fluent_theme_tokens_and_icons);
     RUN_TEST(test_cursor_and_keyboard_mapping);
+    RUN_TEST(test_tab_favicon_lifecycle);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

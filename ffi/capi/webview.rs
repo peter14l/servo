@@ -1020,6 +1020,63 @@ pub unsafe extern "C" fn servo_webview_get_status_text(
     unsafe { write_c_string(&status, buffer, buffer_len) }
 }
 
+/// Copies the favicon image data of the `WebView` into `buffer`.
+///
+/// If a favicon is available:
+/// - `width` is set to the image width in pixels.
+/// - `height` is set to the image height in pixels.
+/// - `format` is set to 0 for RGBA8, 1 for BGRA8.
+/// - If `buffer` is NULL or `*buffer_len` is smaller than the required size,
+///   `*buffer_len` is set to the required byte count and `ServoError::Capacity` is returned.
+/// - If `buffer` is non-null and sufficient, the pixel data is copied and `ServoError::Ok` is returned.
+///
+/// If no favicon is available, returns `ServoError::NotFound`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_get_favicon_image(
+    webview: *const WebView,
+    width: *mut u32,
+    height: *mut u32,
+    format: *mut u32,
+    buffer: *mut u8,
+    buffer_len: *mut usize,
+) -> ServoError {
+    if webview.is_null() || width.is_null() || height.is_null() || buffer_len.is_null() {
+        return ServoError::NullArgument;
+    }
+
+    let webview = unsafe { &*webview };
+    let Some(favicon) = webview.favicon() else {
+        return ServoError::NotFound;
+    };
+
+    unsafe {
+        *width = favicon.width;
+        *height = favicon.height;
+        if !format.is_null() {
+            *format = match favicon.format {
+                embedder_traits::PixelFormat::RGBA8 => 0,
+                embedder_traits::PixelFormat::BGRA8 => 1,
+                _ => 0,
+            };
+        }
+    }
+
+    let data = favicon.data();
+    let needed = data.len();
+
+    unsafe {
+        if buffer.is_null() || *buffer_len < needed {
+            *buffer_len = needed;
+            return ServoError::Capacity;
+        }
+
+        *buffer_len = needed;
+        std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, needed);
+    }
+
+    ServoError::Ok
+}
+
 /// Returns the load status of `webview`.
 ///
 /// The returned value is one of the `SERVO_LOAD_STATUS_*` constants. Note that

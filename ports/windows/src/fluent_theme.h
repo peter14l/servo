@@ -27,6 +27,7 @@ namespace icons {
     constexpr const wchar_t* More = L"\uE712";
     constexpr const wchar_t* ChevronUp = L"\uE70E";
     constexpr const wchar_t* ChevronDown = L"\uE70D";
+    constexpr const wchar_t* Globe = L"\uE774";
 }
 
 // WinUI 3 Fluent Design System Color Tokens
@@ -92,8 +93,9 @@ inline ThemeColors GetLightColors() {
 }
 
 inline HFONT CreateFluentFont(int height, int weight = FW_NORMAL, bool italic = false) {
+    int fontHeight = (height > 0) ? -height : height;
     return CreateFontW(
-        height, 0, 0, 0, weight, italic ? TRUE : FALSE, FALSE, FALSE,
+        fontHeight, 0, 0, 0, weight, italic ? TRUE : FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         L"Segoe UI Variable Text"
@@ -102,8 +104,9 @@ inline HFONT CreateFluentFont(int height, int weight = FW_NORMAL, bool italic = 
 
 inline HFONT CreateFluentIconFont(int height) {
     // Falls back gracefully: Segoe Fluent Icons (Win 11) -> Segoe MDL2 Assets (Win 10) -> Segoe UI Symbol
+    int fontHeight = (height > 0) ? -height : height;
     return CreateFontW(
-        height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        fontHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         L"Segoe Fluent Icons"

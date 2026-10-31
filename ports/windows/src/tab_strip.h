@@ -22,6 +22,16 @@ struct BrowserTab {
     std::unique_ptr<ServoViewHost> viewHost;
     RECT bounds;
     RECT closeButtonBounds;
+    HBITMAP faviconBitmap = nullptr;
+    uint32_t faviconWidth = 0;
+    uint32_t faviconHeight = 0;
+
+    ~BrowserTab() {
+        if (faviconBitmap) {
+            DeleteObject(faviconBitmap);
+            faviconBitmap = nullptr;
+        }
+    }
 };
 
 class TabStrip {
@@ -49,6 +59,7 @@ public:
 
     void UpdateActiveTitle(const std::wstring& title);
     void UpdateActiveUrl(const std::string& url);
+    void UpdateTabFavicon(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

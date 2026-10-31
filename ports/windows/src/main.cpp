@@ -117,6 +117,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     ServoPreferences* prefs = servo_preferences_create();
     if (prefs) {
         servo_preferences_set_bool(prefs, "devtools_server_enabled", false);
+        servo_preferences_set_string(prefs, "user_agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0");
         servo_builder_set_preferences(builder, prefs);
     }
 
@@ -147,7 +149,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     LogDebug("Window classes registered.");
 
     // 4. Create and Show Browser Window
-    BrowserWindow* browserWindow = BrowserWindow::Create(servo, "https://servo.org");
+    const char* initial_url = "https://servo.org";
+    if (__argc > 1 && __argv[1] && __argv[1][0] != '\0') {
+        initial_url = __argv[1];
+    }
+    BrowserWindow* browserWindow = BrowserWindow::Create(servo, initial_url);
     if (!browserWindow) {
         LogDebug("BrowserWindow::Create failed!");
         servo_free(servo);

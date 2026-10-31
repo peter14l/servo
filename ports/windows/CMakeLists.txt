@@ -72,6 +72,7 @@ target_link_libraries(servo_browser PRIVATE
     shlwapi
     user32
     gdi32
+    msimg32
     ole32
     shell32
 )
@@ -85,5 +86,16 @@ set_target_properties(servo_browser PROPERTIES
 enable_testing()
 add_executable(test_browser_unit tests/test_browser_unit.cpp)
 target_include_directories(test_browser_unit PRIVATE src tests/mock_servo)
+target_link_libraries(test_browser_unit PRIVATE
+    dwmapi
+    uxtheme
+    comctl32
+    shlwapi
+    user32
+    gdi32
+    msimg32
+    ole32
+    shell32
+)
 add_test(NAME BrowserUnitTests COMMAND test_browser_unit)
 

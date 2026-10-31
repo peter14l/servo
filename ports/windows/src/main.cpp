@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <objbase.h>
+#include <shlobj.h>
 
 #include <servo/servo_capi.h>
 #include "browser_window.h"
@@ -113,13 +114,58 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_builder_set_options(builder, options);
     }
 
-    // Set preferences
+    // Set preferences: Configure Chrome 131 Desktop persona and enable modern web platform capabilities
     ServoPreferences* prefs = servo_preferences_create();
     if (prefs) {
         servo_preferences_set_bool(prefs, "devtools_server_enabled", false);
         servo_preferences_set_string(prefs, "user_agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0");
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+
+        // Modern web platform features required by complex web applications (Instagram, YouTube, Google)
+        servo_preferences_set_bool(prefs, "dom_indexeddb_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_storage_manager_api_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_cookiestore_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_crypto_subtle_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_fontface_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_async_clipboard_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_offscreen_canvas_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_permissions_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_webgl2_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_visual_viewport_enabled", true);
+        servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
+        servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
+
         servo_builder_set_preferences(builder, prefs);
+    }
+
+    // Configure Persistent Request Context (Cookies & HTTP Cache storage in %LOCALAPPDATA%\Servo Browser)
+    ServoRequestContext* reqCtx = servo_request_context_create();
+    if (reqCtx) {
+        wchar_t localAppData[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+            std::wstring baseDir = std::wstring(localAppData) + L"\\Servo Browser";
+            CreateDirectoryW(baseDir.c_str(), nullptr);
+            std::wstring cookieDir = baseDir + L"\\Cookies";
+            CreateDirectoryW(cookieDir.c_str(), nullptr);
+            std::wstring cacheDir = baseDir + L"\\Cache";
+            CreateDirectoryW(cacheDir.c_str(), nullptr);
+
+            int utf8Len = WideCharToMultiByte(CP_UTF8, 0, cookieDir.c_str(), -1, nullptr, 0, nullptr, nullptr);
+            if (utf8Len > 1) {
+                std::string cookieDirA(utf8Len - 1, 0);
+                WideCharToMultiByte(CP_UTF8, 0, cookieDir.c_str(), -1, &cookieDirA[0], utf8Len, nullptr, nullptr);
+                servo_request_context_set_cookie_path(reqCtx, cookieDirA.c_str());
+            }
+
+            utf8Len = WideCharToMultiByte(CP_UTF8, 0, cacheDir.c_str(), -1, nullptr, 0, nullptr, nullptr);
+            if (utf8Len > 1) {
+                std::string cacheDirA(utf8Len - 1, 0);
+                WideCharToMultiByte(CP_UTF8, 0, cacheDir.c_str(), -1, &cacheDirA[0], utf8Len, nullptr, nullptr);
+                servo_request_context_set_cache_path(reqCtx, cacheDirA.c_str());
+            }
+        }
+        servo_request_context_set_accept_language(reqCtx, "en-US,en;q=0.9");
+        servo_builder_set_request_context(builder, reqCtx);
     }
 
     // Set delegate for DevTools notifications

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use servo_config::pref;
+
 use crate::dom::bindings::str::DOMString;
 
 #[expect(non_snake_case)]
@@ -16,7 +18,14 @@ pub(crate) fn ProductSub() -> DOMString {
 
 #[expect(non_snake_case)]
 pub(crate) fn Vendor() -> DOMString {
-    DOMString::new()
+    let ua = pref!(user_agent);
+    if ua.contains("Chrome") {
+        DOMString::from_static("Google Inc.")
+    } else if ua.contains("AppleWebKit") && !ua.contains("Chrome") {
+        DOMString::from_static("Apple Computer, Inc.")
+    } else {
+        DOMString::new()
+    }
 }
 
 #[expect(non_snake_case)]
@@ -70,17 +79,22 @@ pub(crate) fn UserAgent(user_agent: &str) -> DOMString {
 
 #[expect(non_snake_case)]
 pub(crate) fn AppVersion() -> DOMString {
-    // Firefox intentionally reduces appVersion to a platform hint (for
-    // example "5.0 (Windows)") rather than echoing the full user agent.
-    // Legacy download pages parse this to decide which installer to offer.
-    let platform = match std::env::consts::OS {
-        "windows" => "Windows",
-        "macos" => "Macintosh",
-        "android" => "Android",
-        "ios" => "iPhone",
-        _ => "X11",
-    };
-    DOMString::from(format!("5.0 ({platform})"))
+    let ua = pref!(user_agent);
+    if let Some(rest) = ua.strip_prefix("Mozilla/") {
+        DOMString::from(rest)
+    } else {
+        // Firefox intentionally reduces appVersion to a platform hint (for
+        // example "5.0 (Windows)") rather than echoing the full user agent.
+        // Legacy download pages parse this to decide which installer to offer.
+        let platform = match std::env::consts::OS {
+            "windows" => "Windows",
+            "macos" => "Macintosh",
+            "android" => "Android",
+            "ios" => "iPhone",
+            _ => "X11",
+        };
+        DOMString::from(format!("5.0 ({platform})"))
+    }
 }
 
 #[expect(non_snake_case)]

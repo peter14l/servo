@@ -24,6 +24,13 @@
 #include "../src/servo_raw_window.h"
 #include "../src/fluent_theme.h"
 #include "../src/servo_view_utils.h"
+
+// Forward-declare / mock classes for unit tests before headers that use them
+class ServoViewHost {
+public:
+    ~ServoViewHost() = default;
+};
+
 #include "../src/tab_strip.h"
 #include "../src/omnibox.h"
 

@@ -23,6 +23,7 @@
 // Include Windows Port headers
 #include "../src/servo_raw_window.h"
 #include "../src/fluent_theme.h"
+#include "../src/servo_view_utils.h"
 
 // Test harness macros
 static int g_tests_run = 0;
@@ -551,6 +552,40 @@ void test_fluent_theme_tokens_and_icons() {
 }
 
 // -----------------------------------------------------------------------------
+// 11. Cursor and Win32 Key Mapping
+// -----------------------------------------------------------------------------
+void test_cursor_and_keyboard_mapping() {
+    using namespace servo_view;
+
+    // Verify cursor types
+    TEST_ASSERT(MapServoCursorToWin32(0) == IDC_ARROW, "Cursor 0 must be IDC_ARROW");
+    TEST_ASSERT(MapServoCursorToWin32(1) == IDC_CROSS, "Cursor 1 must be IDC_CROSS");
+    TEST_ASSERT(MapServoCursorToWin32(2) == IDC_HAND, "Cursor 2 must be IDC_HAND");
+    TEST_ASSERT(MapServoCursorToWin32(3) == IDC_IBEAM, "Cursor 3 must be IDC_IBEAM (not IDC_WAIT)");
+    TEST_ASSERT(MapServoCursorToWin32(4) == IDC_WAIT, "Cursor 4 must be IDC_WAIT");
+
+    // Verify control and navigation keys
+    std::string key, code;
+    TranslateWin32Key(VK_RETURN, 0, key, code);
+    TEST_ASSERT(key == "Enter" && code == "Enter", "VK_RETURN maps to Enter");
+
+    TranslateWin32Key(VK_BACK, 0, key, code);
+    TEST_ASSERT(key == "Backspace" && code == "Backspace", "VK_BACK maps to Backspace");
+
+    TranslateWin32Key(VK_TAB, 0, key, code);
+    TEST_ASSERT(key == "Tab" && code == "Tab", "VK_TAB maps to Tab");
+
+    TranslateWin32Key(VK_ESCAPE, 0, key, code);
+    TEST_ASSERT(key == "Escape" && code == "Escape", "VK_ESCAPE maps to Escape");
+
+    TranslateWin32Key(VK_LEFT, 0, key, code);
+    TEST_ASSERT(key == "ArrowLeft" && code == "ArrowLeft", "VK_LEFT maps to ArrowLeft");
+
+    TranslateWin32Key(VK_SPACE, 0, key, code);
+    TEST_ASSERT(key == " " && code == "Space", "VK_SPACE maps to Space");
+}
+
+// -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
 int main() {
@@ -569,6 +604,7 @@ int main() {
     RUN_TEST(test_keyboard_shortcut_mapping);
     RUN_TEST(test_zoom_calculations);
     RUN_TEST(test_fluent_theme_tokens_and_icons);
+    RUN_TEST(test_cursor_and_keyboard_mapping);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

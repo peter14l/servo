@@ -11,6 +11,7 @@
 #include <string>
 #include <functional>
 #include <servo/servo_capi.h>
+#include "servo_view_utils.h"
 
 class BrowserWindow;
 

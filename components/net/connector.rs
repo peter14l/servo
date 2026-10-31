@@ -670,5 +670,6 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
         // limit controls the maximum idle connections per host, which we still don't want to grow
         // without bound.
         .pool_max_idle_per_host(6)
+        .pool_idle_timeout(Duration::from_secs(15))
         .build(InstrumentedConnector::from(connector))
 }

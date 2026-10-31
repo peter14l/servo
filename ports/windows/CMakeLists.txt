@@ -27,6 +27,7 @@ set(SOURCES
 set(HEADERS
     src/browser_window.h
     src/servo_view_host.h
+    src/servo_view_utils.h
     src/servo_raw_window.h
     src/tab_strip.h
     src/omnibox.h

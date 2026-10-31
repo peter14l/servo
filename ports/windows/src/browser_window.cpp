@@ -379,7 +379,6 @@ void BrowserWindow::UpdateActiveTabUI(const std::string& url, const std::wstring
 }
 
 LRESULT CALLBACK BrowserWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    LogDebug("BrowserWindow::WndProc msg=0x%04X hwnd=0x%p", msg, hwnd);
     BrowserWindow* self = nullptr;
     if (msg == WM_NCCREATE) {
         auto cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -401,6 +400,12 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+    case WM_TIMER:
+        if (m_servo) {
+            servo_spin_event_loop(m_servo);
+        }
+        return 0;
+
     case WM_SIZE:
         LayoutChildren();
         return 0;

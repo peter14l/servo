@@ -56,11 +56,10 @@ static HWND g_main_hwnd = nullptr;
 static BrowserWindow* g_browser_window = nullptr;
 
 static void on_servo_wake_callback(void) {
-    if (g_main_thread_id != 0) {
-        PostThreadMessageW(g_main_thread_id, WM_APP_SERVO_WAKE, 0, 0);
-    }
     if (g_main_hwnd && IsWindow(g_main_hwnd)) {
         PostMessageW(g_main_hwnd, WM_APP_SERVO_WAKE, 0, 0);
+    } else if (g_main_thread_id != 0) {
+        PostThreadMessageW(g_main_thread_id, WM_APP_SERVO_WAKE, 0, 0);
     }
 }
 
@@ -168,17 +167,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0)) {
         if (msg.message == WM_APP_SERVO_WAKE) {
-            ServoError err = servo_spin_event_loop(servo);
-            if (err != SERVO_ERROR_OK) {
-                LogDebug("servo_spin_event_loop returned error %d", (int)err);
-            }
+            servo_spin_event_loop(servo);
         } else {
-            LogDebug("Dispatching msg=0x%04X hwnd=0x%p", msg.message, msg.hwnd);
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
-            LogDebug("Dispatch done for 0x%04X, spinning servo...", msg.message);
-            ServoError err = servo_spin_event_loop(servo);
-            LogDebug("servo_spin_event_loop returned %d", (int)err);
         }
     }
     LogDebug("Message pump finished with code %d", (int)msg.wParam);

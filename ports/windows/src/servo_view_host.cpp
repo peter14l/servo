@@ -225,9 +225,8 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(m_hwnd, &ps);
         if (m_webview) {
-            ServoError paintErr = servo_webview_paint(m_webview);
-            ServoError presentErr = servo_webview_present(m_webview);
-            LogDebug("servo_webview_paint: %d, servo_webview_present: %d", (int)paintErr, (int)presentErr);
+            servo_webview_paint(m_webview);
+            servo_webview_present(m_webview);
         }
 
         EndPaint(m_hwnd, &ps);
@@ -330,8 +329,21 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
         if (m_webview) {
+            // Match natural Windows / trackpad scrolling direction
             servo_webview_notify_wheel_event(
-                m_webview, 0, -delta, 0, SERVO_WHEEL_DELTA_LINE, pt.x, pt.y
+                m_webview, 0, delta, 0, SERVO_WHEEL_DELTA_LINE, pt.x, pt.y
+            );
+        }
+        return 0;
+    }
+
+    case WM_MOUSEHWHEEL: {
+        short delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        ScreenToClient(m_hwnd, &pt);
+        if (m_webview) {
+            servo_webview_notify_wheel_event(
+                m_webview, delta, 0, 0, SERVO_WHEEL_DELTA_LINE, pt.x, pt.y
             );
         }
         return 0;
@@ -349,9 +361,10 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         if (m_webview) {
-            char keyStr[2] = { static_cast<char>(wParam & 0x7F), 0 };
+            std::string key, code;
+            servo_view::TranslateWin32Key(wParam, lParam, key, code);
             servo_webview_notify_key_event(
-                m_webview, SERVO_KEY_EVENT_DOWN, keyStr, "", 0, GetServoModifiers(), false, false
+                m_webview, SERVO_KEY_EVENT_DOWN, key.c_str(), code.c_str(), 0, GetServoModifiers(), false, false
             );
         }
         return 0;
@@ -360,9 +373,10 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_KEYUP:
     case WM_SYSKEYUP: {
         if (m_webview) {
-            char keyStr[2] = { static_cast<char>(wParam & 0x7F), 0 };
+            std::string key, code;
+            servo_view::TranslateWin32Key(wParam, lParam, key, code);
             servo_webview_notify_key_event(
-                m_webview, SERVO_KEY_EVENT_UP, keyStr, "", 0, GetServoModifiers(), false, false
+                m_webview, SERVO_KEY_EVENT_UP, key.c_str(), code.c_str(), 0, GetServoModifiers(), false, false
             );
         }
         return 0;
@@ -376,12 +390,10 @@ void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_hwnd) {
         InvalidateRect(self->m_hwnd, nullptr, FALSE);
-        UpdateWindow(self->m_hwnd);
     }
 }
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {
-    LogDebug("ServoViewHost::OnUrlChanged: %s", url ? url : "(null)");
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow && url) {
         self->m_browserWindow->OnActiveTabUrlChanged(url);
@@ -389,7 +401,6 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
 }
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
-    LogDebug("ServoViewHost::OnTitleChanged: %s", title ? title : "(null)");
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow && title) {
         self->m_browserWindow->OnActiveTabTitleChanged(title);
@@ -397,7 +408,6 @@ void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, v
 }
 
 void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData) {
-    LogDebug("ServoViewHost::OnLoadStatusChanged: %d", status);
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
@@ -408,20 +418,7 @@ void ServoViewHost::OnCursorChanged(struct WebView* webview, int32_t cursorType,
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (!self) return;
 
-    LPCWSTR idc = IDC_ARROW;
-    switch (cursorType) {
-    case 1: idc = IDC_HAND; break;
-    case 2: idc = IDC_IBEAM; break;
-    case 3: idc = IDC_WAIT; break;
-    case 4: idc = IDC_CROSS; break;
-    case 5: idc = IDC_SIZENWSE; break;
-    case 6: idc = IDC_SIZENESW; break;
-    case 7: idc = IDC_SIZEWE; break;
-    case 8: idc = IDC_SIZENS; break;
-    case 9: idc = IDC_SIZEALL; break;
-    case 10: idc = IDC_NO; break;
-    default: idc = IDC_ARROW; break;
-    }
+    LPCWSTR idc = servo_view::MapServoCursorToWin32(cursorType);
     self->m_currentCursor = LoadCursorW(nullptr, idc);
     ::SetCursor(self->m_currentCursor);
 }

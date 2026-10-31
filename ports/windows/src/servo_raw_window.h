@@ -42,6 +42,18 @@ inline RenderingContext* create_win32_rendering_context(HWND hwnd, uint32_t widt
         return nullptr;
     }
 
+    // 1. First-class native HWND bridge (Rust constructs exact RawWindowHandle::Win32)
+    RenderingContext* ctx = servo_rendering_context_create_windows_hwnd(
+        reinterpret_cast<void*>(hwnd),
+        nullptr,
+        width,
+        height
+    );
+    if (ctx) {
+        return ctx;
+    }
+
+    // 2. Fallback to raw handle pointer passing
     RawDisplayHandleWindows display_handle = {};
     display_handle.tag = 9; // RawDisplayHandle::Windows
 

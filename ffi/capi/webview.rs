@@ -704,6 +704,32 @@ pub unsafe extern "C" fn servo_webview_paint(webview: *mut WebView) -> ServoErro
     })
 }
 
+/// Presents the current frame of the `WebView`'s rendering context to the screen.
+///
+/// For double-buffered window rendering contexts, this swaps the front and back buffers
+/// (e.g. calling `SwapBuffers` on Win32 or `IDXGISwapChain::Present`).
+///
+/// Returns `ServoError::Ok` on success, or `ServoError::NullArgument` if `webview` is null.
+///
+/// # Safety
+///
+/// The caller must ensure that `webview` is a valid pointer to a `WebView` previously returned
+/// by `servo_webview_builder_build` and not yet passed to `servo_webview_free`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_present(webview: *mut WebView) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements for `webview`.
+        let webview = unsafe { &*webview };
+        webview.rendering_context().present();
+
+        ServoError::Ok
+    })
+}
+
 /// Loads the given URL into the `WebView`.
 ///
 /// `webview` is a handle to a `WebView` object.

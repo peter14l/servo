@@ -35,6 +35,35 @@ inline RenderingContext* servo_rendering_context_create_window(
     return (RenderingContext*)&dummy;
 }
 
+inline RenderingContext* servo_rendering_context_create_windows_hwnd(
+    void* hwnd,
+    void* hinstance,
+    uint32_t width,
+    uint32_t height
+) {
+    (void)hwnd;
+    (void)hinstance;
+    (void)width;
+    (void)height;
+    static int dummy = 42;
+    return (RenderingContext*)&dummy;
+}
+
+inline int servo_rendering_context_present(RenderingContext* context) {
+    (void)context;
+    return 0;
+}
+
+inline int servo_webview_paint(WebView* webview) {
+    (void)webview;
+    return 0;
+}
+
+inline int servo_webview_present(WebView* webview) {
+    (void)webview;
+    return 0;
+}
+
 inline int servo_webview_set_page_zoom(WebView* webview, float zoom) {
     (void)webview;
     (void)zoom;

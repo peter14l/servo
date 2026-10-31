@@ -8,6 +8,9 @@
 #include <cassert>
 #include <algorithm>
 #include <cstdint>
+#include <sstream>
+#include <iomanip>
+#include <cctype>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -82,8 +85,26 @@ void test_raw_window_handle_layout() {
 // -----------------------------------------------------------------------------
 // 2. Omnibox URL & Search Query Parsing Edge Cases
 // -----------------------------------------------------------------------------
+static std::string url_encode(const std::string& value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (unsigned char c : value) {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+        } else if (c == ' ') {
+            escaped << '+';
+        } else {
+            escaped << '%' << std::uppercase << std::setw(2) << int(c) << std::nouppercase;
+        }
+    }
+
+    return escaped.str();
+}
+
 std::string normalize_omnibox_input(const std::string& raw) {
-    // Trim leading/trailing whitespace
+    // 1. Trim leading and trailing whitespace
     size_t first = raw.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) return "";
     size_t last = raw.find_last_not_of(" \t\r\n");
@@ -91,18 +112,37 @@ std::string normalize_omnibox_input(const std::string& raw) {
 
     if (input.empty()) return "";
 
-    // If explicit scheme is present
+    // 2. Strip '? ' or '?' search prefix if present
+    if (input.rfind("? ", 0) == 0) {
+        input = input.substr(2);
+        first = input.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        input = input.substr(first);
+    } else if (input.rfind("?", 0) == 0 && input.size() > 1 && input[1] != '/') {
+        input = input.substr(1);
+        first = input.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        input = input.substr(first);
+    }
+
+    // 3. Explicit scheme present
     if (input.find("://") != std::string::npos || input.rfind("about:", 0) == 0) {
         return input;
     }
 
-    // If looks like domain without spaces
+    // 4. Localhost or loopback IP (with or without port)
+    if (input == "localhost" || input.rfind("localhost:", 0) == 0 ||
+        input.rfind("127.0.0.1", 0) == 0) {
+        return "http://" + input;
+    }
+
+    // 5. Domain name without spaces
     if (input.find('.') != std::string::npos && input.find(' ') == std::string::npos) {
         return "https://" + input;
     }
 
-    // Default to search
-    return "https://duckduckgo.com/?q=" + input;
+    // 6. Search query via DuckDuckGo HTML endpoint
+    return "https://duckduckgo.com/html/?q=" + url_encode(input);
 }
 
 void test_omnibox_normalization_edge_cases() {
@@ -116,9 +156,15 @@ void test_omnibox_normalization_edge_cases() {
     TEST_ASSERT(normalize_omnibox_input("google.com/search?q=rust") == "https://google.com/search?q=rust", "Domain with path & query");
     TEST_ASSERT(normalize_omnibox_input("   servo.org   ") == "https://servo.org", "Whitespace trimming");
 
+    // Localhost edge cases
+    TEST_ASSERT(normalize_omnibox_input("localhost") == "http://localhost", "Localhost without port");
+    TEST_ASSERT(normalize_omnibox_input("localhost:8080") == "http://localhost:8080", "Localhost with port");
+    TEST_ASSERT(normalize_omnibox_input("127.0.0.1:3000") == "http://127.0.0.1:3000", "Loopback IP with port");
+
     // Search query edge cases
-    TEST_ASSERT(normalize_omnibox_input("servo browser engine") == "https://duckduckgo.com/?q=servo browser engine", "Multi-word search query");
-    TEST_ASSERT(normalize_omnibox_input("what is rust?") == "https://duckduckgo.com/?q=what is rust?", "Search query with punctuation");
+    TEST_ASSERT(normalize_omnibox_input("servo browser engine") == "https://duckduckgo.com/html/?q=servo+browser+engine", "Multi-word search query");
+    TEST_ASSERT(normalize_omnibox_input("what is rust?") == "https://duckduckgo.com/html/?q=what+is+rust%3F", "Search query with punctuation");
+    TEST_ASSERT(normalize_omnibox_input("? rust servo") == "https://duckduckgo.com/html/?q=rust+servo", "Search query with ? prefix");
     TEST_ASSERT(normalize_omnibox_input("") == "", "Empty string handling");
     TEST_ASSERT(normalize_omnibox_input("     ") == "", "Pure whitespace string handling");
 }

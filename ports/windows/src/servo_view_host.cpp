@@ -136,7 +136,8 @@ void ServoViewHost::SetFocus() {
 
 void ServoViewHost::LoadUrl(const std::string& url) {
     if (m_webview && !url.empty()) {
-        servo_webview_load(m_webview, url.c_str());
+        ServoError err = servo_webview_load(m_webview, url.c_str());
+        LogDebug("servo_webview_load('%s') returned %d", url.c_str(), (int)err);
     }
 }
 
@@ -224,36 +225,10 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(m_hwnd, &ps);
         if (m_webview) {
-            ServoError err = servo_webview_paint(m_webview);
-            LogDebug("servo_webview_paint returned %d", (int)err);
+            ServoError paintErr = servo_webview_paint(m_webview);
+            ServoError presentErr = servo_webview_present(m_webview);
+            LogDebug("servo_webview_paint: %d, servo_webview_present: %d", (int)paintErr, (int)presentErr);
         }
-
-        // 1. Try EGL swap (used when Servo is backed by ANGLE)
-        HMODULE hEgl = GetModuleHandleW(L"libEGL.dll");
-        if (hEgl) {
-            typedef void* (*PFN_eglGetCurrentDisplay)(void);
-            typedef void* (*PFN_eglGetCurrentSurface)(int readdraw);
-            typedef unsigned int (*PFN_eglSwapBuffers)(void* dpy, void* surface);
-
-            auto pfnGetCurrentDisplay = (PFN_eglGetCurrentDisplay)GetProcAddress(hEgl, "eglGetCurrentDisplay");
-            auto pfnGetCurrentSurface = (PFN_eglGetCurrentSurface)GetProcAddress(hEgl, "eglGetCurrentSurface");
-            auto pfnSwapBuffers = (PFN_eglSwapBuffers)GetProcAddress(hEgl, "eglSwapBuffers");
-
-            if (pfnGetCurrentDisplay && pfnGetCurrentSurface && pfnSwapBuffers) {
-                void* dpy = pfnGetCurrentDisplay();
-                void* surf = pfnGetCurrentSurface(0x3059); // EGL_DRAW
-                if (dpy && surf) {
-                    unsigned int ok = pfnSwapBuffers(dpy, surf);
-                    LogDebug("eglSwapBuffers(0x%p, 0x%p) returned %u", dpy, surf, ok);
-                } else {
-                    LogDebug("eglGetCurrentDisplay or Surface was null: dpy=0x%p surf=0x%p", dpy, surf);
-                }
-            }
-        }
-
-        // 2. Try GDI / WGL swap (used when Servo is backed by WGL)
-        BOOL gdiOk = SwapBuffers(hdc);
-        LogDebug("SwapBuffers(hdc) returned %d", gdiOk);
 
         EndPaint(m_hwnd, &ps);
         return 0;

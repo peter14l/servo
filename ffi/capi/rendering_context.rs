@@ -215,3 +215,95 @@ pub unsafe extern "C" fn servo_rendering_context_free(
         ServoError::Ok
     })
 }
+
+/// Presents the surface of this `RenderingContext` to its associated window or screen.
+///
+/// For double-buffered window rendering contexts, this swaps the front and back buffers
+/// (e.g. calling `SwapBuffers` on Win32 or `IDXGISwapChain::Present`).
+///
+/// Returns `ServoError::Ok` on success, or `ServoError::NullArgument` if `context` is null.
+///
+/// # Safety
+///
+/// The caller must ensure that `context` is a valid pointer to a `RenderingContext` previously
+/// returned by one of the `servo_rendering_context_create_*` functions.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_present(
+    context: *mut RenderingContext,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if context.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller guarantees `context` is valid.
+        let context = unsafe { &*context };
+        context.inner.present();
+        ServoError::Ok
+    })
+}
+
+/// Creates a new windowed rendering context directly from a Win32 HWND handle and optional HINSTANCE.
+///
+/// This avoids `raw_window_handle` ABI layout divergence across FFI boundaries by
+/// constructing the exact `RawWindowHandle::Win32` and `RawDisplayHandle::Windows` inside Rust.
+///
+/// Returns a newly allocated `RenderingContext` handle, or `NULL` on failure.
+/// The ownership of the returned handle is transferred to the caller.
+///
+/// # Safety
+///
+/// The caller must ensure that `hwnd` is a valid Win32 HWND belonging to the current thread.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_create_windows_hwnd(
+    hwnd: *mut std::ffi::c_void,
+    hinstance: *mut std::ffi::c_void,
+    width: u32,
+    height: u32,
+) -> *mut RenderingContext {
+    ServoError::catch_ffi_ptr(|| {
+        if hwnd.is_null() {
+            log::error!("hwnd must not be null");
+            return std::ptr::null_mut();
+        }
+
+        let size = dpi::PhysicalSize::new(width, height);
+        if size.width == 0 || size.height == 0 {
+            log::error!("WindowRenderingContext size must be at least 1x1");
+            return std::ptr::null_mut();
+        }
+
+        let non_zero_hwnd = match std::num::NonZeroIsize::new(hwnd as isize) {
+            Some(h) => h,
+            None => {
+                log::error!("hwnd must be non-zero");
+                return std::ptr::null_mut();
+            }
+        };
+
+        let mut win32_handle = raw_window_handle::Win32WindowHandle::new(non_zero_hwnd);
+        if !hinstance.is_null() {
+            win32_handle.hinstance = std::num::NonZeroIsize::new(hinstance as isize);
+        }
+
+        let raw_window = RawWindowHandle::Win32(win32_handle);
+        let raw_display = RawDisplayHandle::Windows(raw_window_handle::WindowsDisplayHandle::new());
+
+        let display_handle = unsafe { DisplayHandle::borrow_raw(raw_display) };
+        let window_handle = unsafe { WindowHandle::borrow_raw(raw_window) };
+
+        match WindowRenderingContext::new(display_handle, window_handle, size) {
+            Ok(context) => {
+                let rc = Rc::new(context);
+                Box::into_raw(Box::new(RenderingContext {
+                    inner: rc.clone(),
+                    window_context: Some(rc),
+                }))
+            },
+            Err(error) => {
+                log::error!("Failed to create WindowRenderingContext from HWND: {error:?}");
+                std::ptr::null_mut()
+            },
+        }
+    })
+}

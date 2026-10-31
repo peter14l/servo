@@ -60,10 +60,16 @@ namespace Servo.Embedding
         public static extern nint servo_rendering_context_create_window(void* displayHandle, void* windowHandle, uint width, uint height);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_rendering_context_create_windows_hwnd(void* hwnd, void* hinstance, uint width, uint height);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_rendering_context_create_software(uint width, uint height);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int servo_rendering_context_free(nint context);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_rendering_context_present(nint context);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_webview_builder_create(nint servo, nint context);
@@ -82,6 +88,9 @@ namespace Servo.Embedding
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int servo_webview_paint(nint webview);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_webview_present(nint webview);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int servo_webview_load(nint webview, [MarshalAs(UnmanagedType.LPUTF8Str)] string url);

@@ -8,9 +8,73 @@
 #include <commctrl.h>
 #include <windowsx.h>
 #include <vector>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <cctype>
 
 static const wchar_t* OMNIBOX_CLASS_NAME = L"ServoOmniboxToolbarWindow";
 static const UINT_PTR EDIT_SUBCLASS_ID = 1001;
+
+static std::string UrlEncode(const std::string& value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (unsigned char c : value) {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+        } else if (c == ' ') {
+            escaped << '+';
+        } else {
+            escaped << '%' << std::uppercase << std::setw(2) << int(c) << std::nouppercase;
+        }
+    }
+
+    return escaped.str();
+}
+
+static std::string NormalizeOmniboxInput(const std::string& raw) {
+    // 1. Trim leading and trailing whitespace
+    size_t first = raw.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return "";
+    size_t last = raw.find_last_not_of(" \t\r\n");
+    std::string input = raw.substr(first, (last - first + 1));
+
+    if (input.empty()) return "";
+
+    // 2. Strip '? ' or '?' search prefix if present
+    if (input.rfind("? ", 0) == 0) {
+        input = input.substr(2);
+        first = input.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        input = input.substr(first);
+    } else if (input.rfind("?", 0) == 0 && input.size() > 1 && input[1] != '/') {
+        input = input.substr(1);
+        first = input.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        input = input.substr(first);
+    }
+
+    // 3. Explicit scheme present
+    if (input.find("://") != std::string::npos || input.rfind("about:", 0) == 0) {
+        return input;
+    }
+
+    // 4. Localhost or loopback IP (with or without port)
+    if (input == "localhost" || input.rfind("localhost:", 0) == 0 ||
+        input.rfind("127.0.0.1", 0) == 0) {
+        return "http://" + input;
+    }
+
+    // 5. Domain name without spaces
+    if (input.find('.') != std::string::npos && input.find(' ') == std::string::npos) {
+        return "https://" + input;
+    }
+
+    // 6. Search query via DuckDuckGo HTML endpoint
+    return "https://duckduckgo.com/html/?q=" + UrlEncode(input);
+}
 
 void OmniboxToolbar::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
@@ -286,17 +350,8 @@ LRESULT CALLBACK OmniboxToolbar::EditSubclassProc(
                 WideCharToMultiByte(CP_UTF8, 0, wbuf.data(), -1, utf8Buf.data(), utf8Len, nullptr, nullptr);
                 std::string input(utf8Buf.data());
 
-                // Auto-prefix URL or search
-                std::string url;
-                if (input.find("://") != std::string::npos || input.rfind("about:", 0) == 0) {
-                    url = input;
-                } else if (input.find('.') != std::string::npos && input.find(' ') == std::string::npos) {
-                    url = "https://" + input;
-                } else {
-                    url = "https://duckduckgo.com/?q=" + input;
-                }
-
-                if (self && self->m_browserWindow) {
+                std::string url = NormalizeOmniboxInput(input);
+                if (!url.empty() && self && self->m_browserWindow) {
                     self->m_browserWindow->NavigateUrl(url);
                 }
             }

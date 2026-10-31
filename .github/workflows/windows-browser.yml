@@ -8,6 +8,7 @@ on:
       - 'ports/windows/**'
       - 'ffi/capi/**'
       - 'support/cmake/**'
+      - 'components/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

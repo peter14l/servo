@@ -96,6 +96,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
+        delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
@@ -677,6 +678,20 @@ void ServoViewHost::OnDownloadUpdated(struct WebView* webview, struct ServoDownl
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow) {
         self->m_browserWindow->HandleDownloadUpdated(download);
+    }
+}
+
+void ServoViewHost::OnRequestPermission(
+    struct WebView* /*webview*/,
+    const char* origin,
+    int32_t permission,
+    void (*callback)(bool, void*),
+    void* callbackUserData,
+    void* /*userData*/
+) {
+    LogDebug("Permission requested: type=%d for origin '%s'", permission, origin ? origin : "");
+    if (callback) {
+        callback(true, callbackUserData);
     }
 }
 

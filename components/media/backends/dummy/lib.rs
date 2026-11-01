@@ -25,7 +25,7 @@ use servo_media_audio::{AudioBackend, AudioStreamReader};
 use servo_media_player::context::PlayerGLContext;
 use servo_media_player::{Player, PlayerError, PlayerEvent, StreamType, audio, video};
 use servo_media_streams::capture::MediaTrackConstraintSet;
-use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceMonitor};
+use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
 use servo_media_streams::registry::{MediaStreamId, register_stream, unregister_stream};
 use servo_media_streams::{MediaOutput, MediaSocket, MediaStream, MediaStreamType};
 use servo_media_traits::{ClientContextId, MediaInstance};
@@ -113,8 +113,18 @@ impl Backend for DummyBackend {
         WebRtcController::new::<Self>(signaller)
     }
 
-    fn can_play_type(&self, _media_type: &str) -> SupportsMediaType {
-        SupportsMediaType::No
+    fn can_play_type(&self, media_type: &str) -> SupportsMediaType {
+        let media_type = media_type.to_ascii_lowercase();
+        if media_type.contains("mp4") ||
+            media_type.contains("webm") ||
+            media_type.contains("ogg") ||
+            media_type.contains("audio") ||
+            media_type.contains("video")
+        {
+            SupportsMediaType::Maybe
+        } else {
+            SupportsMediaType::No
+        }
     }
 
     fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor> {
@@ -401,6 +411,22 @@ struct DummyMediaDeviceMonitor;
 
 impl MediaDeviceMonitor for DummyMediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
-        Some(vec![])
+        Some(vec![
+            MediaDeviceInfo {
+                device_id: "default-audio-input".to_string(),
+                kind: MediaDeviceKind::AudioInput,
+                label: "Default Microphone".to_string(),
+            },
+            MediaDeviceInfo {
+                device_id: "default-audio-output".to_string(),
+                kind: MediaDeviceKind::AudioOutput,
+                label: "Default Speaker".to_string(),
+            },
+            MediaDeviceInfo {
+                device_id: "default-video-input".to_string(),
+                kind: MediaDeviceKind::VideoInput,
+                label: "Default Camera".to_string(),
+            },
+        ])
     }
 }

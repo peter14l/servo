@@ -28,7 +28,7 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 use winapi::um::wingdi::FW_SEMIBOLD;
 
 use crate::{
-    FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
+    CBDT, COLR, SBIX, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
     FractionalPixel, GlyphId, PlatformFontMethods,
 };
 
@@ -334,7 +334,15 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        let mut flags = FontInstanceFlags::SUBPIXEL_POSITION;
+        let mut flags = if self.table_for_tag(COLR).is_some() ||
+            self.table_for_tag(CBDT).is_some() ||
+            self.table_for_tag(SBIX).is_some()
+        {
+            FontInstanceFlags::EMBEDDED_BITMAPS
+        } else {
+            FontInstanceFlags::empty()
+        };
+        flags |= FontInstanceFlags::SUBPIXEL_POSITION;
 
         // TODO: Add support for synthetic italics.
         // <https://github.com/servo/servo/issues/39637>

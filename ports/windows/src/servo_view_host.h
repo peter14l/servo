@@ -61,6 +61,7 @@ private:
     static void OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData);
     static void OnBeforeDownload(struct WebView* webview, struct ServoDownloadItem* download, void (*callback)(bool, void*), void* userData);
     static void OnDownloadUpdated(struct WebView* webview, struct ServoDownloadItem* download, void* userData);
+    static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* callbackUserData, void* userData);
 
     uint32_t GetServoModifiers() const;
 

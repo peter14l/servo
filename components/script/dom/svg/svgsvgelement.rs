@@ -32,6 +32,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
+use embedder_traits::Theme;
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 
 #[dom_struct]
@@ -101,7 +102,28 @@ impl SVGSVGElement {
             return;
         };
 
-        let xml_source: String = xml_source.into();
+        let mut xml_source: String = xml_source.into();
+
+        // Inject theme-aware styling for currentColor and default SVG path fills.
+        // Standalone resvg rasterization does not inherit the HTML/document stylesheet color,
+        // causing icons using fill="currentColor" or unstyled shapes to default to black (#000)
+        // even when rendered against dark backgrounds.
+        let window = self.owner_window();
+        let document = window.Document();
+        let is_dark = document
+            .theme_override()
+            .or(document.theme())
+            .unwrap_or(window.webview_theme()) == Theme::Dark;
+
+        let icon_color = if is_dark { "#f5f5f5" } else { "#121212" };
+        let style_injection = format!(
+            "<style>:root, svg {{ color: {icon_color}; fill: {icon_color}; }} path:not([fill]), circle:not([fill]), rect:not([fill]), polygon:not([fill]) {{ fill: currentColor; }} [fill='currentColor'] {{ fill: {icon_color} !important; }} [stroke='currentColor'] {{ stroke: {icon_color} !important; }}</style>"
+        );
+
+        if let Some(pos) = xml_source.find('>') {
+            xml_source.insert_str(pos + 1, &style_injection);
+        }
+
         let base64_encoded_source = base64::engine::general_purpose::STANDARD.encode(xml_source);
         let data_url = format!("data:image/svg+xml;base64,{base64_encoded_source}");
         match ServoUrl::parse(&data_url) {

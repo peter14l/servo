@@ -91,20 +91,24 @@ impl Backend for DummyBackend {
         _: Option<Arc<Mutex<dyn audio::AudioRenderer>>>,
         _: Box<dyn PlayerGLContext>,
     ) -> Arc<Mutex<dyn Player>> {
-        let metadata = servo_media_player::metadata::Metadata {
-            duration: Some(std::time::Duration::from_secs(60)),
-            width: 720,
-            height: 1280,
-            format: "video/mp4".to_string(),
-            is_seekable: true,
-            video_tracks: vec!["video".to_string()],
-            audio_tracks: vec!["audio".to_string()],
-            is_live: false,
-            title: None,
-        };
-        let _ = callback.send(PlayerEvent::MetadataUpdated(metadata));
-        let _ = callback.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
-        let _ = callback.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        let cb_clone = callback.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            let metadata = servo_media_player::metadata::Metadata {
+                duration: Some(std::time::Duration::from_secs(60)),
+                width: 720,
+                height: 1280,
+                format: "video/mp4".to_string(),
+                is_seekable: true,
+                video_tracks: vec!["video".to_string()],
+                audio_tracks: vec!["audio".to_string()],
+                is_live: false,
+                title: None,
+            };
+            let _ = cb_clone.send(PlayerEvent::MetadataUpdated(metadata));
+            let _ = cb_clone.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
+            let _ = cb_clone.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        });
         Arc::new(Mutex::new(DummyPlayer {
             callback: Some(callback),
             paused: std::sync::atomic::AtomicBool::new(true),
@@ -185,6 +189,19 @@ impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
         self.paused.store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
+            let metadata = servo_media_player::metadata::Metadata {
+                duration: Some(std::time::Duration::from_secs(60)),
+                width: 720,
+                height: 1280,
+                format: "video/mp4".to_string(),
+                is_seekable: true,
+                video_tracks: vec!["video".to_string()],
+                audio_tracks: vec!["audio".to_string()],
+                is_live: false,
+                title: None,
+            };
+            let _ = cb.send(PlayerEvent::MetadataUpdated(metadata));
+            let _ = cb.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
             let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
         }
         Ok(())

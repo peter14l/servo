@@ -1674,7 +1674,7 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
 
         let modifiers = Modifiers::from_bits_truncate(modifiers);
 
-        let key = if key_str.len() == 1 && key_str.chars().next().is_some_and(|c| !c.is_control()) {
+        let key = if key_str.chars().count() == 1 && key_str.chars().next().is_some_and(|c| !c.is_control()) {
             Key::Character(key_str.to_string())
         } else {
             Key::Named(NamedKey::from_str(key_str).unwrap_or(NamedKey::Unidentified))

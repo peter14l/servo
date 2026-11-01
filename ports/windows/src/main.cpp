@@ -180,14 +180,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
         servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
 
-        // SpiderMonkey incremental & per-zone GC memory optimization to prevent multi-GB RAM accumulation
-        servo_preferences_set_bool(prefs, "js_mem_gc_incremental_enabled", true);
-        servo_preferences_set_bool(prefs, "js_mem_gc_per_zone_enabled", true);
-        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_high_limit_mb", 256);
-        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 64);
-        servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 24);
-        servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 16);
-        servo_preferences_set_i64(prefs, "js_mem_gc_incremental_slice_ms", 10);
+        // SpiderMonkey GC configuration and aggressive memory limits to prevent runaway RAM growth
+        servo_preferences_set_i64(prefs, "js_mem_max", 512); // Bound JS heap to 512MB max
+        servo_preferences_set_bool(prefs, "js_mem_gc_incremental_enabled", false); // Full GC only: pre-barriers not implemented
+        servo_preferences_set_bool(prefs, "js_mem_gc_per_zone_enabled", false);
+        servo_preferences_set_bool(prefs, "js_mem_gc_compacting_enabled", true); // Compact and release heap chunks back to OS
+        servo_preferences_set_i64(prefs, "js_mem_gc_empty_chunk_count_min", 1);
+        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_high_limit_mb", 128);
+        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 32);
+        servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 16);
+        servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 8);
 
         servo_builder_set_preferences(builder, prefs);
     }

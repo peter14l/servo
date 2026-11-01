@@ -2224,7 +2224,7 @@ impl Node {
         // > The editing host of node is null if node is neither editable nor an editing host;
         // > node itself, if node is an editing host;
         // > or the nearest ancestor of node that is an editing host, if node is editable.
-        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
+        for ancestor in self.inclusive_ancestors(ShadowIncluding::Yes) {
             if ancestor.is_editing_host() {
                 return Some(ancestor);
             }

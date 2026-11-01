@@ -273,7 +273,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  color: var(--text-secondary);\n"
                 "  line-height: 1.4;\n"
                 "}\n"
-                "                "/* WinUI 3 Segmented Control */\n"
+                "/* WinUI 3 Segmented Control */\n"
                 ".segmented-group {\n"
                 "  display: inline-flex;\n"
                 "  flex-wrap: wrap;\n"

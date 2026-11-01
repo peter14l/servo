@@ -580,7 +580,7 @@ BrowserSettings SettingsDialog::LoadSettings() {
     GetPrivateProfileStringW(L"General", L"DownloadDir", s.downloadDir.c_str(), buf, 512, ini.c_str());
     s.downloadDir = buf;
 
-    GetPrivateProfileStringW(L"Privacy", L"UserAgentPersona", L"Chrome 131 (Windows 11)", buf, 512, ini.c_str());
+    GetPrivateProfileStringW(L"Privacy", L"UserAgentPersona", L"Firefox 132 (Desktop) [Recommended]", buf, 512, ini.c_str());
     s.userAgentPersona = buf;
 
     s.themeMode = GetPrivateProfileIntW(L"Appearance", L"ThemeMode", 2, ini.c_str());
@@ -798,10 +798,10 @@ void SettingsDialog::CreateControls() {
         x, y + 4, 160, 20, m_hwnd, nullptr, hInst, nullptr);
     m_comboUserAgent = CreateWindowW(L"COMBOBOX", L"", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
         x + 160, y, 260, 140, m_hwnd, (HMENU)IDC_COMBO_UA, hInst, nullptr);
-    SendMessageW(m_comboUserAgent, CB_ADDSTRING, 0, (LPARAM)L"Chrome 131 (Windows 11) [Recommended]");
-    SendMessageW(m_comboUserAgent, CB_ADDSTRING, 0, (LPARAM)L"Firefox 132 (Desktop)");
+    SendMessageW(m_comboUserAgent, CB_ADDSTRING, 0, (LPARAM)L"Firefox 132 (Desktop) [Recommended]");
+    SendMessageW(m_comboUserAgent, CB_ADDSTRING, 0, (LPARAM)L"Chrome 131 (Windows 11)");
     SendMessageW(m_comboUserAgent, CB_ADDSTRING, 0, (LPARAM)L"Safari 18 (macOS)");
-    int selUa = (m_settings.userAgentPersona.find(L"Firefox") != std::wstring::npos) ? 1 :
+    int selUa = (m_settings.userAgentPersona.find(L"Chrome") != std::wstring::npos) ? 1 :
                 (m_settings.userAgentPersona.find(L"Safari") != std::wstring::npos) ? 2 : 0;
     SendMessageW(m_comboUserAgent, CB_SETCURSEL, selUa, 0);
     SendMessageW(m_comboUserAgent, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
@@ -904,8 +904,8 @@ void SettingsDialog::ApplyAndClose() {
 
     // Read User-Agent
     int selUa = (int)SendMessageW(m_comboUserAgent, CB_GETCURSEL, 0, 0);
-    m_settings.userAgentPersona = (selUa == 1) ? L"Firefox 132 (Desktop)" :
-                                  (selUa == 2) ? L"Safari 18 (macOS)" : L"Chrome 131 (Windows 11)";
+    m_settings.userAgentPersona = (selUa == 1) ? L"Chrome 131 (Windows 11)" :
+                                  (selUa == 2) ? L"Safari 18 (macOS)" : L"Firefox 132 (Desktop) [Recommended]";
 
     // Read experiments
     m_settings.enableWebGPU = (SendMessageW(m_chkWebGPU, BM_GETCHECK, 0, 0) == BST_CHECKED);

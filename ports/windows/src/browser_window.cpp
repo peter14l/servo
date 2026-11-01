@@ -75,6 +75,15 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     }
 
     window->m_hwnd = hwnd;
+
+    // Remove WS_CAPTION to completely eliminate the OS title bar and duplicate caption buttons.
+    // Retain WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU for native resizing, snap layouts, and rounded corners.
+    DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+    style &= ~WS_CAPTION;
+    SetWindowLongW(hwnd, GWL_STYLE, style);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
     LogDebug("Applying Mica Alt theme...");
     window->ApplyMicaAltTheme();
 
@@ -441,7 +450,7 @@ void BrowserWindow::OnActiveTabTitleChanged(const char* title) {
         if (m_tabStrip) {
             m_tabStrip->UpdateActiveTitle(wbuf.data());
         }
-        std::wstring windowTitle = std::wstring(wbuf.data()) + L" — Servo";
+        std::wstring windowTitle = std::wstring(wbuf.data()) + L" - Servo";
         SetWindowTextW(m_hwnd, windowTitle.c_str());
     }
 }
@@ -465,7 +474,7 @@ void BrowserWindow::UpdateActiveTabUI(const std::string& url, const std::wstring
     if (m_omnibox) {
         m_omnibox->SetUrl(url);
     }
-    std::wstring windowTitle = title.empty() ? L"Servo Browser" : (title + L" — Servo");
+    std::wstring windowTitle = title.empty() ? L"Servo Browser" : (title + L" - Servo");
     SetWindowTextW(m_hwnd, windowTitle.c_str());
     LayoutChildren();
 }
@@ -493,7 +502,7 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_NCCALCSIZE: {
-        if (wParam == TRUE) {
+        if (wParam) {
             NCCALCSIZE_PARAMS* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
             if (IsZoomed(m_hwnd)) {
                 HMONITOR hMon = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
@@ -504,7 +513,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         }
-        return DefWindowProcW(m_hwnd, msg, wParam, lParam);
+        return 0;
     }
 
     case WM_NCHITTEST: {

@@ -39,7 +39,7 @@ servo-constellation-traits = { workspace = true }
 # doesn't work when libservo is a cdylib.
 # 'gamepad' backs ServoGamepadDelegate (ffi/capi/gamepad.rs); without it the
 # engine never emits a haptic-effect request and the delegate is dead code.
-servo = { workspace = true, features = ["gamepad", "js_jit", "baked-in-resources", "bundled_freetype"] }
+servo = { workspace = true, features = ["gamepad", "js_jit", "baked-in-resources", "bundled_freetype", "webcrypto"] }
 url = { workspace = true }
 
 # TODO: ANGLE is needed on Windows to provide libEGL.dll and libGLESv2.dll

@@ -49,6 +49,110 @@ static std::wstring GetSettingsIniPath() {
     return L"settings.ini";
 }
 
+std::string SettingsDialog::EnsureSettingsPageExists() {
+    wchar_t localAppData[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+        std::wstring dir = std::wstring(localAppData) + L"\\Servo Browser";
+        CreateDirectoryW(dir.c_str(), nullptr);
+        std::wstring htmlPath = dir + L"\\settings.html";
+
+        FILE* fp = _wfsopen(htmlPath.c_str(), L"w", _SH_DENYNO);
+        if (fp) {
+            const char* html =
+                "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+                "<title>Settings \xE2\x80\x94 Servo Browser</title>\n"
+                "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n"
+                "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n"
+                "<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Open+Sans:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n"
+                "<style>\n"
+                ":root { --bg: #f3f3f3; --card: #ffffff; --text: #1a1a1a; --sec: #5c5c5c; --border: #e0e0e0; --accent: #0067b8; --nav-hover: #eaeaea; }\n"
+                "@media (prefers-color-scheme: dark) { :root { --bg: #202020; --card: #2b2b2b; --text: #ffffff; --sec: #a6a6a6; --border: #3d3d3d; --accent: #60cdff; --nav-hover: #323232; } }\n"
+                "* { box-sizing: border-box; margin: 0; padding: 0; }\n"
+                "body { font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }\n"
+                ".sidebar { width: 250px; padding: 32px 16px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }\n"
+                ".sidebar h1 { font-size: 20px; font-weight: 600; margin-bottom: 20px; padding-left: 10px; }\n"
+                ".nav-item { padding: 10px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none; color: var(--text); }\n"
+                ".nav-item:hover { background: var(--nav-hover); }\n"
+                ".nav-item.active { background: var(--nav-hover); font-weight: 600; }\n"
+                ".content { flex: 1; padding: 40px 60px; overflow-y: auto; }\n"
+                ".section { display: none; max-width: 760px; }\n"
+                ".section.active { display: block; }\n"
+                ".section h2 { font-size: 24px; font-weight: 600; margin-bottom: 20px; }\n"
+                ".card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }\n"
+                ".card-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }\n"
+                ".card-info p { font-size: 13px; color: var(--sec); }\n"
+                "select, input[type=\"text\"], input[type=\"url\"] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; min-width: 220px; }\n"
+                "input[type=\"checkbox\"] { width: 20px; height: 20px; accent-color: var(--accent); }\n"
+                ".btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }\n"
+                ".btn-danger { background: #d83b01; }\n"
+                ".toast { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }\n"
+                "</style>\n</head>\n<body>\n"
+                "<div class=\"sidebar\">\n"
+                "  <h1>Settings</h1>\n"
+                "  <a class=\"nav-item active\" onclick=\"showTab('general', this)\">\xE2\x9A\x99\xEF\xB8\x8F General</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('appearance', this)\">\xF0\x9F\x8E\xA8 Appearance</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('persona', this)\">\xF0\x9F\x91\xA4 Browser Persona</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('experiments', this)\">\xF0\x9F\xA7\xAA Experiments</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('privacy', this)\">\xF0\x9F\x94\xB0 Privacy & Data</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('about', this)\">\xE2\x84\xB9\xEF\xB8\x8F About Servo</a>\n"
+                "</div>\n"
+                "<div class=\"content\">\n"
+                "  <div id=\"general\" class=\"section active\">\n"
+                "    <h2>General</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Default search engine</h3><p>Used for searches from the address bar.</p></div><select id=\"search\" onchange=\"save()\"><option value=\"DuckDuckGo\">DuckDuckGo</option><option value=\"Google\">Google</option><option value=\"Bing\">Bing</option><option value=\"Ecosia\">Ecosia</option></select></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Home page</h3><p>Page loaded on new windows and home button.</p></div><input type=\"url\" id=\"home\" onchange=\"save()\" value=\"https://servo.org\"></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Downloads folder</h3><p>Location where downloaded files are saved.</p></div><input type=\"text\" id=\"dl\" onchange=\"save()\"></div>\n"
+                "  </div>\n"
+                "  <div id=\"appearance\" class=\"section\">\n"
+                "    <h2>Appearance</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Browser Font (Google Fonts)</h3><p>Choose typography for browser navigation, tabs, omnibox, and search suggestions.</p></div><select id=\"font\" onchange=\"save()\"><option value=\"Inter\">Inter (Google Fonts) \xE2\x80\x94 Recommended</option><option value=\"Roboto\">Roboto (Google Fonts)</option><option value=\"Plus Jakarta Sans\">Plus Jakarta Sans (Google Fonts)</option><option value=\"Open Sans\">Open Sans (Google Fonts)</option><option value=\"Segoe UI Variable Text\">Segoe UI Variable (Windows 11)</option></select></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Theme</h3><p>Choose your preferred browser theme.</p></div><select id=\"theme\" onchange=\"save()\"><option value=\"2\">System default</option><option value=\"1\">Dark</option><option value=\"0\">Light</option></select></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Mica Alt backdrop</h3><p>Windows 11 translucent tabbed material.</p></div><select id=\"backdrop\" onchange=\"save()\"><option value=\"0\">Mica Alt (Tabbed)</option><option value=\"1\">Mica</option><option value=\"2\">Solid</option></select></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Omnibox search & domain suggestions</h3><p>Show drop-down suggestions as you type.</p></div><input type=\"checkbox\" id=\"sugg\" onchange=\"save()\" checked></div>\n"
+                "  </div>\n"
+                "  <div id=\"persona\" class=\"section\">\n"
+                "    <h2>Browser Persona & User-Agent</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>User-Agent Persona</h3><p>Firefox is recommended to match SpiderMonkey engine.</p></div><select id=\"ua\" onchange=\"save()\"><option value=\"Firefox 132 (Desktop)\">Firefox 132 (Desktop) \xE2\x80\x94 Recommended</option><option value=\"Chrome 131 (Windows 11)\">Chrome 131 (Windows 11)</option><option value=\"Safari 18 (macOS)\">Safari 18 (macOS)</option><option value=\"Edge 131 (Windows 11)\">Edge 131 (Windows 11)</option></select></div>\n"
+                "  </div>\n"
+                "  <div id=\"experiments\" class=\"section\">\n"
+                "    <h2>Experiments</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>WebGPU Support</h3><p>Experimental GPU compute & rendering via wgpu.</p></div><input type=\"checkbox\" id=\"webgpu\" onchange=\"save()\"></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>WebGL 2.0</h3><p>Hardware 3D graphics acceleration via ANGLE.</p></div><input type=\"checkbox\" id=\"webgl2\" onchange=\"save()\" checked></div>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>IndexedDB Storage</h3><p>Client-side structured offline database.</p></div><input type=\"checkbox\" id=\"idb\" onchange=\"save()\" checked></div>\n"
+                "  </div>\n"
+                "  <div id=\"privacy\" class=\"section\">\n"
+                "    <h2>Privacy & Data</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Clear browsing data</h3><p>Deletes cookies, cache, and offline databases.</p></div><button class=\"btn btn-danger\" onclick=\"clearData()\">Clear Data</button></div>\n"
+                "  </div>\n"
+                "  <div id=\"about\" class=\"section\">\n"
+                "    <h2>About Servo</h2>\n"
+                "    <div class=\"card\"><div class=\"card-info\"><h3>Servo Modern Web Browser</h3><p>Version 0.0.1 (Windows x86_64)</p><p style=\"margin-top:6px;font-size:12px;color:var(--sec)\">WebRender &bull; SpiderMonkey &bull; Surfman &bull; Fluent UI</p></div><button class=\"btn\" onclick=\"window.open('https://github.com/servo/servo')\">GitHub</button></div>\n"
+                "  </div>\n"
+                "</div>\n"
+                "<div id=\"toast\" class=\"toast\">Settings saved</div>\n"
+                "<script>\n"
+                "function showTab(id, el) { document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(id).classList.add('active'); el.classList.add('active'); }\n"
+                "function load() { const s = JSON.parse(localStorage.getItem('servo_prefs') || '{}'); if (s.font) { document.getElementById('font').value = s.font; document.body.style.fontFamily = `'${s.font}', -apple-system, sans-serif`; } if (s.search) document.getElementById('search').value = s.search; if (s.home) document.getElementById('home').value = s.home; if (s.dl) document.getElementById('dl').value = s.dl; if (s.theme !== undefined) document.getElementById('theme').value = s.theme; if (s.ua) document.getElementById('ua').value = s.ua; }\n"
+                "function save() { const f = document.getElementById('font').value; document.body.style.fontFamily = `'${f}', -apple-system, sans-serif`; const s = { font: f, search: document.getElementById('search').value, home: document.getElementById('home').value, dl: document.getElementById('dl').value, theme: document.getElementById('theme').value, ua: document.getElementById('ua').value, sugg: document.getElementById('sugg').checked, webgpu: document.getElementById('webgpu').checked, webgl2: document.getElementById('webgl2').checked, idb: document.getElementById('idb').checked }; localStorage.setItem('servo_prefs', JSON.stringify(s)); const t = document.getElementById('toast'); t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1400); }\n"
+                "function clearData() { localStorage.clear(); alert('Browsing data and caches cleared.'); }\n"
+                "window.onload = load;\n"
+                "</script>\n</body>\n</html>\n";
+            fputs(html, fp);
+            fclose(fp);
+        }
+
+        // Convert path to file URL
+        std::string fileUrl = "file:///";
+        for (wchar_t c : htmlPath) {
+            if (c == L'\\') fileUrl += '/';
+            else fileUrl += static_cast<char>(c);
+        }
+        return fileUrl;
+    }
+    return "about:blank";
+}
+
 BrowserSettings SettingsDialog::LoadSettings() {
     BrowserSettings s;
     std::wstring ini = GetSettingsIniPath();

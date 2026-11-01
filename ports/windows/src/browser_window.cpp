@@ -26,7 +26,9 @@
 #endif
 
 static const wchar_t* BROWSER_WINDOW_CLASS_NAME = L"ServoBrowserMainWindow";
-static const int TOP_CHROME_HEIGHT = 80; // 36 (Tabs) + 44 (Omnibox)
+static const int TAB_STRIP_HEIGHT = 38;
+static const int OMNIBOX_HEIGHT = 44;
+static const int TOP_CHROME_HEIGHT = TAB_STRIP_HEIGHT + OMNIBOX_HEIGHT; // 82px (Tabs + Omnibox)
 
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
@@ -161,18 +163,25 @@ void BrowserWindow::LayoutChildren() {
     int height = rc.bottom;
 
     if (m_tabStrip) {
-        m_tabStrip->SetBounds(0, 0, width, 36);
+        m_tabStrip->SetBounds(0, 0, width, TAB_STRIP_HEIGHT);
     }
 
     if (m_omnibox) {
-        m_omnibox->SetBounds(0, 36, width, 44);
+        m_omnibox->SetBounds(0, TAB_STRIP_HEIGHT, width, OMNIBOX_HEIGHT);
     }
+
+    // Modern Windows 11 Floating Content Pane with margins
+    const int MARGIN_X = 8;
+    const int MARGIN_BOTTOM = 8;
+    const int MARGIN_TOP = 6;
+    int contentX = MARGIN_X;
+    int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
+    int contentW = std::max(0, width - (MARGIN_X * 2));
+    int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
 
     auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
     if (tab && tab->viewHost) {
-        int contentY = TOP_CHROME_HEIGHT;
-        int contentH = std::max(0, height - contentY);
-        tab->viewHost->SetBounds(0, contentY, width, contentH);
+        tab->viewHost->SetBounds(contentX, contentY, contentW, contentH);
     }
 
     if (m_findBar) {
@@ -180,7 +189,7 @@ void BrowserWindow::LayoutChildren() {
     }
 
     if (m_downloadManager) {
-        m_downloadManager->SetBounds(width - 380, 88, 360, 220);
+        m_downloadManager->SetBounds(width - 380, 88, 360, 240);
     }
 }
 
@@ -217,6 +226,9 @@ void BrowserWindow::HandleNewDownload(struct ServoDownloadItem* download) {
 
     static uint64_t s_dlId = 1;
     m_downloadManager->AddDownload(s_dlId++, urlBuf, wname.data());
+
+    // Automatically pop open download manager pane when download starts
+    m_downloadManager->Show(true);
 }
 
 void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
@@ -228,7 +240,7 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
-    if (url == "about:settings" || url == "servo://settings" || url == "settings") {
+    if (url == "about:settings" || url == "servo://settings" || url == "edge://settings" || url == "chrome://settings" || url == "settings") {
         OpenSettings();
         return;
     }
@@ -344,7 +356,8 @@ void BrowserWindow::ToggleDownloads() {
 }
 
 void BrowserWindow::OpenSettings() {
-    SettingsDialog::ShowModal(m_hwnd, this);
+    std::string settingsUrl = SettingsDialog::EnsureSettingsPageExists();
+    OpenUrlInNewTab(settingsUrl);
 }
 
 void BrowserWindow::OpenUrlInNewTab(const std::string& url) {
@@ -479,8 +492,39 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
 
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(m_hwnd, &ps);
+        RECT rc;
+        GetClientRect(m_hwnd, &rc);
+        int width = rc.right;
+        int height = rc.bottom;
+
+        // Draw subtle outline for the floating content pane
+        const int MARGIN_X = 8;
+        const int MARGIN_BOTTOM = 8;
+        const int MARGIN_TOP = 6;
+        int contentX = MARGIN_X;
+        int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
+        int contentW = std::max(0, width - (MARGIN_X * 2));
+        int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
+
+        if (contentW > 0 && contentH > 0) {
+            HPEN hPen = CreatePen(PS_SOLID, 1, m_isDark ? RGB(55, 55, 55) : RGB(215, 215, 215));
+            HGDIOBJ oldPen = SelectObject(hdc, hPen);
+            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+            RoundRect(hdc, contentX - 1, contentY - 1, contentX + contentW + 1, contentY + contentH + 1, 16, 16);
+            SelectObject(hdc, oldBrush);
+            SelectObject(hdc, oldPen);
+            DeleteObject(hPen);
+        }
+        EndPaint(m_hwnd, &ps);
+        return 0;
+    }
+
     case WM_SIZE:
         LayoutChildren();
+        InvalidateRect(m_hwnd, nullptr, TRUE);
         return 0;
 
     case WM_DPICHANGED: {
@@ -625,25 +669,41 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_NCCALCSIZE: {
-        // Mica Alt disabled: use default non-client framing
+        if (wParam) {
+            if (IsZoomed(m_hwnd)) {
+                auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+                HMONITOR hMon = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO mi = { sizeof(mi) };
+                if (GetMonitorInfoW(hMon, &mi)) {
+                    params->rgrc[0] = mi.rcWork;
+                }
+            }
+            return 0; // Removes classic OS titlebar, entire window is client area!
+        }
         break;
     }
 
     case WM_NCHITTEST: {
-        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-        ScreenToClient(m_hwnd, &pt);
-
-        // Top draggable header area outside tabs
-        if (pt.y < 38) {
+        if (!IsZoomed(m_hwnd)) {
+            POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
             RECT rc;
-            GetClientRect(m_hwnd, &rc);
-            // Caption buttons on right side
-            if (pt.x > rc.right - 140) {
-                return DefWindowProcW(m_hwnd, msg, wParam, lParam);
-            }
-            return HTCAPTION;
+            GetWindowRect(m_hwnd, &rc);
+            const int BORDER = 6;
+            bool top = pt.y < rc.top + BORDER;
+            bool bottom = pt.y >= rc.bottom - BORDER;
+            bool left = pt.x < rc.left + BORDER;
+            bool right = pt.x >= rc.right - BORDER;
+
+            if (top && left) return HTTOPLEFT;
+            if (top && right) return HTTOPRIGHT;
+            if (bottom && left) return HTBOTTOMLEFT;
+            if (bottom && right) return HTBOTTOMRIGHT;
+            if (top) return HTTOP;
+            if (bottom) return HTBOTTOM;
+            if (left) return HTLEFT;
+            if (right) return HTRIGHT;
         }
-        break;
+        return DefWindowProcW(m_hwnd, msg, wParam, lParam);
     }
 
     case WM_CLOSE:

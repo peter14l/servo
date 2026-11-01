@@ -36,7 +36,10 @@ TabStrip::TabStrip(HWND parentHwnd, BrowserWindow* browserWindow)
     , m_activeIndex(-1)
     , m_nextTabId(1)
     , m_hoveredIndex(-1)
+    , m_hoveredCaptionButton(CAPTION_NONE)
+    , m_font(nullptr)
     , m_iconFont(nullptr)
+    , m_captionFont(nullptr)
     , m_isDark(true)
 {
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
@@ -54,6 +57,7 @@ TabStrip::TabStrip(HWND parentHwnd, BrowserWindow* browserWindow)
 
     m_font = fluent::CreateFluentFont(13);
     m_iconFont = fluent::CreateFluentIconFont(11);
+    m_captionFont = fluent::CreateCaptionIconFont(10);
 }
 
 TabStrip::~TabStrip() {
@@ -62,6 +66,9 @@ TabStrip::~TabStrip() {
     }
     if (m_iconFont) {
         DeleteObject(m_iconFont);
+    }
+    if (m_captionFont) {
+        DeleteObject(m_captionFont);
     }
     if (m_hwnd && IsWindow(m_hwnd)) {
         DestroyWindow(m_hwnd);
@@ -241,27 +248,35 @@ void TabStrip::DuplicateTab(int index) {
 void TabStrip::LayoutTabs() {
     RECT rc;
     GetClientRect(m_hwnd, &rc);
-    int totalWidth = rc.right - 8; // Leave margin for add button
     int count = static_cast<int>(m_tabs.size());
+
+    // Windows 11 Fluent Caption Buttons (right-aligned: Minimize, Maximize/Restore, Close)
+    const int btnW = 46;
+    const int btnH = rc.bottom; // 38px
+    m_closeButtonBounds = { rc.right - btnW, 0, rc.right, btnH };
+    m_maxButtonBounds = { rc.right - btnW * 2, 0, rc.right - btnW, btnH };
+    m_minButtonBounds = { rc.right - btnW * 3, 0, rc.right - btnW * 2, btnH };
+
+    int availableWidth = rc.right - (btnW * 3) - 16;
     if (count == 0) return;
 
-    int tabWidth = (totalWidth - ADD_BTN_WIDTH) / count;
+    int tabWidth = (availableWidth - ADD_BTN_WIDTH) / count;
     tabWidth = std::clamp(tabWidth, TAB_MIN_WIDTH, TAB_MAX_WIDTH);
 
     int curX = 8;
     for (int i = 0; i < count; ++i) {
-        // Tab sits from y=4 to y=34 (30px high)
-        m_tabs[i]->bounds = { curX, 4, curX + tabWidth - 2, 34 };
-        // Close button: 16x16, vertically centered in 30px tab (y = 4 + 7 = 11)
+        // Tab sits from y=4 to y=35 (31px high)
+        m_tabs[i]->bounds = { curX, 4, curX + tabWidth - 2, 35 };
+        // Close button: 16x16, vertically centered in 31px tab
         m_tabs[i]->closeButtonBounds = {
-            m_tabs[i]->bounds.right - 22, 11,
+            m_tabs[i]->bounds.right - 24, 11,
             m_tabs[i]->bounds.right - 6, 27
         };
         curX += tabWidth;
     }
 
     // Add Tab button '+' (26x26, vertically centered)
-    m_addTabButtonBounds = { curX + 4, 6, curX + 30, 32 };
+    m_addTabButtonBounds = { curX + 4, 6, curX + 32, 33 };
 }
 
 void TabStrip::Paint(HDC hdc) {
@@ -375,6 +390,28 @@ void TabStrip::Paint(HDC hdc) {
     RECT addRect = m_addTabButtonBounds;
     DrawTextW(memDC, fluent::icons::AddTab, -1, &addRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
+    // Render Windows 11 Fluent Caption Buttons (Minimize, Maximize/Restore, Close)
+    HWND mainHwnd = m_browserWindow ? m_browserWindow->GetHwnd() : nullptr;
+    bool isMaximized = mainHwnd ? (IsZoomed(mainHwnd) != FALSE) : false;
+
+    auto drawCaptionBtn = [&](const RECT& bounds, const wchar_t* glyph, CaptionButtonType type) {
+        bool hovered = (m_hoveredCaptionButton == type);
+        if (hovered) {
+            COLORREF bgCol = (type == CAPTION_CLOSE) ? RGB(196, 43, 28) : (m_isDark ? RGB(55, 55, 55) : RGB(229, 229, 229));
+            HBRUSH hBr = CreateSolidBrush(bgCol);
+            FillRect(memDC, &bounds, hBr);
+            DeleteObject(hBr);
+        }
+        SelectObject(memDC, m_captionFont);
+        SetTextColor(memDC, (hovered && type == CAPTION_CLOSE) ? RGB(255, 255, 255) : colors.TextPrimary);
+        RECT r = bounds;
+        DrawTextW(memDC, glyph, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    };
+
+    drawCaptionBtn(m_minButtonBounds, fluent::icons::ChromeMinimize, CAPTION_MINIMIZE);
+    drawCaptionBtn(m_maxButtonBounds, isMaximized ? fluent::icons::ChromeRestore : fluent::icons::ChromeMaximize, CAPTION_MAXIMIZE);
+    drawCaptionBtn(m_closeButtonBounds, fluent::icons::ChromeClose, CAPTION_CLOSE);
+
     BitBlt(hdc, 0, 0, rc.right, rc.bottom, memDC, 0, 0, SRCCOPY);
 
     SelectObject(memDC, oldFont);
@@ -422,8 +459,15 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                 break;
             }
         }
-        if (newHover != m_hoveredIndex) {
+
+        CaptionButtonType newCaptionHover = CAPTION_NONE;
+        if (PtInRect(&m_closeButtonBounds, pt)) newCaptionHover = CAPTION_CLOSE;
+        else if (PtInRect(&m_maxButtonBounds, pt)) newCaptionHover = CAPTION_MAXIMIZE;
+        else if (PtInRect(&m_minButtonBounds, pt)) newCaptionHover = CAPTION_MINIMIZE;
+
+        if (newHover != m_hoveredIndex || newCaptionHover != m_hoveredCaptionButton) {
             m_hoveredIndex = newHover;
+            m_hoveredCaptionButton = newCaptionHover;
             InvalidateRect(m_hwnd, nullptr, FALSE);
             TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, m_hwnd, 0 };
             TrackMouseEvent(&tme);
@@ -432,8 +476,16 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_MOUSELEAVE: {
+        bool changed = false;
         if (m_hoveredIndex != -1) {
             m_hoveredIndex = -1;
+            changed = true;
+        }
+        if (m_hoveredCaptionButton != CAPTION_NONE) {
+            m_hoveredCaptionButton = CAPTION_NONE;
+            changed = true;
+        }
+        if (changed) {
             InvalidateRect(m_hwnd, nullptr, FALSE);
         }
         return 0;
@@ -441,6 +493,21 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_LBUTTONDOWN: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        HWND mainHwnd = m_browserWindow ? m_browserWindow->GetHwnd() : nullptr;
+
+        // Check Windows 11 Caption Buttons
+        if (PtInRect(&m_minButtonBounds, pt)) {
+            if (mainHwnd) ShowWindow(mainHwnd, SW_MINIMIZE);
+            return 0;
+        }
+        if (PtInRect(&m_maxButtonBounds, pt)) {
+            if (mainHwnd) ShowWindow(mainHwnd, IsZoomed(mainHwnd) ? SW_RESTORE : SW_MAXIMIZE);
+            return 0;
+        }
+        if (PtInRect(&m_closeButtonBounds, pt)) {
+            if (mainHwnd) PostMessageW(mainHwnd, WM_CLOSE, 0, 0);
+            return 0;
+        }
 
         // Check Add Tab button
         if (PtInRect(&m_addTabButtonBounds, pt)) {
@@ -449,6 +516,7 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         // Check Tabs and Close buttons
+        bool onTab = false;
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             if (PtInRect(&m_tabs[i]->closeButtonBounds, pt)) {
                 CloseTab(static_cast<int>(i));
@@ -456,8 +524,38 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             if (PtInRect(&m_tabs[i]->bounds, pt)) {
                 SelectTab(static_cast<int>(i));
-                return 0;
+                onTab = true;
+                break;
             }
+        }
+
+        // Click on empty space in titlebar / tabstrip initiates native window drag
+        if (!onTab && mainHwnd) {
+            ReleaseCapture();
+            SendMessageW(mainHwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+            return 0;
+        }
+        return 0;
+    }
+
+    case WM_LBUTTONDBLCLK: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        HWND mainHwnd = m_browserWindow ? m_browserWindow->GetHwnd() : nullptr;
+
+        bool onTab = false;
+        for (size_t i = 0; i < m_tabs.size(); ++i) {
+            if (PtInRect(&m_tabs[i]->bounds, pt)) {
+                onTab = true;
+                break;
+            }
+        }
+
+        if (!onTab && !PtInRect(&m_addTabButtonBounds, pt) &&
+            !PtInRect(&m_minButtonBounds, pt) && !PtInRect(&m_maxButtonBounds, pt) && !PtInRect(&m_closeButtonBounds, pt)) {
+            if (mainHwnd) {
+                ShowWindow(mainHwnd, IsZoomed(mainHwnd) ? SW_RESTORE : SW_MAXIMIZE);
+            }
+            return 0;
         }
         return 0;
     }

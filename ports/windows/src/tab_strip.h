@@ -71,6 +71,13 @@ private:
     void LayoutTabs();
     void Paint(HDC hdc);
 
+    enum CaptionButtonType {
+        CAPTION_NONE = 0,
+        CAPTION_MINIMIZE,
+        CAPTION_MAXIMIZE,
+        CAPTION_CLOSE
+    };
+
     HWND m_hwnd;
     BrowserWindow* m_browserWindow;
     std::vector<std::unique_ptr<BrowserTab>> m_tabs;
@@ -78,8 +85,13 @@ private:
     int m_activeIndex;
     int m_nextTabId;
     int m_hoveredIndex;
+    CaptionButtonType m_hoveredCaptionButton;
     RECT m_addTabButtonBounds;
+    RECT m_minButtonBounds;
+    RECT m_maxButtonBounds;
+    RECT m_closeButtonBounds;
     HFONT m_font;
     HFONT m_iconFont;
+    HFONT m_captionFont;
     bool m_isDark;
 };

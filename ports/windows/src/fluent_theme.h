@@ -29,6 +29,10 @@ namespace icons {
     constexpr const wchar_t* ChevronUp = L"\uE70E";
     constexpr const wchar_t* ChevronDown = L"\uE70D";
     constexpr const wchar_t* Globe = L"\uE774";
+    constexpr const wchar_t* ChromeMinimize = L"\uE921";
+    constexpr const wchar_t* ChromeMaximize = L"\uE922";
+    constexpr const wchar_t* ChromeRestore = L"\uE923";
+    constexpr const wchar_t* ChromeClose = L"\uE8BB";
 }
 
 // WinUI 3 Fluent Design System Color Tokens
@@ -93,18 +97,41 @@ inline ThemeColors GetLightColors() {
     return c;
 }
 
-inline HFONT CreateFluentFont(int height, int weight = FW_NORMAL, bool italic = false) {
+inline const wchar_t* GetCurrentFontFamily() {
+    static wchar_t s_fontFamily[64] = L"Inter";
+    return s_fontFamily;
+}
+
+inline void SetCurrentFontFamily(const wchar_t* family) {
+    if (family && *family) {
+        wchar_t* target = const_cast<wchar_t*>(GetCurrentFontFamily());
+        wcsncpy_s(target, 64, family, _TRUNCATE);
+    }
+}
+
+inline HFONT CreateFluentFont(int height, int weight = FW_NORMAL, bool italic = false, const wchar_t* customFamily = nullptr) {
     int fontHeight = (height > 0) ? -height : height;
+    const wchar_t* family = customFamily ? customFamily : GetCurrentFontFamily();
     return CreateFontW(
         fontHeight, 0, 0, 0, weight, italic ? TRUE : FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-        L"Segoe UI Variable Text"
+        family
     );
 }
 
 inline HFONT CreateFluentIconFont(int height) {
     // Falls back gracefully: Segoe Fluent Icons (Win 11) -> Segoe MDL2 Assets (Win 10) -> Segoe UI Symbol
+    int fontHeight = (height > 0) ? -height : height;
+    return CreateFontW(
+        fontHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+        L"Segoe Fluent Icons"
+    );
+}
+
+inline HFONT CreateCaptionIconFont(int height = 10) {
     int fontHeight = (height > 0) ? -height : height;
     return CreateFontW(
         fontHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,

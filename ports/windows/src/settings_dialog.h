@@ -29,6 +29,7 @@ class SettingsDialog {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);
     static void ShowModal(HWND parentHwnd, BrowserWindow* browserWindow);
+    static std::string EnsureSettingsPageExists();
 
     static BrowserSettings LoadSettings();
     static void SaveSettings(const BrowserSettings& settings);

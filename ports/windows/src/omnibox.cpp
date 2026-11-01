@@ -387,7 +387,10 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
     FillRect(hdc, &rc, bg);
     DeleteObject(bg);
 
-    HFONT oldFont = (HFONT)SelectObject(hdc, m_font);
+    // Google Font (Inter / Roboto) typography for search results in the dropdown pane
+    HFONT resultFont = fluent::CreateFluentFont(13, FW_NORMAL, false, L"Inter");
+    HFONT resultBoldFont = fluent::CreateFluentFont(13, FW_SEMIBOLD, false, L"Inter");
+    HFONT badgeFont = fluent::CreateFluentFont(10, FW_MEDIUM, false, L"Inter");
     HFONT iconFont = m_iconFont;
     SetBkMode(hdc, TRANSPARENT);
 
@@ -395,7 +398,7 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
     int y = 3;
 
     for (int i = 0; i < static_cast<int>(m_suggestions.size()); ++i) {
-        RECT itemRc = { 3, y, rc.right - 3, y + itemH };
+        RECT itemRc = { 4, y, rc.right - 4, y + itemH };
 
         if (i == m_selectedSuggestion) {
             HBRUSH selBrush = CreateSolidBrush(m_isDark ? RGB(55, 55, 55) : RGB(230, 230, 230));
@@ -405,21 +408,29 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
 
         // Draw Icon (Search or Globe)
         SelectObject(hdc, iconFont);
-        SetTextColor(hdc, colors.TextSecondary);
+        SetTextColor(hdc, (i == m_selectedSuggestion) ? colors.Accent : colors.TextSecondary);
         RECT iconRc = { itemRc.left + 8, itemRc.top, itemRc.left + 28, itemRc.bottom };
         bool isUrl = (m_suggestions[i].find(L"://") != std::wstring::npos || m_suggestions[i].find(L".") != std::wstring::npos);
         DrawTextW(hdc, isUrl ? fluent::icons::Globe : fluent::icons::Search, -1, &iconRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-        // Draw Text
-        SelectObject(hdc, m_font);
+        // Draw Text with Google Font
+        SelectObject(hdc, (i == m_selectedSuggestion) ? resultBoldFont : resultFont);
         SetTextColor(hdc, (i == m_selectedSuggestion) ? colors.Accent : colors.TextPrimary);
-        RECT textRc = { itemRc.left + 36, itemRc.top, itemRc.right - 8, itemRc.bottom };
+        RECT textRc = { itemRc.left + 36, itemRc.top, itemRc.right - 70, itemRc.bottom };
         DrawTextW(hdc, m_suggestions[i].c_str(), -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+        // Badge indicator on right side (Search vs Website)
+        SelectObject(hdc, badgeFont);
+        SetTextColor(hdc, colors.TextTertiary);
+        RECT badgeRc = { itemRc.right - 68, itemRc.top, itemRc.right - 8, itemRc.bottom };
+        DrawTextW(hdc, isUrl ? L"Website" : L"Search", -1, &badgeRc, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
 
         y += itemH;
     }
 
-    SelectObject(hdc, oldFont);
+    DeleteObject(resultFont);
+    DeleteObject(resultBoldFont);
+    DeleteObject(badgeFont);
 }
 
 LRESULT CALLBACK OmniboxToolbar::SuggestionsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

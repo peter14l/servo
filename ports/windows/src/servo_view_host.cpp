@@ -118,6 +118,10 @@ ServoViewHost::~ServoViewHost() {
 void ServoViewHost::SetBounds(int x, int y, int width, int height) {
     if (m_hwnd) {
         SetWindowPos(m_hwnd, nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+        if (width > 0 && height > 0) {
+            HRGN hRgn = CreateRoundRectRgn(0, 0, width + 1, height + 1, 14, 14);
+            SetWindowRgn(m_hwnd, hRgn, TRUE);
+        }
     }
 }
 

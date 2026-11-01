@@ -118,10 +118,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     ServoError wakerErr = servo_builder_set_event_loop_waker(builder, waker);
     LogDebug("servo_builder_set_event_loop_waker returned: %d", (int)wakerErr);
 
-    // Set startup options
+    // Set startup options and persistent profile directory (%LOCALAPPDATA%\Servo Browser)
     ServoOptions* options = servo_options_create();
     if (options) {
         servo_options_set_multiprocess(options, false);
+
+        wchar_t localAppData[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+            std::wstring baseDir = std::wstring(localAppData) + L"\\Servo Browser";
+            CreateDirectoryW(baseDir.c_str(), nullptr);
+
+            int utf8Len = WideCharToMultiByte(CP_UTF8, 0, baseDir.c_str(), -1, nullptr, 0, nullptr, nullptr);
+            if (utf8Len > 1) {
+                std::string baseDirA(utf8Len - 1, 0);
+                WideCharToMultiByte(CP_UTF8, 0, baseDir.c_str(), -1, &baseDirA[0], utf8Len, nullptr, nullptr);
+                servo_options_set_config_dir(options, baseDirA.c_str());
+            }
+        }
+
         servo_builder_set_options(builder, options);
     }
 

@@ -6,6 +6,7 @@ use cssparser::match_ignore_ascii_case;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
+use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -314,7 +315,7 @@ impl DocumentExecCommandSupport for Document {
             if let Some(range) = selection.active_range(cx) {
                 let static_range = StaticRange::new(
                     cx,
-                    &window.Document(),
+                    self,
                     &range.StartContainer(),
                     range.StartOffset(),
                     &range.EndContainer(),
@@ -378,7 +379,7 @@ impl DocumentExecCommandSupport for Document {
             if let Some(range) = selection.active_range(cx) {
                 let static_range = StaticRange::new(
                     cx,
-                    &window.Document(),
+                    self,
                     &range.StartContainer(),
                     range.StartOffset(),
                     &range.EndContainer(),

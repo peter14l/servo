@@ -6,6 +6,7 @@
 #include "browser_window.h"
 #include "servo_view_host.h"
 #include "fluent_theme.h"
+#include "new_tab_page.h"
 #include <windowsx.h>
 #include <algorithm>
 
@@ -87,7 +88,7 @@ int TabStrip::AddTab(const std::string& url) {
     auto tab = std::make_unique<BrowserTab>();
     tab->id = m_nextTabId++;
     tab->title = L"New Tab";
-    tab->url = url.empty() ? "https://servo.org" : url;
+    tab->url = url.empty() ? NewTabPage::EnsureNewTabPageExists() : url;
 
     int newIndex = static_cast<int>(m_tabs.size());
     m_tabs.push_back(std::move(tab));
@@ -497,7 +498,7 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
         // Check Add Tab button
         if (PtInRect(&m_addTabButtonBounds, pt)) {
-            AddTab("https://servo.org");
+            AddTab(NewTabPage::EnsureNewTabPageExists());
             return 0;
         }
 

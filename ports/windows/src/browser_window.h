@@ -25,7 +25,8 @@ class ServoViewHost;
 class BrowserWindow {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);
-    static BrowserWindow* Create(struct Servo* servo, const std::string& initialUrl = "https://servo.org");
+    static BrowserWindow* Create(struct Servo* servo, const std::string& initialUrl = "");
+    static BrowserWindow* CreateForPopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request);
 
     BrowserWindow(struct Servo* servo);
     ~BrowserWindow();

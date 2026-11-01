@@ -97,11 +97,87 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
         delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
+        delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
         m_webview = servo_webview_builder_build(builder);
         LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
+    }
+}
+
+ServoViewHost::ServoViewHost(
+    HWND parentHwnd,
+    struct Servo* servo,
+    BrowserWindow* browserWindow,
+    struct ServoCreateNewWebViewRequest* request
+)
+    : m_parentHwnd(parentHwnd)
+    , m_servo(servo)
+    , m_browserWindow(browserWindow)
+    , m_hwnd(nullptr)
+    , m_webview(nullptr)
+    , m_context(nullptr)
+    , m_trackingMouse(false)
+    , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
+{
+    HINSTANCE hInstance = GetModuleHandleW(nullptr);
+    m_hwnd = CreateWindowExW(
+        0,
+        SERVO_VIEW_CLASS_NAME,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+        0, 0, 800, 600,
+        parentHwnd,
+        nullptr,
+        hInstance,
+        this
+    );
+
+    if (m_hwnd) {
+        UINT dpi = GetDpiForWindow(m_hwnd);
+        float scale = dpi / 96.0f;
+        uint32_t width = static_cast<uint32_t>(800 * scale);
+        uint32_t height = static_cast<uint32_t>(600 * scale);
+
+        m_context = servo_rendering_context_create_windows_hwnd(
+            m_hwnd,
+            hInstance,
+            width,
+            height
+        );
+        if (!m_context) {
+            m_context = servo_rendering_context_create_software(width, height);
+        }
+
+        auto* builder = servo_create_new_webview_builder_create(request, m_context);
+        if (builder) {
+            servo_webview_builder_set_hidpi_scale_factor(builder, scale);
+
+            ServoWebViewDelegate delegate = {};
+            delegate.struct_size = sizeof(ServoWebViewDelegate);
+            delegate.user_data = this;
+            delegate.notify_new_frame_ready = OnNewFrameReady;
+            delegate.notify_url_changed = OnUrlChanged;
+            delegate.notify_page_title_changed = OnTitleChanged;
+            delegate.notify_load_status_changed = OnLoadStatusChanged;
+            delegate.notify_cursor_changed = OnCursorChanged;
+            delegate.notify_favicon_changed = reinterpret_cast<decltype(delegate.notify_favicon_changed)>(OnFaviconChanged);
+            delegate.show_alert_dialog = reinterpret_cast<decltype(delegate.show_alert_dialog)>(OnAlertDialog);
+            delegate.show_confirm_dialog = reinterpret_cast<decltype(delegate.show_confirm_dialog)>(OnConfirmDialog);
+            delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
+            delegate.show_file_picker = reinterpret_cast<decltype(delegate.show_file_picker)>(OnFilePicker);
+            delegate.show_context_menu = reinterpret_cast<decltype(delegate.show_context_menu)>(OnContextMenu);
+            delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
+            delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
+            delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
+            delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
+            delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
+
+            servo_webview_builder_set_delegate(builder, delegate);
+            m_webview = servo_webview_builder_build(builder);
+            LogDebug("Popup WebView created: 0x%p", m_webview);
+        }
     }
 }
 
@@ -420,8 +496,38 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
 
-        // Forward global browser shortcuts up to top-level window
-        if (ctrl || alt || wParam == VK_F5 || wParam == VK_F6 || wParam == VK_F11 || wParam == VK_F12 || wParam == VK_ESCAPE) {
+        // Only forward true browser chrome shortcuts to the top-level BrowserWindow.
+        // Editing keys (Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Ctrl+Y, Enter, etc.)
+        // must remain with the active webview for typing, message submission, and text editing.
+        bool isBrowserShortcut = false;
+        if (ctrl) {
+            switch (wParam) {
+            case 'T': case 'W': case 'R': case 'L': case 'E': case 'K':
+            case 'F': case 'J': case 'P': case 'U': case 'N': case 'H':
+            case VK_OEM_COMMA: case VK_OEM_PLUS: case VK_OEM_MINUS: case VK_ADD:
+            case VK_SUBTRACT: case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9': case VK_TAB:
+            case VK_PRIOR: case VK_NEXT: case VK_F4:
+                isBrowserShortcut = true;
+                break;
+            default:
+                break;
+            }
+        } else if (alt) {
+            switch (wParam) {
+            case VK_LEFT: case VK_RIGHT: case VK_HOME: case 'D':
+                isBrowserShortcut = true;
+                break;
+            default:
+                break;
+            }
+        } else {
+            if (wParam == VK_F5 || wParam == VK_F6 || wParam == VK_F11 || wParam == VK_F12 || wParam == VK_ESCAPE) {
+                isBrowserShortcut = true;
+            }
+        }
+
+        if (isBrowserShortcut) {
             SendMessageW(m_parentHwnd, msg, wParam, lParam);
             return 0;
         }
@@ -694,4 +800,20 @@ void ServoViewHost::OnRequestPermission(
         callback(true, callbackUserData);
     }
 }
+
+bool ServoViewHost::OnRequestCreateNew(
+    struct WebView* /*webview*/,
+    struct ServoCreateNewWebViewRequest* request,
+    void* userData
+) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self || !request) return false;
+    LogDebug("ServoViewHost::OnRequestCreateNew: request=0x%p", request);
+    if (self->m_browserWindow) {
+        BrowserWindow* popup = BrowserWindow::CreateForPopup(self->m_servo, request);
+        return popup != nullptr;
+    }
+    return false;
+}
+
 

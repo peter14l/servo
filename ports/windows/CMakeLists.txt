@@ -22,6 +22,7 @@ set(SOURCES
     src/find_bar.cpp
     src/download_manager.cpp
     src/settings_dialog.cpp
+    src/new_tab_page.cpp
     src/browser.manifest
 )
 
@@ -35,6 +36,7 @@ set(HEADERS
     src/find_bar.h
     src/download_manager.h
     src/settings_dialog.h
+    src/new_tab_page.h
     src/fluent_theme.h
 )
 

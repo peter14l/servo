@@ -17,6 +17,7 @@
 #include "find_bar.h"
 #include "download_manager.h"
 #include "settings_dialog.h"
+#include "new_tab_page.h"
 #include "servo_view_host.h"
 
 #pragma comment(lib, "comctl32.lib")
@@ -248,7 +249,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     LogDebug("Window classes registered.");
 
     // 4. Create and Show Browser Window
-    const char* initial_url = "https://servo.org";
+    std::string defaultUrl = NewTabPage::EnsureNewTabPageExists();
+    const char* initial_url = defaultUrl.c_str();
     if (__argc > 1 && __argv[1] && __argv[1][0] != '\0') {
         initial_url = __argv[1];
     }

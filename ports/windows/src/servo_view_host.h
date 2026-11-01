@@ -20,6 +20,7 @@ public:
     static void RegisterWindowClass(HINSTANCE hInstance);
 
     ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl);
+    ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, struct ServoCreateNewWebViewRequest* request);
     ~ServoViewHost();
 
     HWND GetHwnd() const { return m_hwnd; }

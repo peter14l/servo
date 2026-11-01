@@ -86,12 +86,28 @@ impl Backend for DummyBackend {
         &self,
         _id: &ClientContextId,
         _: StreamType,
-        _: GenericCallback<PlayerEvent>,
+        callback: GenericCallback<PlayerEvent>,
         _: Option<Arc<Mutex<dyn video::VideoFrameRenderer>>>,
         _: Option<Arc<Mutex<dyn audio::AudioRenderer>>>,
         _: Box<dyn PlayerGLContext>,
     ) -> Arc<Mutex<dyn Player>> {
-        Arc::new(Mutex::new(DummyPlayer))
+        let metadata = servo_media_player::metadata::Metadata {
+            duration: Some(std::time::Duration::from_secs(60)),
+            width: 720,
+            height: 1280,
+            format: "video/mp4".to_string(),
+            is_seekable: true,
+            video_tracks: vec!["video".to_string()],
+            audio_tracks: vec!["audio".to_string()],
+            is_live: false,
+        };
+        callback(PlayerEvent::MetadataUpdated(metadata));
+        callback(PlayerEvent::DurationChanged(60.0));
+        callback(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        Arc::new(Mutex::new(DummyPlayer {
+            callback: Some(callback),
+            paused: std::sync::atomic::AtomicBool::new(true),
+        }))
     }
 
     fn create_audio_context(
@@ -149,7 +165,10 @@ impl AudioBackend for DummyBackend {
     }
 }
 
-pub struct DummyPlayer;
+pub struct DummyPlayer {
+    callback: Option<GenericCallback<PlayerEvent>>,
+    paused: std::sync::atomic::AtomicBool,
+}
 
 pub struct DummyStreamReader;
 
@@ -163,14 +182,22 @@ impl AudioStreamReader for DummyStreamReader {
 
 impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
+        self.paused.store(false, std::sync::atomic::Ordering::SeqCst);
+        if let Some(ref cb) = self.callback {
+            cb(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
+        }
         Ok(())
     }
     fn pause(&self) -> Result<(), PlayerError> {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
+        if let Some(ref cb) = self.callback {
+            cb(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        }
         Ok(())
     }
 
     fn paused(&self) -> bool {
-        true
+        self.paused.load(std::sync::atomic::Ordering::SeqCst)
     }
     fn can_resume(&self) -> bool {
         true

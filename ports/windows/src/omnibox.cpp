@@ -161,6 +161,11 @@ void OmniboxToolbar::SetBounds(int x, int y, int width, int height) {
 
 void OmniboxToolbar::SetUrl(const std::string& url) {
     if (!m_editHwnd) return;
+    if (NewTabPage::IsNewTabUrl(url)) {
+        SetWindowTextW(m_editHwnd, L"");
+        HideSuggestions();
+        return;
+    }
     int len = MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, nullptr, 0);
     if (len > 0) {
         std::vector<wchar_t> wbuf(len);

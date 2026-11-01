@@ -13,6 +13,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cctype>
+#include "new_tab_page.h"
 
 class BrowserWindow;
 
@@ -54,6 +55,10 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
         first = input.find_first_not_of(" \t\r\n");
         if (first == std::string::npos) return "";
         input = input.substr(first);
+    }
+
+    if (input == "servo://newtab" || input == "about:newtab") {
+        return NewTabPage::EnsureNewTabPageExists();
     }
 
     // Rewrite apex youtube.com to www.youtube.com to prevent TLS renegotiation failure

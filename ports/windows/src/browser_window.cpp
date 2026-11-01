@@ -8,6 +8,7 @@
 #include "find_bar.h"
 #include "download_manager.h"
 #include "settings_dialog.h"
+#include "new_tab_page.h"
 #include "servo_view_host.h"
 #include <windowsx.h>
 #include <commdlg.h>
@@ -49,6 +50,8 @@ void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
 BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& initialUrl) {
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
     auto window = new BrowserWindow(servo);
+
+    std::string startUrl = initialUrl.empty() ? NewTabPage::EnsureNewTabPageExists() : initialUrl;
 
     LogDebug("CreateWindowExW starting for BrowserWindow, hInstance=0x%p...", hInstance);
     HWND hwnd = CreateWindowExW(
@@ -94,12 +97,12 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     window->m_findBar = std::make_unique<FindBar>(hwnd, window);
     window->m_downloadManager = std::make_unique<DownloadManager>(hwnd);
 
-    LogDebug("Creating single viewport ServoViewHost...");
+    LogDebug("Creating single viewport ServoViewHost with URL %s...", startUrl.c_str());
     window->m_viewHost = std::make_unique<ServoViewHost>(
         hwnd,
         servo,
         window,
-        initialUrl
+        startUrl
     );
 
     // Sync dark theme to webview now that viewHost is initialized
@@ -107,7 +110,7 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
 
     LogDebug("Adding initial tab...");
     // Create initial tab
-    window->m_tabStrip->AddTab(initialUrl);
+    window->m_tabStrip->AddTab(startUrl);
     window->LayoutChildren();
 
     LogDebug("Showing window...");
@@ -120,6 +123,65 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     SetTimer(hwnd, 1, 33, nullptr);
 
     LogDebug("BrowserWindow::Create completed successfully.");
+    return window;
+}
+
+BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request) {
+    HINSTANCE hInstance = GetModuleHandleW(nullptr);
+    auto window = new BrowserWindow(servo);
+
+    LogDebug("CreateWindowExW starting for popup window...");
+    HWND hwnd = CreateWindowExW(
+        WS_EX_APPWINDOW,
+        BROWSER_WINDOW_CLASS_NAME,
+        L"Servo Browser Call",
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+        CW_USEDEFAULT, CW_USEDEFAULT, 960, 720,
+        nullptr,
+        nullptr,
+        hInstance,
+        window
+    );
+    if (!hwnd) {
+        servo_create_new_webview_request_free(request);
+        delete window;
+        return nullptr;
+    }
+
+    window->m_hwnd = hwnd;
+
+    DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+    style &= ~WS_CAPTION;
+    SetWindowLongW(hwnd, GWL_STYLE, style);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
+    window->ApplyMicaAltTheme();
+
+    window->m_tabStrip = std::make_unique<TabStrip>(hwnd, window);
+    window->m_omnibox = std::make_unique<OmniboxToolbar>(hwnd, window);
+    window->m_findBar = std::make_unique<FindBar>(hwnd, window);
+    window->m_downloadManager = std::make_unique<DownloadManager>(hwnd);
+
+    LogDebug("Creating popup viewport ServoViewHost with request 0x%p...", request);
+    window->m_viewHost = std::make_unique<ServoViewHost>(
+        hwnd,
+        servo,
+        window,
+        request
+    );
+
+    window->SyncDarkMode();
+    window->m_tabStrip->AddTab("about:blank");
+    window->LayoutChildren();
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
+    UpdateWindow(hwnd);
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+
+    SetTimer(hwnd, 1, 33, nullptr);
+    LogDebug("BrowserWindow::CreateForPopup completed successfully.");
     return window;
 }
 
@@ -372,8 +434,9 @@ void BrowserWindow::OpenSettings() {
 }
 
 void BrowserWindow::OpenUrlInNewTab(const std::string& url) {
+    std::string targetUrl = url.empty() ? NewTabPage::EnsureNewTabPageExists() : url;
     if (m_tabStrip) {
-        m_tabStrip->AddTab(url);
+        m_tabStrip->AddTab(targetUrl);
     }
 }
 
@@ -627,7 +690,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         if (ctrl && wParam == 'T') {
-            if (m_tabStrip) m_tabStrip->AddTab("https://servo.org");
+            OpenUrlInNewTab(NewTabPage::EnsureNewTabPageExists());
             return 0;
         }
         if ((ctrl && wParam == 'W') || (ctrl && wParam == VK_F4)) {
@@ -663,7 +726,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         if (alt && wParam == VK_HOME) {
-            NavigateUrl("https://servo.org");
+            NavigateUrl(NewTabPage::EnsureNewTabPageExists());
             return 0;
         }
         if (alt && wParam == VK_LEFT) {
@@ -689,7 +752,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         if (ctrl && wParam == 'N') {
-            OpenUrlInNewTab("https://servo.org");
+            OpenUrlInNewTab(NewTabPage::EnsureNewTabPageExists());
             return 0;
         }
         if (ctrl && wParam == 'F') {

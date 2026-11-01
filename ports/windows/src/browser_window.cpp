@@ -10,6 +10,7 @@
 #include "settings_dialog.h"
 #include "servo_view_host.h"
 #include <windowsx.h>
+#include <commdlg.h>
 #include <vector>
 
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE

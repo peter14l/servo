@@ -72,6 +72,7 @@ target_link_libraries(servo_browser PRIVATE
     uxtheme
     comctl32
     shlwapi
+    comdlg32
     user32
     gdi32
     msimg32

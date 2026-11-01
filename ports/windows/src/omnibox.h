@@ -9,6 +9,7 @@
 #endif
 #include <windows.h>
 #include <string>
+#include <vector>
 #include <sstream>
 #include <iomanip>
 #include <cctype>

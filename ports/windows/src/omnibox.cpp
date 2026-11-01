@@ -258,21 +258,46 @@ void OmniboxToolbar::Paint(HDC hdc) {
     HFONT oldFont = (HFONT)SelectObject(memDC, m_iconFont);
     SetBkMode(memDC, TRANSPARENT);
 
-    auto drawNavButton = [&](const RECT& bounds, const wchar_t* icon, bool enabled) {
+    auto drawNavButton = [&](const RECT& bounds, const wchar_t* icon, bool enabled, NavButton btnType) {
+        bool isHovered = (m_hoveredNavBtn == btnType && enabled);
+        bool isPressed = (m_pressedNavBtn == btnType && enabled);
+
+        if (isPressed) {
+            HBRUSH hBr = CreateSolidBrush(colors.ControlBackgroundPressed);
+            HPEN hPen = CreatePen(PS_SOLID, 1, colors.ControlBorder);
+            HGDIOBJ ob = SelectObject(memDC, hBr);
+            HGDIOBJ op = SelectObject(memDC, hPen);
+            RoundRect(memDC, bounds.left, bounds.top, bounds.right, bounds.bottom, 6, 6);
+            SelectObject(memDC, ob);
+            SelectObject(memDC, op);
+            DeleteObject(hBr);
+            DeleteObject(hPen);
+        } else if (isHovered) {
+            HBRUSH hBr = CreateSolidBrush(colors.ControlBackgroundHover);
+            HPEN hPen = CreatePen(PS_NULL, 0, RGB(0, 0, 0));
+            HGDIOBJ ob = SelectObject(memDC, hBr);
+            HGDIOBJ op = SelectObject(memDC, hPen);
+            RoundRect(memDC, bounds.left, bounds.top, bounds.right, bounds.bottom, 6, 6);
+            SelectObject(memDC, ob);
+            SelectObject(memDC, op);
+            DeleteObject(hBr);
+            DeleteObject(hPen);
+        }
+
         SetTextColor(memDC, enabled ? colors.TextPrimary : colors.TextTertiary);
         RECT r = bounds;
         DrawTextW(memDC, icon, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     };
 
     // Navigation Controls
-    drawNavButton(m_backBtnBounds, fluent::icons::Back, m_canBack);
-    drawNavButton(m_forwardBtnBounds, fluent::icons::Forward, m_canForward);
-    drawNavButton(m_reloadBtnBounds, m_isLoading ? fluent::icons::Stop : fluent::icons::Refresh, true);
-    drawNavButton(m_homeBtnBounds, fluent::icons::Home, true);
+    drawNavButton(m_backBtnBounds, fluent::icons::Back, m_canBack, NavButton::Back);
+    drawNavButton(m_forwardBtnBounds, fluent::icons::Forward, m_canForward, NavButton::Forward);
+    drawNavButton(m_reloadBtnBounds, m_isLoading ? fluent::icons::Stop : fluent::icons::Refresh, true, NavButton::Reload);
+    drawNavButton(m_homeBtnBounds, fluent::icons::Home, true, NavButton::Home);
 
     // Right Controls (Downloads & Settings)
-    drawNavButton(m_downloadsBtnBounds, fluent::icons::Downloads, true);
-    drawNavButton(m_settingsBtnBounds, fluent::icons::Settings, true);
+    drawNavButton(m_downloadsBtnBounds, fluent::icons::Downloads, true, NavButton::Downloads);
+    drawNavButton(m_settingsBtnBounds, fluent::icons::Settings, true, NavButton::Settings);
 
     // Omnibox Frame with Fluent rounded corners
     HBRUSH boxBrush = CreateSolidBrush(colors.ControlBackground);
@@ -560,21 +585,76 @@ LRESULT OmniboxToolbar::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         break;
     }
 
-    case WM_LBUTTONUP: {
+    case WM_MOUSEMOVE: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        NavButton newHover = NavButton::None;
+
+        if (PtInRect(&m_backBtnBounds, pt)) newHover = NavButton::Back;
+        else if (PtInRect(&m_forwardBtnBounds, pt)) newHover = NavButton::Forward;
+        else if (PtInRect(&m_reloadBtnBounds, pt)) newHover = NavButton::Reload;
+        else if (PtInRect(&m_homeBtnBounds, pt)) newHover = NavButton::Home;
+        else if (PtInRect(&m_downloadsBtnBounds, pt)) newHover = NavButton::Downloads;
+        else if (PtInRect(&m_settingsBtnBounds, pt)) newHover = NavButton::Settings;
+
+        if (newHover != m_hoveredNavBtn) {
+            m_hoveredNavBtn = newHover;
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+            TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, m_hwnd, 0 };
+            TrackMouseEvent(&tme);
+        }
+        return 0;
+    }
+
+    case WM_MOUSELEAVE: {
+        if (m_hoveredNavBtn != NavButton::None || m_pressedNavBtn != NavButton::None) {
+            m_hoveredNavBtn = NavButton::None;
+            m_pressedNavBtn = NavButton::None;
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
+        return 0;
+    }
+
+    case WM_LBUTTONDOWN: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        NavButton newPressed = NavButton::None;
+
+        if (PtInRect(&m_backBtnBounds, pt)) newPressed = NavButton::Back;
+        else if (PtInRect(&m_forwardBtnBounds, pt)) newPressed = NavButton::Forward;
+        else if (PtInRect(&m_reloadBtnBounds, pt)) newPressed = NavButton::Reload;
+        else if (PtInRect(&m_homeBtnBounds, pt)) newPressed = NavButton::Home;
+        else if (PtInRect(&m_downloadsBtnBounds, pt)) newPressed = NavButton::Downloads;
+        else if (PtInRect(&m_settingsBtnBounds, pt)) newPressed = NavButton::Settings;
+
+        if (newPressed != NavButton::None) {
+            m_pressedNavBtn = newPressed;
+            SetCapture(m_hwnd);
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
+        return 0;
+    }
+
+    case WM_LBUTTONUP: {
+        if (GetCapture() == m_hwnd) {
+            ReleaseCapture();
+        }
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        NavButton pressed = m_pressedNavBtn;
+        m_pressedNavBtn = NavButton::None;
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+
         if (m_browserWindow) {
-            if (PtInRect(&m_backBtnBounds, pt) && m_canBack) {
+            if (pressed == NavButton::Back && PtInRect(&m_backBtnBounds, pt) && m_canBack) {
                 m_browserWindow->NavigateBack();
-            } else if (PtInRect(&m_forwardBtnBounds, pt) && m_canForward) {
+            } else if (pressed == NavButton::Forward && PtInRect(&m_forwardBtnBounds, pt) && m_canForward) {
                 m_browserWindow->NavigateForward();
-            } else if (PtInRect(&m_reloadBtnBounds, pt)) {
+            } else if (pressed == NavButton::Reload && PtInRect(&m_reloadBtnBounds, pt)) {
                 if (m_isLoading) m_browserWindow->NavigateStop();
                 else m_browserWindow->NavigateReload();
-            } else if (PtInRect(&m_homeBtnBounds, pt)) {
+            } else if (pressed == NavButton::Home && PtInRect(&m_homeBtnBounds, pt)) {
                 m_browserWindow->NavigateUrl("https://servo.org");
-            } else if (PtInRect(&m_downloadsBtnBounds, pt)) {
+            } else if (pressed == NavButton::Downloads && PtInRect(&m_downloadsBtnBounds, pt)) {
                 m_browserWindow->ToggleDownloads();
-            } else if (PtInRect(&m_settingsBtnBounds, pt)) {
+            } else if (pressed == NavButton::Settings && PtInRect(&m_settingsBtnBounds, pt)) {
                 m_browserWindow->OpenSettings();
             }
         }

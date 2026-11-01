@@ -89,14 +89,6 @@ int TabStrip::AddTab(const std::string& url) {
     tab->title = L"New Tab";
     tab->url = url.empty() ? "https://servo.org" : url;
 
-    // Create the ServoViewHost for this tab
-    tab->viewHost = std::make_unique<ServoViewHost>(
-        m_browserWindow->GetHwnd(),
-        m_browserWindow->GetServo(),
-        m_browserWindow,
-        tab->url
-    );
-
     int newIndex = static_cast<int>(m_tabs.size());
     m_tabs.push_back(std::move(tab));
 
@@ -116,7 +108,6 @@ void TabStrip::CloseTab(int index) {
     m_closedHistory.push_back({ m_tabs[index]->url, m_tabs[index]->title });
 
     bool wasActive = (index == m_activeIndex);
-    m_tabs[index]->viewHost->Show(false);
     m_tabs.erase(m_tabs.begin() + index);
 
     if (m_tabs.empty()) {
@@ -172,16 +163,10 @@ void TabStrip::SetDarkMode(bool isDark) {
 void TabStrip::SelectTab(int index) {
     if (index < 0 || index >= static_cast<int>(m_tabs.size())) return;
 
-    if (m_activeIndex >= 0 && m_activeIndex < static_cast<int>(m_tabs.size())) {
-        m_tabs[m_activeIndex]->viewHost->Show(false);
-    }
-
     m_activeIndex = index;
     auto* activeTab = m_tabs[m_activeIndex].get();
-    activeTab->viewHost->Show(true);
-    activeTab->viewHost->SetFocus();
 
-    m_browserWindow->UpdateActiveTabUI(activeTab->url, activeTab->title);
+    m_browserWindow->OnActiveTabSwitched(activeTab->url, activeTab->title);
     InvalidateRect(m_hwnd, nullptr, FALSE);
 }
 
@@ -207,19 +192,17 @@ void TabStrip::UpdateActiveUrl(const std::string& url) {
     }
 }
 
-void TabStrip::UpdateTabFavicon(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height) {
-    for (auto& tab : m_tabs) {
-        if (tab->viewHost.get() == host) {
-            if (tab->faviconBitmap) {
-                DeleteObject(tab->faviconBitmap);
-            }
-            tab->faviconBitmap = hBitmap;
-            tab->faviconWidth = width;
-            tab->faviconHeight = height;
-            if (m_hwnd) {
-                InvalidateRect(m_hwnd, nullptr, FALSE);
-            }
-            break;
+void TabStrip::UpdateTabFavicon(HBITMAP hBitmap, uint32_t width, uint32_t height) {
+    auto* tab = GetActiveTab();
+    if (tab) {
+        if (tab->faviconBitmap) {
+            DeleteObject(tab->faviconBitmap);
+        }
+        tab->faviconBitmap = hBitmap;
+        tab->faviconWidth = width;
+        tab->faviconHeight = height;
+        if (m_hwnd) {
+            InvalidateRect(m_hwnd, nullptr, FALSE);
         }
     }
 }
@@ -594,7 +577,7 @@ LRESULT TabStrip::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                 DestroyMenu(hMenu);
 
                 if (cmd == 1) {
-                    if (m_tabs[clickedIndex]->viewHost) m_tabs[clickedIndex]->viewHost->Reload();
+                    if (m_browserWindow) m_browserWindow->NavigateReload();
                 } else if (cmd == 2) {
                     DuplicateTab(clickedIndex);
                 } else if (cmd == 3) {

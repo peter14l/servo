@@ -30,6 +30,7 @@ public:
 
     HWND GetHwnd() const { return m_hwnd; }
     struct Servo* GetServo() const { return m_servo; }
+    ServoViewHost* GetViewHost() const { return m_viewHost.get(); }
 
     void NavigateUrl(const std::string& url);
     void NavigateBack();
@@ -41,6 +42,7 @@ public:
     int FindNext(int identifier, bool forward);
     void ClearFind(int identifier);
 
+    void OnActiveTabSwitched(const std::string& url, const std::wstring& title);
     void OnActiveTabUrlChanged(const char* url);
     void OnActiveTabTitleChanged(const char* title);
     void OnActiveTabLoadStatusChanged(int32_t status);
@@ -74,6 +76,7 @@ private:
     HWND m_hwnd;
     struct Servo* m_servo;
 
+    std::unique_ptr<ServoViewHost> m_viewHost;
     std::unique_ptr<TabStrip> m_tabStrip;
     std::unique_ptr<OmniboxToolbar> m_omnibox;
     std::unique_ptr<FindBar> m_findBar;

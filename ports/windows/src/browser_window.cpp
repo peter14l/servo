@@ -85,6 +85,14 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     window->m_findBar = std::make_unique<FindBar>(hwnd, window);
     window->m_downloadManager = std::make_unique<DownloadManager>(hwnd);
 
+    LogDebug("Creating single viewport ServoViewHost...");
+    window->m_viewHost = std::make_unique<ServoViewHost>(
+        hwnd,
+        servo,
+        window,
+        initialUrl
+    );
+
     LogDebug("Adding initial tab...");
     // Create initial tab
     window->m_tabStrip->AddTab(initialUrl);
@@ -145,10 +153,9 @@ void BrowserWindow::SyncDarkMode() {
         m_omnibox->SetDarkMode(m_isDark);
     }
 
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
+    if (m_viewHost && m_viewHost->GetWebView()) {
         servo_webview_notify_theme_change(
-            tab->viewHost->GetWebView(),
+            m_viewHost->GetWebView(),
             m_isDark ? SERVO_THEME_DARK : SERVO_THEME_LIGHT
         );
     }
@@ -179,9 +186,8 @@ void BrowserWindow::LayoutChildren() {
     int contentW = std::max(0, width - (MARGIN_X * 2));
     int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
 
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->SetBounds(contentX, contentY, contentW, contentH);
+    if (m_viewHost) {
+        m_viewHost->SetBounds(contentX, contentY, contentW, contentH);
     }
 
     if (m_findBar) {
@@ -240,89 +246,82 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
+    if (url == "servo://native-settings" || url == "about:native-settings") {
+        SettingsDialog::ShowModal(m_hwnd, this);
+        return;
+    }
     if (url == "about:settings" || url == "servo://settings" || url == "edge://settings" || url == "chrome://settings" || url == "settings") {
         OpenSettings();
         return;
     }
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->LoadUrl(url);
+    if (m_viewHost) {
+        m_viewHost->LoadUrl(url);
     }
 }
 
 void BrowserWindow::NavigateBack() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->GoBack();
+    if (m_viewHost) {
+        m_viewHost->GoBack();
     }
 }
 
 void BrowserWindow::NavigateForward() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->GoForward();
+    if (m_viewHost) {
+        m_viewHost->GoForward();
     }
 }
 
 void BrowserWindow::NavigateReload() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->Reload();
+    if (m_viewHost) {
+        m_viewHost->Reload();
     }
 }
 
 void BrowserWindow::NavigateStop() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        tab->viewHost->Stop();
+    if (m_viewHost) {
+        m_viewHost->Stop();
     }
 }
 
 int BrowserWindow::FindInPage(const char* text, bool forward, bool matchCase) {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        return servo_webview_find(tab->viewHost->GetWebView(), text, forward, matchCase);
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        return servo_webview_find(m_viewHost->GetWebView(), text, forward, matchCase);
     }
     return -1;
 }
 
 int BrowserWindow::FindNext(int identifier, bool forward) {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        return servo_webview_find_next(tab->viewHost->GetWebView(), identifier, forward);
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        return servo_webview_find_next(m_viewHost->GetWebView(), identifier, forward);
     }
     return -1;
 }
 
 void BrowserWindow::ClearFind(int identifier) {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        servo_webview_find_clear(tab->viewHost->GetWebView(), identifier);
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        servo_webview_find_clear(m_viewHost->GetWebView(), identifier);
     }
 }
 
 void BrowserWindow::ZoomIn() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        float currentZoom = servo_webview_page_zoom(tab->viewHost->GetWebView());
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        float currentZoom = servo_webview_page_zoom(m_viewHost->GetWebView());
         float nextZoom = std::min(currentZoom * 1.2f, 5.0f);
-        servo_webview_set_page_zoom(tab->viewHost->GetWebView(), nextZoom);
+        servo_webview_set_page_zoom(m_viewHost->GetWebView(), nextZoom);
     }
 }
 
 void BrowserWindow::ZoomOut() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        float currentZoom = servo_webview_page_zoom(tab->viewHost->GetWebView());
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        float currentZoom = servo_webview_page_zoom(m_viewHost->GetWebView());
         float nextZoom = std::max(currentZoom / 1.2f, 0.25f);
-        servo_webview_set_page_zoom(tab->viewHost->GetWebView(), nextZoom);
+        servo_webview_set_page_zoom(m_viewHost->GetWebView(), nextZoom);
     }
 }
 
 void BrowserWindow::ZoomReset() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && tab->viewHost->GetWebView()) {
-        servo_webview_set_page_zoom(tab->viewHost->GetWebView(), 1.0f);
+    if (m_viewHost && m_viewHost->GetWebView()) {
+        servo_webview_set_page_zoom(m_viewHost->GetWebView(), 1.0f);
     }
 }
 
@@ -405,11 +404,20 @@ void BrowserWindow::PrintPage() {
 }
 
 void BrowserWindow::ViewPageSource() {
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        std::string srcUrl = "view-source:" + tab->viewHost->GetUrl();
+    if (m_viewHost) {
+        std::string srcUrl = "view-source:" + m_viewHost->GetUrl();
         OpenUrlInNewTab(srcUrl);
     }
+}
+
+void BrowserWindow::OnActiveTabSwitched(const std::string& url, const std::wstring& title) {
+    if (m_viewHost) {
+        if (!url.empty()) {
+            m_viewHost->LoadUrl(url);
+        }
+        m_viewHost->SetFocus();
+    }
+    UpdateActiveTabUI(url, title);
 }
 
 void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
@@ -419,9 +427,8 @@ void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
     if (m_tabStrip && url) {
         m_tabStrip->UpdateActiveUrl(url);
     }
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost) {
-        m_omnibox->UpdateNavigationState(tab->viewHost->CanGoBack(), tab->viewHost->CanGoForward());
+    if (m_viewHost && m_omnibox) {
+        m_omnibox->UpdateNavigationState(m_viewHost->CanGoBack(), m_viewHost->CanGoForward());
     }
 }
 
@@ -443,15 +450,14 @@ void BrowserWindow::OnActiveTabLoadStatusChanged(int32_t status) {
     if (m_omnibox) {
         m_omnibox->SetLoading(status == 0); // 0 = In progress
     }
-    auto* tab = m_tabStrip ? m_tabStrip->GetActiveTab() : nullptr;
-    if (tab && tab->viewHost && m_omnibox) {
-        m_omnibox->UpdateNavigationState(tab->viewHost->CanGoBack(), tab->viewHost->CanGoForward());
+    if (m_viewHost && m_omnibox) {
+        m_omnibox->UpdateNavigationState(m_viewHost->CanGoBack(), m_viewHost->CanGoForward());
     }
 }
 
-void BrowserWindow::OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height) {
+void BrowserWindow::OnTabFaviconUpdated(ServoViewHost* /*host*/, HBITMAP hBitmap, uint32_t width, uint32_t height) {
     if (m_tabStrip) {
-        m_tabStrip->UpdateTabFavicon(host, hBitmap, width, height);
+        m_tabStrip->UpdateTabFavicon(hBitmap, width, height);
     }
 }
 
@@ -486,6 +492,45 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+    case WM_NCCALCSIZE: {
+        if (wParam == TRUE) {
+            NCCALCSIZE_PARAMS* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+            if (IsZoomed(m_hwnd)) {
+                HMONITOR hMon = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO mi = { sizeof(MONITORINFO) };
+                if (GetMonitorInfoW(hMon, &mi)) {
+                    params->rgrc[0] = mi.rcWork;
+                }
+            }
+            return 0;
+        }
+        return DefWindowProcW(m_hwnd, msg, wParam, lParam);
+    }
+
+    case WM_NCHITTEST: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        RECT rcWindow;
+        GetWindowRect(m_hwnd, &rcWindow);
+
+        if (!IsZoomed(m_hwnd)) {
+            const int border = 6;
+            bool left = pt.x < rcWindow.left + border;
+            bool right = pt.x >= rcWindow.right - border;
+            bool top = pt.y < rcWindow.top + border;
+            bool bottom = pt.y >= rcWindow.bottom - border;
+
+            if (top && left) return HTTOPLEFT;
+            if (top && right) return HTTOPRIGHT;
+            if (bottom && left) return HTBOTTOMLEFT;
+            if (bottom && right) return HTBOTTOMRIGHT;
+            if (left) return HTLEFT;
+            if (right) return HTRIGHT;
+            if (top) return HTTOP;
+            if (bottom) return HTBOTTOM;
+        }
+        return HTCLIENT;
+    }
+
     case WM_TIMER:
         if (m_servo) {
             servo_spin_event_loop(m_servo);

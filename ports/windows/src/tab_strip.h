@@ -12,14 +12,12 @@
 #include <vector>
 #include <memory>
 
-class ServoViewHost;
 class BrowserWindow;
 
 struct BrowserTab {
     int id;
     std::wstring title;
     std::string url;
-    std::unique_ptr<ServoViewHost> viewHost;
     RECT bounds;
     RECT closeButtonBounds;
     HBITMAP faviconBitmap = nullptr;
@@ -62,7 +60,7 @@ public:
 
     void UpdateActiveTitle(const std::wstring& title);
     void UpdateActiveUrl(const std::string& url);
-    void UpdateTabFavicon(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
+    void UpdateTabFavicon(HBITMAP hBitmap, uint32_t width, uint32_t height);
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

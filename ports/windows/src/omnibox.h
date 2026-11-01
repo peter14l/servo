@@ -141,6 +141,18 @@ private:
     std::vector<std::wstring> m_suggestions;
     int m_selectedSuggestion;
 
+    enum class NavButton {
+        None,
+        Back,
+        Forward,
+        Reload,
+        Home,
+        Downloads,
+        Settings
+    };
+    NavButton m_hoveredNavBtn = NavButton::None;
+    NavButton m_pressedNavBtn = NavButton::None;
+
     float m_loadProgress;
     UINT_PTR m_progressTimerId;
 

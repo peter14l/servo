@@ -483,6 +483,13 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         LayoutChildren();
         return 0;
 
+    case WM_DPICHANGED: {
+        auto* lprc = reinterpret_cast<RECT*>(lParam);
+        SetWindowPos(m_hwnd, nullptr, lprc->left, lprc->top, lprc->right - lprc->left, lprc->bottom - lprc->top, SWP_NOZORDER | SWP_NOACTIVATE);
+        LayoutChildren();
+        return 0;
+    }
+
     case WM_KEYDOWN: {
         bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;

@@ -74,6 +74,11 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         ServoError urlErr = servo_webview_builder_set_url(builder, initialUrl.empty() ? "about:blank" : initialUrl.c_str());
         LogDebug("servo_webview_builder_set_url returned %d", (int)urlErr);
 
+        UINT dpi = GetDpiForWindow(m_hwnd);
+        float scale = dpi > 0 ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
+        servo_webview_builder_set_hidpi_scale_factor(builder, scale);
+        LogDebug("Setting HiDPI scale factor: %.2f (DPI: %u)", scale, dpi);
+
         ServoWebViewDelegate delegate = {};
         delegate.struct_size = sizeof(ServoWebViewDelegate);
         delegate.user_data = this;
@@ -248,6 +253,15 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     }
 
+    case WM_DPICHANGED: {
+        UINT dpi = HIWORD(wParam);
+        float scale = dpi > 0 ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
+        if (m_webview) {
+            servo_webview_set_hidpi_scale_factor(m_webview, scale);
+        }
+        return 0;
+    }
+
     case WM_SETFOCUS:
         if (m_webview) {
             servo_webview_set_focused(m_webview, true);
@@ -363,9 +377,9 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
         if (m_webview) {
-            // Match natural Windows / trackpad scrolling direction
+            // Smooth pixel-based scrolling (SERVO_WHEEL_DELTA_PIXEL)
             servo_webview_notify_wheel_event(
-                m_webview, 0, delta, 0, SERVO_WHEEL_DELTA_LINE, pt.x, pt.y
+                m_webview, 0, delta, 0, SERVO_WHEEL_DELTA_PIXEL, pt.x, pt.y
             );
         }
         return 0;
@@ -389,7 +403,7 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         ScreenToClient(m_hwnd, &pt);
         if (m_webview) {
             servo_webview_notify_wheel_event(
-                m_webview, delta, 0, 0, SERVO_WHEEL_DELTA_LINE, pt.x, pt.y
+                m_webview, delta, 0, 0, SERVO_WHEEL_DELTA_PIXEL, pt.x, pt.y
             );
         }
         return 0;

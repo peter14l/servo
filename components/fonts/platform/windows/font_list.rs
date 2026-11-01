@@ -10,6 +10,7 @@ use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontWidthKeyword;
+use unicode_properties::UnicodeEmoji;
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,

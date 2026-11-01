@@ -528,7 +528,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             if (top) return HTTOP;
             if (bottom) return HTBOTTOM;
         }
-        return HTCLIENT;
+        return DefWindowProcW(m_hwnd, msg, wParam, lParam);
     }
 
     case WM_TIMER:
@@ -711,44 +711,6 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         break;
-    }
-
-    case WM_NCCALCSIZE: {
-        if (wParam) {
-            if (IsZoomed(m_hwnd)) {
-                auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-                HMONITOR hMon = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
-                MONITORINFO mi = { sizeof(mi) };
-                if (GetMonitorInfoW(hMon, &mi)) {
-                    params->rgrc[0] = mi.rcWork;
-                }
-            }
-            return 0; // Removes classic OS titlebar, entire window is client area!
-        }
-        break;
-    }
-
-    case WM_NCHITTEST: {
-        if (!IsZoomed(m_hwnd)) {
-            POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-            RECT rc;
-            GetWindowRect(m_hwnd, &rc);
-            const int BORDER = 6;
-            bool top = pt.y < rc.top + BORDER;
-            bool bottom = pt.y >= rc.bottom - BORDER;
-            bool left = pt.x < rc.left + BORDER;
-            bool right = pt.x >= rc.right - BORDER;
-
-            if (top && left) return HTTOPLEFT;
-            if (top && right) return HTTOPRIGHT;
-            if (bottom && left) return HTBOTTOMLEFT;
-            if (bottom && right) return HTBOTTOMRIGHT;
-            if (top) return HTTOP;
-            if (bottom) return HTBOTTOM;
-            if (left) return HTLEFT;
-            if (right) return HTRIGHT;
-        }
-        return DefWindowProcW(m_hwnd, msg, wParam, lParam);
     }
 
     case WM_CLOSE:

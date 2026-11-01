@@ -102,6 +102,9 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
         initialUrl
     );
 
+    // Sync dark theme to webview now that viewHost is initialized
+    window->SyncDarkMode();
+
     LogDebug("Adding initial tab...");
     // Create initial tab
     window->m_tabStrip->AddTab(initialUrl);
@@ -113,8 +116,8 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
 
-    // Continuous 60 FPS tick timer to drive Servo event loop, animations and network progress
-    SetTimer(hwnd, 1, 16, nullptr);
+    // Idle fallback tick timer (wake events drive active processing reactively)
+    SetTimer(hwnd, 1, 33, nullptr);
 
     LogDebug("BrowserWindow::Create completed successfully.");
     return window;
@@ -540,6 +543,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         return DefWindowProcW(m_hwnd, msg, wParam, lParam);
     }
 
+    case WM_APP_SERVO_WAKE:
     case WM_TIMER:
         if (m_servo) {
             servo_spin_event_loop(m_servo);

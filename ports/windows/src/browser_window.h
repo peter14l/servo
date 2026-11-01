@@ -13,6 +13,8 @@
 #include <memory>
 #include <servo/servo_capi.h>
 
+#define WM_APP_SERVO_WAKE (WM_APP + 101)
+
 void LogDebug(const char* fmt, ...);
 
 class TabStrip;

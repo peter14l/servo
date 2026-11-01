@@ -319,6 +319,7 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                        : (msg == WM_RBUTTONDOWN) ? SERVO_MOUSE_BUTTON_SECONDARY
                        : SERVO_MOUSE_BUTTON_AUXILIARY;
         if (m_webview) {
+            servo_webview_notify_mouse_move_event(m_webview, x, y, GetServoModifiers());
             servo_webview_notify_mouse_button_event(
                 m_webview, SERVO_MOUSE_EVENT_DOWN, button, x, y, GetServoModifiers()
             );

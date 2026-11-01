@@ -59,6 +59,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     if options.presentation_preference == EmojiPresentationPreference::Emoji ||
         options.character.is_emoji_char()
     {
+        families.push("Twemoji Mozilla");
+        families.push("Noto Color Emoji");
+        families.push("EmojiOne Color");
         families.push("Segoe UI Emoji");
     }
 
@@ -305,6 +308,9 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
 
         // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
         1 => {
+            families.push("Twemoji Mozilla");
+            families.push("Noto Color Emoji");
+            families.push("EmojiOne Color");
             families.push("Segoe UI Emoji");
             families.push("Segoe UI Symbol");
             families.push("Ebrima");

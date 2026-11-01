@@ -1098,10 +1098,14 @@ impl DocumentEventHandler {
                     .upcast::<Event>()
                     .dispatch(cx, node.upcast(), false);
 
+                let is_editable = node.is_editable_or_editing_host();
+
                 // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
                 // called on them, call the default mousdown handler on retargeted node
                 // (`mouse_event.target` is mutated by `dispatch` above).
-                if result &&
+                // Always handle mousedown for editable content so carets/focus are not blocked
+                // by preventDefault in rich text editors like Lexical/Draft.js.
+                if (result || is_editable) &&
                     pointer_event_result &&
                     let Some(node) = mouse_event
                         .upcast::<Event>()
@@ -1112,9 +1116,9 @@ impl DocumentEventHandler {
                     editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
                 }
 
-                // Step 8. If result is true and target is a focusable area
+                // Step 8. If result is true (or node is editable) and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
-                if result {
+                if result || is_editable {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
@@ -1254,6 +1258,18 @@ impl DocumentEventHandler {
         .upcast::<Event>()
         .dispatch(cx, element.upcast(), false);
         element.set_click_in_progress(false);
+
+        // If the document has no focused element (e.g. mousedown was prevented by the framework),
+        // ensure clicking a click-focusable element (such as an editing host) establishes focus.
+        let document = self.window.Document();
+        let current_focus = document.focus_handler().focused_area();
+        if *current_focus == FocusableArea::Viewport {
+            drop(current_focus);
+            let focus_area = element.upcast::<Node>().find_click_focusable_area(cx);
+            if !matches!(focus_area, FocusableArea::Viewport) {
+                document.focus_handler().focus(cx, &focus_area);
+            }
+        }
 
         // The firing of "dbclick" events is dependent on the platform, so we have
         // some flexibility here. Some browsers on some platforms only fire a

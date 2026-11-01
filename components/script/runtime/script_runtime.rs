@@ -781,7 +781,7 @@ impl Runtime {
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_MAX_BYTES,
-                in_range(pref!(js_mem_max), 1, 0x100)
+                in_range(pref!(js_mem_max), 1, 0x1000)
                     .map(|val| (val * 1024 * 1024) as u32)
                     .unwrap_or(u32::MAX),
             );

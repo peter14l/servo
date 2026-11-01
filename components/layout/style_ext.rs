@@ -1096,12 +1096,24 @@ impl ComputedValuesExt for ComputedValues {
         let inline_end_direction = self.writing_mode.inline_end_physical_side();
         let block_end_direction = self.writing_mode.block_end_physical_side();
 
-        let rightward = inline_end_direction == PhysicalSide::Right ||
+        let mut rightward = inline_end_direction == PhysicalSide::Right ||
             block_end_direction == PhysicalSide::Right;
-        let downward = inline_end_direction == PhysicalSide::Bottom ||
+        let mut downward = inline_end_direction == PhysicalSide::Bottom ||
             block_end_direction == PhysicalSide::Bottom;
 
-        // TODO(stevennovaryo): We should consider the flex-container's CSS (e.g. flow-direction: column-reverse).
+        if self.get_box().display.is_flex_layout() {
+            use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
+            match self.get_position().flex_direction {
+                FlexDirection::ColumnReverse => {
+                    downward = !downward;
+                },
+                FlexDirection::RowReverse => {
+                    rightward = !rightward;
+                },
+                _ => {},
+            }
+        }
+
         OverflowDirection {
             rightward,
             downward,

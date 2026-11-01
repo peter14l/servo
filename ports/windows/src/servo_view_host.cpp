@@ -71,6 +71,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
     LogDebug("Building Servo WebView with URL %s...", initialUrl.c_str());
     ServoWebViewBuilder* builder = servo_webview_builder_create(m_servo, m_context);
     if (builder) {
+        m_context = nullptr; // Ownership transferred to builder
         ServoError urlErr = servo_webview_builder_set_url(builder, initialUrl.empty() ? "about:blank" : initialUrl.c_str());
         LogDebug("servo_webview_builder_set_url returned %d", (int)urlErr);
 
@@ -152,6 +153,7 @@ ServoViewHost::ServoViewHost(
 
         auto* builder = servo_create_new_webview_builder_create(request, m_context);
         if (builder) {
+            m_context = nullptr; // Ownership transferred to builder
             servo_webview_builder_set_hidpi_scale_factor(builder, scale);
 
             ServoWebViewDelegate delegate = {};
@@ -185,6 +187,10 @@ ServoViewHost::~ServoViewHost() {
     if (m_webview) {
         servo_webview_free(m_webview);
         m_webview = nullptr;
+    }
+    if (m_context) {
+        servo_rendering_context_free(m_context);
+        m_context = nullptr;
     }
     if (m_hwnd && IsWindow(m_hwnd)) {
         DestroyWindow(m_hwnd);

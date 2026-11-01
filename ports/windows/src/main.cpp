@@ -190,6 +190,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 32);
         servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 16);
         servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 8);
+        servo_preferences_set_i64(prefs, "session_history_max_length", 5); // Avoid unbounded document cache retention in memory
 
         servo_builder_set_preferences(builder, prefs);
     }

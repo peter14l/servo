@@ -108,12 +108,11 @@ impl SVGSVGElement {
         // Standalone resvg rasterization does not inherit the HTML/document stylesheet color,
         // causing icons using fill="currentColor" or unstyled shapes to default to black (#000)
         // even when rendered against dark backgrounds.
-        let window = self.owner_window();
-        let document = window.Document();
+        let document = self.owner_document();
         let is_dark = document
             .theme_override()
             .or(document.theme())
-            .unwrap_or(window.webview_theme()) == Theme::Dark;
+            .unwrap_or_else(|| self.owner_window().webview_theme()) == Theme::Dark;
 
         let icon_color = if is_dark { "#f5f5f5" } else { "#121212" };
         let style_injection = format!(

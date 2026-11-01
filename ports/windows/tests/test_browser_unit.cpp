@@ -567,6 +567,17 @@ void test_tab_favicon_lifecycle() {
     }
 }
 
+void test_new_tab_page() {
+    std::string newTabUrl = NewTabPage::EnsureNewTabPageExists();
+    TEST_ASSERT(!newTabUrl.empty(), "New tab URL is not empty");
+    TEST_ASSERT(newTabUrl.rfind("file:///", 0) == 0, "New tab URL is a local file URI");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl("servo://newtab"), "servo://newtab recognized as new tab");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl("about:newtab"), "about:newtab recognized as new tab");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl(newTabUrl), "Generated file URI recognized as new tab");
+    TEST_ASSERT(!NewTabPage::IsNewTabUrl("https://duckduckgo.com"), "External URL not recognized as new tab");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://newtab") == newTabUrl, "Omnibox normalizes servo://newtab");
+}
+
 // -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
@@ -588,6 +599,7 @@ int main() {
     RUN_TEST(test_fluent_theme_tokens_and_icons);
     RUN_TEST(test_cursor_and_keyboard_mapping);
     RUN_TEST(test_tab_favicon_lifecycle);
+    RUN_TEST(test_new_tab_page);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

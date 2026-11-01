@@ -89,7 +89,7 @@ set_target_properties(servo_browser PROPERTIES
 
 # Unit test suite
 enable_testing()
-add_executable(test_browser_unit tests/test_browser_unit.cpp)
+add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp)
 target_include_directories(test_browser_unit PRIVATE src tests/mock_servo)
 target_link_libraries(test_browser_unit PRIVATE
     dwmapi

@@ -74,6 +74,23 @@ This guide provides operational rules, architectural facts, and constraints for 
 
 ### 3. Native Win32 Window Handles
 - Prefer using `servo_rendering_context_create_windows_hwnd(hwnd, hinstance, width, height)` instead of constructing fake C `raw_window_handle` structs. This ensures Rust constructs `RawWindowHandle::Win32` using exact rustc compiler layout.
+- `servo_webview_builder_create` and `servo_create_new_webview_builder_create` take ownership of the `RenderingContext` pointer (`Box::from_raw`). Embedders must null out their local context pointer after passing to avoid dangling pointers or double frees.
+
+### 4. SpiderMonkey GC Heap & Memory Guardrails
+- **Heap Limit Range**: `js_mem_max` is validated in `script_runtime.rs` via `in_range(pref!(js_mem_max), 1, 0x1000)`. Setting values above 4096 MB causes the check to return `None` and fall back to `u32::MAX` (unbounded 4 GB heap).
+- **Session History Cache**: `session_history_max_length` defaults to 20 full document cache entries. For SPAs like Instagram, set this preference to `5` in `main.cpp` to prevent multi-GB RAM retention of stale DOM trees and pipeline closures.
+
+### 5. Contenteditable & Rich Editor Invariants (Lexical / Draft.js)
+- **Mouse Focus**: Modern rich text editors call `event.preventDefault()` on `mousedown` to manage selection programmatically. In `document_event_handler.rs`, mouse focus and selection collapse steps must never be suppressed when `node.is_editable_or_editing_host()` is true, even if `result` was canceled.
+- **InputEvent.data**: Rich editors inspect `event.data` on `beforeinput` (e.g. `insertText`). In `execcommands.rs`, always populate `InputEvent::new` with `Some(value.clone())` instead of `None` (`null` in JS), or editors will drop user input.
+
+### 6. Reverse Flexbox (`column-reverse`) Scroll Origins
+- Chat message histories (Instagram DMs, Discord, Slack) use `display: flex; flex-direction: column-reverse;`.
+- According to CSSOM View, the scroll origin of `column-reverse` is at the physical bottom (newest items). In `components/layout/style_ext.rs`, check `Display::from(self.get_box().display)` for `DisplayInside::Flex` and invert `downward` for `ColumnReverse` so initial views anchor to latest messages.
+
+### 7. Color Emoji Rendering on Windows
+- WebRender's DirectWrite backend (`dwrote`) rasterizes glyphs via `IDWriteGlyphRunAnalysis::CreateAlphaTexture`, which produces only 1-channel alpha masks. It does not translate `COLR`/`CPAL` sub-layers in `Segoe UI Emoji`, causing emojis to render as white/black wireframe outlines tinted by CSS `color`.
+- Prioritize embedded color bitmap strike fonts (`Twemoji Mozilla`, `Noto Color Emoji`, `EmojiOne Color`) ahead of `Segoe UI Emoji` in `components/fonts/platform/windows/font_list.rs` fallback chains so WebRender renders full RGBA color via `FontInstanceFlags::EMBEDDED_BITMAPS`.
 
 ---
 

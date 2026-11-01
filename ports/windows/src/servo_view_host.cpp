@@ -611,8 +611,8 @@ void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
         break;
     case 6:
         if (m_webview) {
-            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_DOWN, 65, 0, "KeyA", SERVO_MODIFIER_CONTROL);
-            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_UP, 65, 0, "KeyA", SERVO_MODIFIER_CONTROL);
+            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_DOWN, "a", "KeyA", 0, SERVO_MODIFIER_CONTROL, false, false);
+            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_UP, "a", "KeyA", 0, SERVO_MODIFIER_CONTROL, false, false);
         }
         break;
     case 7:

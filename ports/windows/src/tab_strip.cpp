@@ -109,7 +109,10 @@ int TabStrip::AddTab(const std::string& url) {
 void TabStrip::CloseTab(int index) {
     if (index < 0 || index >= static_cast<int>(m_tabs.size())) return;
 
-    // Record in history for Ctrl+Shift+T
+    // Record in history for Ctrl+Shift+T (capped to 25 items)
+    if (m_closedHistory.size() >= 25) {
+        m_closedHistory.erase(m_closedHistory.begin());
+    }
     m_closedHistory.push_back({ m_tabs[index]->url, m_tabs[index]->title });
 
     bool wasActive = (index == m_activeIndex);

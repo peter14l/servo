@@ -712,6 +712,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_DESTROY:
         LogDebug("BrowserWindow received WM_DESTROY, posting quit message...");
+        KillTimer(m_hwnd, 1);
         PostQuitMessage(0);
         return 0;
     }

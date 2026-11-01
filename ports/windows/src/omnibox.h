@@ -150,4 +150,8 @@ private:
     bool m_isDark;
     HFONT m_font;
     HFONT m_iconFont;
+    HFONT m_resultFont;
+    HFONT m_resultBoldFont;
+    HFONT m_badgeFont;
+    HBRUSH m_editBrush;
 };

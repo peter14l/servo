@@ -70,6 +70,12 @@ OmniboxToolbar::OmniboxToolbar(HWND parentHwnd, BrowserWindow* browserWindow)
     , m_canForward(false)
     , m_isLoading(false)
     , m_isDark(true)
+    , m_font(nullptr)
+    , m_iconFont(nullptr)
+    , m_resultFont(nullptr)
+    , m_resultBoldFont(nullptr)
+    , m_badgeFont(nullptr)
+    , m_editBrush(nullptr)
 {
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
     m_hwnd = CreateWindowExW(
@@ -114,6 +120,11 @@ OmniboxToolbar::OmniboxToolbar(HWND parentHwnd, BrowserWindow* browserWindow)
 
     m_font = fluent::CreateFluentFont(14);
     m_iconFont = fluent::CreateFluentIconFont(14);
+    m_resultFont = fluent::CreateFluentFont(13, FW_NORMAL, false, L"Inter");
+    m_resultBoldFont = fluent::CreateFluentFont(13, FW_SEMIBOLD, false, L"Inter");
+    m_badgeFont = fluent::CreateFluentFont(10, FW_MEDIUM, false, L"Inter");
+    auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
+    m_editBrush = CreateSolidBrush(colors.ControlBackground);
 
     SendMessageW(m_editHwnd, WM_SETFONT, (WPARAM)m_font, TRUE);
     SendMessageW(m_editHwnd, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(4, 4));
@@ -131,6 +142,10 @@ OmniboxToolbar::~OmniboxToolbar() {
     }
     if (m_font) DeleteObject(m_font);
     if (m_iconFont) DeleteObject(m_iconFont);
+    if (m_resultFont) DeleteObject(m_resultFont);
+    if (m_resultBoldFont) DeleteObject(m_resultBoldFont);
+    if (m_badgeFont) DeleteObject(m_badgeFont);
+    if (m_editBrush) DeleteObject(m_editBrush);
     if (m_hwnd && IsWindow(m_hwnd)) {
         DestroyWindow(m_hwnd);
     }
@@ -387,10 +402,7 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
     FillRect(hdc, &rc, bg);
     DeleteObject(bg);
 
-    // Google Font (Inter / Roboto) typography for search results in the dropdown pane
-    HFONT resultFont = fluent::CreateFluentFont(13, FW_NORMAL, false, L"Inter");
-    HFONT resultBoldFont = fluent::CreateFluentFont(13, FW_SEMIBOLD, false, L"Inter");
-    HFONT badgeFont = fluent::CreateFluentFont(10, FW_MEDIUM, false, L"Inter");
+    HFONT oldFont = (HFONT)SelectObject(hdc, m_resultFont ? m_resultFont : m_font);
     HFONT iconFont = m_iconFont;
     SetBkMode(hdc, TRANSPARENT);
 
@@ -414,13 +426,13 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
         DrawTextW(hdc, isUrl ? fluent::icons::Globe : fluent::icons::Search, -1, &iconRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
         // Draw Text with Google Font
-        SelectObject(hdc, (i == m_selectedSuggestion) ? resultBoldFont : resultFont);
+        SelectObject(hdc, (i == m_selectedSuggestion) ? m_resultBoldFont : m_resultFont);
         SetTextColor(hdc, (i == m_selectedSuggestion) ? colors.Accent : colors.TextPrimary);
         RECT textRc = { itemRc.left + 36, itemRc.top, itemRc.right - 70, itemRc.bottom };
         DrawTextW(hdc, m_suggestions[i].c_str(), -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
         // Badge indicator on right side (Search vs Website)
-        SelectObject(hdc, badgeFont);
+        SelectObject(hdc, m_badgeFont);
         SetTextColor(hdc, colors.TextTertiary);
         RECT badgeRc = { itemRc.right - 68, itemRc.top, itemRc.right - 8, itemRc.bottom };
         DrawTextW(hdc, isUrl ? L"Website" : L"Search", -1, &badgeRc, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
@@ -428,9 +440,7 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
         y += itemH;
     }
 
-    DeleteObject(resultFont);
-    DeleteObject(resultBoldFont);
-    DeleteObject(badgeFont);
+    SelectObject(hdc, oldFont);
 }
 
 LRESULT CALLBACK OmniboxToolbar::SuggestionsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -576,10 +586,10 @@ LRESULT OmniboxToolbar::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
         SetTextColor(hdcEdit, colors.TextPrimary);
         SetBkColor(hdcEdit, colors.ControlBackground);
-        static HBRUSH s_brush = nullptr;
-        if (s_brush) DeleteObject(s_brush);
-        s_brush = CreateSolidBrush(colors.ControlBackground);
-        return reinterpret_cast<LRESULT>(s_brush);
+        if (!m_editBrush) {
+            m_editBrush = CreateSolidBrush(colors.ControlBackground);
+        }
+        return reinterpret_cast<LRESULT>(m_editBrush);
     }
     }
 
@@ -679,6 +689,12 @@ void OmniboxToolbar::FocusForSearch() {
 
 void OmniboxToolbar::SetDarkMode(bool isDark) {
     m_isDark = isDark;
+    if (m_editBrush) {
+        DeleteObject(m_editBrush);
+        m_editBrush = nullptr;
+    }
+    auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
+    m_editBrush = CreateSolidBrush(colors.ControlBackground);
     if (m_hwnd) {
         InvalidateRect(m_hwnd, nullptr, TRUE);
     }

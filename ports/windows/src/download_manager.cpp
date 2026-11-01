@@ -98,6 +98,9 @@ void DownloadManager::AddDownload(uint64_t id, const std::string& url, const std
     }
 
     m_downloads.insert(m_downloads.begin(), item);
+    if (m_downloads.size() > 50) {
+        m_downloads.pop_back();
+    }
     Show(true);
     InvalidateRect(m_hwnd, nullptr, FALSE);
 }
@@ -140,7 +143,7 @@ void DownloadManager::Paint(HDC hdc) {
     SetBkMode(memDC, TRANSPARENT);
 
     // Header: "Downloads"
-    SelectObject(memDC, m_boldFont);
+    HFONT oldFont = (HFONT)SelectObject(memDC, m_boldFont);
     SetTextColor(memDC, m_isDark ? RGB(255, 255, 255) : RGB(0, 0, 0));
     RECT titleRect = { 16, 12, rc.right - 16, 32 };
     DrawTextW(memDC, L"Downloads", -1, &titleRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
@@ -206,6 +209,7 @@ void DownloadManager::Paint(HDC hdc) {
 
     BitBlt(hdc, 0, 0, rc.right, rc.bottom, memDC, 0, 0, SRCCOPY);
 
+    SelectObject(memDC, oldFont);
     SelectObject(memDC, oldBM);
     DeleteObject(memBM);
     DeleteDC(memDC);

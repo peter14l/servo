@@ -88,6 +88,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
         delegate.show_file_picker = reinterpret_cast<decltype(delegate.show_file_picker)>(OnFilePicker);
         delegate.show_context_menu = reinterpret_cast<decltype(delegate.show_context_menu)>(OnContextMenu);
+        delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
 
@@ -309,12 +310,10 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_LBUTTONUP:
-    case WM_RBUTTONUP:
     case WM_MBUTTONUP: {
         int x = GET_X_LPARAM(lParam);
         int y = GET_Y_LPARAM(lParam);
         int32_t button = (msg == WM_LBUTTONUP) ? SERVO_MOUSE_BUTTON_PRIMARY
-                       : (msg == WM_RBUTTONUP) ? SERVO_MOUSE_BUTTON_SECONDARY
                        : SERVO_MOUSE_BUTTON_AUXILIARY;
         if (m_webview) {
             servo_webview_notify_mouse_button_event(
@@ -322,6 +321,31 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             );
         }
         ReleaseCapture();
+        return 0;
+    }
+
+    case WM_RBUTTONUP: {
+        int x = GET_X_LPARAM(lParam);
+        int y = GET_Y_LPARAM(lParam);
+        if (m_webview) {
+            servo_webview_notify_mouse_button_event(
+                m_webview, SERVO_MOUSE_EVENT_UP, SERVO_MOUSE_BUTTON_SECONDARY, x, y, GetServoModifiers()
+            );
+        }
+        ReleaseCapture();
+
+        POINT pt = { x, y };
+        ClientToScreen(m_hwnd, &pt);
+        ShowContextMenu(pt.x, pt.y);
+        return 0;
+    }
+
+    case WM_CONTEXTMENU: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        if (pt.x == -1 && pt.y == -1) {
+            GetCursorPos(&pt);
+        }
+        ShowContextMenu(pt.x, pt.y);
         return 0;
     }
 
@@ -548,13 +572,12 @@ void ServoViewHost::OnFilePicker(struct WebView* webview, bool allowMultiple, vo
     }
 }
 
-void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData) {
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (!self) return;
-
+void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
     HMENU hMenu = CreatePopupMenu();
-    AppendMenuW(hMenu, MF_STRING, 1, L"Back\tAlt+Left");
-    AppendMenuW(hMenu, MF_STRING, 2, L"Forward\tAlt+Right");
+    if (!hMenu) return;
+
+    AppendMenuW(hMenu, MF_STRING | (CanGoBack() ? MF_ENABLED : MF_GRAYED), 1, L"Back\tAlt+Left");
+    AppendMenuW(hMenu, MF_STRING | (CanGoForward() ? MF_ENABLED : MF_GRAYED), 2, L"Forward\tAlt+Right");
     AppendMenuW(hMenu, MF_STRING, 3, L"Reload\tF5");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_STRING, 4, L"Copy\tCtrl+C");
@@ -565,36 +588,62 @@ void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoCon
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_STRING, 8, L"Settings...\tCtrl+,");
 
-    POINT pt;
-    GetCursorPos(&pt);
-    int cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, self->m_hwnd, nullptr);
+    int cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screenX, screenY, m_hwnd, nullptr);
     DestroyMenu(hMenu);
 
-    int32_t action = -1; // Dismiss
+    if (cmd == 0) return;
+
     switch (cmd) {
-    case 1: action = 0; break; // GoBack
-    case 2: action = 1; break; // GoForward
-    case 3: action = 2; break; // Reload
-    case 4: action = 8; break; // Copy
+    case 1:
+        if (m_browserWindow) m_browserWindow->NavigateBack();
+        break;
+    case 2:
+        if (m_browserWindow) m_browserWindow->NavigateForward();
+        break;
+    case 3:
+        if (m_browserWindow) m_browserWindow->NavigateReload();
+        break;
+    case 4:
+        SendMessageW(m_hwnd, WM_COPY, 0, 0);
+        break;
     case 5:
-        if (self->m_browserWindow) {
-            self->m_browserWindow->OpenDevTools();
+        if (m_browserWindow) m_browserWindow->OpenDevTools();
+        break;
+    case 6:
+        if (m_webview) {
+            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_DOWN, 65, 0, "KeyA", SERVO_MODIFIER_CONTROL);
+            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_UP, 65, 0, "KeyA", SERVO_MODIFIER_CONTROL);
         }
         break;
-    case 6: action = 11; break; // Select All
     case 7:
-        if (self->m_browserWindow) {
-            std::string srcUrl = "view-source:" + self->GetUrl();
-            self->m_browserWindow->OpenUrlInNewTab(srcUrl);
+        if (m_browserWindow) {
+            std::string srcUrl = "view-source:" + GetUrl();
+            m_browserWindow->OpenUrlInNewTab(srcUrl);
         }
         break;
     case 8:
-        if (self->m_browserWindow) {
-            self->m_browserWindow->OpenSettings();
+        if (m_browserWindow) {
+            m_browserWindow->OpenSettings();
         }
         break;
     }
-    if (callback) callback(action, userData);
+}
+
+void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self) return;
+
+    POINT pt;
+    GetCursorPos(&pt);
+    self->ShowContextMenu(pt.x, pt.y);
+    if (callback) callback(-1, userData);
+}
+
+void ServoViewHost::OnConsoleMessage(struct WebView* webview, int32_t level, const char* message, void* userData) {
+    (void)webview;
+    (void)userData;
+    const char* lvlStr = (level == 1) ? "ERROR" : (level == 2) ? "WARN" : (level == 3) ? "INFO" : "LOG";
+    LogDebug("[JS %s] %s", lvlStr, message ? message : "");
 }
 
 void ServoViewHost::OnBeforeDownload(struct WebView* webview, struct ServoDownloadItem* download, void (*callback)(bool, void*), void* userData) {

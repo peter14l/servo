@@ -40,6 +40,7 @@ public:
     std::string GetUrl() const;
     std::string GetTitle() const;
     void HandleFaviconChanged(const char* url);
+    void ShowContextMenu(int screenX, int screenY);
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -51,6 +52,7 @@ private:
     static void OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData);
     static void OnCursorChanged(struct WebView* webview, int32_t cursorType, void* userData);
     static void OnFaviconChanged(struct WebView* webview, const char* url, void* userData);
+    static void OnConsoleMessage(struct WebView* webview, int32_t level, const char* message, void* userData);
     static bool OnRequestCreateNew(struct WebView* webview, struct ServoCreateNewWebViewRequest* request, void* userData);
     static void OnAlertDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData);
     static void OnConfirmDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData);

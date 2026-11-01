@@ -363,6 +363,21 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
     }
     if (m_tabStrip) m_tabStrip->SetDarkMode(m_isDark);
     if (m_omnibox) m_omnibox->SetDarkMode(m_isDark);
+
+    if (m_servo) {
+        std::string uaString;
+        if (settings.userAgentPersona.find(L"Chrome") != std::wstring::npos) {
+            uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+        } else if (settings.userAgentPersona.find(L"Safari") != std::wstring::npos) {
+            uaString = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+        } else {
+            uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0";
+        }
+        servo_set_preference_string(m_servo, "user_agent", uaString.c_str());
+        servo_set_preference_bool(m_servo, "dom_indexeddb_enabled", settings.enableIndexedDB);
+        servo_set_preference_bool(m_servo, "dom_webgl2_enabled", settings.enableWebGL2);
+        servo_set_preference_bool(m_servo, "dom_webgpu_enabled", settings.enableWebGPU);
+    }
 }
 
 void BrowserWindow::PrintPage() {

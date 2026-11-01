@@ -50,7 +50,8 @@ impl ServoHttpConnector {
     fn new() -> ServoHttpConnector {
         let mut inner = HyperHttpConnector::new();
         inner.enforce_http(false);
-        inner.set_happy_eyeballs_timeout(None);
+        inner.set_happy_eyeballs_timeout(Some(Duration::from_millis(300)));
+        inner.set_nodelay(true);
         inner.set_connect_timeout(Some(Duration::from_secs(pref!(network_connection_timeout))));
         ServoHttpConnector { inner }
     }

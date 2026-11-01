@@ -16,6 +16,7 @@
 #include "omnibox.h"
 #include "find_bar.h"
 #include "download_manager.h"
+#include "settings_dialog.h"
 #include "servo_view_host.h"
 
 #pragma comment(lib, "comctl32.lib")
@@ -79,6 +80,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     g_main_thread_id = GetCurrentThreadId();
 
+    // Redirect stdout/stderr to servo_engine.log in %LOCALAPPDATA%\Servo Browser for engine diagnostics
+    wchar_t localAppData[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+        std::wstring engLog = std::wstring(localAppData) + L"\\Servo Browser\\servo_engine.log";
+        FILE* fpErr = nullptr;
+        _wfreopen_s(&fpErr, engLog.c_str(), L"a", stderr);
+        FILE* fpOut = nullptr;
+        _wfreopen_s(&fpOut, engLog.c_str(), L"a", stdout);
+    }
+
     LogDebug("--- Starting Servo Browser ---");
 
     // 1. Initialize COM and Common Controls v6
@@ -114,15 +125,29 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_builder_set_options(builder, options);
     }
 
-    // Set preferences: Configure Chrome 131 Desktop persona and enable modern web platform capabilities
+    // 3. Load user settings
+    BrowserSettings userSettings = SettingsDialog::LoadSettings();
+
+    // Map User-Agent persona: Default to standard desktop Firefox to match SpiderMonkey engine
+    // and prevent anti-bot heuristics (like Instagram/Meta rejecting non-Chromium engines pretending to be Chrome)
+    std::string uaString;
+    if (userSettings.userAgentPersona.find(L"Chrome") != std::wstring::npos) {
+        uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+    } else if (userSettings.userAgentPersona.find(L"Safari") != std::wstring::npos) {
+        uaString = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    } else {
+        uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0";
+    }
+
+    // Set preferences: Configure persona and enable modern web platform capabilities
     ServoPreferences* prefs = servo_preferences_create();
     if (prefs) {
         servo_preferences_set_bool(prefs, "devtools_server_enabled", false);
-        servo_preferences_set_string(prefs, "user_agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+        servo_preferences_set_string(prefs, "user_agent", uaString.c_str());
 
-        // Modern web platform features required by complex web applications (Instagram, YouTube, Google)
-        servo_preferences_set_bool(prefs, "dom_indexeddb_enabled", true);
+        // Modern web platform features required by complex web applications (Instagram, YouTube, Google, GitHub, ChatGPT)
+        servo_preferences_set_bool(prefs, "network_use_webpki_roots", true);
+        servo_preferences_set_bool(prefs, "dom_indexeddb_enabled", userSettings.enableIndexedDB);
         servo_preferences_set_bool(prefs, "dom_storage_manager_api_enabled", true);
         servo_preferences_set_bool(prefs, "dom_cookiestore_enabled", true);
         servo_preferences_set_bool(prefs, "dom_crypto_subtle_enabled", true);
@@ -130,8 +155,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_preferences_set_bool(prefs, "dom_async_clipboard_enabled", true);
         servo_preferences_set_bool(prefs, "dom_offscreen_canvas_enabled", true);
         servo_preferences_set_bool(prefs, "dom_permissions_enabled", true);
-        servo_preferences_set_bool(prefs, "dom_webgl2_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_webgl2_enabled", userSettings.enableWebGL2);
+        servo_preferences_set_bool(prefs, "dom_webgpu_enabled", userSettings.enableWebGPU);
         servo_preferences_set_bool(prefs, "dom_visual_viewport_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_adoptedstylesheet_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_composition_event_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_credential_management_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_web_animations_enabled", true);
         servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
         servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
 

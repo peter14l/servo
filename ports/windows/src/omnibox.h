@@ -83,6 +83,9 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
 
     // 5. Domain name without spaces
     if (input.find('.') != std::string::npos && input.find(' ') == std::string::npos) {
+        if (input.find('/') == std::string::npos) {
+            return "https://" + input + "/";
+        }
         return "https://" + input;
     }
 

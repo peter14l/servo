@@ -1513,7 +1513,12 @@ impl NetworkError {
     }
 
     pub fn from_hyper_error(error: &HyperError, certificate: Option<CertificateDer>) -> Self {
-        let error_string = error.to_string();
+        let mut error_string = error.to_string();
+        let mut current_err: &dyn std::error::Error = error;
+        while let Some(source) = current_err.source() {
+            error_string.push_str(&format!(" -> {source}"));
+            current_err = source;
+        }
         match certificate {
             Some(certificate) => NetworkError::SslValidation(error_string, certificate.to_vec()),
             _ => NetworkError::HttpError(error_string),

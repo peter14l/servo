@@ -101,6 +101,21 @@ inline int servo_webview_get_favicon_image(
     return SERVO_ERROR_NOT_FOUND;
 }
 
+typedef void (*ServoJavaScriptCallback)(const char* result_json, const char* error_message, void* user_data);
+
+inline int servo_webview_evaluate_javascript(
+    WebView* webview,
+    const char* script,
+    ServoJavaScriptCallback callback,
+    void* user_data
+) {
+    (void)webview;
+    (void)script;
+    (void)callback;
+    (void)user_data;
+    return SERVO_ERROR_OK;
+}
+
 #ifdef __cplusplus
 }
 #endif

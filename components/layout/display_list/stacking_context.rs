@@ -20,12 +20,13 @@ use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::AbsoluteColor;
+use style::computed_values::flex_direction::T as FlexDirection;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
 use style::values::computed::angle::Angle;
-use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
+use style::values::computed::{ClipRectOrAuto, Display, DisplayBox, DisplayInside, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{
     self, GenericRotate, GenericScale, GenericTranslate, get_normalized_vector_and_angle,
@@ -249,6 +250,7 @@ impl StackingContextTree {
         clip_rect: LayoutRect,
         scroll_sensitivity: AxesScrollSensitivity,
         touch_action: TouchAction,
+        offset: LayoutVector2D,
     ) -> ScrollTreeNodeId {
         self.paint_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
@@ -258,7 +260,7 @@ impl StackingContextTree {
                 clip_rect,
                 scroll_sensitivity,
                 touch_action,
-                offset: LayoutVector2D::zero(),
+                offset,
                 offset_changed: Cell::new(false),
             }),
         )
@@ -1142,13 +1144,35 @@ impl BoxFragmentWithStyle<'_> {
             y: y_sensitivity,
         };
 
+        let content_rect = self.scrollable_overflow().to_webrender();
+        let mut initial_offset = LayoutVector2D::zero();
+        let display = Display::from(style.get_box().display);
+        let is_flex = matches!(
+            display,
+            Display::Inside(DisplayInside::Flex) | Display::Box(DisplayBox::Flex)
+        );
+        if is_flex {
+            match style.get_box().flex_direction {
+                FlexDirection::ColumnReverse => {
+                    let max_scroll_y = (content_rect.height() - scroll_frame_rect.height()).max(0.0);
+                    initial_offset.y = max_scroll_y;
+                },
+                FlexDirection::RowReverse => {
+                    let max_scroll_x = (content_rect.width() - scroll_frame_rect.width()).max(0.0);
+                    initial_offset.x = max_scroll_x;
+                },
+                _ => {},
+            }
+        }
+
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_scroll_id,
-            self.scrollable_overflow().to_webrender(),
+            content_rect,
             scroll_frame_rect,
             sensitivity,
             touch_action,
+            initial_offset,
         );
 
         Some(OverflowFrameData {

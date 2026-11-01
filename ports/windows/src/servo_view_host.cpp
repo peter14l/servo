@@ -577,6 +577,9 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
     if (self && self->m_browserWindow && url) {
         self->m_browserWindow->OnActiveTabUrlChanged(url);
     }
+    if (self && self->m_webview) {
+        self->InjectPageEnhancements();
+    }
 }
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
@@ -590,6 +593,9 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
+    }
+    if (self && self->m_webview) {
+        self->InjectPageEnhancements();
     }
 }
 
@@ -822,5 +828,174 @@ bool ServoViewHost::OnRequestCreateNew(
     }
     return false;
 }
+
+static void OnJsEvalCallback(const char* /*res*/, const char* /*err*/, void* /*userData*/) {}
+
+void ServoViewHost::InjectPageEnhancements() {
+    if (!m_webview) return;
+    const char* script = R"JS(
+(function() {
+    if (window.__servo_enhancements_injected) return;
+    window.__servo_enhancements_injected = true;
+
+    // 1. Color Emoji Renderer: Replace monochrome emoji text glyphs with vibrant high-res SVGs
+    function toCodePoint(unicodeSurrogates) {
+        var r = [], c = 0, p = 0, i = 0;
+        while (i < unicodeSurrogates.length) {
+            c = unicodeSurrogates.charCodeAt(i++);
+            if (p) {
+                r.push((0x10000 + ((p - 0xD800) << 10) + (c - 0xDC00)).toString(16));
+                p = 0;
+            } else if (0xD800 <= c && c <= 0xDBFF) {
+                p = c;
+            } else {
+                r.push(c.toString(16));
+            }
+        }
+        return r.join('-');
+    }
+
+    var emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+
+    function replaceEmojisInNode(node) {
+        if (!node || node.nodeType !== 3) return; // Text nodes only
+        var parent = node.parentNode;
+        if (!parent) return;
+        var tag = parent.nodeName.toUpperCase();
+        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA' || tag === 'INPUT') return;
+        if (parent.isContentEditable || parent.getAttribute('role') === 'textbox') return;
+        var text = node.nodeValue;
+        if (!emojiRegex.test(text)) return;
+        emojiRegex.lastIndex = 0;
+
+        var span = document.createElement('span');
+        var lastIdx = 0;
+        var match;
+        while ((match = emojiRegex.exec(text)) !== null) {
+            if (match.index > lastIdx) {
+                span.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+            }
+            var emojiChar = match[0];
+            var code = toCodePoint(emojiChar).replace(/-fe0f$/, '');
+            var img = document.createElement('img');
+            img.src = 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/' + code + '.svg';
+            img.alt = emojiChar;
+            img.setAttribute('draggable', 'false');
+            img.style.cssText = 'width:1.2em;height:1.2em;vertical-align:-0.15em;display:inline-block;margin:0 0.05em;';
+            img.onerror = function() {
+                var t = document.createTextNode(this.alt);
+                if (this.parentNode) this.parentNode.replaceChild(t, this);
+            };
+            span.appendChild(img);
+            lastIdx = match.index + match[0].length;
+        }
+        if (lastIdx < text.length) {
+            span.appendChild(document.createTextNode(text.substring(lastIdx)));
+        }
+        if (parent) {
+            parent.replaceChild(span, node);
+        }
+    }
+
+    function scanDom(root) {
+        if (!root) return;
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        var nodes = [];
+        while (walker.nextNode()) {
+            nodes.push(walker.currentNode);
+        }
+        for (var i = 0; i < nodes.length; i++) {
+            replaceEmojisInNode(nodes[i]);
+        }
+    }
+
+    // 2. Auto-scroll chat DMs to latest messages at bottom
+    function autoScrollDMs(force) {
+        var elements = document.querySelectorAll('div');
+        for (var i = 0; i < elements.length; i++) {
+            var el = elements[i];
+            if (el.clientHeight > 150 && el.scrollHeight > el.clientHeight + 20) {
+                var isChat = el.querySelector('[dir="auto"], [role="row"], [class*="message"], [data-testid*="message"]');
+                if (isChat) {
+                    var atBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 100;
+                    if (force || !el.__servo_scrolled || atBottom) {
+                        el.scrollTop = el.scrollHeight;
+                        el.__servo_scrolled = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Instagram DM Textbox Click & Enter Submission Hooks
+    function setupTextboxHooks() {
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            if (!target) return;
+            var box = target.closest('[contenteditable="true"], [role="textbox"], [aria-label*="Message"]');
+            if (!box) {
+                box = target.querySelector('[contenteditable="true"], [role="textbox"]');
+            }
+            if (box) {
+                var editable = box.getAttribute('contenteditable') === 'true' ? box : (box.querySelector('[contenteditable="true"]') || box);
+                editable.focus();
+                var sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    var range = sel.getRangeAt(0);
+                    range.collapse(false);
+                }
+            }
+        }, true);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                var target = e.target;
+                if (target && (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]'))) {
+                    // Send message via enter
+                    setTimeout(function() {
+                        var buttons = document.querySelectorAll('button, div[role="button"]');
+                        for (var i = 0; i < buttons.length; i++) {
+                            var b = buttons[i];
+                            var text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                            var aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                            if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
+                                b.click();
+                                break;
+                            }
+                        }
+                    }, 50);
+                }
+            }
+        }, true);
+    }
+
+    setupTextboxHooks();
+    scanDom(document.body);
+    autoScrollDMs(true);
+
+    var observer = new MutationObserver(function(mutations) {
+        for (var m = 0; m < mutations.length; m++) {
+            var mut = mutations[m];
+            for (var a = 0; a < mut.addedNodes.length; a++) {
+                var node = mut.addedNodes[a];
+                if (node.nodeType === 1) {
+                    scanDom(node);
+                } else if (node.nodeType === 3) {
+                    replaceEmojisInNode(node);
+                }
+            }
+        }
+        autoScrollDMs(false);
+    });
+
+    if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+})();
+)JS";
+
+    servo_webview_evaluate_javascript(m_webview, script, OnJsEvalCallback, nullptr);
+}
+
 
 

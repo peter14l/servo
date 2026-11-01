@@ -65,6 +65,7 @@ private:
     static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* callbackUserData, void* userData);
 
     uint32_t GetServoModifiers() const;
+    void InjectPageEnhancements();
 
     HWND m_hwnd;
     HWND m_parentHwnd;

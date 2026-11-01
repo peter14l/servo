@@ -344,7 +344,7 @@ impl DisplayListBuilder<'_> {
                         info.external_id,
                         info.content_rect,
                         info.clip_rect,
-                        LayoutVector2D::zero(), /* external_scroll_offset */
+                        info.offset,            /* external_scroll_offset */
                         0,                      /* scroll_offset_generation */
                         wr::HasScrollLinkedEffect::No,
                     )

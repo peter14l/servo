@@ -14,9 +14,9 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # 1. Trust Self-Signed Certificate
 $CertPath = Join-Path $ScriptDir "ServoBrowser.cer"
 if (Test-Path $CertPath) {
-    Write-Host "[1/4] Installing Self-Signed Certificate into Trusted Root..." -ForegroundColor Yellow
+    Write-Host "[1/4] Installing Self-Signed Certificate into Trusted Publishers..." -ForegroundColor Yellow
     try {
-        Import-Certificate -FilePath $CertPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+        Import-Certificate -FilePath $CertPath -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
         Write-Host "      Certificate installed successfully." -ForegroundColor Green
     } catch {
         Write-Warning "Failed to install certificate automatically. You can install it manually from $CertPath"

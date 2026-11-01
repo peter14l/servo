@@ -1101,7 +1101,14 @@ impl ComputedValuesExt for ComputedValues {
         let mut downward = inline_end_direction == PhysicalSide::Bottom ||
             block_end_direction == PhysicalSide::Bottom;
 
-        if self.get_box().display.is_flex_layout() {
+        let is_flex = match Display::from(self.get_box().display) {
+            Display::GeneratingBox(generating_box) => {
+                generating_box.display_inside() == DisplayInside::Flex
+            },
+            _ => false,
+        };
+
+        if is_flex {
             use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
             match self.get_position().flex_direction {
                 FlexDirection::ColumnReverse => {

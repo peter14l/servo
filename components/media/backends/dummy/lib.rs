@@ -100,10 +100,11 @@ impl Backend for DummyBackend {
             video_tracks: vec!["video".to_string()],
             audio_tracks: vec!["audio".to_string()],
             is_live: false,
+            title: None,
         };
-        callback(PlayerEvent::MetadataUpdated(metadata));
-        callback(PlayerEvent::DurationChanged(60.0));
-        callback(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        let _ = callback.send(PlayerEvent::MetadataUpdated(metadata));
+        let _ = callback.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
+        let _ = callback.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
         Arc::new(Mutex::new(DummyPlayer {
             callback: Some(callback),
             paused: std::sync::atomic::AtomicBool::new(true),
@@ -184,14 +185,14 @@ impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
         self.paused.store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
-            cb(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
+            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
         }
         Ok(())
     }
     fn pause(&self) -> Result<(), PlayerError> {
         self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
-            cb(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
         }
         Ok(())
     }

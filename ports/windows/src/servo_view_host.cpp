@@ -836,6 +836,9 @@ void ServoViewHost::InjectPageEnhancements() {
     const char* script = R"JS(
 (function() {
     if (window.__servo_enhancements_injected) return;
+    // Everything below is Instagram-specific. Running the DOM observers and
+    // auto-scroll on every site makes ordinary pages do needless work.
+    if (!/(^|\.)instagram\.com$/.test(location.hostname)) return;
     window.__servo_enhancements_injected = true;
 
     // 1. Color Emoji Renderer: Replace monochrome emoji text glyphs with vibrant high-res SVGs
@@ -859,6 +862,7 @@ void ServoViewHost::InjectPageEnhancements() {
 
     function replaceEmojisInNode(node) {
         if (!node || node.nodeType !== 3) return; // Text nodes only
+        if (node.__servoEmojiFailed) return; // Don't retry a failed CDN image forever
         var parent = node.parentNode;
         if (!parent) return;
         var tag = parent.nodeName.toUpperCase();
@@ -884,6 +888,9 @@ void ServoViewHost::InjectPageEnhancements() {
             img.style.cssText = 'width:1.2em;height:1.2em;vertical-align:-0.15em;display:inline-block;margin:0 0.05em;';
             img.onerror = function() {
                 var t = document.createTextNode(this.alt);
+                // If the CDN is blocked/offline this would otherwise oscillate
+                // text -> image -> text forever, generating unbounded mutations.
+                t.__servoEmojiFailed = true;
                 if (this.parentNode) this.parentNode.replaceChild(t, this);
             };
             span.appendChild(img);
@@ -909,21 +916,31 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     }
 
-    // 2. Auto-scroll chat DMs to latest messages at bottom
-    function autoScrollDMs(force) {
-        var elements = document.querySelectorAll('div');
-        for (var i = 0; i < elements.length; i++) {
-            var el = elements[i];
-            if (el.clientHeight > 150 && el.scrollHeight > el.clientHeight + 20) {
-                var isChat = el.querySelector('[dir="auto"], [role="row"], [class*="message"], [data-testid*="message"]');
-                if (isChat) {
-                    var atBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 100;
-                    if (force || !el.__servo_scrolled || atBottom) {
-                        el.scrollTop = el.scrollHeight;
-                        el.__servo_scrolled = true;
-                    }
-                }
+    // 2. Chat auto-scroll: nudge only actual message logs that are already at the
+    // bottom. The previous implementation walked every <div> on every mutation and
+    // force-scrolled the main feed, which keeps infinite scroll loading forever and
+    // saturates the main thread, so the browser appears frozen.
+    function isChatScroller(el) {
+        return el.matches(
+            '[role="log"], [role="grid"], ' +
+            '[aria-label*="Message"], [aria-label*="message"], ' +
+            '[data-testid*="message"], [data-testid*="Message"]'
+        );
+    }
+
+    function nudgeChatScroller(el) {
+        var remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (remaining <= 0 || remaining > 150) return;
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function collectChatScrollers(node, out) {
+        var el = node.nodeType === 1 ? node : node.parentElement;
+        for (var depth = 0; el && el !== document.body && depth < 10; depth++) {
+            if (isChatScroller(el) && el.scrollHeight > el.clientHeight + 20) {
+                out.add(el);
             }
+            el = el.parentElement;
         }
     }
 
@@ -970,22 +987,42 @@ void ServoViewHost::InjectPageEnhancements() {
     }
 
     setupTextboxHooks();
-    scanDom(document.body);
-    autoScrollDMs(true);
+    if (document.body) scanDom(document.body);
+
+    // Coalesce mutation bursts into a single pass per animation frame. Instagram
+    // mutates its DOM continuously; a full scan per MutationObserver batch is
+    // effectively O(n^2) and wedges the page.
+    var pendingNodes = [];
+    var flushScheduled = false;
+
+    function flushMutations() {
+        flushScheduled = false;
+        var nodes = pendingNodes;
+        pendingNodes = [];
+        var scrollers = new Set();
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            if (node.nodeType === 1) {
+                scanDom(node);
+                collectChatScrollers(node, scrollers);
+            } else if (node.nodeType === 3) {
+                replaceEmojisInNode(node);
+            }
+        }
+        scrollers.forEach(nudgeChatScroller);
+    }
 
     var observer = new MutationObserver(function(mutations) {
         for (var m = 0; m < mutations.length; m++) {
-            var mut = mutations[m];
-            for (var a = 0; a < mut.addedNodes.length; a++) {
-                var node = mut.addedNodes[a];
-                if (node.nodeType === 1) {
-                    scanDom(node);
-                } else if (node.nodeType === 3) {
-                    replaceEmojisInNode(node);
-                }
+            var added = mutations[m].addedNodes;
+            for (var a = 0; a < added.length; a++) {
+                pendingNodes.push(added[a]);
             }
         }
-        autoScrollDMs(false);
+        if (!flushScheduled && pendingNodes.length > 0) {
+            flushScheduled = true;
+            window.requestAnimationFrame(flushMutations);
+        }
     });
 
     if (document.body) {

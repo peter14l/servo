@@ -6,7 +6,6 @@ use cssparser::match_ignore_ascii_case;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
-use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -316,10 +315,10 @@ impl DocumentExecCommandSupport for Document {
                 let static_range = StaticRange::new(
                     cx,
                     self,
-                    &range.StartContainer(),
-                    range.StartOffset(),
-                    &range.EndContainer(),
-                    range.EndOffset(),
+                    &range.start_container(),
+                    range.start_offset(),
+                    &range.end_container(),
+                    range.end_offset(),
                 );
                 input_event.set_target_ranges(vec![static_range]);
             }
@@ -380,10 +379,10 @@ impl DocumentExecCommandSupport for Document {
                 let static_range = StaticRange::new(
                     cx,
                     self,
-                    &range.StartContainer(),
-                    range.StartOffset(),
-                    &range.EndContainer(),
-                    range.EndOffset(),
+                    &range.start_container(),
+                    range.start_offset(),
+                    &range.end_container(),
+                    range.end_offset(),
                 );
                 input_event.set_target_ranges(vec![static_range]);
             }

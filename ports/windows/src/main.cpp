@@ -9,6 +9,7 @@
 #include <commctrl.h>
 #include <objbase.h>
 #include <shlobj.h>
+#include <shellapi.h>
 
 #include <servo/servo_capi.h>
 #include "browser_window.h"
@@ -253,10 +254,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     // 4. Create and Show Browser Window
     std::string defaultUrl = NewTabPage::EnsureNewTabPageExists();
-    const char* initial_url = defaultUrl.c_str();
-    if (__argc > 1 && __argv[1] && __argv[1][0] != '\0') {
-        initial_url = __argv[1];
+
+    // Do not use the CRT's __argc/__argv for a wWinMain entry point. Under
+    // clang-cl + lld (the CI toolchain) __argv can be NULL even though __argc is
+    // set, which made the released browser crash on startup when a URL argument
+    // was supplied. CommandLineToArgvW is the documented, toolchain-independent
+    // way to parse the command line.
+    std::string initialUrlArg;
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv) {
+        if (argc > 1 && argv[1] && argv[1][0] != L'\0') {
+            int len = WideCharToMultiByte(CP_UTF8, 0, argv[1], -1, nullptr, 0, nullptr, nullptr);
+            if (len > 1) {
+                initialUrlArg.resize(len - 1);
+                WideCharToMultiByte(CP_UTF8, 0, argv[1], -1, &initialUrlArg[0], len, nullptr, nullptr);
+            }
+        }
+        LocalFree(argv);
     }
+
+    const char* initial_url = initialUrlArg.empty() ? defaultUrl.c_str() : initialUrlArg.c_str();
     BrowserWindow* browserWindow = BrowserWindow::Create(servo, initial_url);
     if (!browserWindow) {
         LogDebug("BrowserWindow::Create failed!");

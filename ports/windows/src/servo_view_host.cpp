@@ -848,82 +848,11 @@ void ServoViewHost::InjectPageEnhancements() {
     if (!/(^|\.)instagram\.com$/.test(location.hostname)) return;
     window.__servo_enhancements_injected = true;
 
-    // 1. Color Emoji Renderer: Replace monochrome emoji text glyphs with vibrant high-res SVGs
-    function toCodePoint(unicodeSurrogates) {
-        var r = [], c = 0, p = 0, i = 0;
-        while (i < unicodeSurrogates.length) {
-            c = unicodeSurrogates.charCodeAt(i++);
-            if (p) {
-                r.push((0x10000 + ((p - 0xD800) << 10) + (c - 0xDC00)).toString(16));
-                p = 0;
-            } else if (0xD800 <= c && c <= 0xDBFF) {
-                p = c;
-            } else {
-                r.push(c.toString(16));
-            }
-        }
-        return r.join('-');
-    }
+    // Emoji are rendered as color glyphs by WebRender's DirectWrite rasterizer,
+    // so the old text -> <img> twemoji substitution is intentionally gone: it
+    // rewrote text nodes all over the feed and generated unbounded mutations.
 
-    var emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
-
-    function replaceEmojisInNode(node) {
-        if (!node || node.nodeType !== 3) return; // Text nodes only
-        if (node.__servoEmojiFailed) return; // Don't retry a failed CDN image forever
-        var parent = node.parentNode;
-        if (!parent) return;
-        var tag = parent.nodeName.toUpperCase();
-        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA' || tag === 'INPUT') return;
-        if (parent.isContentEditable || parent.getAttribute('role') === 'textbox') return;
-        var text = node.nodeValue;
-        if (!emojiRegex.test(text)) return;
-        emojiRegex.lastIndex = 0;
-
-        var span = document.createElement('span');
-        var lastIdx = 0;
-        var match;
-        while ((match = emojiRegex.exec(text)) !== null) {
-            if (match.index > lastIdx) {
-                span.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
-            }
-            var emojiChar = match[0];
-            var code = toCodePoint(emojiChar).replace(/-fe0f$/, '');
-            var img = document.createElement('img');
-            img.src = 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/' + code + '.svg';
-            img.alt = emojiChar;
-            img.setAttribute('draggable', 'false');
-            img.style.cssText = 'width:1.2em;height:1.2em;vertical-align:-0.15em;display:inline-block;margin:0 0.05em;';
-            img.onerror = function() {
-                var t = document.createTextNode(this.alt);
-                // If the CDN is blocked/offline this would otherwise oscillate
-                // text -> image -> text forever, generating unbounded mutations.
-                t.__servoEmojiFailed = true;
-                if (this.parentNode) this.parentNode.replaceChild(t, this);
-            };
-            span.appendChild(img);
-            lastIdx = match.index + match[0].length;
-        }
-        if (lastIdx < text.length) {
-            span.appendChild(document.createTextNode(text.substring(lastIdx)));
-        }
-        if (parent) {
-            parent.replaceChild(span, node);
-        }
-    }
-
-    function scanDom(root) {
-        if (!root) return;
-        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-        var nodes = [];
-        while (walker.nextNode()) {
-            nodes.push(walker.currentNode);
-        }
-        for (var i = 0; i < nodes.length; i++) {
-            replaceEmojisInNode(nodes[i]);
-        }
-    }
-
-    // 2. Chat auto-scroll: nudge only actual message logs that are already at the
+    // 1. Chat auto-scroll: nudge only actual message logs that are already at the
     // bottom. The previous implementation walked every <div> on every mutation and
     // force-scrolled the main feed, which keeps infinite scroll loading forever and
     // saturates the main thread, so the browser appears frozen.
@@ -951,7 +880,7 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     }
 
-    // 3. Instagram DM Textbox Click & Enter Submission Hooks
+    // 2. Instagram DM Textbox Click & Enter Submission Hooks
     function setupTextboxHooks() {
         document.addEventListener('click', function(e) {
             var target = e.target;
@@ -994,7 +923,6 @@ void ServoViewHost::InjectPageEnhancements() {
     }
 
     setupTextboxHooks();
-    if (document.body) scanDom(document.body);
 
     // Coalesce mutation bursts into a single pass per animation frame. Instagram
     // mutates its DOM continuously; a full scan per MutationObserver batch is
@@ -1010,10 +938,7 @@ void ServoViewHost::InjectPageEnhancements() {
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i];
             if (node.nodeType === 1) {
-                scanDom(node);
                 collectChatScrollers(node, scrollers);
-            } else if (node.nodeType === 3) {
-                replaceEmojisInNode(node);
             }
         }
         scrollers.forEach(nudgeChatScroller);

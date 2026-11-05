@@ -852,15 +852,15 @@ void ServoViewHost::InjectPageEnhancements() {
     // so the old text -> <img> twemoji substitution is intentionally gone: it
     // rewrote text nodes all over the feed and generated unbounded mutations.
 
-    // 1. Chat auto-scroll: nudge only actual message logs that are already at the
-    // bottom. The previous implementation walked every <div> on every mutation and
-    // force-scrolled the main feed, which keeps infinite scroll loading forever and
-    // saturates the main thread, so the browser appears frozen.
+    // 1. Chat auto-scroll: nudge only actual conversation message logs in the
+    // active chat view that are already at the bottom. Never match inbox
+    // navigation lists, thread cards, or notes.
     function isChatScroller(el) {
+        if (el.closest('nav, [role="navigation"], [aria-label="Messages"], [aria-label="Direct messages"]')) {
+            return false;
+        }
         return el.matches(
-            '[role="log"], [role="grid"], ' +
-            '[aria-label*="Message"], [aria-label*="message"], ' +
-            '[data-testid*="message"], [data-testid*="Message"]'
+            '[role="log"], [data-testid*="message-container"], [data-testid*="conversation-list"]'
         );
     }
 
@@ -885,12 +885,15 @@ void ServoViewHost::InjectPageEnhancements() {
         document.addEventListener('click', function(e) {
             var target = e.target;
             if (!target) return;
-            var box = target.closest('[contenteditable="true"], [role="textbox"], [aria-label*="Message"]');
-            if (!box) {
-                box = target.querySelector('[contenteditable="true"], [role="textbox"]');
+            // Never hijack clicks on navigation links, thread cards, buttons, or notes
+            if (target.closest('a, button, [role="button"], [role="link"], [role="tab"], [role="listitem"], nav, [role="navigation"]')) {
+                return;
             }
-            if (box) {
-                var editable = box.getAttribute('contenteditable') === 'true' ? box : (box.querySelector('[contenteditable="true"]') || box);
+            // Only handle the message composition box in the active conversation
+            var composer = target.closest('footer, form, [data-lexical-editor="true"], [role="main"]');
+            if (!composer) return;
+            var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
+            if (editable) {
                 editable.focus();
                 var sel = window.getSelection();
                 if (sel && sel.rangeCount > 0) {
@@ -898,15 +901,18 @@ void ServoViewHost::InjectPageEnhancements() {
                     range.collapse(false);
                 }
             }
-        }, true);
+        });
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 var target = e.target;
-                if (target && (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]'))) {
+                if (!target) return;
+                var composer = target.closest('footer, form, [data-lexical-editor="true"], [role="main"]');
+                if (!composer) return;
+                if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
                     // Send message via enter
                     setTimeout(function() {
-                        var buttons = document.querySelectorAll('button, div[role="button"]');
+                        var buttons = composer.querySelectorAll('button, div[role="button"]');
                         for (var i = 0; i < buttons.length; i++) {
                             var b = buttons[i];
                             var text = (b.innerText || b.textContent || '').trim().toLowerCase();

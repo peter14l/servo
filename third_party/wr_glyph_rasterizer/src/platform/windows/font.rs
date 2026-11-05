@@ -688,7 +688,7 @@ impl FontContext {
             for row in 0..layer_height {
                 for col in 0..layer_width {
                     let index = (row * layer_width + col) * channels;
-                    let coverage = if channels == 1 {
+                    let coverage_norm = if channels == 1 {
                         coverage[index] as f32 / 255.0
                     } else {
                         (coverage[index] as f32 +
@@ -696,23 +696,24 @@ impl FontContext {
                             coverage[index + 2] as f32) /
                             (3.0 * 255.0)
                     };
-                    let source_alpha = coverage * layer_alpha;
-                    if source_alpha <= 0.0 {
+                    // Straight alpha: source color is scaled into 0..255 so that
+                    // source-over compositing works on premultiplied bytes.
+                    let source_alpha_norm = coverage_norm * layer_alpha;
+                    if source_alpha_norm <= 0.0 {
                         continue;
                     }
 
-                    // Source-over compositing of premultiplied samples.
                     let dest = ((dest_y + row) * buffer_width + dest_x + col) * 4;
-                    let inverse = 1.0 - source_alpha;
+                    let inverse = 1.0 - source_alpha_norm;
                     let blend = |source: f32, dest: u8| -> u8 {
-                        (source * source_alpha + dest as f32 * inverse)
+                        ((source * source_alpha_norm) + dest as f32 * inverse)
                             .round()
                             .clamp(0.0, 255.0) as u8
                     };
-                    pixels[dest] = blend(blue, pixels[dest]);
-                    pixels[dest + 1] = blend(green, pixels[dest + 1]);
-                    pixels[dest + 2] = blend(red, pixels[dest + 2]);
-                    pixels[dest + 3] = blend(1.0, pixels[dest + 3]);
+                    pixels[dest] = blend(blue * 255.0, pixels[dest]);
+                    pixels[dest + 1] = blend(green * 255.0, pixels[dest + 1]);
+                    pixels[dest + 2] = blend(red * 255.0, pixels[dest + 2]);
+                    pixels[dest + 3] = blend(255.0, pixels[dest + 3]);
                 }
             }
         }
@@ -1022,5 +1023,129 @@ impl FontContext {
             bytes: bgra_pixels,
             is_packed_glyph: false,
         })
+    }
+}
+
+#[cfg(test)]
+mod color_glyph_tests {
+    use super::*;
+    use crate::rasterizer::{BaseFontInstance, FontInstance, GlyphKey, SubpixelDirection};
+    use api::units::DevicePoint;
+    use api::{FontInstanceFlags, FontInstanceKey, FontKey, FontRenderMode, IdNamespace};
+    use std::sync::Arc;
+
+    fn write_preview(glyph: &RasterizedGlyph) -> std::path::PathBuf {
+        let width = glyph.width as usize;
+        let height = glyph.height as usize;
+        let row_size = (width * 3 + 3) & !3;
+        let pixel_data = row_size * height;
+        let mut out = vec![0u8; 54 + pixel_data];
+        out[0] = b'B';
+        out[1] = b'M';
+        out[2..6].copy_from_slice(&((54 + pixel_data) as u32).to_le_bytes());
+        out[10..14].copy_from_slice(&54u32.to_le_bytes());
+        out[14..18].copy_from_slice(&40u32.to_le_bytes());
+        out[18..22].copy_from_slice(&(width as i32).to_le_bytes());
+        out[22..26].copy_from_slice(&(height as i32).to_le_bytes());
+        out[26..28].copy_from_slice(&1u16.to_le_bytes());
+        out[28..30].copy_from_slice(&24u16.to_le_bytes());
+        out[34..38].copy_from_slice(&(pixel_data as u32).to_le_bytes());
+        out[38..42].copy_from_slice(&2835i32.to_le_bytes());
+        out[42..46].copy_from_slice(&2835i32.to_le_bytes());
+
+        for y in 0..height {
+            let src_row = height - 1 - y;
+            for x in 0..width {
+                let pixel = &glyph.bytes[(src_row * width + x) * 4..][..4];
+                let (b, g, r, a) = (
+                    pixel[0] as u32,
+                    pixel[1] as u32,
+                    pixel[2] as u32,
+                    pixel[3] as u32,
+                );
+                let background = if ((x / 4) + (y / 4)) % 2 == 0 { 235 } else { 205 };
+                let inverse = 255 - a;
+                let dst = 54 + y * row_size + x * 3;
+                out[dst] = (b + background * inverse / 255) as u8;
+                out[dst + 1] = (g + background * inverse / 255) as u8;
+                out[dst + 2] = (r + background * inverse / 255) as u8;
+            }
+        }
+
+        std::fs::create_dir_all("target").expect("create preview directory");
+        let path = std::path::Path::new("target").join("emoji-preview.bmp");
+        std::fs::write(&path, out).expect("write emoji preview");
+        path
+    }
+
+    #[test]
+    fn emoji_is_rasterized_as_a_color_bitmap() {
+        let Some(data) = std::fs::read("C:\\Windows\\Fonts\\seguiemj.ttf")
+            .ok()
+            .map(Arc::new)
+        else {
+            return;
+        };
+
+        let namespace = IdNamespace(1);
+        let font_key = FontKey::new(namespace, 1);
+        let instance_key = FontInstanceKey::new(namespace, 1);
+
+        let mut context = FontContext::new();
+        context.add_raw_font(&font_key, data, 0);
+
+        let base = Arc::new(BaseFontInstance::new(
+            instance_key,
+            font_key,
+            48.0,
+            None,
+            None,
+            Vec::new(),
+        ));
+        let font = FontInstance::new(
+            base,
+            ColorU::new(0, 0, 0, 255),
+            FontRenderMode::Subpixel,
+            FontInstanceFlags::EMBEDDED_BITMAPS,
+        );
+
+        let index = context
+            .get_glyph_index(font_key, '\u{1F600}')
+            .expect("Segoe UI Emoji should contain U+1F600");
+        let key = GlyphKey::new(index, DevicePoint::new(0.0, 0.0), SubpixelDirection::None);
+        let glyph = context
+            .rasterize_glyph(&font, &key)
+            .expect("emoji rasterization should succeed");
+
+        assert!(
+            matches!(glyph.format, GlyphFormat::ColorBitmap),
+            "emoji must use the color bitmap path"
+        );
+        assert!(glyph.width > 0 && glyph.height > 0);
+        assert_eq!(
+            glyph.bytes.len(),
+            (glyph.width * glyph.height * 4) as usize,
+            "color glyphs are premultiplied BGRA"
+        );
+
+        let mut colors = FastHashSet::default();
+        for pixel in glyph.bytes.chunks_exact(4) {
+            if pixel[3] != 0 {
+                colors.insert([pixel[2], pixel[1], pixel[0]]);
+            }
+        }
+        assert!(
+            colors.len() > 3,
+            "expected multiple COLR layer colors, found {colors:?}"
+        );
+
+        let preview = write_preview(&glyph);
+        eprintln!(
+            "rasterized U+1F600 at {}x{} with {} distinct colors into {}",
+            glyph.width,
+            glyph.height,
+            colors.len(),
+            preview.display()
+        );
     }
 }

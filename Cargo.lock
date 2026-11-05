@@ -12702,9 +12702,7 @@ dependencies = [
 
 [[package]]
 name = "wr_glyph_rasterizer"
-version = "0.70.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcda26d8788ba57a04cd75ae4a2c6da3aa8e5ab16ed1cfd5db09d0fbc04df2fb"
+version = "0.70.1"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
@@ -12722,6 +12720,7 @@ dependencies = [
  "smallvec",
  "tracy-rs",
  "webrender_api",
+ "winapi",
  "wr_malloc_size_of",
 ]
 

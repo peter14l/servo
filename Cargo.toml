@@ -10,7 +10,7 @@ members = [
     "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]
-exclude = [".cargo", "support/crown", "fuzz"]
+exclude = [".cargo", "support/crown", "fuzz", "third_party/wr_glyph_rasterizer"]
 
 [workspace.package]
 version = "0.7.0"
@@ -447,6 +447,10 @@ lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
+# Local DirectWrite color glyph (COLR/CPAL) support for Windows, without which
+# Segoe UI Emoji renders as monochrome white outlines.
+wr_glyph_rasterizer = { path = "third_party/wr_glyph_rasterizer" }
+
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

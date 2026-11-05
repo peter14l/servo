@@ -31,6 +31,11 @@
 #include <cstdarg>
 #include <share.h>
 
+// Serializes log writes: the UI watchdog thread reports on the UI thread while
+// the UI thread itself may be inside `LogDebug`.
+static CRITICAL_SECTION g_log_cs;
+static bool g_log_cs_ready = false;
+
 void LogDebug(const char* fmt, ...) {
     static FILE* f = nullptr;
     if (!f) {
@@ -48,9 +53,15 @@ void LogDebug(const char* fmt, ...) {
     if (f) {
         va_list args;
         va_start(args, fmt);
+        if (g_log_cs_ready) {
+            EnterCriticalSection(&g_log_cs);
+        }
         vfprintf(f, fmt, args);
         fprintf(f, "\n");
         fflush(f);
+        if (g_log_cs_ready) {
+            LeaveCriticalSection(&g_log_cs);
+        }
         va_end(args);
     }
 }
@@ -58,6 +69,46 @@ void LogDebug(const char* fmt, ...) {
 static DWORD g_main_thread_id = 0;
 static HWND g_main_hwnd = nullptr;
 static BrowserWindow* g_browser_window = nullptr;
+
+// UI responsiveness diagnostics. `g_ui_current_msg` is non-zero while the UI
+// thread is inside a message handler; the watchdog thread turns that into
+// `[HANG]`/`[SLOW]` lines in servo_browser.log, so a freeze can be attributed
+// to a specific window message without attaching a debugger.
+static volatile LONG g_ui_current_msg = 0;
+static volatile LONG64 g_ui_msg_started = 0;
+static volatile LONG g_ui_watchdog_running = 0;
+
+static DWORD WINAPI UiWatchdogProc(LPVOID) {
+    int stalled_seconds = 0;
+    while (InterlockedCompareExchange(&g_ui_watchdog_running, 1, 1) != 0) {
+        Sleep(1000);
+        if (InterlockedCompareExchange(&g_ui_watchdog_running, 1, 1) == 0) {
+            break;
+        }
+        HWND hwnd = g_main_hwnd;
+        if (!hwnd) {
+            continue;
+        }
+        DWORD_PTR result = 0;
+        LRESULT ok = SendMessageTimeoutW(
+            hwnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_BLOCK, 1500, &result);
+        if (ok == 0) {
+            ++stalled_seconds;
+            if (stalled_seconds == 3) {
+                LONG current = InterlockedCompareExchange(&g_ui_current_msg, 0, 0);
+                LONG64 started = InterlockedCompareExchange64(&g_ui_msg_started, 0, 0);
+                unsigned long long elapsed = started ? GetTickCount64() - started : 0;
+                LogDebug(
+                    "[HANG] UI thread unresponsive for >=3s (msg=0x%04X, handler running for %llu ms)",
+                    (unsigned)current, elapsed);
+            }
+        } else if (stalled_seconds > 0) {
+            LogDebug("[HANG] UI thread recovered after ~%d s", stalled_seconds);
+            stalled_seconds = 0;
+        }
+    }
+    return 0;
+}
 
 static void on_servo_wake_callback(void) {
     if (g_main_hwnd && IsWindow(g_main_hwnd)) {
@@ -81,6 +132,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     (void)nCmdShow;
 
     g_main_thread_id = GetCurrentThreadId();
+
+    InitializeCriticalSection(&g_log_cs);
+    g_log_cs_ready = true;
+
+    // Make sure Servo's Rust warnings reach servo_engine.log even when the user
+    // did not set RUST_LOG. The constellation logs script-thread hang alerts at
+    // `warn` level, which are the key signal for diagnosing page freezes.
+    if (GetEnvironmentVariableW(L"RUST_LOG", nullptr, 0) == 0) {
+        _wputenv_s(L"RUST_LOG", L"warn");
+    }
 
     // Redirect stdout/stderr to servo_engine.log in %LOCALAPPDATA%\Servo Browser for engine diagnostics
     wchar_t localAppData[MAX_PATH];
@@ -292,15 +353,32 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     // 5. External Message Pump
     LogDebug("Entering message pump...");
+    InterlockedExchange(&g_ui_watchdog_running, 1);
+    HANDLE watchdog = CreateThread(nullptr, 0, UiWatchdogProc, nullptr, 0, nullptr);
+    if (watchdog) {
+        CloseHandle(watchdog);
+    } else {
+        LogDebug("Failed to start UI watchdog thread (error %lu)", GetLastError());
+    }
+
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0)) {
+        ULONGLONG start = GetTickCount64();
+        InterlockedExchange(&g_ui_current_msg, (LONG)msg.message);
+        InterlockedExchange64(&g_ui_msg_started, (LONG64)start);
         if (msg.message == WM_APP_SERVO_WAKE) {
             servo_spin_event_loop(servo);
         } else {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
+        InterlockedExchange(&g_ui_current_msg, 0);
+        ULONGLONG elapsed = GetTickCount64() - start;
+        if (elapsed >= 250) {
+            LogDebug("[SLOW] msg=0x%04X took %llu ms", msg.message, elapsed);
+        }
     }
+    InterlockedExchange(&g_ui_watchdog_running, 0);
     LogDebug("Message pump finished with code %d", (int)msg.wParam);
 
     // 6. Cleanup

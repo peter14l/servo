@@ -574,6 +574,9 @@ void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (url) {
+        LogDebug("[NAV] url changed: %s", url);
+    }
     if (self && self->m_browserWindow && url) {
         self->m_browserWindow->OnActiveTabUrlChanged(url);
     }
@@ -584,6 +587,9 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (title) {
+        LogDebug("[NAV] title changed: %s", title);
+    }
     if (self && self->m_browserWindow && title) {
         self->m_browserWindow->OnActiveTabTitleChanged(title);
     }
@@ -591,6 +597,7 @@ void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, v
 
 void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
+    LogDebug("[NAV] load status: %d", (int)status);
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }

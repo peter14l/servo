@@ -26,7 +26,7 @@ use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
 use style::values::computed::angle::Angle;
-use style::values::computed::{ClipRectOrAuto, Display, DisplayBox, DisplayInside, Length, TextDecorationLine};
+use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{
     self, GenericRotate, GenericScale, GenericTranslate, get_normalized_vector_and_angle,
@@ -1146,13 +1146,17 @@ impl BoxFragmentWithStyle<'_> {
 
         let content_rect = self.scrollable_overflow().to_webrender();
         let mut initial_offset = LayoutVector2D::zero();
-        let display = Display::from(style.get_box().display);
-        let is_flex = matches!(
-            display,
-            Display::Inside(DisplayInside::Flex) | Display::Box(DisplayBox::Flex)
-        );
+        // A scroll container that is also a flex container starts scrolled to the
+        // initial position selected by `flex-direction`. See
+        // <https://drafts.csswg.org/css-flexbox-1/#flex-direction-property>.
+        let is_flex = match crate::style_ext::Display::from(style.get_box().display) {
+            crate::style_ext::Display::GeneratingBox(generating_box) => {
+                generating_box.display_inside() == crate::style_ext::DisplayInside::Flex
+            },
+            _ => false,
+        };
         if is_flex {
-            match style.get_box().flex_direction {
+            match style.get_position().flex_direction {
                 FlexDirection::ColumnReverse => {
                     let max_scroll_y = (content_rect.height() - scroll_frame_rect.height()).max(0.0);
                     initial_offset.y = max_scroll_y;

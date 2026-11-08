@@ -842,129 +842,190 @@ void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
     const char* script = R"JS(
 (function() {
-    if (window.__servo_enhancements_injected) return;
-    // Everything below is Instagram-specific. Running the DOM observers and
-    // auto-scroll on every site makes ordinary pages do needless work.
-    if (!/(^|\.)instagram\.com$/.test(location.hostname)) return;
-    window.__servo_enhancements_injected = true;
-
-    // Emoji are rendered as color glyphs by WebRender's DirectWrite rasterizer,
-    // so the old text -> <img> twemoji substitution is intentionally gone: it
-    // rewrote text nodes all over the feed and generated unbounded mutations.
-
-    // 1. Chat auto-scroll: nudge only actual conversation message logs in the
-    // active chat view that are already at the bottom. Never match inbox
-    // navigation lists, thread cards, or notes.
-    function isChatScroller(el) {
-        if (el.closest('nav, [role="navigation"], [aria-label="Messages"], [aria-label="Direct messages"]')) {
-            return false;
-        }
-        return el.matches(
-            '[role="log"], [data-testid*="message-container"], [data-testid*="conversation-list"]'
-        );
+    // 1. YouTube & WebComponents ShadyCSS Shims
+    // YouTube's custom-elements-es5-adapter and Polymer components call
+    // window.ShadyCSS.prepareTemplate(...) and window.ShadyCSS.styleElement(...)
+    // when window.ShadyCSS is present as a configuration object. If these methods
+    // are missing, constructing <ytd-video-renderer>, <ytd-button-renderer>,
+    // <ytd-watch-flexy> etc. throws a TypeError, causing search results and video
+    // lists to fail to construct and leave a blank canvas.
+    function setupShadyCSS(obj) {
+        if (!obj || typeof obj !== 'object') obj = {};
+        var noop = function() {};
+        var emptyStr = function() { return ''; };
+        if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
+        if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
+        if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
+        if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
+        if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
+        if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
+        if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
+        if (typeof obj.flush !== 'function') obj.flush = noop;
+        if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
+        if (obj.nativeShadow === undefined) obj.nativeShadow = true;
+        if (obj.nativeCss === undefined) obj.nativeCss = true;
+        return obj;
     }
 
-    function nudgeChatScroller(el) {
-        var remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-        if (remaining <= 0 || remaining > 150) return;
-        el.scrollTop = el.scrollHeight;
+    if (window.ShadyCSS) {
+        setupShadyCSS(window.ShadyCSS);
     }
-
-    function collectChatScrollers(node, out) {
-        var el = node.nodeType === 1 ? node : node.parentElement;
-        for (var depth = 0; el && el !== document.body && depth < 10; depth++) {
-            if (isChatScroller(el) && el.scrollHeight > el.clientHeight + 20) {
-                out.add(el);
-            }
-            el = el.parentElement;
-        }
-    }
-
-    // 2. Instagram DM Textbox Click & Enter Submission Hooks
-    function setupTextboxHooks() {
-        document.addEventListener('click', function(e) {
-            var target = e.target;
-            if (!target) return;
-            // Never hijack clicks on navigation links, thread cards, buttons, or notes
-            if (target.closest('a, button, [role="button"], [role="link"], [role="tab"], [role="listitem"], nav, [role="navigation"]')) {
-                return;
-            }
-            // Only handle the message composition box in the active conversation
-            var composer = target.closest('footer, form, [data-lexical-editor="true"], [role="main"]');
-            if (!composer) return;
-            var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
-            if (editable) {
-                editable.focus();
-                var sel = window.getSelection();
-                if (sel && sel.rangeCount > 0) {
-                    var range = sel.getRangeAt(0);
-                    range.collapse(false);
+    if (!window.__shadycss_trap_installed) {
+        window.__shadycss_trap_installed = true;
+        var _currentShady = setupShadyCSS(window.ShadyCSS || {});
+        try {
+            Object.defineProperty(window, 'ShadyCSS', {
+                configurable: true,
+                enumerable: true,
+                get: function() { return _currentShady; },
+                set: function(val) {
+                    _currentShady = setupShadyCSS(val);
                 }
-            }
-        });
+            });
+        } catch(e) {
+            window.ShadyCSS = _currentShady;
+        }
+    }
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
+    // 2. MediaSource stub for adaptive video players (Instagram & YouTube)
+    // When code accesses MediaSource.isTypeSupported, prevent ReferenceError.
+    // Returning false signals that chunked MSE is unsupported so players
+    // cleanly fall back to direct MP4 (<video src="...">) playback.
+    if (typeof window.MediaSource === 'undefined') {
+        try {
+            var DummyMediaSource = function() {
+                this.sourceBuffers = [];
+                this.activeSourceBuffers = [];
+                this.readyState = 'closed';
+                this.duration = NaN;
+            };
+            if (typeof EventTarget !== 'undefined') {
+                DummyMediaSource.prototype = Object.create(EventTarget.prototype);
+                DummyMediaSource.prototype.constructor = DummyMediaSource;
+            }
+            DummyMediaSource.isTypeSupported = function(mime) {
+                return false;
+            };
+            DummyMediaSource.prototype.addSourceBuffer = function() {
+                throw new DOMException('Not supported', 'NotSupportedError');
+            };
+            DummyMediaSource.prototype.endOfStream = function() {};
+            window.MediaSource = DummyMediaSource;
+            window.WebKitMediaSource = DummyMediaSource;
+        } catch(e) {}
+    }
+
+    // 3. Instagram enhancements
+    if (/(^|\.)instagram\.com$/.test(location.hostname)) {
+        if (!window.__servo_instagram_hooks_installed) {
+            window.__servo_instagram_hooks_installed = true;
+
+            // Instagram DM Textbox Click & Enter Submission Hooks
+            // Scope STRICTLY to active DM conversations (/direct/) and only inside
+            // the actual composer wrapper itself. NEVER match [role="main"], article,
+            // or interactive buttons/links, which would steal clicks across the entire feed!
+            document.addEventListener('click', function(e) {
+                if (!location.pathname.startsWith('/direct/')) return;
                 var target = e.target;
                 if (!target) return;
-                var composer = target.closest('footer, form, [data-lexical-editor="true"], [role="main"]');
+                if (target.closest('a, button, [role="button"], [role="link"], [role="tab"], [role="listitem"], nav, [role="navigation"], header, article, section, [role="dialog"], [role="menu"]')) {
+                    return;
+                }
+                var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
                 if (!composer) return;
-                if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
-                    // Send message via enter
-                    setTimeout(function() {
-                        var buttons = composer.querySelectorAll('button, div[role="button"]');
-                        for (var i = 0; i < buttons.length; i++) {
-                            var b = buttons[i];
-                            var text = (b.innerText || b.textContent || '').trim().toLowerCase();
-                            var aria = (b.getAttribute('aria-label') || '').toLowerCase();
-                            if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
-                                b.click();
-                                break;
+                var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
+                if (editable && document.activeElement !== editable) {
+                    editable.focus();
+                    var sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0) {
+                        var range = sel.getRangeAt(0);
+                        range.collapse(false);
+                    }
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    if (!location.pathname.startsWith('/direct/')) return;
+                    var target = e.target;
+                    if (!target) return;
+                    var composer = target.closest('footer, form, [data-lexical-editor="true"]');
+                    if (!composer) return;
+                    if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
+                        setTimeout(function() {
+                            var buttons = composer.querySelectorAll('button, div[role="button"]');
+                            for (var i = 0; i < buttons.length; i++) {
+                                var b = buttons[i];
+                                var text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                                var aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                                if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
+                                    b.click();
+                                    break;
+                                }
                             }
-                        }
-                    }, 50);
+                        }, 50);
+                    }
+                }
+            }, true);
+
+            // Chat auto-scroll: Active ONLY inside a direct conversation thread (/direct/t/)
+            // Never run expensive DOM tree walks on the main feed to avoid layout freezes!
+            var pendingChatNodes = [];
+            var chatFlushScheduled = false;
+
+            function isChatScroller(el) {
+                if (el.closest('nav, [role="navigation"], [aria-label="Messages"], [aria-label="Direct messages"]')) {
+                    return false;
+                }
+                return el.matches('[role="log"], [data-testid*="message-container"]');
+            }
+
+            function nudgeChatScroller(el) {
+                var remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+                if (remaining <= 0 || remaining > 150) return;
+                el.scrollTop = el.scrollHeight;
+            }
+
+            function flushChatMutations() {
+                chatFlushScheduled = false;
+                if (!location.pathname.includes('/direct/t/')) {
+                    pendingChatNodes = [];
+                    return;
+                }
+                var nodes = pendingChatNodes;
+                pendingChatNodes = [];
+                for (var i = 0; i < nodes.length; i++) {
+                    var node = nodes[i];
+                    if (node.nodeType === 1 && isChatScroller(node)) {
+                        nudgeChatScroller(node);
+                    }
                 }
             }
-        }, true);
-    }
 
-    setupTextboxHooks();
+            var chatObserver = new MutationObserver(function(mutations) {
+                if (!location.pathname.includes('/direct/t/')) return;
+                for (var m = 0; m < mutations.length; m++) {
+                    var added = mutations[m].addedNodes;
+                    for (var a = 0; a < added.length; a++) {
+                        pendingChatNodes.push(added[a]);
+                    }
+                }
+                if (!chatFlushScheduled && pendingChatNodes.length > 0) {
+                    chatFlushScheduled = true;
+                    window.requestAnimationFrame(flushChatMutations);
+                }
+            });
 
-    // Coalesce mutation bursts into a single pass per animation frame. Instagram
-    // mutates its DOM continuously; a full scan per MutationObserver batch is
-    // effectively O(n^2) and wedges the page.
-    var pendingNodes = [];
-    var flushScheduled = false;
-
-    function flushMutations() {
-        flushScheduled = false;
-        var nodes = pendingNodes;
-        pendingNodes = [];
-        var scrollers = new Set();
-        for (var i = 0; i < nodes.length; i++) {
-            var node = nodes[i];
-            if (node.nodeType === 1) {
-                collectChatScrollers(node, scrollers);
+            if (document.body) {
+                chatObserver.observe(document.body, { childList: true, subtree: true });
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (document.body) {
+                        chatObserver.observe(document.body, { childList: true, subtree: true });
+                    }
+                });
             }
         }
-        scrollers.forEach(nudgeChatScroller);
-    }
-
-    var observer = new MutationObserver(function(mutations) {
-        for (var m = 0; m < mutations.length; m++) {
-            var added = mutations[m].addedNodes;
-            for (var a = 0; a < added.length; a++) {
-                pendingNodes.push(added[a]);
-            }
-        }
-        if (!flushScheduled && pendingNodes.length > 0) {
-            flushScheduled = true;
-            window.requestAnimationFrame(flushMutations);
-        }
-    });
-
-    if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true });
     }
 })();
 )JS";

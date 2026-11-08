@@ -91,6 +91,8 @@ impl Backend for DummyBackend {
         _: Option<Arc<Mutex<dyn audio::AudioRenderer>>>,
         _: Box<dyn PlayerGLContext>,
     ) -> Arc<Mutex<dyn Player>> {
+        let paused = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let position = Arc::new(Mutex::new(0.0));
         let cb_clone = callback.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(50));
@@ -108,10 +110,13 @@ impl Backend for DummyBackend {
             let _ = cb_clone.send(PlayerEvent::MetadataUpdated(metadata));
             let _ = cb_clone.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
             let _ = cb_clone.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+            let _ = cb_clone.send(PlayerEvent::PositionChanged(0.0));
+            let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
         });
         Arc::new(Mutex::new(DummyPlayer {
             callback: Some(callback),
-            paused: std::sync::atomic::AtomicBool::new(true),
+            paused,
+            position,
         }))
     }
 
@@ -140,7 +145,9 @@ impl Backend for DummyBackend {
             media_type.contains("webm") ||
             media_type.contains("ogg") ||
             media_type.contains("audio") ||
-            media_type.contains("video")
+            media_type.contains("video") ||
+            media_type.contains("hls") ||
+            media_type.contains("mpegurl")
         {
             SupportsMediaType::Maybe
         } else {
@@ -172,7 +179,8 @@ impl AudioBackend for DummyBackend {
 
 pub struct DummyPlayer {
     callback: Option<GenericCallback<PlayerEvent>>,
-    paused: std::sync::atomic::AtomicBool,
+    paused: Arc<std::sync::atomic::AtomicBool>,
+    position: Arc<Mutex<f64>>,
 }
 
 pub struct DummyStreamReader;
@@ -189,20 +197,29 @@ impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
         self.paused.store(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
-            let metadata = servo_media_player::metadata::Metadata {
-                duration: Some(std::time::Duration::from_secs(60)),
-                width: 720,
-                height: 1280,
-                format: "video/mp4".to_string(),
-                is_seekable: true,
-                video_tracks: vec!["video".to_string()],
-                audio_tracks: vec!["audio".to_string()],
-                is_live: false,
-                title: None,
-            };
-            let _ = cb.send(PlayerEvent::MetadataUpdated(metadata));
-            let _ = cb.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
             let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
+            let _ = cb.send(PlayerEvent::VideoFrameUpdated);
+            let cb_clone = cb.clone();
+            let paused = self.paused.clone();
+            let pos = self.position.clone();
+            std::thread::spawn(move || {
+                while !paused.load(std::sync::atomic::Ordering::SeqCst) {
+                    std::thread::sleep(std::time::Duration::from_millis(250));
+                    if paused.load(std::sync::atomic::Ordering::SeqCst) {
+                        break;
+                    }
+                    let cur_pos = {
+                        let mut p = pos.lock().unwrap();
+                        *p += 0.25;
+                        if *p >= 60.0 {
+                            *p = 0.0;
+                        }
+                        *p
+                    };
+                    let _ = cb_clone.send(PlayerEvent::PositionChanged(cur_pos));
+                    let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
+                }
+            });
         }
         Ok(())
     }
@@ -222,9 +239,18 @@ impl Player for DummyPlayer {
     }
 
     fn stop(&self) -> Result<(), PlayerError> {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
-    fn seek(&self, _: f64) -> Result<(), PlayerError> {
+    fn seek(&self, position: f64) -> Result<(), PlayerError> {
+        if let Ok(mut p) = self.position.lock() {
+            *p = position;
+        }
+        if let Some(ref cb) = self.callback {
+            let _ = cb.send(PlayerEvent::SeekDone(position));
+            let _ = cb.send(PlayerEvent::PositionChanged(position));
+            let _ = cb.send(PlayerEvent::VideoFrameUpdated);
+        }
         Ok(())
     }
 

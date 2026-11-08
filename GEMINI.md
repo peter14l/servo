@@ -92,6 +92,15 @@ This guide provides operational rules, architectural facts, and constraints for 
 - WebRender's DirectWrite backend (`dwrote`) rasterizes glyphs via `IDWriteGlyphRunAnalysis::CreateAlphaTexture`, which produces only 1-channel alpha masks. It does not translate `COLR`/`CPAL` sub-layers in `Segoe UI Emoji`, causing emojis to render as white/black wireframe outlines tinted by CSS `color`.
 - Prioritize embedded color bitmap strike fonts (`Twemoji Mozilla`, `Noto Color Emoji`, `EmojiOne Color`) ahead of `Segoe UI Emoji` in `components/fonts/platform/windows/font_list.rs` fallback chains so WebRender renders full RGBA color via `FontInstanceFlags::EMBEDDED_BITMAPS`.
 
+### 8. YouTube WebComponents & ShadyCSS Invariants
+- YouTube's `custom-elements-es5-adapter.js` and Polymer components check `if (window.ShadyCSS)` and invoke `window.ShadyCSS.prepareTemplate(template, name)` and `window.ShadyCSS.styleElement(element)`. When `window.ShadyCSS` is defined without these methods, custom elements throw `TypeError` during construction, aborting `<ytd-video-renderer>` creation and causing YouTube search results to render as a blank canvas.
+- A getter/setter trap on `window.ShadyCSS` in `servo_view_host.cpp` guarantees that `prepareTemplate`, `styleElement`, `styleSubtree`, and related methods remain valid no-op functions.
+
+### 9. Instagram DM Scope Isolation & Dummy Video Ticker
+- **Click & Keyboard Hooks**: Click listeners intended to focus the message composer must NEVER match `[role="main"]`. In Instagram, the entire feed lives under `<main role="main">`, so querying `[contenteditable="true"]` within `[role="main"]` steals clicks from all feed posts, stories, reels, and video controls. Scope click hooks strictly to `location.pathname.startsWith('/direct/')` and target the actual composer container (`[data-lexical-editor="true"]`).
+- **MutationObserver Layout Thrashing**: Querying `scrollHeight` and `clientHeight` across every mutated node on the main feed forces synchronous reflows and freezes the browser. Restrict DOM observation strictly to `/direct/t/` chat threads.
+- **Video Playback Ticker**: In `components/media/backends/dummy/lib.rs`, the player must emit periodic `PositionChanged` events (advancing `currentTime`) and `VideoFrameUpdated` events so web players (Instagram, YouTube) do not consider media stalled or unrendered. Provide a `MediaSource` stub returning `isTypeSupported: () => false` so players cleanly fallback to progressive MP4.
+
 ---
 
 ## 4. Useful Commands

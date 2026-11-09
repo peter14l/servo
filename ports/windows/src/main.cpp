@@ -151,6 +151,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         _wfreopen_s(&fpErr, engLog.c_str(), L"a", stderr);
         FILE* fpOut = nullptr;
         _wfreopen_s(&fpOut, engLog.c_str(), L"a", stdout);
+
+        HANDLE hLogFile = CreateFileW(
+            engLog.c_str(),
+            FILE_APPEND_DATA,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            nullptr,
+            OPEN_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr
+        );
+        if (hLogFile != INVALID_HANDLE_VALUE) {
+            SetStdHandle(STD_ERROR_HANDLE, hLogFile);
+            SetStdHandle(STD_OUTPUT_HANDLE, hLogFile);
+        }
     }
 
     LogDebug("--- Starting Servo Browser ---");

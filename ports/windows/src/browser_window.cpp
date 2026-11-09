@@ -9,6 +9,7 @@
 #include "download_manager.h"
 #include "settings_dialog.h"
 #include "new_tab_page.h"
+#include "browser_data.h"
 #include "servo_view_host.h"
 #include <windowsx.h>
 #include <commdlg.h>
@@ -328,8 +329,91 @@ void BrowserWindow::NavigateUrl(const std::string& url) {
         OpenSettings();
         return;
     }
+    if (url == "servo://bookmarks" || url == "servo:bookmarks" || url == "about:bookmarks") {
+        OpenBookmarks();
+        return;
+    }
+    if (url == "servo://history" || url == "servo:history" || url == "about:history") {
+        OpenHistory();
+        return;
+    }
+    if (url == "servo://about" || url == "servo:about" || url == "about:about" || url == "servo://version" || url == "about:version") {
+        OpenAbout();
+        return;
+    }
+    if (url == "servo://clear-history") {
+        BrowserData::ClearHistory();
+        OpenHistory();
+        return;
+    }
+    if (url == "servo://newtab" || url == "servo:newtab" || url == "about:newtab") {
+        if (m_viewHost) m_viewHost->LoadUrl(NewTabPage::EnsureNewTabPageExists());
+        return;
+    }
     if (m_viewHost) {
         m_viewHost->LoadUrl(url);
+    }
+}
+
+void BrowserWindow::ToggleCurrentPageBookmark() {
+    if (m_currentUrl.empty()) return;
+    bool isBookmarked = BrowserData::ToggleBookmark(m_currentUrl, m_currentTitle);
+    if (m_omnibox) {
+        m_omnibox->SetBookmarked(isBookmarked);
+    }
+    LogDebug("[BOOKMARK] URL '%s' is now %s", m_currentUrl.c_str(), isBookmarked ? "bookmarked" : "unbookmarked");
+}
+
+void BrowserWindow::OpenBookmarks() {
+    std::string bookmarksUrl = BrowserData::EnsureBookmarksPageExists();
+    if (m_viewHost) m_viewHost->LoadUrl(bookmarksUrl);
+}
+
+void BrowserWindow::OpenHistory() {
+    std::string historyUrl = BrowserData::EnsureHistoryPageExists();
+    if (m_viewHost) m_viewHost->LoadUrl(historyUrl);
+}
+
+void BrowserWindow::OpenAbout() {
+    std::string aboutUrl = BrowserData::EnsureAboutPageExists();
+    if (m_viewHost) m_viewHost->LoadUrl(aboutUrl);
+}
+
+void BrowserWindow::OnStatusTextChanged(const char* statusText) {
+    if (!statusText || !*statusText) {
+        if (m_statusPillHwnd) {
+            DestroyWindow(m_statusPillHwnd);
+            m_statusPillHwnd = nullptr;
+        }
+        return;
+    }
+
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, statusText, -1, nullptr, 0);
+    if (wlen <= 1) return;
+    std::vector<wchar_t> wbuf(wlen);
+    MultiByteToWideChar(CP_UTF8, 0, statusText, -1, wbuf.data(), wlen);
+
+    RECT rc;
+    GetClientRect(m_hwnd, &rc);
+    int pillW = std::min(rc.right - 40, (int)(wlen * 7 + 24));
+    int pillH = 22;
+    int pillX = 14;
+    int pillY = rc.bottom - pillH - 12;
+
+    if (!m_statusPillHwnd) {
+        m_statusPillHwnd = CreateWindowExW(
+            WS_EX_TOPMOST, L"STATIC", wbuf.data(),
+            WS_CHILD | WS_VISIBLE | SS_LEFT | SS_PATHELLIPSIS,
+            pillX, pillY, pillW, pillH,
+            m_hwnd, nullptr, GetModuleHandle(nullptr), nullptr
+        );
+        HFONT hFont = CreateFontW(-11, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                  DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                  CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        SendMessageW(m_statusPillHwnd, WM_SETFONT, (WPARAM)hFont, TRUE);
+    } else {
+        SetWindowPos(m_statusPillHwnd, HWND_TOP, pillX, pillY, pillW, pillH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SetWindowTextW(m_statusPillHwnd, wbuf.data());
     }
 }
 
@@ -496,12 +580,16 @@ void BrowserWindow::OnActiveTabSwitched(const std::string& url, const std::wstri
 }
 
 void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
-    if (m_omnibox && url) {
+    if (!url) return;
+    m_currentUrl = url;
+    if (m_omnibox) {
         m_omnibox->SetUrl(url);
+        m_omnibox->SetBookmarked(BrowserData::IsBookmarked(url));
     }
-    if (m_tabStrip && url) {
+    if (m_tabStrip) {
         m_tabStrip->UpdateActiveUrl(url);
     }
+    BrowserData::AddHistory(url, m_currentTitle);
     if (m_viewHost && m_omnibox) {
         m_omnibox->UpdateNavigationState(m_viewHost->CanGoBack(), m_viewHost->CanGoForward());
     }
@@ -509,6 +597,8 @@ void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
 
 void BrowserWindow::OnActiveTabTitleChanged(const char* title) {
     if (!title) return;
+    m_currentTitle = title;
+    BrowserData::AddHistory(m_currentUrl, title);
     int len = MultiByteToWideChar(CP_UTF8, 0, title, -1, nullptr, 0);
     if (len > 0) {
         std::vector<wchar_t> wbuf(len);
@@ -530,6 +620,24 @@ void BrowserWindow::OnActiveTabLoadStatusChanged(int32_t status) {
     }
 }
 
+void BrowserWindow::OnActiveTabCrashed(const char* reason) {
+    LogDebug("Active tab reported crash: %s", reason ? reason : "unknown");
+    std::wstring windowTitle = L"Crashed: ";
+    if (reason) {
+        int len = MultiByteToWideChar(CP_UTF8, 0, reason, -1, nullptr, 0);
+        if (len > 0) {
+            std::vector<wchar_t> wbuf(len);
+            MultiByteToWideChar(CP_UTF8, 0, reason, -1, wbuf.data(), len);
+            windowTitle += wbuf.data();
+        }
+    }
+    windowTitle += L" - Servo";
+    SetWindowTextW(m_hwnd, windowTitle.c_str());
+    if (m_tabStrip) {
+        m_tabStrip->UpdateActiveTitle(L"Tab Crashed");
+    }
+}
+
 void BrowserWindow::OnTabFaviconUpdated(ServoViewHost* /*host*/, HBITMAP hBitmap, uint32_t width, uint32_t height) {
     if (m_tabStrip) {
         m_tabStrip->UpdateTabFavicon(hBitmap, width, height);
@@ -537,8 +645,10 @@ void BrowserWindow::OnTabFaviconUpdated(ServoViewHost* /*host*/, HBITMAP hBitmap
 }
 
 void BrowserWindow::UpdateActiveTabUI(const std::string& url, const std::wstring& title) {
+    m_currentUrl = url;
     if (m_omnibox) {
         m_omnibox->SetUrl(url);
+        m_omnibox->SetBookmarked(BrowserData::IsBookmarked(url));
     }
     std::wstring windowTitle = title.empty() ? L"Servo Browser" : (title + L" - Servo");
     SetWindowTextW(m_hwnd, windowTitle.c_str());
@@ -739,7 +849,19 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
 
         // --- Tools & Overlays ---
-        if (ctrl && (wParam == VK_OEM_COMMA || wParam == 'H')) {
+        if (ctrl && wParam == 'D') {
+            ToggleCurrentPageBookmark();
+            return 0;
+        }
+        if (ctrl && shift && wParam == 'O') {
+            OpenBookmarks();
+            return 0;
+        }
+        if (ctrl && wParam == 'H') {
+            OpenHistory();
+            return 0;
+        }
+        if (ctrl && wParam == VK_OEM_COMMA) {
             OpenSettings();
             return 0;
         }

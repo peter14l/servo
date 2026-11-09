@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <cctype>
 #include "new_tab_page.h"
+#include "browser_data.h"
 
 class BrowserWindow;
 
@@ -59,6 +60,15 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
 
     if (input == "servo://newtab" || input == "about:newtab") {
         return NewTabPage::EnsureNewTabPageExists();
+    }
+    if (input == "servo://bookmarks" || input == "servo:bookmarks" || input == "about:bookmarks") {
+        return BrowserData::EnsureBookmarksPageExists();
+    }
+    if (input == "servo://history" || input == "servo:history" || input == "about:history") {
+        return BrowserData::EnsureHistoryPageExists();
+    }
+    if (input == "servo://about" || input == "servo:about" || input == "about:about" || input == "servo://version" || input == "about:version") {
+        return BrowserData::EnsureAboutPageExists();
     }
 
     // Rewrite apex youtube.com to www.youtube.com to prevent TLS renegotiation failure
@@ -106,6 +116,8 @@ public:
     void SetBounds(int x, int y, int width, int height);
 
     void SetUrl(const std::string& url);
+    void SetBookmarked(bool bookmarked);
+    bool IsBookmarked() const { return m_isBookmarked; }
     void SetLoading(bool loading);
     void SetLoadingProgress(float progress);
     void UpdateNavigationState(bool canBack, bool canForward);
@@ -139,6 +151,7 @@ private:
     RECT m_reloadBtnBounds;
     RECT m_homeBtnBounds;
     RECT m_omniboxBounds;
+    RECT m_bookmarkBtnBounds;
     RECT m_downloadsBtnBounds;
     RECT m_settingsBtnBounds;
 
@@ -152,6 +165,7 @@ private:
         Forward,
         Reload,
         Home,
+        Bookmark,
         Downloads,
         Settings
     };
@@ -164,6 +178,7 @@ private:
     bool m_canBack;
     bool m_canForward;
     bool m_isLoading;
+    bool m_isBookmarked = false;
     bool m_isDark;
     HFONT m_font;
     HFONT m_iconFont;

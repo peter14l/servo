@@ -175,6 +175,15 @@ void OmniboxToolbar::SetUrl(const std::string& url) {
     HideSuggestions();
 }
 
+void OmniboxToolbar::SetBookmarked(bool bookmarked) {
+    if (m_isBookmarked != bookmarked) {
+        m_isBookmarked = bookmarked;
+        if (m_hwnd) {
+            InvalidateRect(m_hwnd, &m_bookmarkBtnBounds, FALSE);
+        }
+    }
+}
+
 void OmniboxToolbar::SetLoading(bool loading) {
     m_isLoading = loading;
     if (m_hwnd) {
@@ -227,11 +236,13 @@ void OmniboxToolbar::LayoutControls() {
     m_homeBtnBounds = { x, y, x + btnSize, y + btnSize };
     x += btnSize + pad + 4;
 
-    // Right action buttons (Downloads & Settings)
+    // Right action buttons (Bookmarks, Downloads & Settings)
     int rx = rc.right - 8 - btnSize;
     m_settingsBtnBounds = { rx, y, rx + btnSize, y + btnSize };
     rx -= (btnSize + pad);
     m_downloadsBtnBounds = { rx, y, rx + btnSize, y + btnSize };
+    rx -= (btnSize + pad);
+    m_bookmarkBtnBounds = { rx, y, rx + btnSize, y + btnSize };
 
     // Center Omnibox Pill
     int omniboxRight = rx - pad - 4;
@@ -300,7 +311,38 @@ void OmniboxToolbar::Paint(HDC hdc) {
     drawNavButton(m_reloadBtnBounds, m_isLoading ? fluent::icons::Stop : fluent::icons::Refresh, true, NavButton::Reload);
     drawNavButton(m_homeBtnBounds, fluent::icons::Home, true, NavButton::Home);
 
-    // Right Controls (Downloads & Settings)
+    // Right Controls (Bookmarks, Downloads & Settings)
+    const wchar_t* starIcon = m_isBookmarked ? L"\xE735" : L"\xE734";
+    if (m_isBookmarked) {
+        bool isHovered = (m_hoveredNavBtn == NavButton::Bookmark);
+        bool isPressed = (m_pressedNavBtn == NavButton::Bookmark);
+        if (isPressed) {
+            HBRUSH hBr = CreateSolidBrush(colors.ControlBackgroundPressed);
+            HPEN hPen = CreatePen(PS_SOLID, 1, colors.ControlBorder);
+            HGDIOBJ ob = SelectObject(memDC, hBr);
+            HGDIOBJ op = SelectObject(memDC, hPen);
+            RoundRect(memDC, m_bookmarkBtnBounds.left, m_bookmarkBtnBounds.top, m_bookmarkBtnBounds.right, m_bookmarkBtnBounds.bottom, 6, 6);
+            SelectObject(memDC, ob);
+            SelectObject(memDC, op);
+            DeleteObject(hBr);
+            DeleteObject(hPen);
+        } else if (isHovered) {
+            HBRUSH hBr = CreateSolidBrush(colors.ControlBackgroundHover);
+            HPEN hPen = CreatePen(PS_NULL, 0, RGB(0, 0, 0));
+            HGDIOBJ ob = SelectObject(memDC, hBr);
+            HGDIOBJ op = SelectObject(memDC, hPen);
+            RoundRect(memDC, m_bookmarkBtnBounds.left, m_bookmarkBtnBounds.top, m_bookmarkBtnBounds.right, m_bookmarkBtnBounds.bottom, 6, 6);
+            SelectObject(memDC, ob);
+            SelectObject(memDC, op);
+            DeleteObject(hBr);
+            DeleteObject(hPen);
+        }
+        SetTextColor(memDC, RGB(255, 185, 0));
+        RECT r = m_bookmarkBtnBounds;
+        DrawTextW(memDC, starIcon, -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    } else {
+        drawNavButton(m_bookmarkBtnBounds, starIcon, true, NavButton::Bookmark);
+    }
     drawNavButton(m_downloadsBtnBounds, fluent::icons::Downloads, true, NavButton::Downloads);
     drawNavButton(m_settingsBtnBounds, fluent::icons::Settings, true, NavButton::Settings);
 
@@ -598,6 +640,7 @@ LRESULT OmniboxToolbar::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         else if (PtInRect(&m_forwardBtnBounds, pt)) newHover = NavButton::Forward;
         else if (PtInRect(&m_reloadBtnBounds, pt)) newHover = NavButton::Reload;
         else if (PtInRect(&m_homeBtnBounds, pt)) newHover = NavButton::Home;
+        else if (PtInRect(&m_bookmarkBtnBounds, pt)) newHover = NavButton::Bookmark;
         else if (PtInRect(&m_downloadsBtnBounds, pt)) newHover = NavButton::Downloads;
         else if (PtInRect(&m_settingsBtnBounds, pt)) newHover = NavButton::Settings;
 
@@ -627,6 +670,7 @@ LRESULT OmniboxToolbar::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         else if (PtInRect(&m_forwardBtnBounds, pt)) newPressed = NavButton::Forward;
         else if (PtInRect(&m_reloadBtnBounds, pt)) newPressed = NavButton::Reload;
         else if (PtInRect(&m_homeBtnBounds, pt)) newPressed = NavButton::Home;
+        else if (PtInRect(&m_bookmarkBtnBounds, pt)) newPressed = NavButton::Bookmark;
         else if (PtInRect(&m_downloadsBtnBounds, pt)) newPressed = NavButton::Downloads;
         else if (PtInRect(&m_settingsBtnBounds, pt)) newPressed = NavButton::Settings;
 
@@ -657,6 +701,8 @@ LRESULT OmniboxToolbar::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
                 else m_browserWindow->NavigateReload();
             } else if (pressed == NavButton::Home && PtInRect(&m_homeBtnBounds, pt)) {
                 m_browserWindow->NavigateUrl("https://servo.org");
+            } else if (pressed == NavButton::Bookmark && PtInRect(&m_bookmarkBtnBounds, pt)) {
+                m_browserWindow->ToggleCurrentPageBookmark();
             } else if (pressed == NavButton::Downloads && PtInRect(&m_downloadsBtnBounds, pt)) {
                 m_browserWindow->ToggleDownloads();
             } else if (pressed == NavButton::Settings && PtInRect(&m_settingsBtnBounds, pt)) {

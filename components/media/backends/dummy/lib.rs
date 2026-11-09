@@ -183,6 +183,12 @@ pub struct DummyPlayer {
     position: Arc<Mutex<f64>>,
 }
 
+impl Drop for DummyPlayer {
+    fn drop(&mut self) {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
 pub struct DummyStreamReader;
 
 impl AudioStreamReader for DummyStreamReader {
@@ -195,31 +201,33 @@ impl AudioStreamReader for DummyStreamReader {
 
 impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
-        self.paused.store(false, std::sync::atomic::Ordering::SeqCst);
+        let was_paused = self.paused.swap(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
             let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
             let _ = cb.send(PlayerEvent::VideoFrameUpdated);
-            let cb_clone = cb.clone();
-            let paused = self.paused.clone();
-            let pos = self.position.clone();
-            std::thread::spawn(move || {
-                while !paused.load(std::sync::atomic::Ordering::SeqCst) {
-                    std::thread::sleep(std::time::Duration::from_millis(250));
-                    if paused.load(std::sync::atomic::Ordering::SeqCst) {
-                        break;
-                    }
-                    let cur_pos = {
-                        let mut p = pos.lock().unwrap();
-                        *p += 0.25;
-                        if *p >= 60.0 {
-                            *p = 0.0;
+            if was_paused {
+                let cb_clone = cb.clone();
+                let paused = self.paused.clone();
+                let pos = self.position.clone();
+                std::thread::spawn(move || {
+                    while !paused.load(std::sync::atomic::Ordering::SeqCst) {
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                        if paused.load(std::sync::atomic::Ordering::SeqCst) {
+                            break;
                         }
-                        *p
-                    };
-                    let _ = cb_clone.send(PlayerEvent::PositionChanged(cur_pos));
-                    let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
-                }
-            });
+                        let cur_pos = {
+                            let mut p = pos.lock().unwrap();
+                            *p += 0.25;
+                            if *p >= 60.0 {
+                                *p = 0.0;
+                            }
+                            *p
+                        };
+                        let _ = cb_clone.send(PlayerEvent::PositionChanged(cur_pos));
+                        let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
+                    }
+                });
+            }
         }
         Ok(())
     }

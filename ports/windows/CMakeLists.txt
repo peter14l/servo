@@ -23,6 +23,7 @@ set(SOURCES
     src/download_manager.cpp
     src/settings_dialog.cpp
     src/new_tab_page.cpp
+    src/browser_data.cpp
     src/browser.manifest
 )
 
@@ -37,6 +38,7 @@ set(HEADERS
     src/download_manager.h
     src/settings_dialog.h
     src/new_tab_page.h
+    src/browser_data.h
     src/fluent_theme.h
 )
 
@@ -89,7 +91,7 @@ set_target_properties(servo_browser PROPERTIES
 
 # Unit test suite
 enable_testing()
-add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp)
+add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp src/browser_data.cpp)
 target_include_directories(test_browser_unit PRIVATE src tests/mock_servo)
 target_link_libraries(test_browser_unit PRIVATE
     dwmapi

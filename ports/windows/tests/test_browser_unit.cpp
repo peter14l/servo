@@ -33,6 +33,7 @@ public:
 
 #include "../src/tab_strip.h"
 #include "../src/omnibox.h"
+#include "../src/browser_data.h"
 
 // Test harness macros
 static int g_tests_run = 0;
@@ -578,6 +579,41 @@ void test_new_tab_page() {
     TEST_ASSERT(NormalizeOmniboxInput("servo://newtab") == newTabUrl, "Omnibox normalizes servo://newtab");
 }
 
+void test_browser_data() {
+    // 1. Bookmark toggling & querying
+    std::string testUrl = "https://example.com/test-bookmark";
+    std::string testTitle = "Example Bookmark";
+
+    BrowserData::RemoveBookmark(testUrl);
+    TEST_ASSERT(!BrowserData::IsBookmarked(testUrl), "Initial state is not bookmarked");
+
+    bool added = BrowserData::ToggleBookmark(testUrl, testTitle);
+    TEST_ASSERT(added, "ToggleBookmark returns true when added");
+    TEST_ASSERT(BrowserData::IsBookmarked(testUrl), "URL is now bookmarked");
+
+    bool removed = BrowserData::ToggleBookmark(testUrl, testTitle);
+    TEST_ASSERT(!removed, "ToggleBookmark returns false when removed");
+    TEST_ASSERT(!BrowserData::IsBookmarked(testUrl), "URL is now unbookmarked");
+
+    // 2. History recording
+    BrowserData::AddHistory("https://example.com/history-item", "History Title");
+    auto history = BrowserData::LoadHistory();
+    TEST_ASSERT(!history.empty(), "History list contains entries");
+
+    // 3. Page generation & URL normalization
+    std::string bmPage = BrowserData::EnsureBookmarksPageExists();
+    TEST_ASSERT(bmPage.rfind("file:///", 0) == 0, "Bookmarks page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://bookmarks") == bmPage, "Omnibox normalizes servo://bookmarks");
+
+    std::string histPage = BrowserData::EnsureHistoryPageExists();
+    TEST_ASSERT(histPage.rfind("file:///", 0) == 0, "History page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://history") == histPage, "Omnibox normalizes servo://history");
+
+    std::string aboutPage = BrowserData::EnsureAboutPageExists();
+    TEST_ASSERT(aboutPage.rfind("file:///", 0) == 0, "About page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://about") == aboutPage, "Omnibox normalizes servo://about");
+}
+
 // -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
@@ -600,6 +636,7 @@ int main() {
     RUN_TEST(test_cursor_and_keyboard_mapping);
     RUN_TEST(test_tab_favicon_lifecycle);
     RUN_TEST(test_new_tab_page);
+    RUN_TEST(test_browser_data);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

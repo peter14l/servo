@@ -49,6 +49,7 @@ public:
     void OnActiveTabUrlChanged(const char* url);
     void OnActiveTabTitleChanged(const char* title);
     void OnActiveTabLoadStatusChanged(int32_t status);
+    void OnActiveTabCrashed(const char* reason);
     void OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
     void UpdateActiveTabUI(const std::string& url, const std::wstring& title);
 
@@ -57,6 +58,11 @@ public:
     void HandleNewDownload(struct ServoDownloadItem* download);
     void HandleDownloadUpdated(struct ServoDownloadItem* download);
     void ToggleDownloads();
+    void ToggleCurrentPageBookmark();
+    void OpenBookmarks();
+    void OpenHistory();
+    void OpenAbout();
+    void OnStatusTextChanged(const char* statusText);
     void OpenSettings();
     void OpenUrlInNewTab(const std::string& url);
     void ApplySettings(const struct BrowserSettings& settings);
@@ -87,6 +93,9 @@ private:
 
     uint16_t m_devtoolsPort;
     std::string m_devtoolsToken;
+    std::string m_currentUrl;
+    std::string m_currentTitle;
+    HWND m_statusPillHwnd = nullptr;
     bool m_isDark;
     bool m_isFullscreen;
     WINDOWPLACEMENT m_savedPlacement;

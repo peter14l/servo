@@ -99,6 +99,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
         delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
         delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
+        delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
+        delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
@@ -175,6 +178,9 @@ ServoViewHost::ServoViewHost(
             delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
             delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
             delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
+            delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
+        delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
 
             servo_webview_builder_set_delegate(builder, delegate);
             m_webview = servo_webview_builder_build(builder);
@@ -836,7 +842,51 @@ bool ServoViewHost::OnRequestCreateNew(
     return false;
 }
 
-static void OnJsEvalCallback(const char* /*res*/, const char* /*err*/, void* /*userData*/) {}
+void ServoViewHost::OnNotifyCrashed(
+    struct WebView* /*webview*/,
+    const char* reason,
+    const char* backtrace,
+    void* userData
+) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    LogDebug("[CRASH] WebView crashed: reason='%s', backtrace='%s'",
+             reason ? reason : "unknown",
+             backtrace ? backtrace : "none");
+    if (self && self->m_browserWindow) {
+        self->m_browserWindow->OnActiveTabCrashed(reason ? reason : "Unknown error");
+    }
+}
+
+void ServoViewHost::OnStatusTextChanged(struct WebView* /*webview*/, const char* status, void* userData) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (self && self->m_browserWindow) {
+        self->m_browserWindow->OnStatusTextChanged(status);
+    }
+}
+
+void ServoViewHost::OnRequestAuthentication(
+    struct WebView* /*webview*/,
+    const char* host,
+    uint16_t port,
+    const char* realm,
+    void (*callback)(const char*, const char*, void*),
+    void* userData
+) {
+    LogDebug("[AUTH] HTTP authentication requested for %s:%u (realm: %s)",
+             host ? host : "unknown",
+             port,
+             realm ? realm : "none");
+    if (!callback) return;
+
+    // Default to cancelling HTTP auth if user dismisses or no credentials
+    callback(nullptr, nullptr, userData);
+}
+
+static void OnJsEvalCallback(const char* /*res*/, const char* err, void* /*userData*/) {
+    if (err && *err) {
+        LogDebug("[JS EVAL ERR] %s", err);
+    }
+}
 
 void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;

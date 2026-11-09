@@ -2932,19 +2932,45 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_send_error(&mut self, pipeline_id: PipelineId, error: SendError) {
-        error!("Error sending message to {pipeline_id:?}: {error}",);
+        error!("Error sending message to {pipeline_id:?}: {error}");
 
         // Ignore errors from unknown Pipelines.
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
-        // Treat send error the same as receiving a panic message
+        let top_level_bc_id = BrowsingContextId::from(pipeline.webview_id);
+        let is_top_level = pipeline.browsing_context_id == top_level_bc_id;
+        let is_active_pipeline = self
+            .browsing_contexts
+            .get(&top_level_bc_id)
+            .map(|bc| bc.pipeline_id == pipeline_id)
+            .unwrap_or(false);
+
+        if !is_top_level {
+            warn!("Child browsing context pipeline {pipeline_id:?} disconnected: {error}");
+            self.close_browsing_context(
+                pipeline.webview_id,
+                pipeline.browsing_context_id,
+                ExitPipelineMode::Force,
+            );
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
+            return;
+        }
+
+        if !is_active_pipeline {
+            warn!("Inactive top-level pipeline {pipeline_id:?} disconnected: {error}");
+            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
+            return;
+        }
+
+        // Treat send error the same as receiving a panic message only for active top-level pipeline
         self.handle_panic_in_webview(
             pipeline.webview_id,
             &format!("Send failed ({error})"),
             &None,
         );
+        self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
     }
 
     #[servo_tracing::instrument(skip_all)]

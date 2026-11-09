@@ -577,3 +577,149 @@ std::string BrowserData::EnsureAboutPageExists() {
     for (char& c : pathStr) if (c == '\\') c = '/';
     return "file:///" + pathStr;
 }
+
+static std::string HtmlEscape(const std::string& data) {
+    std::string buffer;
+    buffer.reserve(data.size() + 16);
+    for (char c : data) {
+        switch (c) {
+            case '&':  buffer += "&amp;";       break;
+            case '\"': buffer += "&quot;";      break;
+            case '\'': buffer += "&#39;";       break;
+            case '<':  buffer += "&lt;";        break;
+            case '>':  buffer += "&gt;";        break;
+            default:   buffer += c;             break;
+        }
+    }
+    return buffer;
+}
+
+std::string BrowserData::EnsureCrashRecoveryPageExists(const std::string& failedUrl, const std::string& reason) {
+    std::wstring filePath = GetConfigDirectory() + L"\\crash.html";
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) return "about:blank";
+
+    std::string safeUrl = HtmlEscape(failedUrl.empty() ? "about:blank" : failedUrl);
+    std::string safeReason = HtmlEscape(reason.empty() ? "Unexpected pipeline error" : reason);
+    std::string jsEscapedUrl = EscapeJsonString(failedUrl.empty() ? "about:blank" : failedUrl);
+
+    out << "<!DOCTYPE html>\n<html><head><meta charset=\"UTF-8\"><title>Tab Crashed - Servo</title><style>"
+        << COMMON_PAGE_CSS
+        << ".crash-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 36px; max-width: 640px; margin: 40px auto; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }\n"
+        << ".crash-icon { font-size: 56px; margin-bottom: 16px; user-select: none; }\n"
+        << ".crash-card h1 { font-size: 26px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.015em; }\n"
+        << ".crash-subtitle { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }\n"
+        << ".crash-details { background: rgba(0, 0, 0, 0.15); border: 1px solid var(--card-border); border-radius: 6px; padding: 12px 16px; font-family: Consolas, monospace; font-size: 12.5px; color: var(--danger); margin-bottom: 28px; text-align: left; word-break: break-all; line-height: 1.6; }\n"
+        << ".crash-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }\n"
+        << ".btn-primary { background: var(--accent); color: #fff !important; border-color: var(--accent); font-weight: 600; }\n"
+        << ".btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }\n"
+        << "</style></head><body>\n"
+        << "<div class=\"container\">\n"
+        << "  <div class=\"crash-card\">\n"
+        << "    <div class=\"crash-icon\">&#128565;</div>\n"
+        << "    <h1>Gah. Your tab just crashed</h1>\n"
+        << "    <p class=\"crash-subtitle\">We can help you get back on track. A web worker or rendering pipeline stopped unexpectedly while loading <b>" << safeUrl << "</b>.</p>\n"
+        << "    <div class=\"crash-details\">\n"
+        << "      <div><b>Failure Reason:</b> " << safeReason << "</div>\n"
+        << "      <div><b>Failed URL:</b> " << safeUrl << "</div>\n"
+        << "    </div>\n"
+        << "    <div class=\"crash-actions\">\n"
+        << "      <button class=\"btn btn-primary\" onclick=\"reloadPage()\">Reload Page</button>\n"
+        << "      <a class=\"btn\" href=\"https://servo.org\">Go to Home Page</a>\n"
+        << "      <a class=\"btn\" href=\"servo://newtab\">Open New Tab</a>\n"
+        << "    </div>\n"
+        << "  </div>\n"
+        << "  <div class=\"nav-footer\">\n"
+        << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
+        << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://settings\">Settings</a>\n"
+        << "  </div>\n"
+        << "</div>\n"
+        << "<script>\n"
+        << "function reloadPage() {\n"
+        << "  window.location.href = \"" << jsEscapedUrl << "\";\n"
+        << "}\n"
+        << "</script>\n"
+        << "</body></html>\n";
+    out.close();
+
+    char crashUtf8Path[MAX_PATH * 3] = { 0 };
+    WideCharToMultiByte(CP_UTF8, 0, filePath.c_str(), -1, crashUtf8Path, sizeof(crashUtf8Path), nullptr, nullptr);
+    std::string crashPathStr = crashUtf8Path;
+    for (char& c : crashPathStr) if (c == '\\') c = '/';
+    return "file:///" + crashPathStr;
+}
+
+void BrowserData::SaveSession(const std::vector<std::string>& urls, int activeIndex) {
+    if (urls.empty()) return;
+    std::wstring path = GetConfigDirectory() + L"\\session.json";
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) return;
+
+    file << "{\n";
+    file << "  \"activeIndex\": " << activeIndex << ",\n";
+    file << "  \"urls\": [\n";
+    for (size_t i = 0; i < urls.size(); ++i) {
+        file << "    \"" << EscapeJsonString(urls[i]) << "\"" << (i + 1 < urls.size() ? ",\n" : "\n");
+    }
+    file << "  ]\n";
+    file << "}\n";
+}
+
+bool BrowserData::LoadSession(std::vector<std::string>& urls, int& activeIndex) {
+    urls.clear();
+    activeIndex = 0;
+    std::wstring path = GetConfigDirectory() + L"\\session.json";
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) return false;
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+    if (content.empty()) return false;
+
+    std::string idxStr = ExtractJsonField(content, "activeIndex");
+    if (!idxStr.empty()) {
+        try {
+            activeIndex = std::stoi(idxStr);
+        } catch (...) {}
+    }
+
+    size_t arrStart = content.find("\"urls\"");
+    if (arrStart == std::string::npos) {
+        arrStart = content.find("\"tabs\"");
+    }
+    if (arrStart != std::string::npos) {
+        arrStart = content.find('[', arrStart);
+    } else {
+        arrStart = content.find('[');
+    }
+    if (arrStart == std::string::npos) return false;
+
+    size_t arrEnd = content.find(']', arrStart);
+    if (arrEnd == std::string::npos) return false;
+
+    size_t pos = arrStart + 1;
+    while (pos < arrEnd) {
+        size_t q1 = content.find('"', pos);
+        if (q1 == std::string::npos || q1 >= arrEnd) break;
+        size_t q2 = q1 + 1;
+        while (q2 < arrEnd) {
+            if (content[q2] == '"' && content[q2 - 1] != '\\') break;
+            q2++;
+        }
+        if (q2 >= arrEnd) break;
+        std::string u = UnescapeJsonString(content.substr(q1 + 1, q2 - q1 - 1));
+        if (!u.empty()) {
+            urls.push_back(u);
+        }
+        pos = q2 + 1;
+    }
+
+    if (urls.empty()) return false;
+    if (activeIndex < 0 || activeIndex >= static_cast<int>(urls.size())) {
+        activeIndex = 0;
+    }
+    return true;
+}

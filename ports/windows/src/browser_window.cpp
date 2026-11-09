@@ -346,6 +346,10 @@ void BrowserWindow::NavigateUrl(const std::string& url) {
         OpenHistory();
         return;
     }
+    if (url == "servo://session-restore" || url == "servo:session-restore" || url == "about:session-restore") {
+        RestorePreviousSession();
+        return;
+    }
     if (url == "servo://newtab" || url == "servo:newtab" || url == "about:newtab") {
         if (m_viewHost) m_viewHost->LoadUrl(NewTabPage::EnsureNewTabPageExists());
         return;
@@ -524,6 +528,44 @@ void BrowserWindow::OpenUrlInNewTab(const std::string& url) {
     }
 }
 
+void BrowserWindow::RestorePreviousSession() {
+    std::vector<std::string> urls;
+    int savedActiveIndex = 0;
+    if (!BrowserData::LoadSession(urls, savedActiveIndex) || urls.empty()) {
+        if (m_tabStrip) {
+            m_tabStrip->ReopenClosedTab();
+        }
+        return;
+    }
+
+    if (!m_tabStrip) return;
+
+    bool replaceInitialTab = false;
+    if (m_tabStrip->GetTabCount() == 1) {
+        auto* tab = m_tabStrip->GetActiveTab();
+        if (tab && (tab->url == "about:blank" || tab->url.find("newtab") != std::string::npos || tab->url == "servo://newtab")) {
+            replaceInitialTab = true;
+        }
+    }
+
+    int startIndex = replaceInitialTab ? -1 : m_tabStrip->GetTabCount();
+    for (size_t i = 0; i < urls.size(); ++i) {
+        m_tabStrip->AddTab(urls[i]);
+    }
+
+    if (replaceInitialTab && m_tabStrip->GetTabCount() > 1) {
+        m_tabStrip->CloseTab(0);
+        if (savedActiveIndex >= 0 && savedActiveIndex < m_tabStrip->GetTabCount()) {
+            m_tabStrip->SelectTab(savedActiveIndex);
+        }
+    } else {
+        int targetIdx = (startIndex >= 0) ? (startIndex + savedActiveIndex) : savedActiveIndex;
+        if (targetIdx >= 0 && targetIdx < m_tabStrip->GetTabCount()) {
+            m_tabStrip->SelectTab(targetIdx);
+        }
+    }
+}
+
 void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
     if (settings.themeMode == 0) {
         m_isDark = false;
@@ -548,6 +590,11 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
         servo_set_preference_bool(m_servo, "dom_indexeddb_enabled", settings.enableIndexedDB);
         servo_set_preference_bool(m_servo, "dom_webgl2_enabled", settings.enableWebGL2);
         servo_set_preference_bool(m_servo, "dom_webgpu_enabled", settings.enableWebGPU);
+        servo_set_preference_bool(m_servo, "dom_webrtc_enabled", settings.enableWebRTC);
+        servo_set_preference_bool(m_servo, "dom_webrtc_transceiver_enabled", settings.enableWebRTC);
+        servo_set_preference_bool(m_servo, "dom_notification_enabled", settings.enableNotifications);
+        servo_set_preference_bool(m_servo, "dom_geolocation_enabled", settings.enableGeolocation);
+        servo_set_preference_bool(m_servo, "layout_variable_fonts_enabled", settings.enableVariableFonts);
     }
 }
 
@@ -581,6 +628,10 @@ void BrowserWindow::OnActiveTabSwitched(const std::string& url, const std::wstri
 
 void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
     if (!url) return;
+    if (strcmp(url, "servo://session-restore") == 0 || strcmp(url, "servo:session-restore") == 0) {
+        RestorePreviousSession();
+        return;
+    }
     m_currentUrl = url;
     if (m_omnibox) {
         m_omnibox->SetUrl(url);
@@ -635,6 +686,10 @@ void BrowserWindow::OnActiveTabCrashed(const char* reason) {
     SetWindowTextW(m_hwnd, windowTitle.c_str());
     if (m_tabStrip) {
         m_tabStrip->UpdateActiveTitle(L"Tab Crashed");
+    }
+    if (m_viewHost) {
+        std::string crashUrl = BrowserData::EnsureCrashRecoveryPageExists(m_currentUrl, reason ? reason : "Unexpected pipeline error");
+        m_viewHost->LoadUrl(crashUrl);
     }
 }
 
@@ -799,6 +854,10 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         }
+        if (ctrl && shift && wParam == 'T') {
+            RestorePreviousSession();
+            return 0;
+        }
         if (ctrl && wParam == 'T') {
             OpenUrlInNewTab(NewTabPage::EnsureNewTabPageExists());
             return 0;
@@ -913,6 +972,9 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_CLOSE:
         LogDebug("BrowserWindow received WM_CLOSE");
+        if (m_tabStrip) {
+            BrowserData::SaveSession(m_tabStrip->GetAllTabUrls(), m_tabStrip->GetActiveTabIndex());
+        }
         break;
 
     case WM_DESTROY:

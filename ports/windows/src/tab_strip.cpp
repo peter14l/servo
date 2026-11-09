@@ -178,6 +178,17 @@ BrowserTab* TabStrip::GetActiveTab() {
     return nullptr;
 }
 
+std::vector<std::string> TabStrip::GetAllTabUrls() const {
+    std::vector<std::string> urls;
+    urls.reserve(m_tabs.size());
+    for (const auto& tab : m_tabs) {
+        if (tab) {
+            urls.push_back(tab->url);
+        }
+    }
+    return urls;
+}
+
 void TabStrip::UpdateActiveTitle(const std::wstring& title) {
     auto* tab = GetActiveTab();
     if (tab) {

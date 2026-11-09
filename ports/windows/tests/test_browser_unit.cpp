@@ -618,6 +618,24 @@ void test_browser_data() {
     std::string aboutPage = BrowserData::EnsureAboutPageExists();
     TEST_ASSERT(aboutPage.rfind("file:///", 0) == 0, "About page is file URI");
     TEST_ASSERT(NormalizeOmniboxInput("servo://about") == aboutPage, "Omnibox normalizes servo://about");
+
+    // 4. Crash recovery page generation
+    std::string crashUrl = BrowserData::EnsureCrashRecoveryPageExists("https://example.com/crashed", "Pipeline timeout");
+    TEST_ASSERT(!crashUrl.empty(), "Crash URL must not be empty");
+    TEST_ASSERT(crashUrl.rfind("file:///", 0) == 0, "Crash URL must be a file URI");
+
+    // 5. Session save and load
+    std::vector<std::string> saveUrls = { "https://servo.org", "https://example.com" };
+    int saveIndex = 1;
+    BrowserData::SaveSession(saveUrls, saveIndex);
+
+    std::vector<std::string> loadedUrls;
+    int loadedIndex = -1;
+    bool ok = BrowserData::LoadSession(loadedUrls, loadedIndex);
+    TEST_ASSERT(ok, "LoadSession must return true when session exists");
+    TEST_ASSERT(loadedUrls.size() == saveUrls.size(), "Loaded URLs size must match saved size");
+    TEST_ASSERT(loadedUrls[0] == "https://servo.org", "Loaded URL 0 matches");
+    TEST_ASSERT(loadedIndex == saveIndex, "Loaded active index matches");
 }
 
 void test_browser_settings() {

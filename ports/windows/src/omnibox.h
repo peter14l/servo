@@ -68,11 +68,14 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
     if (input == "servo://history" || input == "servo:history" || input == "about:history") {
         return BrowserData::EnsureHistoryPageExists();
     }
-    if (input == "servo://about" || input == "servo:about" || input == "about:about" || input == "servo://version" || input == "about:version") {
+    if (input == "servo://about" || input == "servo:about" || input == "about:about" || input == "servo://version") {
         return BrowserData::EnsureAboutPageExists();
     }
     if (input == "servo://settings" || input == "servo:settings" || input == "about:settings") {
         return SettingsDialog::EnsureSettingsPageExists();
+    }
+    if (input == "servo://session-restore" || input == "servo:session-restore" || input == "about:session-restore") {
+        return "servo://session-restore";
     }
 
     // Rewrite apex youtube.com to www.youtube.com to prevent TLS renegotiation failure

@@ -46,8 +46,10 @@ public:
     void CloseTab(int index);
     void SelectTab(int index);
     int GetActiveIndex() const { return m_activeIndex; }
+    int GetActiveTabIndex() const { return m_activeIndex; }
     int GetTabCount() const { return static_cast<int>(m_tabs.size()); }
     BrowserTab* GetActiveTab();
+    std::vector<std::string> GetAllTabUrls() const;
 
     void NextTab();
     void PreviousTab();

@@ -36,6 +36,10 @@ public:
     static std::string EnsureBookmarksPageExists();
     static std::string EnsureHistoryPageExists();
     static std::string EnsureAboutPageExists();
+    static std::string EnsureCrashRecoveryPageExists(const std::string& failedUrl, const std::string& reason);
+
+    static void SaveSession(const std::vector<std::string>& urls, int activeIndex);
+    static bool LoadSession(std::vector<std::string>& urls, int& activeIndex);
 
 private:
     static std::wstring GetConfigDirectory();

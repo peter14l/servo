@@ -51,6 +51,8 @@ private:
     static void OnUrlChanged(struct WebView* webview, const char* url, void* userData);
     static void OnTitleChanged(struct WebView* webview, const char* title, void* userData);
     static void OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData);
+    static void OnLoadError(struct WebView* webview, int32_t errorCode, const char* errorText, void* userData);
+    static void OnLoadError(struct WebView* webview, const char* url, int32_t errorCode, const char* errorText, void* userData);
     static void OnCursorChanged(struct WebView* webview, int32_t cursorType, void* userData);
     static void OnFaviconChanged(struct WebView* webview, const char* url, void* userData);
     static void OnConsoleMessage(struct WebView* webview, int32_t level, const char* message, void* userData);

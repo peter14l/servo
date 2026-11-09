@@ -237,9 +237,44 @@ static const char* NEW_TAB_HTML_CONTENT = R"HTML(<!DOCTYPE html>
     height: 22px;
     fill: currentColor;
   }
+
+  .quick-bar {
+    position: absolute;
+    top: 24px;
+    right: 28px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .quick-link {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--tile-border);
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .quick-link:hover {
+    color: var(--text-primary);
+    background: var(--tile-hover);
+    border-color: var(--card-border);
+    transform: translateY(-1px);
+  }
 </style>
 </head>
 <body>
+  <div class="quick-bar">
+    <a href="servo://session-restore" class="quick-link">Restore Session</a>
+  </div>
   <div class="container">
     <div class="header">
       <h1 class="greeting" id="greeting">Welcome</h1>

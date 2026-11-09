@@ -87,6 +87,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.notify_url_changed = OnUrlChanged;
         delegate.notify_page_title_changed = OnTitleChanged;
         delegate.notify_load_status_changed = OnLoadStatusChanged;
+        delegate.notify_load_error = reinterpret_cast<decltype(delegate.notify_load_error)>(
+            static_cast<void(*)(struct WebView*, int32_t, const char*, void*)>(OnLoadError)
+        );
         delegate.notify_cursor_changed = OnCursorChanged;
         delegate.notify_favicon_changed = reinterpret_cast<decltype(delegate.notify_favicon_changed)>(OnFaviconChanged);
         delegate.show_alert_dialog = reinterpret_cast<decltype(delegate.show_alert_dialog)>(OnAlertDialog);
@@ -166,6 +169,9 @@ ServoViewHost::ServoViewHost(
             delegate.notify_url_changed = OnUrlChanged;
             delegate.notify_page_title_changed = OnTitleChanged;
             delegate.notify_load_status_changed = OnLoadStatusChanged;
+            delegate.notify_load_error = reinterpret_cast<decltype(delegate.notify_load_error)>(
+                static_cast<void(*)(struct WebView*, int32_t, const char*, void*)>(OnLoadError)
+            );
             delegate.notify_cursor_changed = OnCursorChanged;
             delegate.notify_favicon_changed = reinterpret_cast<decltype(delegate.notify_favicon_changed)>(OnFaviconChanged);
             delegate.show_alert_dialog = reinterpret_cast<decltype(delegate.show_alert_dialog)>(OnAlertDialog);
@@ -612,6 +618,21 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     }
 }
 
+void ServoViewHost::OnLoadError(struct WebView* webview, int32_t errorCode, const char* errorText, void* userData) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    std::string url = self ? self->GetUrl() : "";
+    OnLoadError(webview, url.c_str(), errorCode, errorText, userData);
+}
+
+void ServoViewHost::OnLoadError(struct WebView* webview, const char* url, int32_t errorCode, const char* errorText, void* userData) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    LogDebug("[NET ERR] Load error url='%s', code=%d, text='%s'",
+             url ? url : "", errorCode, errorText ? errorText : "");
+    if (self && self->m_browserWindow && errorCode < 0) {
+        self->m_browserWindow->OnActiveTabLoadStatusChanged(-1);
+    }
+}
+
 void ServoViewHost::OnCursorChanged(struct WebView* webview, int32_t cursorType, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (!self) return;
@@ -1046,7 +1067,120 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     } catch(e) {}
 
-    // 7. YouTube & WebComponents ShadyCSS Shims
+    // 7. Dialog Rate Limiting (Prevent UI lockup from alert/confirm/prompt loops)
+    try {
+        if (!window.__servo_dialog_limiter_installed) {
+            window.__servo_dialog_limiter_installed = true;
+            var _dialogCount = 0;
+            var _lastDialogTime = 0;
+            function allowDialog(dialogType) {
+                var now = Date.now();
+                if (now - _lastDialogTime > 2000) {
+                    _dialogCount = 0;
+                }
+                _lastDialogTime = now;
+                if (++_dialogCount > 4) {
+                    console.warn('[Servo] ' + dialogType + ' loop suppressed');
+                    return false;
+                }
+                return true;
+            }
+
+            var _origAlert = window.alert;
+            window.alert = function(msg) {
+                if (!allowDialog('alert')) return;
+                return _origAlert ? _origAlert.apply(this, arguments) : undefined;
+            };
+
+            var _origConfirm = window.confirm;
+            window.confirm = function(msg) {
+                if (!allowDialog('confirm')) return false;
+                return _origConfirm ? _origConfirm.apply(this, arguments) : false;
+            };
+
+            var _origPrompt = window.prompt;
+            window.prompt = function(msg, def) {
+                if (!allowDialog('prompt')) return null;
+                return _origPrompt ? _origPrompt.apply(this, arguments) : null;
+            };
+        }
+    } catch(e) {}
+
+    // 8. Popup Resilience (Safe window.open wrapper)
+    try {
+        if (!window.__servo_window_open_guard_installed && typeof window.open === 'function') {
+            window.__servo_window_open_guard_installed = true;
+            var _origOpen = window.open;
+            window.open = function(url, target, features) {
+                try {
+                    var safeUrl = (url === undefined || url === null) ? 'about:blank' : String(url);
+                    var safeTarget = (target === undefined || target === null) ? '_blank' : String(target);
+                    var safeFeatures = (features === undefined || features === null) ? '' : String(features);
+                    return _origOpen.call(this, safeUrl, safeTarget, safeFeatures);
+                } catch(err) {
+                    console.warn('[Servo] window.open suppressed exception:', err);
+                    return null;
+                }
+            };
+        }
+    } catch(e) {}
+
+    // 9. DOM Exception Silencer (Resilient localStorage and sessionStorage wrapper)
+    try {
+        ['localStorage', 'sessionStorage'].forEach(function(storeName) {
+            try {
+                var store = window[storeName];
+                if (!store) {
+                    var memStorage = {};
+                    var dummy = {
+                        getItem: function(k) { return memStorage.hasOwnProperty(k) ? memStorage[k] : null; },
+                        setItem: function(k, v) { memStorage[k] = String(v); },
+                        removeItem: function(k) { delete memStorage[k]; },
+                        clear: function() { memStorage = {}; },
+                        key: function(i) { return Object.keys(memStorage)[i] || null; },
+                        get length() { return Object.keys(memStorage).length; }
+                    };
+                    try {
+                        Object.defineProperty(window, storeName, {
+                            value: dummy,
+                            configurable: true,
+                            writable: true
+                        });
+                    } catch(ex) {
+                        window[storeName] = dummy;
+                    }
+                    return;
+                }
+                var origSetItem = store.setItem;
+                store.setItem = function(key, val) {
+                    try {
+                        return origSetItem.apply(this, arguments);
+                    } catch(e) {
+                        console.warn('[Servo] ' + storeName + '.setItem suppressed exception:', e && e.name);
+                    }
+                };
+            } catch(e) {
+                try {
+                    var fallbackMem = {};
+                    var fallbackDummy = {
+                        getItem: function(k) { return fallbackMem.hasOwnProperty(k) ? fallbackMem[k] : null; },
+                        setItem: function(k, v) { fallbackMem[k] = String(v); },
+                        removeItem: function(k) { delete fallbackMem[k]; },
+                        clear: function() { fallbackMem = {}; },
+                        key: function(i) { return Object.keys(fallbackMem)[i] || null; },
+                        get length() { return Object.keys(fallbackMem).length; }
+                    };
+                    Object.defineProperty(window, storeName, {
+                        value: fallbackDummy,
+                        configurable: true,
+                        writable: true
+                    });
+                } catch(e2) {}
+            }
+        });
+    } catch(e) {}
+
+    // 10. YouTube & WebComponents ShadyCSS Shims
     // YouTube's custom-elements-es5-adapter and Polymer components call
     // window.ShadyCSS.prepareTemplate(...) and window.ShadyCSS.styleElement(...)
     // when window.ShadyCSS is present as a configuration object. If these methods
@@ -1091,7 +1225,7 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     }
 
-    // 8. MediaSource stub for adaptive video players (Instagram & YouTube)
+    // 11. MediaSource stub for adaptive video players (Instagram & YouTube)
     // When code accesses MediaSource.isTypeSupported, prevent ReferenceError.
     // Returning false signals that chunked MSE is unsupported so players
     // cleanly fall back to direct MP4 (<video src="...">) playback.
@@ -1119,7 +1253,7 @@ void ServoViewHost::InjectPageEnhancements() {
         } catch(e) {}
     }
 
-    // 9. Instagram enhancements
+    // 12. Instagram enhancements
     if (/(^|\.)instagram\.com$/.test(location.hostname)) {
         if (!window.__servo_instagram_hooks_installed) {
             window.__servo_instagram_hooks_installed = true;

@@ -65,6 +65,7 @@ public:
     void OnStatusTextChanged(const char* statusText);
     void OpenSettings();
     void OpenUrlInNewTab(const std::string& url);
+    void RestorePreviousSession();
     void ApplySettings(const struct BrowserSettings& settings);
     void PrintPage();
     void ViewPageSource();

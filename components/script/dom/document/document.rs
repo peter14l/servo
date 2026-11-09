@@ -3412,7 +3412,7 @@ impl Document {
             .dom_interactive
             .get()
             .or_else(|| self.navigation_timing.dom_loading.get())
-            .map(|t| (CrossProcessInstant::now() - t) > Duration::from_millis(1500))
+            .map(|t| (CrossProcessInstant::now() - t) > TimeDuration::milliseconds(1500))
             .unwrap_or(false);
 
         if self.window().font_context().web_fonts_still_loading() != 0 && !font_timeout_expired {

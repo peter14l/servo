@@ -11,8 +11,6 @@
 
 static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 
-static const UINT_PTR TIMER_FORCE_PAINT_WATCHDOG = 1001;
-
 static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder* builder) {
     if (!servo || !builder) return;
     auto* ucm = servo_user_content_manager_create(servo);
@@ -22,20 +20,13 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
     // Core semantic content, hero sections, and intro containers cannot remain permanently hidden
     // by inline opacity: 0 or unhydrated framework states.
     const char* s_userCss =
-        "main[style*=\"opacity:0\"], main[style*=\"opacity: 0\"],"
-        "main > div[style*=\"opacity:0\"], main > div[style*=\"opacity: 0\"],"
-        "main > section[style*=\"opacity:0\"], main > section[style*=\"opacity: 0\"],"
-        "article[style*=\"opacity:0\"], article[style*=\"opacity: 0\"],"
-        "section[style*=\"opacity:0\"], section[style*=\"opacity: 0\"],"
-        "[role=\"main\"][style*=\"opacity:0\"], [role=\"main\"][style*=\"opacity: 0\"],"
-        "[role=\"main\"] > div[style*=\"opacity:0\"], [role=\"main\"] > div[style*=\"opacity: 0\"],"
-        "[class*=\"content\"][style*=\"opacity:0\"], [class*=\"content\"][style*=\"opacity: 0\"],"
-        "[class*=\"hero\"][style*=\"opacity:0\"], [class*=\"hero\"][style*=\"opacity: 0\"],"
-        "[class*=\"Intro\"][style*=\"opacity:0\"], [class*=\"Intro\"][style*=\"opacity: 0\"],"
-        "[data-testid*=\"hero\"][style*=\"opacity:0\"], [data-testid*=\"hero\"][style*=\"opacity: 0\"],"
-        "main[style*=\"visibility:hidden\"], main[style*=\"visibility: hidden\"],"
-        "[class*=\"hero\"][style*=\"visibility:hidden\"], [class*=\"hero\"][style*=\"visibility: hidden\"],"
-        "[class*=\"Intro\"][style*=\"visibility:hidden\"], [class*=\"Intro\"][style*=\"visibility: hidden\"] {"
+        "[class*=\"Intro__content\"], [class*=\"Intro__mona\"], "
+        "[class*=\"Intro\"], [class*=\"intro\"], "
+        "[class*=\"hero\"], [class*=\"Hero\"], "
+        "[data-testid*=\"hero\"], [data-testid*=\"Hero\"], "
+        "[id*=\"hero\"], [id*=\"Hero\"], "
+        "main [style*=\"opacity\"], [role=\"main\"] [style*=\"opacity\"], "
+        "article [style*=\"opacity\"], section [style*=\"opacity\"] {"
         "    opacity: 1 !important;"
         "    visibility: visible !important;"
         "}";
@@ -240,9 +231,6 @@ ServoViewHost::ServoViewHost(
 }
 
 ServoViewHost::~ServoViewHost() {
-    if (m_hwnd && IsWindow(m_hwnd)) {
-        KillTimer(m_hwnd, TIMER_FORCE_PAINT_WATCHDOG);
-    }
     if (m_webview) {
         servo_webview_free(m_webview);
         m_webview = nullptr;
@@ -389,16 +377,6 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_ERASEBKGND:
         // Return 1 to prevent GDI flicker; Servo paints entire region
         return 1;
-
-    case WM_TIMER:
-        if (wParam == TIMER_FORCE_PAINT_WATCHDOG) {
-            if (m_webview) {
-                servo_webview_paint(m_webview);
-                servo_webview_present(m_webview);
-            }
-            return 0;
-        }
-        break;
 
     case WM_SIZE: {
         uint32_t w = LOWORD(lParam);
@@ -669,17 +647,6 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_hwnd && IsWindow(self->m_hwnd)) {
-        if (status == 1) { // Loading: start progressive presentation watchdog
-            SetTimer(self->m_hwnd, TIMER_FORCE_PAINT_WATCHDOG, 250, nullptr);
-        } else if (status == 2) { // Complete: stop watchdog and present final layout
-            KillTimer(self->m_hwnd, TIMER_FORCE_PAINT_WATCHDOG);
-            if (self->m_webview) {
-                servo_webview_paint(self->m_webview);
-                servo_webview_present(self->m_webview);
-            }
-        }
-    }
     if (self && self->m_webview && status == 2) {
         self->InjectPageEnhancements();
     }
@@ -687,9 +654,6 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
 
 void ServoViewHost::OnLoadError(struct WebView* webview, int32_t errorCode, const char* errorText, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_hwnd && IsWindow(self->m_hwnd)) {
-        KillTimer(self->m_hwnd, TIMER_FORCE_PAINT_WATCHDOG);
-    }
     std::string url = self ? self->GetUrl() : "";
     OnLoadError(webview, url.c_str(), errorCode, errorText, userData);
 }

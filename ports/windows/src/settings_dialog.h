@@ -16,7 +16,7 @@ struct BrowserSettings {
     std::wstring searchEngine = L"DuckDuckGo";
     std::wstring homePage = L"https://servo.org";
     std::wstring downloadDir;
-    std::wstring userAgentPersona = L"Chrome 131 (Windows 11)";
+    std::wstring userAgentPersona = L"Firefox 132 (Desktop) [Recommended]";
     int themeMode = 2; // 0: Light, 1: Dark, 2: System Default
     int backdropType = 0; // 0: Mica Alt, 1: Mica, 2: Solid
     bool enableVerticalTabs = false;

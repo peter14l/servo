@@ -612,7 +612,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_webview && (status == 1 || status == 2)) {
+    if (self && self->m_webview && status == 2) {
         self->InjectPageEnhancements();
     }
 }
@@ -917,154 +917,23 @@ static void OnJsEvalCallback(const char* /*res*/, const char* err, void* /*userD
 void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
 
-    // Script 1: Platform Web Standards & Anti-Bot Native Immunity
+    // Script 1: Platform Web Standards Compatibility
     const char* s_platformCompatScript = R"JS(
 (function() {
     try {
-        if (typeof navigator !== 'undefined') {
-            // 1. Mask navigator.webdriver
-            try {
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: function() { return false; },
-                    configurable: true
-                });
-                if (navigator.__proto__) {
-                    delete navigator.__proto__.webdriver;
-                }
-            } catch(e) {}
-
-            // 2. Authentic standard desktop plugins & mimeTypes
-            try {
-                if (!navigator.plugins || navigator.plugins.length === 0) {
-                    var pluginsList = [
-                        { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-                        { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-                        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-                        { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-                        { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format' }
-                    ];
-                    pluginsList.item = function(i) { return this[i] || null; };
-                    pluginsList.namedItem = function(name) {
-                        for (var i = 0; i < this.length; i++) {
-                            if (this[i].name === name) return this[i];
-                        }
-                        return null;
-                    };
-                    pluginsList.refresh = function() {};
-                    Object.defineProperty(navigator, 'plugins', {
-                        get: function() { return pluginsList; },
-                        configurable: true
-                    });
-                }
-            } catch(e) {}
-
-            // 3. Languages, deviceMemory, hardwareConcurrency
-            try {
-                Object.defineProperty(navigator, 'languages', { get: function() { return ['en-US', 'en']; }, configurable: true });
-                Object.defineProperty(navigator, 'language', { get: function() { return 'en-US'; }, configurable: true });
-                if (!navigator.hardwareConcurrency || navigator.hardwareConcurrency < 4) {
-                    Object.defineProperty(navigator, 'hardwareConcurrency', { get: function() { return 8; }, configurable: true });
-                }
-                if (!navigator.deviceMemory || navigator.deviceMemory < 4) {
-                    Object.defineProperty(navigator, 'deviceMemory', { get: function() { return 8; }, configurable: true });
-                }
-            } catch(e) {}
-
-            // 4. Permissions API query handler
-            try {
-                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-                    var origQuery = navigator.permissions.query;
-                    navigator.permissions.query = function(param) {
-                        if (param && param.name === 'notifications') {
-                            return Promise.resolve({ state: (window.Notification && window.Notification.permission) || 'default', onchange: null });
-                        }
-                        return origQuery.apply(this, arguments).catch(function() {
-                            return { state: 'prompt', onchange: null };
-                        });
-                    };
-                }
-            } catch(e) {}
-        }
-
-        // 5. window.chrome runtime & timing APIs
-        if (typeof window.chrome === 'undefined') {
-            window.chrome = {
-                app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } },
-                runtime: { OnInstalledReason: {}, OnRestartRequiredReason: {}, PlatformArch: {}, PlatformNaclArch: {}, PlatformOs: {}, RequestUpdateCheckStatus: {} },
-                loadTimes: function() {
-                    return {
-                        commitLoadTime: Date.now() / 1000,
-                        connectionInfo: 'h2',
-                        finishDocumentLoadTime: Date.now() / 1000,
-                        finishLoadTime: Date.now() / 1000,
-                        firstPaintAfterLoadTime: 0,
-                        firstPaintTime: Date.now() / 1000,
-                        navigationType: 'Other',
-                        npnNegotiatedProtocol: 'h2',
-                        requestTime: (Date.now() - 50) / 1000,
-                        startLoadTime: (Date.now() - 50) / 1000,
-                        wasAlternateProtocolAvailable: false,
-                        wasFetchedViaSpdy: true,
-                        wasNpnNegotiated: true
-                    };
-                },
-                csi: function() {
-                    return { onloadT: Date.now(), pageT: Date.now() - 50, startE: Date.now() - 50, tran: 15 };
-                }
-            };
-        }
-    } catch(e) {}
-
-    // 6. Client Hints (navigator.userAgentData)
-    if (typeof navigator !== 'undefined' && typeof navigator.userAgentData === 'undefined') {
-        try {
-            var uaData = {
-                brands: [
-                    { brand: 'Not A(Brand', version: '99' },
-                    { brand: 'Chromium', version: '131' },
-                    { brand: 'Google Chrome', version: '131' }
-                ],
-                mobile: false,
-                platform: 'Windows',
-                getHighEntropyValues: function(hints) {
-                    return Promise.resolve({
-                        architecture: 'x86',
-                        bitness: '64',
-                        brands: this.brands,
-                        fullVersionList: this.brands,
-                        mobile: false,
-                        model: '',
-                        platform: 'Windows',
-                        platformVersion: '15.0.0',
-                        uaFullVersion: '131.0.0.0'
-                    });
-                },
-                toJSON: function() { return { brands: this.brands, mobile: this.mobile, platform: this.platform }; }
-            };
-            try {
-                Object.defineProperty(navigator, 'userAgentData', { value: uaData, configurable: true, enumerable: true, writable: true });
-            } catch(e) {
-                navigator.userAgentData = uaData;
-            }
-        } catch(e) {}
-    }
-
-    // 7. Cooperative Scheduling (requestIdleCallback)
-    if (typeof window.requestIdleCallback === 'undefined') {
-        try {
-            window.requestIdleCallback = function(cb, options) {
+        // 1. Cooperative Scheduling (requestIdleCallback)
+        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'undefined') {
+            window.requestIdleCallback = function(cb) {
                 var start = Date.now();
                 return setTimeout(function() {
                     cb({ didTimeout: false, timeRemaining: function() { return Math.max(0, 50 - (Date.now() - start)); } });
                 }, 1);
             };
             window.cancelIdleCallback = function(id) { clearTimeout(id); };
-        } catch(e) {}
-    }
+        }
 
-    // 8. Notification permission stub
-    try {
-        if (typeof window.Notification === 'undefined') {
+        // 2. Notification API safe fallback
+        if (typeof window !== 'undefined' && typeof window.Notification === 'undefined') {
             window.Notification = function() {};
             window.Notification.permission = 'default';
             window.Notification.requestPermission = function(cb) {
@@ -1073,23 +942,19 @@ void ServoViewHost::InjectPageEnhancements() {
                 return p;
             };
         }
-    } catch(e) {}
 
-    // 9. Media & AudioContext fallbacks
-    try {
-        if (typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
+        // 3. AudioContext standard fallback
+        if (typeof window !== 'undefined' && typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
             window.AudioContext = window.webkitAudioContext;
         }
-    } catch(e) {}
 
-    // 10. Dialog Rate Limiting
-    try {
-        if (!window.__servo_dialog_limiter_installed) {
+        // 4. Alert / Confirm dialog limiter to protect against spam loops
+        if (typeof window !== 'undefined' && !window.__servo_dialog_limiter_installed) {
             window.__servo_dialog_limiter_installed = true;
             var _dlgCount = 0;
             var _lastDlg = 0;
             var _origAlert = window.alert;
-            window.alert = function(msg) {
+            window.alert = function() {
                 var now = Date.now();
                 if (now - _lastDlg > 2000) _dlgCount = 0;
                 _lastDlg = now;
@@ -1098,186 +963,100 @@ void ServoViewHost::InjectPageEnhancements() {
             };
         }
     } catch(e) {}
-
-    // 11. Resilient Storage Shield (Fixes YouTube & Cross-Origin SecurityError: The operation is insecure)
-    try {
-        function makeMemStorage() {
-            var data = {};
-            return {
-                getItem: function(k) { return data.hasOwnProperty(k) ? data[k] : null; },
-                setItem: function(k, v) { data[k] = String(v); },
-                removeItem: function(k) { delete data[k]; },
-                clear: function() { data = {}; },
-                key: function(i) { return Object.keys(data)[i] || null; },
-                get length() { return Object.keys(data).length; }
-            };
-        }
-        try {
-            var testK = '__servo_test__';
-            window.localStorage.setItem(testK, testK);
-            window.localStorage.removeItem(testK);
-        } catch(stErr) {
-            var memLocal = makeMemStorage();
-            try {
-                Object.defineProperty(window, 'localStorage', { get: function() { return memLocal; }, configurable: true });
-            } catch(_) {}
-        }
-        try {
-            var testS = '__servo_test__';
-            window.sessionStorage.setItem(testS, testS);
-            window.sessionStorage.removeItem(testS);
-        } catch(ssErr) {
-            var memSession = makeMemStorage();
-            try {
-                Object.defineProperty(window, 'sessionStorage', { get: function() { return memSession; }, configurable: true });
-            } catch(_) {}
-        }
-        try {
-            void document.cookie;
-        } catch(ckErr) {
-            var memCookie = '';
-            try {
-                Object.defineProperty(document, 'cookie', {
-                    get: function() { return memCookie; },
-                    set: function(v) { memCookie = v; },
-                    configurable: true
-                });
-            } catch(_) {}
-        }
-    } catch(e) {}
-
-    // 12. Apollo Client & GraphQL Global Hook
-    if (typeof window.__APOLLO_DEVTOOLS_GLOBAL_HOOK__ === 'undefined') {
-        window.__APOLLO_DEVTOOLS_GLOBAL_HOOK__ = {
-            ApolloClient: null,
-            devtoolsVersion: '4.0.0',
-            getGlobalHook: function() { return this; }
-        };
-    }
-
-    // 13. Resilient WebSocket Transport Adapter (Prevents unhandled SignalR / Realtime crash)
-    if (typeof window.WebSocket !== 'undefined' && !window.__servo_ws_wrapped) {
-        window.__servo_ws_wrapped = true;
-        var OrigWebSocket = window.WebSocket;
-        var WrappedWebSocket = function(url, protocols) {
-            try {
-                return protocols !== undefined ? new OrigWebSocket(url, protocols) : new OrigWebSocket(url);
-            } catch(wsErr) {
-                var fake = new EventTarget();
-                fake.readyState = 3;
-                fake.url = url;
-                fake.send = function() {};
-                fake.close = function() {};
-                setTimeout(function() {
-                    var evErr = new Event('error');
-                    if (typeof fake.onerror === 'function') fake.onerror(evErr);
-                    fake.dispatchEvent(evErr);
-                    var evClose = new CloseEvent('close', { code: 1006, reason: 'Transport error', wasClean: false });
-                    if (typeof fake.onclose === 'function') fake.onclose(evClose);
-                    fake.dispatchEvent(evClose);
-                }, 0);
-                return fake;
-            }
-        };
-        WrappedWebSocket.prototype = OrigWebSocket.prototype;
-        WrappedWebSocket.CONNECTING = 0;
-        WrappedWebSocket.OPEN = 1;
-        WrappedWebSocket.CLOSING = 2;
-        WrappedWebSocket.CLOSED = 3;
-        try { window.WebSocket = WrappedWebSocket; } catch(_) {}
-    }
 })();
 )JS";
 
-    // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Instagram DM hooks)
+    // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Video MediaSource, Instagram DM hooks)
     const char* s_appEnhancementsScript = R"JS(
 (function() {
-    // 1. YouTube & WebComponents ShadyCSS Shims
-    function setupShadyCSS(obj) {
-        if (!obj || typeof obj !== 'object') obj = {};
-        var noop = function() {};
-        var emptyStr = function() { return ''; };
-        if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
-        if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
-        if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
-        if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
-        if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
-        if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
-        if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
-        if (typeof obj.flush !== 'function') obj.flush = noop;
-        if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
-        if (obj.nativeShadow === undefined) obj.nativeShadow = true;
-        if (obj.nativeCss === undefined) obj.nativeCss = true;
-        return obj;
-    }
+    try {
+        // 1. YouTube & WebComponents ShadyCSS Shims
+        function setupShadyCSS(obj) {
+            if (!obj || typeof obj !== 'object') obj = {};
+            var noop = function() {};
+            var emptyStr = function() { return ''; };
+            if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
+            if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
+            if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
+            if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
+            if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
+            if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
+            if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
+            if (typeof obj.flush !== 'function') obj.flush = noop;
+            if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
+            if (obj.nativeShadow === undefined) obj.nativeShadow = true;
+            if (obj.nativeCss === undefined) obj.nativeCss = true;
+            return obj;
+        }
 
-    if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
-    if (!window.__shadycss_trap_installed) {
-        window.__shadycss_trap_installed = true;
-        var _currentShady = setupShadyCSS(window.ShadyCSS || {});
-        try {
-            Object.defineProperty(window, 'ShadyCSS', {
-                configurable: true, enumerable: true,
-                get: function() { return _currentShady; },
-                set: function(val) { _currentShady = setupShadyCSS(val); }
-            });
-        } catch(e) { window.ShadyCSS = _currentShady; }
-    }
+        if (typeof window !== 'undefined') {
+            if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
+            if (!window.__shadycss_trap_installed) {
+                window.__shadycss_trap_installed = true;
+                var _currentShady = setupShadyCSS(window.ShadyCSS || {});
+                try {
+                    Object.defineProperty(window, 'ShadyCSS', {
+                        configurable: true, enumerable: true,
+                        get: function() { return _currentShady; },
+                        set: function(val) { _currentShady = setupShadyCSS(val); }
+                    });
+                } catch(e) { window.ShadyCSS = _currentShady; }
+            }
+        }
 
-    // 2. MediaSource stub for video players
-    if (typeof window.MediaSource === 'undefined') {
-        try {
+        // 2. MediaSource stub for video players
+        if (typeof window !== 'undefined' && typeof window.MediaSource === 'undefined') {
             var DummyMediaSource = function() { this.sourceBuffers = []; this.activeSourceBuffers = []; this.readyState = 'closed'; };
             DummyMediaSource.isTypeSupported = function() { return false; };
             DummyMediaSource.prototype.addSourceBuffer = function() { throw new DOMException('Not supported', 'NotSupportedError'); };
             DummyMediaSource.prototype.endOfStream = function() {};
             window.MediaSource = DummyMediaSource;
             window.WebKitMediaSource = DummyMediaSource;
-        } catch(e) {}
-    }
+        }
 
-    // 3. Instagram DM hooks and chat scroller
-    if (/(^|\.)instagram\.com$/.test(location.hostname)) {
-        if (!window.__servo_instagram_hooks_installed) {
-            window.__servo_instagram_hooks_installed = true;
+        // 3. Instagram DM hooks and chat scroller
+        if (typeof location !== 'undefined' && location.hostname && /(^|\.)instagram\.com$/.test(location.hostname)) {
+            if (!window.__servo_instagram_hooks_installed && typeof document !== 'undefined') {
+                window.__servo_instagram_hooks_installed = true;
 
-            document.addEventListener('click', function(e) {
-                if (!location.pathname.startsWith('/direct/')) return;
-                var target = e.target;
-                if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
-                var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
-                if (!composer) return;
-                var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
-                if (editable && document.activeElement !== editable) {
-                    editable.focus();
-                }
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                document.addEventListener('click', function(e) {
                     if (!location.pathname.startsWith('/direct/')) return;
                     var target = e.target;
-                    if (!target) return;
-                    var composer = target.closest('footer, form, [data-lexical-editor="true"]');
+                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
+                    var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
                     if (!composer) return;
-                    if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
-                        setTimeout(function() {
-                            var buttons = composer.querySelectorAll('button, div[role="button"]');
-                            for (var i = 0; i < buttons.length; i++) {
-                                var b = buttons[i];
-                                var text = (b.innerText || b.textContent || '').trim().toLowerCase();
-                                var aria = (b.getAttribute('aria-label') || '').toLowerCase();
-                                if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
-                                    b.click();
-                                    break;
-                                }
-                            }
-                        }, 50);
+                    var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
+                    if (editable && typeof editable.focus === 'function') {
+                        editable.focus();
                     }
-                }
-            }, true);
+                }, true);
+
+                document.addEventListener('keydown', function(e) {
+                    if (!location.pathname.startsWith('/direct/')) return;
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        var target = e.target;
+                        if (!target) return;
+                        var composer = target.closest('footer, form, [data-lexical-editor="true"]');
+                        if (!composer) return;
+                        if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
+                            setTimeout(function() {
+                                var buttons = composer.querySelectorAll('button, div[role="button"]');
+                                for (var i = 0; i < buttons.length; i++) {
+                                    var b = buttons[i];
+                                    var text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                                    var aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                                    if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
+                                        b.click();
+                                        break;
+                                    }
+                                }
+                            }, 50);
+                        }
+                    }
+                }, true);
+            }
         }
-    }
+    } catch(e) {}
 })();
 )JS";
 

@@ -23,7 +23,7 @@ use headers::{
 use http::HeaderMap;
 use http::header::{self, HeaderName, HeaderValue};
 use log::{debug, trace, warn};
-use net_traits::request::{RequestBuilder, RequestMode};
+use net_traits::request::{Origin, RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use servo_base::generic_channel::CallbackSetter;
@@ -54,10 +54,25 @@ pub fn create_handshake_request(
 ) -> Result<net_traits::request::Request, Error> {
     let origin = request.url.origin();
 
+    // RFC 6455 / WHATWG WebSocket: The Origin header MUST use http/https scheme,
+    // reflecting the document/client origin rather than ws/wss.
+    let origin_str = match &request.origin {
+        Origin::Origin(origin) => origin.ascii_serialization(),
+        Origin::Client => {
+            let mut s = request.url.origin().ascii_serialization();
+            if s.starts_with("wss://") {
+                s = format!("https://{}", &s[6..]);
+            } else if s.starts_with("ws://") {
+                s = format!("http://{}", &s[5..]);
+            }
+            s
+        },
+    };
+
     let mut headers = HeaderMap::new();
     headers.insert(
         "Origin",
-        HeaderValue::from_str(request.url.origin().ascii_serialization().as_ref())?,
+        HeaderValue::from_str(&origin_str)?,
     );
 
     let host = format!(

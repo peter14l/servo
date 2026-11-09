@@ -1083,7 +1083,7 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     } catch(e) {}
 
-    // 10. Dialog Rate Limiting & Storage Fallback
+    // 10. Dialog Rate Limiting
     try {
         if (!window.__servo_dialog_limiter_installed) {
             window.__servo_dialog_limiter_installed = true;
@@ -1099,6 +1099,94 @@ void ServoViewHost::InjectPageEnhancements() {
             };
         }
     } catch(e) {}
+
+    // 11. Resilient Storage Shield (Fixes YouTube & Cross-Origin SecurityError: The operation is insecure)
+    try {
+        function makeMemStorage() {
+            var data = {};
+            return {
+                getItem: function(k) { return data.hasOwnProperty(k) ? data[k] : null; },
+                setItem: function(k, v) { data[k] = String(v); },
+                removeItem: function(k) { delete data[k]; },
+                clear: function() { data = {}; },
+                key: function(i) { return Object.keys(data)[i] || null; },
+                get length() { return Object.keys(data).length; }
+            };
+        }
+        try {
+            var testK = '__servo_test__';
+            window.localStorage.setItem(testK, testK);
+            window.localStorage.removeItem(testK);
+        } catch(stErr) {
+            var memLocal = makeMemStorage();
+            try {
+                Object.defineProperty(window, 'localStorage', { get: function() { return memLocal; }, configurable: true });
+            } catch(_) {}
+        }
+        try {
+            var testS = '__servo_test__';
+            window.sessionStorage.setItem(testS, testS);
+            window.sessionStorage.removeItem(testS);
+        } catch(ssErr) {
+            var memSession = makeMemStorage();
+            try {
+                Object.defineProperty(window, 'sessionStorage', { get: function() { return memSession; }, configurable: true });
+            } catch(_) {}
+        }
+        try {
+            void document.cookie;
+        } catch(ckErr) {
+            var memCookie = '';
+            try {
+                Object.defineProperty(document, 'cookie', {
+                    get: function() { return memCookie; },
+                    set: function(v) { memCookie = v; },
+                    configurable: true
+                });
+            } catch(_) {}
+        }
+    } catch(e) {}
+
+    // 12. Apollo Client & GraphQL Global Hook
+    if (typeof window.__APOLLO_DEVTOOLS_GLOBAL_HOOK__ === 'undefined') {
+        window.__APOLLO_DEVTOOLS_GLOBAL_HOOK__ = {
+            ApolloClient: null,
+            devtoolsVersion: '4.0.0',
+            getGlobalHook: function() { return this; }
+        };
+    }
+
+    // 13. Resilient WebSocket Transport Adapter (Prevents unhandled SignalR / Realtime crash)
+    if (typeof window.WebSocket !== 'undefined' && !window.__servo_ws_wrapped) {
+        window.__servo_ws_wrapped = true;
+        var OrigWebSocket = window.WebSocket;
+        var WrappedWebSocket = function(url, protocols) {
+            try {
+                return protocols !== undefined ? new OrigWebSocket(url, protocols) : new OrigWebSocket(url);
+            } catch(wsErr) {
+                var fake = new EventTarget();
+                fake.readyState = 3;
+                fake.url = url;
+                fake.send = function() {};
+                fake.close = function() {};
+                setTimeout(function() {
+                    var evErr = new Event('error');
+                    if (typeof fake.onerror === 'function') fake.onerror(evErr);
+                    fake.dispatchEvent(evErr);
+                    var evClose = new CloseEvent('close', { code: 1006, reason: 'Transport error', wasClean: false });
+                    if (typeof fake.onclose === 'function') fake.onclose(evClose);
+                    fake.dispatchEvent(evClose);
+                }, 0);
+                return fake;
+            }
+        };
+        WrappedWebSocket.prototype = OrigWebSocket.prototype;
+        WrappedWebSocket.CONNECTING = 0;
+        WrappedWebSocket.OPEN = 1;
+        WrappedWebSocket.CLOSING = 2;
+        WrappedWebSocket.CLOSED = 3;
+        try { window.WebSocket = WrappedWebSocket; } catch(_) {}
+    }
 })();
 )JS";
 

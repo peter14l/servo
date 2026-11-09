@@ -11,6 +11,28 @@
 
 static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 
+static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder* builder) {
+    if (!servo || !builder) return;
+    auto* ucm = servo_user_content_manager_create(servo);
+    if (!ucm) return;
+
+    // Resilient CSS rule for modern SPAs and landing pages (e.g. GitHub, Primer)
+    // that deliver server-rendered content with inline opacity: 0 before hydration.
+    const char* s_userCss =
+        "[class*=\"Intro__content\"][style*=\"opacity\"],"
+        "[class*=\"hero\"][style*=\"opacity\"] {"
+        "    opacity: 1 !important;"
+        "}";
+
+    auto* ss = servo_user_style_sheet_create(s_userCss, "");
+    if (ss) {
+        servo_user_content_manager_add_style_sheet(ucm, ss);
+        servo_user_style_sheet_free(ss);
+    }
+
+    servo_webview_builder_set_user_content_manager(builder, ucm);
+}
+
 void ServoViewHost::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
         hInstance = GetModuleHandleW(nullptr);
@@ -79,6 +101,8 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         float scale = dpi > 0 ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
         servo_webview_builder_set_hidpi_scale_factor(builder, scale);
         LogDebug("Setting HiDPI scale factor: %.2f (DPI: %u)", scale, dpi);
+
+        ConfigureUserContentManager(m_servo, builder);
 
         ServoWebViewDelegate delegate = {};
         delegate.struct_size = sizeof(ServoWebViewDelegate);
@@ -161,6 +185,7 @@ ServoViewHost::ServoViewHost(
         if (builder) {
             m_context = nullptr; // Ownership transferred to builder
             servo_webview_builder_set_hidpi_scale_factor(builder, scale);
+            ConfigureUserContentManager(m_servo, builder);
 
             ServoWebViewDelegate delegate = {};
             delegate.struct_size = sizeof(ServoWebViewDelegate);
@@ -612,7 +637,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_webview && (status == 1 || status == 2)) {
+    if (self && self->m_webview && status == 2) {
         self->InjectPageEnhancements();
     }
 }
@@ -962,22 +987,6 @@ void ServoViewHost::InjectPageEnhancements() {
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
         }
-
-        // 5. Opacity watchdog for landing pages with delayed animation hydration (e.g. GitHub Intro/hero, GSAP)
-        if (typeof window !== 'undefined' && !window.__servo_opacity_watchdog_installed) {
-            window.__servo_opacity_watchdog_installed = true;
-            setTimeout(function() {
-                try {
-                    var els = document.querySelectorAll('[style*="opacity:0"], [style*="opacity: 0"]');
-                    for (var i = 0; i < els.length; i++) {
-                        var el = els[i];
-                        if (el.className && (el.className.indexOf('Intro') !== -1 || el.className.indexOf('content') !== -1 || el.className.indexOf('hero') !== -1)) {
-                            el.style.removeProperty('opacity');
-                        }
-                    }
-                } catch(e) {}
-            }, 1000);
-        }
     } catch(e) {}
 })();
 )JS";
@@ -986,26 +995,26 @@ void ServoViewHost::InjectPageEnhancements() {
     const char* s_appEnhancementsScript = R"JS(
 (function() {
     try {
-        // 1. YouTube & WebComponents ShadyCSS Shims
-        function setupShadyCSS(obj) {
-            if (!obj || typeof obj !== 'object') obj = {};
-            var noop = function() {};
-            var emptyStr = function() { return ''; };
-            if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
-            if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
-            if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
-            if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
-            if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
-            if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
-            if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
-            if (typeof obj.flush !== 'function') obj.flush = noop;
-            if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
-            if (obj.nativeShadow === undefined) obj.nativeShadow = true;
-            if (obj.nativeCss === undefined) obj.nativeCss = true;
-            return obj;
-        }
+        // 1. YouTube WebComponents ShadyCSS Shims (strictly scoped to YouTube)
+        if (typeof window !== 'undefined' && typeof location !== 'undefined' && location.hostname && /(^|\.)youtube\.com$/.test(location.hostname)) {
+            function setupShadyCSS(obj) {
+                if (!obj || typeof obj !== 'object') obj = {};
+                var noop = function() {};
+                var emptyStr = function() { return ''; };
+                if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
+                if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
+                if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
+                if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
+                if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
+                if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
+                if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
+                if (typeof obj.flush !== 'function') obj.flush = noop;
+                if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
+                if (obj.nativeShadow === undefined) obj.nativeShadow = true;
+                if (obj.nativeCss === undefined) obj.nativeCss = true;
+                return obj;
+            }
 
-        if (typeof window !== 'undefined') {
             if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
             if (!window.__shadycss_trap_installed) {
                 window.__shadycss_trap_installed = true;

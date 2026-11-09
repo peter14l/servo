@@ -116,6 +116,45 @@ inline int servo_webview_evaluate_javascript(
     return SERVO_ERROR_OK;
 }
 
+typedef struct ServoUserContentManager ServoUserContentManager;
+typedef struct ServoUserStyleSheet ServoUserStyleSheet;
+
+inline ServoUserContentManager* servo_user_content_manager_create(Servo* servo) {
+    (void)servo;
+    static int dummy = 1;
+    return (ServoUserContentManager*)&dummy;
+}
+
+inline ServoUserStyleSheet* servo_user_style_sheet_create(const char* source, const char* url) {
+    (void)source;
+    (void)url;
+    static int dummy = 2;
+    return (ServoUserStyleSheet*)&dummy;
+}
+
+inline ServoError servo_user_content_manager_add_style_sheet(
+    ServoUserContentManager* ucm,
+    ServoUserStyleSheet* stylesheet
+) {
+    (void)ucm;
+    (void)stylesheet;
+    return SERVO_ERROR_OK;
+}
+
+inline ServoError servo_user_style_sheet_free(ServoUserStyleSheet* stylesheet) {
+    (void)stylesheet;
+    return SERVO_ERROR_OK;
+}
+
+inline ServoError servo_webview_builder_set_user_content_manager(
+    void* builder,
+    ServoUserContentManager* ucm
+) {
+    (void)builder;
+    (void)ucm;
+    return SERVO_ERROR_OK;
+}
+
 #ifdef __cplusplus
 }
 #endif

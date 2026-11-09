@@ -57,9 +57,17 @@ pub fn create_handshake_request(
     // RFC 6455 / WHATWG WebSocket: The Origin header MUST use http/https scheme,
     // reflecting the document/client origin rather than ws/wss.
     let origin_str = match &request.origin {
-        Origin::Origin(origin) => origin.ascii_serialization(),
+        Origin::Origin(origin) => {
+            let mut s = origin.ascii_serialization().into_owned();
+            if s.starts_with("wss://") {
+                s = format!("https://{}", &s[6..]);
+            } else if s.starts_with("ws://") {
+                s = format!("http://{}", &s[5..]);
+            }
+            s
+        },
         Origin::Client => {
-            let mut s = request.url.origin().ascii_serialization();
+            let mut s = request.url.origin().ascii_serialization().into_owned();
             if s.starts_with("wss://") {
                 s = format!("https://{}", &s[6..]);
             } else if s.starts_with("ws://") {

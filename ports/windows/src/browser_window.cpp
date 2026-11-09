@@ -90,11 +90,11 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
         SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(hIcon));
     }
 
-    // Remove WS_CAPTION to completely eliminate the OS title bar and duplicate caption buttons.
-    // Retain WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU for native resizing, snap layouts, and rounded corners.
-    DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
-    style &= ~WS_CAPTION;
-    SetWindowLongW(hwnd, GWL_STYLE, style);
+    // Retain WS_OVERLAPPEDWINDOW (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU).
+    // Do NOT strip WS_CAPTION: Stripping WS_CAPTION causes User32 to fall back to legacy sizing borders
+    // on WM_NCACTIVATE (the thick grey border artifact when switching apps).
+    // WM_NCCALCSIZE returning 0 already completely removes the OS title bar and caption buttons
+    // while preserving modern DWM Mica Alt framing, rounded corners, and drop shadows.
     SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
@@ -254,15 +254,12 @@ void BrowserWindow::LayoutChildren() {
     int width = rc.right;
     int height = rc.bottom;
 
-    const int MARGIN_X = 8;
-    const int MARGIN_BOTTOM = 8;
-    const int MARGIN_TOP = 6;
     const int VERTICAL_TAB_WIDTH = 220;
 
-    int contentX = MARGIN_X;
-    int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
-    int contentW = std::max(0, width - (MARGIN_X * 2));
-    int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
+    int contentX = 0;
+    int contentY = TOP_CHROME_HEIGHT;
+    int contentW = width;
+    int contentH = std::max(0, height - contentY);
 
     // Caption button bounds for top bar when in vertical tabs mode
     m_topBarToggleBtnBounds = { 8, 4, 40, TAB_STRIP_HEIGHT - 4 };
@@ -278,10 +275,10 @@ void BrowserWindow::LayoutChildren() {
         if (m_omnibox) {
             m_omnibox->SetBounds(VERTICAL_TAB_WIDTH, TAB_STRIP_HEIGHT, std::max(0, width - VERTICAL_TAB_WIDTH), OMNIBOX_HEIGHT);
         }
-        contentX = VERTICAL_TAB_WIDTH + MARGIN_X;
-        contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
-        contentW = std::max(0, width - VERTICAL_TAB_WIDTH - (MARGIN_X * 2));
-        contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
+        contentX = VERTICAL_TAB_WIDTH;
+        contentY = TOP_CHROME_HEIGHT;
+        contentW = std::max(0, width - VERTICAL_TAB_WIDTH);
+        contentH = std::max(0, height - contentY);
     } else {
         if (m_tabStrip) {
             m_tabStrip->SetVertical(false);
@@ -898,14 +895,9 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         // Suppress default non-client window painting
         return 0;
 
-    case WM_ACTIVATE: {
-        if (wParam != WA_INACTIVE) {
-            MARGINS margins = { -1 };
-            DwmExtendFrameIntoClientArea(m_hwnd, &margins);
-        }
+    case WM_ACTIVATE:
         InvalidateRect(m_hwnd, nullptr, FALSE);
-        break;
-    }
+        return 0;
 
     case WM_MOUSEMOVE: {
         if (m_verticalTabs) {
@@ -1040,24 +1032,6 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             DeleteObject(sepPen);
         }
 
-        // Draw subtle outline for the floating content pane
-        const int MARGIN_X = 8;
-        const int MARGIN_BOTTOM = 8;
-        const int MARGIN_TOP = 6;
-        int contentX = m_verticalTabs ? (220 + MARGIN_X) : MARGIN_X;
-        int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
-        int contentW = std::max(0, width - (m_verticalTabs ? 220 : 0) - (MARGIN_X * 2));
-        int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
-
-        if (contentW > 0 && contentH > 0) {
-            HPEN hPen = CreatePen(PS_SOLID, 1, m_isDark ? RGB(55, 55, 55) : RGB(215, 215, 215));
-            HGDIOBJ oldPen = SelectObject(hdc, hPen);
-            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
-            RoundRect(hdc, contentX - 1, contentY - 1, contentX + contentW + 1, contentY + contentH + 1, 16, 16);
-            SelectObject(hdc, oldBrush);
-            SelectObject(hdc, oldPen);
-            DeleteObject(hPen);
-        }
         EndPaint(m_hwnd, &ps);
         return 0;
     }

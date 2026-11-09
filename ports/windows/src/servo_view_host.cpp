@@ -213,9 +213,9 @@ ServoViewHost::~ServoViewHost() {
 void ServoViewHost::SetBounds(int x, int y, int width, int height) {
     if (m_hwnd) {
         SetWindowPos(m_hwnd, nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
-        if (width > 0 && height > 0) {
-            HRGN hRgn = CreateRoundRectRgn(0, 0, width + 1, height + 1, 14, 14);
-            SetWindowRgn(m_hwnd, hRgn, TRUE);
+        if (m_webview && width > 0 && height > 0) {
+            servo_webview_resize(m_webview, width, height);
+            InvalidateRect(m_hwnd, nullptr, FALSE);
         }
     }
 }
@@ -348,6 +348,8 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         uint32_t h = HIWORD(lParam);
         if (m_webview && w > 0 && h > 0) {
             servo_webview_resize(m_webview, w, h);
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+            UpdateWindow(m_hwnd);
         }
         return 0;
     }
@@ -592,9 +594,6 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
     if (self && self->m_browserWindow && url) {
         self->m_browserWindow->OnActiveTabUrlChanged(url);
     }
-    if (self && self->m_webview) {
-        self->InjectPageEnhancements();
-    }
 }
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
@@ -613,7 +612,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_webview) {
+    if (self && self->m_webview && (status == 1 || status == 2)) {
         self->InjectPageEnhancements();
     }
 }

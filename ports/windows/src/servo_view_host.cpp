@@ -40,10 +40,13 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
         "    visibility: visible !important;"
         "}";
 
-    auto* ss = servo_user_style_sheet_create(s_userCss, "");
+    auto* ss = servo_user_style_sheet_create(s_userCss, "about:blank");
     if (ss) {
+        LogDebug("User stylesheet created successfully, adding to content manager.");
         servo_user_content_manager_add_style_sheet(ucm, ss);
         servo_user_style_sheet_free(ss);
+    } else {
+        LogDebug("WARNING: servo_user_style_sheet_create returned NULL - user CSS will NOT be applied!");
     }
 
     servo_webview_builder_set_user_content_manager(builder, ucm);

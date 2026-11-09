@@ -64,6 +64,9 @@ public:
     void UpdateActiveUrl(const std::string& url);
     void UpdateTabFavicon(HBITMAP hBitmap, uint32_t width, uint32_t height);
 
+    void SetVertical(bool vertical);
+    bool IsVertical() const { return m_isVertical; }
+
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
@@ -86,6 +89,8 @@ private:
     int m_nextTabId;
     int m_hoveredIndex;
     CaptionButtonType m_hoveredCaptionButton;
+    bool m_isVertical = false;
+    RECT m_toggleVerticalBtnBounds;
     RECT m_addTabButtonBounds;
     RECT m_minButtonBounds;
     RECT m_maxButtonBounds;

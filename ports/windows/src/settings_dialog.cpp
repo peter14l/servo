@@ -457,7 +457,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  <div class=\"sidebar-search\"><span class=\"ficon\">&#xE721;</span><input type=\"text\" placeholder=\"Find a setting\" id=\"filterInput\" oninput=\"filterSettings()\"></div>\n"
                 "  <a class=\"nav-item active\" onclick=\"showTab('general', this)\"><span class=\"ficon\">&#xE713;</span> General</a>\n"
                 "  <a class=\"nav-item\" onclick=\"showTab('appearance', this)\"><span class=\"ficon\">&#xE790;</span> Appearance</a>\n"
-                "  <a class=\"nav-item\" onclick=\"showTab('persona', this)\"><span class=\"ficon\">&#xE771;</span> Browser Persona</a>\n"
+                "  <a class=\"nav-item\" onclick=\"showTab('compatibility', this)\"><span class=\"ficon\">&#xE777;</span> Compatibility</a>\n"
                 "  <a class=\"nav-item\" onclick=\"showTab('experiments', this)\"><span class=\"ficon\">&#xE9E9;</span> Experiments</a>\n"
                 "  <a class=\"nav-item\" onclick=\"showTab('privacy', this)\"><span class=\"ficon\">&#xE72E;</span> Privacy & Data</a>\n"
                 "  <a class=\"nav-item\" onclick=\"showTab('about', this)\"><span class=\"ficon\">&#xE946;</span> About Servo</a>\n"
@@ -474,11 +474,14 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE8D2;</span><div class=\"card-info\"><h3>Browser Font (Google Fonts)</h3><p>Typography applied to navigation chrome, tabs, omnibox, and suggestions.</p></div></div><div class=\"segmented-group\" id=\"grp-font\"><button class=\"seg-btn active\" data-group=\"font\" data-val=\"Inter\" onclick=\"selectSegment('font','Inter',this)\">Inter (Google Fonts)</button><button class=\"seg-btn\" data-group=\"font\" data-val=\"Roboto\" onclick=\"selectSegment('font','Roboto',this)\">Roboto</button><button class=\"seg-btn\" data-group=\"font\" data-val=\"Plus Jakarta Sans\" onclick=\"selectSegment('font','Plus Jakarta Sans',this)\">Plus Jakarta Sans</button><button class=\"seg-btn\" data-group=\"font\" data-val=\"Open Sans\" onclick=\"selectSegment('font','Open Sans',this)\">Open Sans</button><button class=\"seg-btn\" data-group=\"font\" data-val=\"Segoe UI Variable Text\" onclick=\"selectSegment('font','Segoe UI Variable Text',this)\">Segoe UI</button></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE790;</span><div class=\"card-info\"><h3>App theme</h3><p>Select your preferred visual theme.</p></div></div><div class=\"segmented-group\" id=\"grp-theme\"><button class=\"seg-btn active\" data-group=\"theme\" data-val=\"2\" onclick=\"selectSegment('theme','2',this)\">System Default</button><button class=\"seg-btn\" data-group=\"theme\" data-val=\"1\" onclick=\"selectSegment('theme','1',this)\">Dark</button><button class=\"seg-btn\" data-group=\"theme\" data-val=\"0\" onclick=\"selectSegment('theme','0',this)\">Light</button></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE7F4;</span><div class=\"card-info\"><h3>Mica Alt tabbed backdrop</h3><p>Windows 11 translucent system material.</p></div></div><div class=\"segmented-group\" id=\"grp-backdrop\"><button class=\"seg-btn active\" data-group=\"backdrop\" data-val=\"0\" onclick=\"selectSegment('backdrop','0',this)\">Mica Alt (Tabbed)</button><button class=\"seg-btn\" data-group=\"backdrop\" data-val=\"1\" onclick=\"selectSegment('backdrop','1',this)\">Mica</button><button class=\"seg-btn\" data-group=\"backdrop\" data-val=\"2\" onclick=\"selectSegment('backdrop','2',this)\">Solid</button></div></div>\n"
-                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE721;</span><div class=\"card-info\"><h3>Omnibox search & domain suggestions</h3><p>Show drop-down interactive suggestions while typing.</p></div></div><div class=\"win-toggle active\" id=\"toggle-sugg\" onclick=\"toggleSwitch('sugg')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-sugg\">On</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE8C4;</span><div class=\"card-info\"><h3>Vertical tabs</h3><p>Dock the tab bar on the left side of the window (Ctrl+Shift+V).</p></div></div><div class=\"win-toggle\" id=\"toggle-verticaltabs\" onclick=\"toggleSwitch('verticaltabs')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-verticaltabs\">Off</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE721;</span><div class=\"card-info\"><h3>Omnibox search & domain suggestions</h3><p>Show drop-down interactive suggestions with Rank-0 website priority while typing.</p></div></div><div class=\"win-toggle active\" id=\"toggle-sugg\" onclick=\"toggleSwitch('sugg')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-sugg\">On</span></div></div>\n"
                 "  </div>\n"
-                "  <div id=\"persona\" class=\"section\">\n"
-                "    <h1 class=\"section-title\">Browser Persona & User-Agent</h1>\n"
-                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE771;</span><div class=\"card-info\"><h3>User-Agent Persona</h3><p>Firefox is recommended to match Servo's SpiderMonkey JS engine.</p></div></div><div class=\"segmented-group\" id=\"grp-ua\"><button class=\"seg-btn active\" data-group=\"ua\" data-val=\"Firefox 132 (Desktop)\" onclick=\"selectSegment('ua','Firefox 132 (Desktop)',this)\">Firefox 132 (Desktop)</button><button class=\"seg-btn\" data-group=\"ua\" data-val=\"Chrome 131 (Windows 11)\" onclick=\"selectSegment('ua','Chrome 131 (Windows 11)',this)\">Chrome 131</button><button class=\"seg-btn\" data-group=\"ua\" data-val=\"Safari 18 (macOS)\" onclick=\"selectSegment('ua','Safari 18 (macOS)',this)\">Safari 18</button><button class=\"seg-btn\" data-group=\"ua\" data-val=\"Edge 131 (Windows 11)\" onclick=\"selectSegment('ua','Edge 131 (Windows 11)',this)\">Edge 131</button></div></div>\n"
+                "  <div id=\"compatibility\" class=\"section\">\n"
+                "    <h1 class=\"section-title\">Web Standards & Anti-Bot Compatibility</h1>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE72D;</span><div class=\"card-info\"><h3>Native Desktop Fingerprint</h3><p>Servo identifies natively as an authentic desktop browser out-of-the-box. Personas are deprecated in favor of compliant desktop APIs.</p></div></div><span style=\"font-size:12px;color:#107c10;font-weight:600;padding:4px 8px;background:rgba(16,124,16,0.1);border-radius:4px;\">Active</span></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE774;</span><div class=\"card-info\"><h3>Anti-Automation Shield</h3><p>navigator.webdriver is permanently suppressed and standard desktop plugins (PDF viewers) are exposed to prevent bot detection.</p></div></div><span style=\"font-size:12px;color:#107c10;font-weight:600;padding:4px 8px;background:rgba(16,124,16,0.1);border-radius:4px;\">Shielded</span></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE9E9;</span><div class=\"card-info\"><h3>Chrome Runtime & Permissions</h3><p>Provides window.chrome and navigator.permissions shims required by modern SPAs and bot detection heuristics.</p></div></div><span style=\"font-size:12px;color:#107c10;font-weight:600;padding:4px 8px;background:rgba(16,124,16,0.1);border-radius:4px;\">Enabled</span></div>\n"
                 "  </div>\n"
                 "  <div id=\"experiments\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">Experiments</h1>\n"
@@ -554,7 +557,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  if (s.dl) document.getElementById('dl').value = s.dl;\n"
                 "  if (s.theme !== undefined) setSegmentVal('theme', s.theme);\n"
                 "  if (s.backdrop !== undefined) setSegmentVal('backdrop', s.backdrop);\n"
-                "  if (s.ua) setSegmentVal('ua', s.ua);\n"
+                "  if (s.verticalTabs !== undefined) setToggleActive('verticaltabs', s.verticalTabs);\n"
                 "  if (s.sugg !== undefined) setToggleActive('sugg', s.sugg);\n"
                 "  if (s.webgpu !== undefined) setToggleActive('webgpu', s.webgpu);\n"
                 "  if (s.webgl2 !== undefined) setToggleActive('webgl2', s.webgl2);\n"
@@ -574,7 +577,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    dl: document.getElementById('dl').value,\n"
                 "    theme: getSegmentVal('theme'),\n"
                 "    backdrop: getSegmentVal('backdrop'),\n"
-                "    ua: getSegmentVal('ua'),\n"
+                "    verticalTabs: isToggleActive('verticaltabs'),\n"
                 "    sugg: isToggleActive('sugg'),\n"
                 "    webgpu: isToggleActive('webgpu'),\n"
                 "    webgl2: isToggleActive('webgl2'),\n"
@@ -585,6 +588,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    varfonts: isToggleActive('varfonts')\n"
                 "  };\n"
                 "  _setPref('servo_prefs', JSON.stringify(s));\n"
+                "  console.log('__servo_ipc__:apply_settings:' + JSON.stringify(s));\n"
                 "  const t = document.getElementById('toast');\n"
                 "  t.classList.add('show');\n"
                 "  setTimeout(() => t.classList.remove('show'), 1600);\n"
@@ -630,6 +634,7 @@ BrowserSettings SettingsDialog::LoadSettings() {
 
     s.themeMode = GetPrivateProfileIntW(L"Appearance", L"ThemeMode", 2, ini.c_str());
     s.backdropType = GetPrivateProfileIntW(L"Appearance", L"BackdropType", 0, ini.c_str());
+    s.enableVerticalTabs = GetPrivateProfileIntW(L"Appearance", L"EnableVerticalTabs", 0, ini.c_str()) != 0;
     s.enableSuggestions = GetPrivateProfileIntW(L"Appearance", L"EnableSuggestions", 1, ini.c_str()) != 0;
 
     s.enableWebGPU = GetPrivateProfileIntW(L"Experiments", L"EnableWebGPU", 0, ini.c_str()) != 0;
@@ -673,6 +678,7 @@ void SettingsDialog::SaveSettings(const BrowserSettings& s) {
 
     WritePrivateProfileStringW(L"Appearance", L"ThemeMode", std::to_wstring(s.themeMode).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"Appearance", L"BackdropType", std::to_wstring(s.backdropType).c_str(), ini.c_str());
+    WritePrivateProfileStringW(L"Appearance", L"EnableVerticalTabs", s.enableVerticalTabs ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"Appearance", L"EnableSuggestions", s.enableSuggestions ? L"1" : L"0", ini.c_str());
 
     WritePrivateProfileStringW(L"Experiments", L"EnableWebGPU", s.enableWebGPU ? L"1" : L"0", ini.c_str());

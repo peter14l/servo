@@ -67,6 +67,10 @@ public:
     void OpenUrlInNewTab(const std::string& url);
     void RestorePreviousSession();
     void ApplySettings(const struct BrowserSettings& settings);
+    void HandleWebIpcMessage(const std::string& message);
+    void ToggleVerticalTabs();
+    void SetVerticalTabs(bool enable);
+    bool IsVerticalTabs() const { return m_verticalTabs; }
     void PrintPage();
     void ViewPageSource();
 
@@ -99,6 +103,12 @@ private:
     HWND m_statusPillHwnd = nullptr;
     bool m_isDark;
     bool m_isFullscreen;
+    bool m_verticalTabs = false;
+    RECT m_topBarToggleBtnBounds = {};
+    RECT m_topBarMinBtnBounds = {};
+    RECT m_topBarMaxBtnBounds = {};
+    RECT m_topBarCloseBtnBounds = {};
+    int m_hoveredTopBarBtn = 0;
     WINDOWPLACEMENT m_savedPlacement;
 };
 

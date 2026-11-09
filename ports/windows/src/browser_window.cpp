@@ -41,7 +41,10 @@ void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = BrowserWindow::WndProc;
     wc.hInstance = hInstance;
-    wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    HICON hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(101));
+    if (!hIcon) hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    wc.hIcon = hIcon;
+    wc.hIconSm = hIcon;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = CreateSolidBrush(RGB(32, 32, 32));
     wc.lpszClassName = BROWSER_WINDOW_CLASS_NAME;
@@ -79,6 +82,12 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     }
 
     window->m_hwnd = hwnd;
+
+    HICON hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(101));
+    if (hIcon) {
+        SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(hIcon));
+        SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(hIcon));
+    }
 
     // Remove WS_CAPTION to completely eliminate the OS title bar and duplicate caption buttons.
     // Retain WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU for native resizing, snap layouts, and rounded corners.
@@ -244,22 +253,43 @@ void BrowserWindow::LayoutChildren() {
     int width = rc.right;
     int height = rc.bottom;
 
-    if (m_tabStrip) {
-        m_tabStrip->SetBounds(0, 0, width, TAB_STRIP_HEIGHT);
-    }
-
-    if (m_omnibox) {
-        m_omnibox->SetBounds(0, TAB_STRIP_HEIGHT, width, OMNIBOX_HEIGHT);
-    }
-
-    // Modern Windows 11 Floating Content Pane with margins
     const int MARGIN_X = 8;
     const int MARGIN_BOTTOM = 8;
     const int MARGIN_TOP = 6;
+    const int VERTICAL_TAB_WIDTH = 220;
+
     int contentX = MARGIN_X;
     int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
     int contentW = std::max(0, width - (MARGIN_X * 2));
     int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
+
+    // Caption button bounds for top bar when in vertical tabs mode
+    m_topBarToggleBtnBounds = { 8, 4, 40, TAB_STRIP_HEIGHT - 4 };
+    m_topBarCloseBtnBounds = { width - 46, 0, width, TAB_STRIP_HEIGHT };
+    m_topBarMaxBtnBounds = { width - 92, 0, width - 46, TAB_STRIP_HEIGHT };
+    m_topBarMinBtnBounds = { width - 138, 0, width - 92, TAB_STRIP_HEIGHT };
+
+    if (m_verticalTabs) {
+        if (m_tabStrip) {
+            m_tabStrip->SetVertical(true);
+            m_tabStrip->SetBounds(0, TAB_STRIP_HEIGHT, VERTICAL_TAB_WIDTH, std::max(0, height - TAB_STRIP_HEIGHT));
+        }
+        if (m_omnibox) {
+            m_omnibox->SetBounds(VERTICAL_TAB_WIDTH, TAB_STRIP_HEIGHT, std::max(0, width - VERTICAL_TAB_WIDTH), OMNIBOX_HEIGHT);
+        }
+        contentX = VERTICAL_TAB_WIDTH + MARGIN_X;
+        contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
+        contentW = std::max(0, width - VERTICAL_TAB_WIDTH - (MARGIN_X * 2));
+        contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
+    } else {
+        if (m_tabStrip) {
+            m_tabStrip->SetVertical(false);
+            m_tabStrip->SetBounds(0, 0, width, TAB_STRIP_HEIGHT);
+        }
+        if (m_omnibox) {
+            m_omnibox->SetBounds(0, TAB_STRIP_HEIGHT, width, OMNIBOX_HEIGHT);
+        }
+    }
 
     if (m_viewHost) {
         m_viewHost->SetBounds(contentX, contentY, contentW, contentH);
@@ -271,6 +301,20 @@ void BrowserWindow::LayoutChildren() {
 
     if (m_downloadManager) {
         m_downloadManager->SetBounds(width - 380, 88, 360, 240);
+    }
+}
+
+void BrowserWindow::ToggleVerticalTabs() {
+    SetVerticalTabs(!m_verticalTabs);
+}
+
+void BrowserWindow::SetVerticalTabs(bool enable) {
+    if (m_verticalTabs != enable) {
+        m_verticalTabs = enable;
+        LayoutChildren();
+        if (m_hwnd) {
+            InvalidateRect(m_hwnd, nullptr, TRUE);
+        }
     }
 }
 
@@ -348,6 +392,13 @@ void BrowserWindow::NavigateUrl(const std::string& url) {
     }
     if (url == "servo://session-restore" || url == "servo:session-restore" || url == "about:session-restore") {
         RestorePreviousSession();
+        return;
+    }
+    if (url.rfind("servo://apply-settings?", 0) == 0 || url.rfind("servo:apply-settings?", 0) == 0) {
+        size_t qPos = url.find('?');
+        if (qPos != std::string::npos) {
+            HandleWebIpcMessage("apply_settings:" + url.substr(qPos + 1));
+        }
         return;
     }
     if (url == "servo://newtab" || url == "servo:newtab" || url == "about:newtab") {
@@ -577,16 +628,12 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
     if (m_tabStrip) m_tabStrip->SetDarkMode(m_isDark);
     if (m_omnibox) m_omnibox->SetDarkMode(m_isDark);
 
+    SetVerticalTabs(settings.enableVerticalTabs);
+
     if (m_servo) {
-        std::string uaString;
-        if (settings.userAgentPersona.find(L"Chrome") != std::wstring::npos) {
-            uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
-        } else if (settings.userAgentPersona.find(L"Safari") != std::wstring::npos) {
-            uaString = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
-        } else {
-            uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0";
-        }
-        servo_set_preference_string(m_servo, "user_agent", uaString.c_str());
+        // Authentic native desktop User-Agent - zero persona spoofing
+        const char* uaString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+        servo_set_preference_string(m_servo, "user_agent", uaString);
         servo_set_preference_bool(m_servo, "dom_indexeddb_enabled", settings.enableIndexedDB);
         servo_set_preference_bool(m_servo, "dom_webgl2_enabled", settings.enableWebGL2);
         servo_set_preference_bool(m_servo, "dom_webgpu_enabled", settings.enableWebGPU);
@@ -595,6 +642,76 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
         servo_set_preference_bool(m_servo, "dom_notification_enabled", settings.enableNotifications);
         servo_set_preference_bool(m_servo, "dom_geolocation_enabled", settings.enableGeolocation);
         servo_set_preference_bool(m_servo, "layout_variable_fonts_enabled", settings.enableVariableFonts);
+    }
+}
+
+void BrowserWindow::HandleWebIpcMessage(const std::string& message) {
+    LogDebug("[IPC] Received message: %s", message.c_str());
+    if (message.rfind("apply_settings:", 0) == 0) {
+        std::string json = message.substr(15);
+        BrowserSettings s = SettingsDialog::LoadSettings();
+
+        auto parseBool = [&](const std::string& key, bool defaultVal) -> bool {
+            size_t pos = json.find("\"" + key + "\":");
+            if (pos == std::string::npos) pos = json.find(key + "=");
+            if (pos != std::string::npos) {
+                if (json.find("true", pos) == pos + key.size() + 2 || json.find("true", pos) == pos + key.size() + 3 ||
+                    json.find("1", pos) == pos + key.size() + 1 || json.find("1", pos) == pos + key.size() + 2) {
+                    return true;
+                }
+                if (json.find("false", pos) == pos + key.size() + 2 || json.find("false", pos) == pos + key.size() + 3 ||
+                    json.find("0", pos) == pos + key.size() + 1 || json.find("0", pos) == pos + key.size() + 2) {
+                    return false;
+                }
+            }
+            return defaultVal;
+        };
+
+        auto parseInt = [&](const std::string& key, int defaultVal) -> int {
+            size_t pos = json.find("\"" + key + "\":");
+            if (pos == std::string::npos) pos = json.find(key + "=");
+            if (pos != std::string::npos) {
+                size_t numStart = pos + key.size() + 1;
+                while (numStart < json.size() && (json[numStart] == ':' || json[numStart] == '=' || json[numStart] == ' ' || json[numStart] == '"')) numStart++;
+                return std::atoi(json.c_str() + numStart);
+            }
+            return defaultVal;
+        };
+
+        auto parseString = [&](const std::string& key, const std::wstring& defaultVal) -> std::wstring {
+            size_t pos = json.find("\"" + key + "\":\"");
+            if (pos != std::string::npos) {
+                size_t strStart = pos + key.size() + 4;
+                size_t strEnd = json.find("\"", strStart);
+                if (strEnd != std::string::npos) {
+                    std::string valA = json.substr(strStart, strEnd - strStart);
+                    int len = MultiByteToWideChar(CP_UTF8, 0, valA.c_str(), -1, nullptr, 0);
+                    if (len > 0) {
+                        std::vector<wchar_t> wbuf(len);
+                        MultiByteToWideChar(CP_UTF8, 0, valA.c_str(), -1, wbuf.data(), len);
+                        return wbuf.data();
+                    }
+                }
+            }
+            return defaultVal;
+        };
+
+        s.themeMode = parseInt("theme", s.themeMode);
+        s.searchEngine = parseString("search", s.searchEngine);
+        s.homePage = parseString("home", s.homePage);
+        s.downloadDir = parseString("dl", s.downloadDir);
+        s.enableVerticalTabs = parseBool("verticalTabs", s.enableVerticalTabs);
+        s.enableSuggestions = parseBool("sugg", s.enableSuggestions);
+        s.enableWebGPU = parseBool("webgpu", s.enableWebGPU);
+        s.enableWebGL2 = parseBool("webgl2", s.enableWebGL2);
+        s.enableIndexedDB = parseBool("idb", s.enableIndexedDB);
+        s.enableWebRTC = parseBool("webrtc", s.enableWebRTC);
+        s.enableNotifications = parseBool("notifications", s.enableNotifications);
+        s.enableGeolocation = parseBool("geolocation", s.enableGeolocation);
+        s.enableVariableFonts = parseBool("varfonts", s.enableVariableFonts);
+
+        SettingsDialog::SaveSettings(s);
+        ApplySettings(s);
     }
 }
 
@@ -771,6 +888,82 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         return DefWindowProcW(m_hwnd, msg, wParam, lParam);
     }
 
+    case WM_NCACTIVATE:
+        // Instruct Windows not to repaint the classic non-client area on focus switch,
+        // preventing the thick grey border artifact from appearing when switching apps.
+        return DefWindowProcW(m_hwnd, msg, wParam, -1);
+
+    case WM_NCPAINT:
+        // Suppress default non-client window painting
+        return 0;
+
+    case WM_ACTIVATE: {
+        if (wParam != WA_INACTIVE) {
+            MARGINS margins = { -1 };
+            DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+        }
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+        break;
+    }
+
+    case WM_MOUSEMOVE: {
+        if (m_verticalTabs) {
+            POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            int newHover = 0;
+            if (PtInRect(&m_topBarCloseBtnBounds, pt)) newHover = 3;
+            else if (PtInRect(&m_topBarMaxBtnBounds, pt)) newHover = 2;
+            else if (PtInRect(&m_topBarMinBtnBounds, pt)) newHover = 1;
+            else if (PtInRect(&m_topBarToggleBtnBounds, pt)) newHover = 4;
+
+            if (newHover != m_hoveredTopBarBtn) {
+                m_hoveredTopBarBtn = newHover;
+                RECT topBarRc = { 0, 0, 10000, TAB_STRIP_HEIGHT };
+                InvalidateRect(m_hwnd, &topBarRc, FALSE);
+                TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, m_hwnd, 0 };
+                TrackMouseEvent(&tme);
+            }
+        }
+        break;
+    }
+
+    case WM_MOUSELEAVE: {
+        if (m_hoveredTopBarBtn != 0) {
+            m_hoveredTopBarBtn = 0;
+            RECT topBarRc = { 0, 0, 10000, TAB_STRIP_HEIGHT };
+            InvalidateRect(m_hwnd, &topBarRc, FALSE);
+        }
+        break;
+    }
+
+    case WM_LBUTTONDOWN: {
+        if (m_verticalTabs) {
+            POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            if (pt.y < TAB_STRIP_HEIGHT) {
+                if (PtInRect(&m_topBarCloseBtnBounds, pt)) {
+                    PostMessageW(m_hwnd, WM_CLOSE, 0, 0);
+                    return 0;
+                }
+                if (PtInRect(&m_topBarMaxBtnBounds, pt)) {
+                    ShowWindow(m_hwnd, IsZoomed(m_hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+                    return 0;
+                }
+                if (PtInRect(&m_topBarMinBtnBounds, pt)) {
+                    ShowWindow(m_hwnd, SW_MINIMIZE);
+                    return 0;
+                }
+                if (PtInRect(&m_topBarToggleBtnBounds, pt)) {
+                    ToggleVerticalTabs();
+                    return 0;
+                }
+                // Click on empty space in titlebar initiates native window drag
+                ReleaseCapture();
+                SendMessageW(m_hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                return 0;
+            }
+        }
+        break;
+    }
+
     case WM_APP_SERVO_WAKE:
     case WM_TIMER:
         if (m_servo) {
@@ -786,13 +979,73 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         int width = rc.right;
         int height = rc.bottom;
 
+        auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
+
+        // Render top titlebar chrome when vertical tabs are active
+        if (m_verticalTabs) {
+            RECT topRc = { 0, 0, width, TAB_STRIP_HEIGHT };
+            HBRUSH topBrush = CreateSolidBrush(colors.LayerBackground);
+            FillRect(hdc, &topRc, topBrush);
+            DeleteObject(topBrush);
+
+            HFONT iconFont = CreateFontW(-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe Fluent Icons");
+            HFONT oldF = (HFONT)SelectObject(hdc, iconFont);
+            SetBkMode(hdc, TRANSPARENT);
+
+            // Toggle button on left
+            SetTextColor(hdc, colors.Accent);
+            DrawTextW(hdc, fluent::icons::SidePanel, -1, &m_topBarToggleBtnBounds, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+            // Title
+            HFONT titleFont = CreateFontW(-13, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+                                          DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                          CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI Variable Text");
+            SelectObject(hdc, titleFont);
+            SetTextColor(hdc, colors.TextPrimary);
+            RECT titleRc = { m_topBarToggleBtnBounds.right + 8, 0, width - 150, TAB_STRIP_HEIGHT };
+            DrawTextW(hdc, L"Servo Browser", -1, &titleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+            // Caption buttons (Min, Max, Close)
+            bool isMaximized = (IsZoomed(m_hwnd) != FALSE);
+            auto drawBtn = [&](const RECT& r, const wchar_t* glyph, int id) {
+                bool hovered = (m_hoveredTopBarBtn == id);
+                if (hovered) {
+                    COLORREF bgCol = (id == 3) ? RGB(196, 43, 28) : (m_isDark ? RGB(55, 55, 55) : RGB(229, 229, 229));
+                    HBRUSH hBr = CreateSolidBrush(bgCol);
+                    FillRect(hdc, &r, hBr);
+                    DeleteObject(hBr);
+                }
+                SelectObject(hdc, iconFont);
+                SetTextColor(hdc, (hovered && id == 3) ? RGB(255, 255, 255) : colors.TextPrimary);
+                RECT br = r;
+                DrawTextW(hdc, glyph, -1, &br, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            };
+
+            drawBtn(m_topBarMinBtnBounds, fluent::icons::ChromeMinimize, 1);
+            drawBtn(m_topBarMaxBtnBounds, isMaximized ? fluent::icons::ChromeRestore : fluent::icons::ChromeMaximize, 2);
+            drawBtn(m_topBarCloseBtnBounds, fluent::icons::ChromeClose, 3);
+
+            SelectObject(hdc, oldF);
+            DeleteObject(iconFont);
+            DeleteObject(titleFont);
+
+            HPEN sepPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
+            HGDIOBJ oldP = SelectObject(hdc, sepPen);
+            MoveToEx(hdc, 0, TAB_STRIP_HEIGHT - 1, nullptr);
+            LineTo(hdc, width, TAB_STRIP_HEIGHT - 1);
+            SelectObject(hdc, oldP);
+            DeleteObject(sepPen);
+        }
+
         // Draw subtle outline for the floating content pane
         const int MARGIN_X = 8;
         const int MARGIN_BOTTOM = 8;
         const int MARGIN_TOP = 6;
-        int contentX = MARGIN_X;
+        int contentX = m_verticalTabs ? (220 + MARGIN_X) : MARGIN_X;
         int contentY = TOP_CHROME_HEIGHT + MARGIN_TOP;
-        int contentW = std::max(0, width - (MARGIN_X * 2));
+        int contentW = std::max(0, width - (m_verticalTabs ? 220 : 0) - (MARGIN_X * 2));
         int contentH = std::max(0, height - contentY - MARGIN_BOTTOM);
 
         if (contentW > 0 && contentH > 0) {
@@ -826,6 +1079,10 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
         // --- Tab Management ---
+        if (ctrl && shift && wParam == 'V') {
+            ToggleVerticalTabs();
+            return 0;
+        }
         if (ctrl && shift && wParam == 'T') {
             if (m_tabStrip) m_tabStrip->ReopenClosedTab();
             return 0;

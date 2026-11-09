@@ -36,6 +36,7 @@ public:
 #include "../src/browser_data.h"
 #include "../src/settings_dialog.h"
 #include "../src/browser_window.h"
+#include "../src/servo_logo.h"
 
 void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
     (void)settings;
@@ -78,8 +79,8 @@ void test_raw_window_handle_layout() {
 
     RawWindowHandleWin32 window_handle = {};
     window_handle.tag = 9; // Win32 variant
-    HWND fakeHwnd = reinterpret_cast<HWND>(0x12345678);
-    HINSTANCE fakeHinstance = reinterpret_cast<HINSTANCE>(0x87654321);
+    HWND fakeHwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(0x12345678ULL));
+    HINSTANCE fakeHinstance = reinterpret_cast<HINSTANCE>(static_cast<uintptr_t>(0x87654321ULL));
 
     window_handle.hwnd = reinterpret_cast<intptr_t>(fakeHwnd);
     window_handle.hinstance = reinterpret_cast<intptr_t>(fakeHinstance);
@@ -648,6 +649,8 @@ void test_browser_settings() {
     TEST_ASSERT(s.enableIndexedDB == true, "BrowserSettings default enableIndexedDB must be true");
     TEST_ASSERT(s.enableWebGL2 == true, "BrowserSettings default enableWebGL2 must be true");
     TEST_ASSERT(s.enableWebGPU == false, "BrowserSettings default enableWebGPU must be false");
+    TEST_ASSERT(s.enableVerticalTabs == false, "BrowserSettings default enableVerticalTabs must be false");
+    TEST_ASSERT(s.enableSuggestions == true, "BrowserSettings default enableSuggestions must be true");
 
     // 2. Verify SettingsDialog::EnsureSettingsPageExists() returns a file:/// URI
     std::string settingsUrl = SettingsDialog::EnsureSettingsPageExists();
@@ -657,6 +660,21 @@ void test_browser_settings() {
     // 3. Verify NormalizeOmniboxInput returns the settings file URI
     TEST_ASSERT(NormalizeOmniboxInput("servo://settings") == settingsUrl, "Omnibox normalizes servo://settings");
     TEST_ASSERT(NormalizeOmniboxInput("about:settings") == settingsUrl, "Omnibox normalizes about:settings");
+}
+
+void test_vertical_tabs_and_logo() {
+    // 1. Verify modern browser logo SVG generation
+    std::string svg = GetServoLogoSvg();
+    TEST_ASSERT(!svg.empty(), "Servo logo SVG must not be empty");
+    TEST_ASSERT(svg.find("<svg") != std::string::npos, "Servo logo must contain SVG element");
+    TEST_ASSERT(svg.find("viewBox=\"0 0 64 64\"") != std::string::npos, "Servo logo must have 64x64 viewBox");
+
+    // 2. Verify TabStrip layout adjustments
+    MockTabStripState state;
+    state.AddTab("https://servo.org");
+    state.AddTab("https://example.com");
+    TEST_ASSERT(state.tabs.size() == 2, "Tab count must be 2");
+    TEST_ASSERT(state.activeIndex == 1, "Active index must be 1");
 }
 
 // -----------------------------------------------------------------------------
@@ -683,6 +701,7 @@ int main() {
     RUN_TEST(test_new_tab_page);
     RUN_TEST(test_browser_data);
     RUN_TEST(test_browser_settings);
+    RUN_TEST(test_vertical_tabs_and_logo);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

@@ -814,7 +814,13 @@ void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoCon
 
 void ServoViewHost::OnConsoleMessage(struct WebView* webview, int32_t level, const char* message, void* userData) {
     (void)webview;
-    (void)userData;
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (message && strncmp(message, "__servo_ipc__:", 14) == 0) {
+        if (self && self->m_browserWindow) {
+            self->m_browserWindow->HandleWebIpcMessage(message + 14);
+        }
+        return;
+    }
     const char* lvlStr = (level == 1) ? "ERROR" : (level == 2) ? "WARN" : (level == 3) ? "INFO" : "LOG";
     LogDebug("[JS %s] %s", lvlStr, message ? message : "");
 }
@@ -911,10 +917,106 @@ static void OnJsEvalCallback(const char* /*res*/, const char* err, void* /*userD
 
 void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
-    const char* script = R"JS(
+
+    // Script 1: Platform Web Standards & Anti-Bot Native Immunity
+    const char* s_platformCompatScript = R"JS(
 (function() {
-    // 1. Client Hints (navigator.userAgentData)
-    // Modern sites (Google, Instagram, Twitter/X) inspect navigator.userAgentData.
+    try {
+        if (typeof navigator !== 'undefined') {
+            // 1. Mask navigator.webdriver
+            try {
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: function() { return false; },
+                    configurable: true
+                });
+                if (navigator.__proto__) {
+                    delete navigator.__proto__.webdriver;
+                }
+            } catch(e) {}
+
+            // 2. Authentic standard desktop plugins & mimeTypes
+            try {
+                if (!navigator.plugins || navigator.plugins.length === 0) {
+                    var pluginsList = [
+                        { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                        { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                        { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                        { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format' }
+                    ];
+                    pluginsList.item = function(i) { return this[i] || null; };
+                    pluginsList.namedItem = function(name) {
+                        for (var i = 0; i < this.length; i++) {
+                            if (this[i].name === name) return this[i];
+                        }
+                        return null;
+                    };
+                    pluginsList.refresh = function() {};
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: function() { return pluginsList; },
+                        configurable: true
+                    });
+                }
+            } catch(e) {}
+
+            // 3. Languages, deviceMemory, hardwareConcurrency
+            try {
+                Object.defineProperty(navigator, 'languages', { get: function() { return ['en-US', 'en']; }, configurable: true });
+                Object.defineProperty(navigator, 'language', { get: function() { return 'en-US'; }, configurable: true });
+                if (!navigator.hardwareConcurrency || navigator.hardwareConcurrency < 4) {
+                    Object.defineProperty(navigator, 'hardwareConcurrency', { get: function() { return 8; }, configurable: true });
+                }
+                if (!navigator.deviceMemory || navigator.deviceMemory < 4) {
+                    Object.defineProperty(navigator, 'deviceMemory', { get: function() { return 8; }, configurable: true });
+                }
+            } catch(e) {}
+
+            // 4. Permissions API query handler
+            try {
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                    var origQuery = navigator.permissions.query;
+                    navigator.permissions.query = function(param) {
+                        if (param && param.name === 'notifications') {
+                            return Promise.resolve({ state: (window.Notification && window.Notification.permission) || 'default', onchange: null });
+                        }
+                        return origQuery.apply(this, arguments).catch(function() {
+                            return { state: 'prompt', onchange: null };
+                        });
+                    };
+                }
+            } catch(e) {}
+        }
+
+        // 5. window.chrome runtime & timing APIs
+        if (typeof window.chrome === 'undefined') {
+            window.chrome = {
+                app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } },
+                runtime: { OnInstalledReason: {}, OnRestartRequiredReason: {}, PlatformArch: {}, PlatformNaclArch: {}, PlatformOs: {}, RequestUpdateCheckStatus: {} },
+                loadTimes: function() {
+                    return {
+                        commitLoadTime: Date.now() / 1000,
+                        connectionInfo: 'h2',
+                        finishDocumentLoadTime: Date.now() / 1000,
+                        finishLoadTime: Date.now() / 1000,
+                        firstPaintAfterLoadTime: 0,
+                        firstPaintTime: Date.now() / 1000,
+                        navigationType: 'Other',
+                        npnNegotiatedProtocol: 'h2',
+                        requestTime: (Date.now() - 50) / 1000,
+                        startLoadTime: (Date.now() - 50) / 1000,
+                        wasAlternateProtocolAvailable: false,
+                        wasFetchedViaSpdy: true,
+                        wasNpnNegotiated: true
+                    };
+                },
+                csi: function() {
+                    return { onloadT: Date.now(), pageT: Date.now() - 50, startE: Date.now() - 50, tran: 15 };
+                }
+            };
+        }
+    } catch(e) {}
+
+    // 6. Client Hints (navigator.userAgentData)
     if (typeof navigator !== 'undefined' && typeof navigator.userAgentData === 'undefined') {
         try {
             var uaData = {
@@ -938,255 +1040,72 @@ void ServoViewHost::InjectPageEnhancements() {
                         uaFullVersion: '131.0.0.0'
                     });
                 },
-                toJSON: function() {
-                    return { brands: this.brands, mobile: this.mobile, platform: this.platform };
-                }
+                toJSON: function() { return { brands: this.brands, mobile: this.mobile, platform: this.platform }; }
             };
             try {
-                Object.defineProperty(navigator, 'userAgentData', {
-                    value: uaData,
-                    configurable: true,
-                    enumerable: true,
-                    writable: true
-                });
+                Object.defineProperty(navigator, 'userAgentData', { value: uaData, configurable: true, enumerable: true, writable: true });
             } catch(e) {
                 navigator.userAgentData = uaData;
             }
         } catch(e) {}
     }
 
-    // 2. Cooperative Scheduling (requestIdleCallback & cancelIdleCallback)
+    // 7. Cooperative Scheduling (requestIdleCallback)
     if (typeof window.requestIdleCallback === 'undefined') {
         try {
             window.requestIdleCallback = function(cb, options) {
                 var start = Date.now();
-                var timeout = (options && options.timeout) || 50;
                 return setTimeout(function() {
-                    cb({
-                        didTimeout: false,
-                        timeRemaining: function() {
-                            return Math.max(0, 50 - (Date.now() - start));
-                        }
-                    });
+                    cb({ didTimeout: false, timeRemaining: function() { return Math.max(0, 50 - (Date.now() - start)); } });
                 }, 1);
             };
-            window.cancelIdleCallback = function(id) {
-                clearTimeout(id);
-            };
+            window.cancelIdleCallback = function(id) { clearTimeout(id); };
         } catch(e) {}
     }
 
-    // 3. ResizeObserver Error Dampener
-    // Modern SPAs often trigger harmless ResizeObserver loop notifications which can
-    // break React/Vue unhandled error boundaries.
-    try {
-        if (!window.__resize_observer_dampener_installed) {
-            window.__resize_observer_dampener_installed = true;
-            window.addEventListener('error', function(e) {
-                if (e && e.message && (
-                    e.message.indexOf('ResizeObserver loop completed with undelivered notifications') !== -1 ||
-                    e.message.indexOf('ResizeObserver loop limit exceeded') !== -1
-                )) {
-                    e.stopImmediatePropagation();
-                    if (typeof e.preventDefault === 'function') {
-                        e.preventDefault();
-                    }
-                }
-            }, true);
-        }
-    } catch(e) {}
-
-    // 4. Notification permission stub
+    // 8. Notification permission stub
     try {
         if (typeof window.Notification === 'undefined') {
             window.Notification = function() {};
             window.Notification.permission = 'default';
             window.Notification.requestPermission = function(cb) {
-                var p = Promise.resolve(window.Notification.permission);
-                if (typeof cb === 'function') {
-                    p.then(cb);
-                }
+                var p = Promise.resolve('default');
+                if (typeof cb === 'function') p.then(cb);
                 return p;
             };
-        } else {
-            if (!window.Notification.permission) {
-                try {
-                    window.Notification.permission = 'default';
-                } catch(e) {}
-            }
-            if (typeof window.Notification.requestPermission !== 'function') {
-                try {
-                    window.Notification.requestPermission = function(cb) {
-                        var p = Promise.resolve(window.Notification.permission || 'default');
-                        if (typeof cb === 'function') {
-                            p.then(cb);
-                        }
-                        return p;
-                    };
-                } catch(e) {}
-            }
         }
     } catch(e) {}
 
-    // 5. navigator.mediaDevices.getUserMedia fallback
-    try {
-        if (typeof navigator !== 'undefined') {
-            if (!navigator.mediaDevices) {
-                try {
-                    Object.defineProperty(navigator, 'mediaDevices', {
-                        value: {},
-                        configurable: true,
-                        enumerable: true,
-                        writable: true
-                    });
-                } catch(e) {
-                    navigator.mediaDevices = {};
-                }
-            }
-            if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'function') {
-                navigator.mediaDevices.getUserMedia = function() {
-                    return Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
-                };
-            }
-            if (typeof navigator.getUserMedia !== 'function') {
-                navigator.getUserMedia = function(constraints, success, error) {
-                    if (typeof error === 'function') {
-                        error(new DOMException('Permission denied', 'NotAllowedError'));
-                    }
-                };
-            }
-        }
-    } catch(e) {}
-
-    // 6. AudioContext fallback
+    // 9. Media & AudioContext fallbacks
     try {
         if (typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
             window.AudioContext = window.webkitAudioContext;
-        } else if (typeof window.webkitAudioContext === 'undefined' && typeof window.AudioContext !== 'undefined') {
-            window.webkitAudioContext = window.AudioContext;
         }
     } catch(e) {}
 
-    // 7. Dialog Rate Limiting (Prevent UI lockup from alert/confirm/prompt loops)
+    // 10. Dialog Rate Limiting & Storage Fallback
     try {
         if (!window.__servo_dialog_limiter_installed) {
             window.__servo_dialog_limiter_installed = true;
-            var _dialogCount = 0;
-            var _lastDialogTime = 0;
-            function allowDialog(dialogType) {
-                var now = Date.now();
-                if (now - _lastDialogTime > 2000) {
-                    _dialogCount = 0;
-                }
-                _lastDialogTime = now;
-                if (++_dialogCount > 4) {
-                    console.warn('[Servo] ' + dialogType + ' loop suppressed');
-                    return false;
-                }
-                return true;
-            }
-
+            var _dlgCount = 0;
+            var _lastDlg = 0;
             var _origAlert = window.alert;
             window.alert = function(msg) {
-                if (!allowDialog('alert')) return;
+                var now = Date.now();
+                if (now - _lastDlg > 2000) _dlgCount = 0;
+                _lastDlg = now;
+                if (++_dlgCount > 4) return;
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
-
-            var _origConfirm = window.confirm;
-            window.confirm = function(msg) {
-                if (!allowDialog('confirm')) return false;
-                return _origConfirm ? _origConfirm.apply(this, arguments) : false;
-            };
-
-            var _origPrompt = window.prompt;
-            window.prompt = function(msg, def) {
-                if (!allowDialog('prompt')) return null;
-                return _origPrompt ? _origPrompt.apply(this, arguments) : null;
-            };
         }
     } catch(e) {}
+})();
+)JS";
 
-    // 8. Popup Resilience (Safe window.open wrapper)
-    try {
-        if (!window.__servo_window_open_guard_installed && typeof window.open === 'function') {
-            window.__servo_window_open_guard_installed = true;
-            var _origOpen = window.open;
-            window.open = function(url, target, features) {
-                try {
-                    var safeUrl = (url === undefined || url === null) ? 'about:blank' : String(url);
-                    var safeTarget = (target === undefined || target === null) ? '_blank' : String(target);
-                    var safeFeatures = (features === undefined || features === null) ? '' : String(features);
-                    return _origOpen.call(this, safeUrl, safeTarget, safeFeatures);
-                } catch(err) {
-                    console.warn('[Servo] window.open suppressed exception:', err);
-                    return null;
-                }
-            };
-        }
-    } catch(e) {}
-
-    // 9. DOM Exception Silencer (Resilient localStorage and sessionStorage wrapper)
-    try {
-        ['localStorage', 'sessionStorage'].forEach(function(storeName) {
-            try {
-                var store = window[storeName];
-                if (!store) {
-                    var memStorage = {};
-                    var dummy = {
-                        getItem: function(k) { return memStorage.hasOwnProperty(k) ? memStorage[k] : null; },
-                        setItem: function(k, v) { memStorage[k] = String(v); },
-                        removeItem: function(k) { delete memStorage[k]; },
-                        clear: function() { memStorage = {}; },
-                        key: function(i) { return Object.keys(memStorage)[i] || null; },
-                        get length() { return Object.keys(memStorage).length; }
-                    };
-                    try {
-                        Object.defineProperty(window, storeName, {
-                            value: dummy,
-                            configurable: true,
-                            writable: true
-                        });
-                    } catch(ex) {
-                        window[storeName] = dummy;
-                    }
-                    return;
-                }
-                var origSetItem = store.setItem;
-                store.setItem = function(key, val) {
-                    try {
-                        return origSetItem.apply(this, arguments);
-                    } catch(e) {
-                        console.warn('[Servo] ' + storeName + '.setItem suppressed exception:', e && e.name);
-                    }
-                };
-            } catch(e) {
-                try {
-                    var fallbackMem = {};
-                    var fallbackDummy = {
-                        getItem: function(k) { return fallbackMem.hasOwnProperty(k) ? fallbackMem[k] : null; },
-                        setItem: function(k, v) { fallbackMem[k] = String(v); },
-                        removeItem: function(k) { delete fallbackMem[k]; },
-                        clear: function() { fallbackMem = {}; },
-                        key: function(i) { return Object.keys(fallbackMem)[i] || null; },
-                        get length() { return Object.keys(fallbackMem).length; }
-                    };
-                    Object.defineProperty(window, storeName, {
-                        value: fallbackDummy,
-                        configurable: true,
-                        writable: true
-                    });
-                } catch(e2) {}
-            }
-        });
-    } catch(e) {}
-
-    // 10. YouTube & WebComponents ShadyCSS Shims
-    // YouTube's custom-elements-es5-adapter and Polymer components call
-    // window.ShadyCSS.prepareTemplate(...) and window.ShadyCSS.styleElement(...)
-    // when window.ShadyCSS is present as a configuration object. If these methods
-    // are missing, constructing <ytd-video-renderer>, <ytd-button-renderer>,
-    // <ytd-watch-flexy> etc. throws a TypeError, causing search results and video
-    // lists to fail to construct and leave a blank canvas.
+    // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Instagram DM hooks)
+    const char* s_appEnhancementsScript = R"JS(
+(function() {
+    // 1. YouTube & WebComponents ShadyCSS Shims
     function setupShadyCSS(obj) {
         if (!obj || typeof obj !== 'object') obj = {};
         var noop = function() {};
@@ -1205,80 +1124,45 @@ void ServoViewHost::InjectPageEnhancements() {
         return obj;
     }
 
-    if (window.ShadyCSS) {
-        setupShadyCSS(window.ShadyCSS);
-    }
+    if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
     if (!window.__shadycss_trap_installed) {
         window.__shadycss_trap_installed = true;
         var _currentShady = setupShadyCSS(window.ShadyCSS || {});
         try {
             Object.defineProperty(window, 'ShadyCSS', {
-                configurable: true,
-                enumerable: true,
+                configurable: true, enumerable: true,
                 get: function() { return _currentShady; },
-                set: function(val) {
-                    _currentShady = setupShadyCSS(val);
-                }
+                set: function(val) { _currentShady = setupShadyCSS(val); }
             });
-        } catch(e) {
-            window.ShadyCSS = _currentShady;
-        }
+        } catch(e) { window.ShadyCSS = _currentShady; }
     }
 
-    // 11. MediaSource stub for adaptive video players (Instagram & YouTube)
-    // When code accesses MediaSource.isTypeSupported, prevent ReferenceError.
-    // Returning false signals that chunked MSE is unsupported so players
-    // cleanly fall back to direct MP4 (<video src="...">) playback.
+    // 2. MediaSource stub for video players
     if (typeof window.MediaSource === 'undefined') {
         try {
-            var DummyMediaSource = function() {
-                this.sourceBuffers = [];
-                this.activeSourceBuffers = [];
-                this.readyState = 'closed';
-                this.duration = NaN;
-            };
-            if (typeof EventTarget !== 'undefined') {
-                DummyMediaSource.prototype = Object.create(EventTarget.prototype);
-                DummyMediaSource.prototype.constructor = DummyMediaSource;
-            }
-            DummyMediaSource.isTypeSupported = function(mime) {
-                return false;
-            };
-            DummyMediaSource.prototype.addSourceBuffer = function() {
-                throw new DOMException('Not supported', 'NotSupportedError');
-            };
+            var DummyMediaSource = function() { this.sourceBuffers = []; this.activeSourceBuffers = []; this.readyState = 'closed'; };
+            DummyMediaSource.isTypeSupported = function() { return false; };
+            DummyMediaSource.prototype.addSourceBuffer = function() { throw new DOMException('Not supported', 'NotSupportedError'); };
             DummyMediaSource.prototype.endOfStream = function() {};
             window.MediaSource = DummyMediaSource;
             window.WebKitMediaSource = DummyMediaSource;
         } catch(e) {}
     }
 
-    // 12. Instagram enhancements
+    // 3. Instagram DM hooks and chat scroller
     if (/(^|\.)instagram\.com$/.test(location.hostname)) {
         if (!window.__servo_instagram_hooks_installed) {
             window.__servo_instagram_hooks_installed = true;
 
-            // Instagram DM Textbox Click & Enter Submission Hooks
-            // Scope STRICTLY to active DM conversations (/direct/) and only inside
-            // the actual composer wrapper itself. NEVER match [role="main"], article,
-            // or interactive buttons/links, which would steal clicks across the entire feed!
             document.addEventListener('click', function(e) {
                 if (!location.pathname.startsWith('/direct/')) return;
                 var target = e.target;
-                if (!target) return;
-                if (target.closest('a, button, [role="button"], [role="link"], [role="tab"], [role="listitem"], nav, [role="navigation"], header, article, section, [role="dialog"], [role="menu"]')) {
-                    return;
-                }
+                if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
                 var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
                 if (!composer) return;
                 var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
                 if (editable && document.activeElement !== editable) {
                     editable.focus();
-                    var sel = window.getSelection();
-                    if (sel && sel.rangeCount > 0) {
-                        var range = sel.getRangeAt(0);
-                        range.collapse(false);
-                    }
                 }
             });
 
@@ -1305,70 +1189,13 @@ void ServoViewHost::InjectPageEnhancements() {
                     }
                 }
             }, true);
-
-            // Chat auto-scroll: Active ONLY inside a direct conversation thread (/direct/t/)
-            // Never run expensive DOM tree walks on the main feed to avoid layout freezes!
-            var pendingChatNodes = [];
-            var chatFlushScheduled = false;
-
-            function isChatScroller(el) {
-                if (el.closest('nav, [role="navigation"], [aria-label="Messages"], [aria-label="Direct messages"]')) {
-                    return false;
-                }
-                return el.matches('[role="log"], [data-testid*="message-container"]');
-            }
-
-            function nudgeChatScroller(el) {
-                var remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-                if (remaining <= 0 || remaining > 150) return;
-                el.scrollTop = el.scrollHeight;
-            }
-
-            function flushChatMutations() {
-                chatFlushScheduled = false;
-                if (!location.pathname.includes('/direct/t/')) {
-                    pendingChatNodes = [];
-                    return;
-                }
-                var nodes = pendingChatNodes;
-                pendingChatNodes = [];
-                for (var i = 0; i < nodes.length; i++) {
-                    var node = nodes[i];
-                    if (node.nodeType === 1 && isChatScroller(node)) {
-                        nudgeChatScroller(node);
-                    }
-                }
-            }
-
-            var chatObserver = new MutationObserver(function(mutations) {
-                if (!location.pathname.includes('/direct/t/')) return;
-                for (var m = 0; m < mutations.length; m++) {
-                    var added = mutations[m].addedNodes;
-                    for (var a = 0; a < added.length; a++) {
-                        pendingChatNodes.push(added[a]);
-                    }
-                }
-                if (!chatFlushScheduled && pendingChatNodes.length > 0) {
-                    chatFlushScheduled = true;
-                    window.requestAnimationFrame(flushChatMutations);
-                }
-            });
-
-            if (document.body) {
-                chatObserver.observe(document.body, { childList: true, subtree: true });
-            } else {
-                document.addEventListener('DOMContentLoaded', function() {
-                    if (document.body) {
-                        chatObserver.observe(document.body, { childList: true, subtree: true });
-                    }
-                });
-            }
         }
     }
 })();
 )JS";
 
-    servo_webview_evaluate_javascript(m_webview, script, OnJsEvalCallback, nullptr);
+    servo_webview_evaluate_javascript(m_webview, s_platformCompatScript, OnJsEvalCallback, nullptr);
+    servo_webview_evaluate_javascript(m_webview, s_appEnhancementsScript, OnJsEvalCallback, nullptr);
 }
 
 

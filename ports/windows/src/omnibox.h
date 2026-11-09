@@ -17,6 +17,19 @@
 #include "browser_data.h"
 #include "settings_dialog.h"
 
+struct OmniboxSuggestion {
+    enum class Type {
+        Website,
+        Bookmark,
+        History,
+        Search
+    };
+    Type type;
+    std::wstring text;
+    std::wstring targetUrl;
+    std::wstring secondary;
+};
+
 class BrowserWindow;
 
 inline std::string UrlEncode(const std::string& value) {
@@ -163,8 +176,10 @@ private:
     RECT m_settingsBtnBounds;
 
     HWND m_suggestionsHwnd;
-    std::vector<std::wstring> m_suggestions;
+    std::vector<OmniboxSuggestion> m_suggestions;
     int m_selectedSuggestion;
+
+    const std::vector<OmniboxSuggestion>& GetSuggestions() const { return m_suggestions; }
 
     enum class NavButton {
         None,

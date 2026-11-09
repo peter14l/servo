@@ -29,6 +29,10 @@ namespace icons {
     constexpr const wchar_t* ChevronUp = L"\uE70E";
     constexpr const wchar_t* ChevronDown = L"\uE70D";
     constexpr const wchar_t* Globe = L"\uE774";
+    constexpr const wchar_t* FavoriteStar = L"\uE734";
+    constexpr const wchar_t* History = L"\uE81C";
+    constexpr const wchar_t* DockLeft = L"\uE7FB";
+    constexpr const wchar_t* SidePanel = L"\uE8A0";
     constexpr const wchar_t* ChromeMinimize = L"\uE921";
     constexpr const wchar_t* ChromeMaximize = L"\uE922";
     constexpr const wchar_t* ChromeRestore = L"\uE923";

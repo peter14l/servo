@@ -25,6 +25,7 @@ set(SOURCES
     src/new_tab_page.cpp
     src/browser_data.cpp
     src/browser.manifest
+    src/browser.rc
 )
 
 set(HEADERS
@@ -40,6 +41,7 @@ set(HEADERS
     src/new_tab_page.h
     src/browser_data.h
     src/fluent_theme.h
+    src/servo_logo.h
 )
 
 add_executable(servo_browser WIN32 ${SOURCES} ${HEADERS})

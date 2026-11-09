@@ -19,6 +19,7 @@ struct BrowserSettings {
     std::wstring userAgentPersona = L"Chrome 131 (Windows 11)";
     int themeMode = 2; // 0: Light, 1: Dark, 2: System Default
     int backdropType = 0; // 0: Mica Alt, 1: Mica, 2: Solid
+    bool enableVerticalTabs = false;
     bool enableSuggestions = true;
     bool enableWebGPU = false;
     bool enableWebGL2 = true;

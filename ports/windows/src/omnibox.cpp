@@ -17,19 +17,34 @@ static const UINT_PTR EDIT_SUBCLASS_ID = 1001;
 static const UINT_PTR TIMER_PROGRESS_ID = 2001;
 static const UINT_PTR TIMER_PROGRESS_DONE_ID = 2002;
 
-static const wchar_t* POPULAR_DOMAINS[] = {
-    L"youtube.com",
-    L"instagram.com",
-    L"google.com",
-    L"github.com",
-    L"reddit.com",
-    L"wikipedia.org",
-    L"twitter.com",
-    L"x.com",
-    L"netflix.com",
-    L"amazon.com",
-    L"servo.org",
-    L"duckduckgo.com"
+struct SiteEntry {
+    const wchar_t* key;
+    const wchar_t* domain;
+    const wchar_t* name;
+    const wchar_t* url;
+};
+
+static const SiteEntry POPULAR_SITES[] = {
+    { L"youtube", L"youtube.com", L"YouTube", L"https://www.youtube.com/" },
+    { L"github", L"github.com", L"GitHub", L"https://github.com/" },
+    { L"instagram", L"instagram.com", L"Instagram", L"https://www.instagram.com/" },
+    { L"reddit", L"reddit.com", L"Reddit", L"https://www.reddit.com/" },
+    { L"wikipedia", L"wikipedia.org", L"Wikipedia", L"https://www.wikipedia.org/" },
+    { L"google", L"google.com", L"Google", L"https://www.google.com/" },
+    { L"duckduckgo", L"duckduckgo.com", L"DuckDuckGo", L"https://duckduckgo.com/" },
+    { L"servo", L"servo.org", L"Servo Project", L"https://servo.org/" },
+    { L"chatgpt", L"chatgpt.com", L"ChatGPT", L"https://chatgpt.com/" },
+    { L"netflix", L"netflix.com", L"Netflix", L"https://www.netflix.com/" },
+    { L"amazon", L"amazon.com", L"Amazon", L"https://www.amazon.com/" },
+    { L"twitter", L"twitter.com", L"Twitter", L"https://twitter.com/" },
+    { L"x", L"x.com", L"X (Twitter)", L"https://x.com/" },
+    { L"spotify", L"spotify.com", L"Spotify", L"https://www.spotify.com/" },
+    { L"twitch", L"twitch.tv", L"Twitch", L"https://www.twitch.tv/" },
+    { L"discord", L"discord.com", L"Discord", L"https://discord.com/" },
+    { L"linkedin", L"linkedin.com", L"LinkedIn", L"https://www.linkedin.com/" },
+    { L"stackoverflow", L"stackoverflow.com", L"Stack Overflow", L"https://stackoverflow.com/" },
+    { L"microsoft", L"microsoft.com", L"Microsoft", L"https://www.microsoft.com/" },
+    { L"apple", L"apple.com", L"Apple", L"https://www.apple.com/" },
 };
 
 void OmniboxToolbar::RegisterWindowClass(HINSTANCE hInstance) {
@@ -389,29 +404,115 @@ void OmniboxToolbar::UpdateSuggestions(const std::wstring& query) {
     m_suggestions.clear();
     m_selectedSuggestion = -1;
 
-    if (query.empty()) {
+    size_t first = query.find_first_not_of(L" \t\r\n");
+    if (first == std::wstring::npos) {
+        HideSuggestions();
+        return;
+    }
+    size_t last = query.find_last_not_of(L" \t\r\n");
+    std::wstring cleanQuery = query.substr(first, (last - first + 1));
+    if (cleanQuery.empty()) {
         HideSuggestions();
         return;
     }
 
-    // 1. Primary search query
-    m_suggestions.push_back(L"Search: " + query);
-
-    // 2. Matching popular web domains
-    std::wstring lowerQuery = query;
+    std::wstring lowerQuery = cleanQuery;
     std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::towlower);
 
-    for (const wchar_t* domain : POPULAR_DOMAINS) {
-        std::wstring d(domain);
-        if (d.find(lowerQuery) != std::wstring::npos) {
-            m_suggestions.push_back(L"https://" + d);
+    // 1. TOP PRIORITY: Website Detection (Rank 0)
+    std::vector<OmniboxSuggestion> websiteMatches;
+    for (const auto& site : POPULAR_SITES) {
+        std::wstring k = site.key;
+        std::wstring d = site.domain;
+        if (k.rfind(lowerQuery, 0) == 0 || lowerQuery.rfind(k, 0) == 0 ||
+            d.rfind(lowerQuery, 0) == 0 || (d.find(lowerQuery) != std::wstring::npos && lowerQuery.length() >= 3)) {
+            OmniboxSuggestion item;
+            item.type = OmniboxSuggestion::Type::Website;
+            item.text = site.name;
+            item.targetUrl = site.url;
+            item.secondary = std::wstring(site.domain) + L" \x2022 Official Website";
+            websiteMatches.push_back(item);
+            if (websiteMatches.size() >= 2) break;
         }
     }
 
-    // 3. Search completions
+    if (lowerQuery.find(L'.') != std::wstring::npos && lowerQuery.find(L' ') == std::wstring::npos) {
+        bool alreadyAdded = false;
+        for (const auto& w : websiteMatches) {
+            if (w.targetUrl.find(lowerQuery) != std::wstring::npos) {
+                alreadyAdded = true;
+                break;
+            }
+        }
+        if (!alreadyAdded) {
+            OmniboxSuggestion item;
+            item.type = OmniboxSuggestion::Type::Website;
+            item.text = cleanQuery;
+            item.targetUrl = (lowerQuery.find(L"://") != std::wstring::npos) ? cleanQuery : (L"https://" + cleanQuery);
+            item.secondary = L"Direct Website";
+            websiteMatches.insert(websiteMatches.begin(), item);
+        }
+    }
+
+    for (const auto& w : websiteMatches) {
+        m_suggestions.push_back(w);
+    }
+
+    // Rank 0 pre-selection for instant direct navigation
+    if (!websiteMatches.empty()) {
+        m_selectedSuggestion = 0;
+    }
+
+    // 2. Bookmarks matching query
+    auto bookmarks = BrowserData::GetBookmarks();
+    for (const auto& bm : bookmarks) {
+        int wlen = MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, nullptr, 0);
+        if (wlen > 1) {
+            std::wstring wurl(wlen - 1, 0);
+            MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, &wurl[0], wlen);
+
+            std::wstring lowerUrl = wurl;
+            std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::towlower);
+            std::wstring lowerTitle = bm.title;
+            std::transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::towlower);
+
+            if (lowerUrl.find(lowerQuery) != std::wstring::npos || lowerTitle.find(lowerQuery) != std::wstring::npos) {
+                OmniboxSuggestion item;
+                item.type = OmniboxSuggestion::Type::Bookmark;
+                item.text = bm.title.empty() ? wurl : bm.title;
+                item.targetUrl = wurl;
+                item.secondary = wurl;
+                m_suggestions.push_back(item);
+                if (m_suggestions.size() >= 5) break;
+            }
+        }
+    }
+
+    // 3. Primary search query
+    {
+        OmniboxSuggestion item;
+        item.type = OmniboxSuggestion::Type::Search;
+        item.text = cleanQuery;
+        item.targetUrl = cleanQuery;
+        item.secondary = L"DuckDuckGo Search";
+        m_suggestions.push_back(item);
+    }
+
+    // 4. Extended search completions
     if (lowerQuery.find(L'.') == std::wstring::npos) {
-        m_suggestions.push_back(query + L" search");
-        m_suggestions.push_back(query + L" documentation");
+        OmniboxSuggestion c1;
+        c1.type = OmniboxSuggestion::Type::Search;
+        c1.text = cleanQuery + L" official site";
+        c1.targetUrl = cleanQuery + L" official site";
+        c1.secondary = L"Search suggestion";
+        m_suggestions.push_back(c1);
+
+        OmniboxSuggestion c2;
+        c2.type = OmniboxSuggestion::Type::Search;
+        c2.text = cleanQuery + L" docs";
+        c2.targetUrl = cleanQuery + L" docs";
+        c2.secondary = L"Search suggestion";
+        m_suggestions.push_back(c2);
     }
 
     if (m_suggestions.empty()) {
@@ -419,12 +520,11 @@ void OmniboxToolbar::UpdateSuggestions(const std::wstring& query) {
         return;
     }
 
-    // Calculate popup position directly below omnibox edit
     POINT pt = { m_omniboxBounds.left, m_omniboxBounds.bottom + 2 };
     ClientToScreen(m_hwnd, &pt);
     int width = m_omniboxBounds.right - m_omniboxBounds.left;
-    int itemH = 34;
-    int height = std::min(static_cast<int>(m_suggestions.size()) * itemH + 6, 220);
+    int itemH = 38;
+    int height = std::min(static_cast<int>(m_suggestions.size()) * itemH + 6, 260);
 
     SetWindowPos(m_suggestionsHwnd, HWND_TOPMOST, pt.x, pt.y, width, height, SWP_SHOWWINDOW | SWP_NOACTIVATE);
     InvalidateRect(m_suggestionsHwnd, nullptr, TRUE);
@@ -455,11 +555,7 @@ void OmniboxToolbar::SelectPreviousSuggestion() {
 
 std::wstring OmniboxToolbar::GetSelectedSuggestionText() const {
     if (m_selectedSuggestion >= 0 && m_selectedSuggestion < static_cast<int>(m_suggestions.size())) {
-        std::wstring text = m_suggestions[m_selectedSuggestion];
-        if (text.rfind(L"Search: ", 0) == 0) {
-            return text.substr(8);
-        }
-        return text;
+        return m_suggestions[m_selectedSuggestion].targetUrl;
     }
     return L"";
 }
@@ -478,36 +574,71 @@ void OmniboxToolbar::PaintSuggestions(HDC hdc) {
     HFONT iconFont = m_iconFont;
     SetBkMode(hdc, TRANSPARENT);
 
-    int itemH = 34;
+    int itemH = 38;
     int y = 3;
 
     for (int i = 0; i < static_cast<int>(m_suggestions.size()); ++i) {
         RECT itemRc = { 4, y, rc.right - 4, y + itemH };
+        bool isSelected = (i == m_selectedSuggestion);
+        const auto& item = m_suggestions[i];
 
-        if (i == m_selectedSuggestion) {
+        if (isSelected) {
             HBRUSH selBrush = CreateSolidBrush(m_isDark ? RGB(55, 55, 55) : RGB(230, 230, 230));
             FillRect(hdc, &itemRc, selBrush);
             DeleteObject(selBrush);
         }
 
-        // Draw Icon (Search or Globe)
+        // Distinct Icon per suggestion type
         SelectObject(hdc, iconFont);
-        SetTextColor(hdc, (i == m_selectedSuggestion) ? colors.Accent : colors.TextSecondary);
+        SetTextColor(hdc, isSelected ? colors.Accent : colors.TextSecondary);
         RECT iconRc = { itemRc.left + 8, itemRc.top, itemRc.left + 28, itemRc.bottom };
-        bool isUrl = (m_suggestions[i].find(L"://") != std::wstring::npos || m_suggestions[i].find(L".") != std::wstring::npos);
-        DrawTextW(hdc, isUrl ? fluent::icons::Globe : fluent::icons::Search, -1, &iconRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-        // Draw Text with Google Font
-        SelectObject(hdc, (i == m_selectedSuggestion) ? m_resultBoldFont : m_resultFont);
-        SetTextColor(hdc, (i == m_selectedSuggestion) ? colors.Accent : colors.TextPrimary);
-        RECT textRc = { itemRc.left + 36, itemRc.top, itemRc.right - 70, itemRc.bottom };
-        DrawTextW(hdc, m_suggestions[i].c_str(), -1, &textRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+        const wchar_t* iconGlyph = fluent::icons::Search;
+        if (item.type == OmniboxSuggestion::Type::Website) iconGlyph = fluent::icons::Globe;
+        else if (item.type == OmniboxSuggestion::Type::Bookmark) iconGlyph = fluent::icons::FavoriteStar;
+        else if (item.type == OmniboxSuggestion::Type::History) iconGlyph = fluent::icons::History;
 
-        // Badge indicator on right side (Search vs Website)
-        SelectObject(hdc, m_badgeFont);
+        DrawTextW(hdc, iconGlyph, -1, &iconRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+        // Primary title text
+        SelectObject(hdc, (isSelected || item.type == OmniboxSuggestion::Type::Website) ? m_resultBoldFont : m_resultFont);
+        SetTextColor(hdc, isSelected ? colors.Accent : colors.TextPrimary);
+        RECT titleRc = { itemRc.left + 36, itemRc.top + 3, itemRc.right - 88, itemRc.top + 20 };
+        DrawTextW(hdc, item.text.c_str(), -1, &titleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+        // Secondary text / subtitle
+        SelectObject(hdc, m_badgeFont ? m_badgeFont : m_font);
         SetTextColor(hdc, colors.TextTertiary);
-        RECT badgeRc = { itemRc.right - 68, itemRc.top, itemRc.right - 8, itemRc.bottom };
-        DrawTextW(hdc, isUrl ? L"Website" : L"Search", -1, &badgeRc, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+        RECT subRc = { itemRc.left + 36, itemRc.top + 20, itemRc.right - 88, itemRc.bottom - 2 };
+        DrawTextW(hdc, item.secondary.c_str(), -1, &subRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+        // Right-aligned Badge Pill
+        const wchar_t* badgeText = L"Search";
+        COLORREF badgeBg = m_isDark ? RGB(50, 50, 50) : RGB(235, 235, 235);
+        COLORREF badgeFg = colors.TextSecondary;
+        if (item.type == OmniboxSuggestion::Type::Website) {
+            badgeText = L"Website";
+            badgeBg = colors.Accent;
+            badgeFg = RGB(255, 255, 255);
+        } else if (item.type == OmniboxSuggestion::Type::Bookmark) {
+            badgeText = L"Bookmark";
+        } else if (item.type == OmniboxSuggestion::Type::History) {
+            badgeText = L"History";
+        }
+
+        RECT badgeRc = { itemRc.right - 82, itemRc.top + 9, itemRc.right - 8, itemRc.top + 27 };
+        HBRUSH bbr = CreateSolidBrush(badgeBg);
+        HPEN bpn = CreatePen(PS_NULL, 0, 0);
+        HGDIOBJ ob = SelectObject(hdc, bbr);
+        HGDIOBJ op = SelectObject(hdc, bpn);
+        RoundRect(hdc, badgeRc.left, badgeRc.top, badgeRc.right, badgeRc.bottom, 8, 8);
+        SelectObject(hdc, ob);
+        SelectObject(hdc, op);
+        DeleteObject(bbr);
+        DeleteObject(bpn);
+
+        SetTextColor(hdc, badgeFg);
+        DrawTextW(hdc, badgeText, -1, &badgeRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
         y += itemH;
     }
@@ -541,7 +672,7 @@ LRESULT CALLBACK OmniboxToolbar::SuggestionsWndProc(HWND hwnd, UINT msg, WPARAM 
 
     case WM_LBUTTONUP: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-        int idx = pt.y / 34;
+        int idx = pt.y / 38;
         if (idx >= 0 && idx < static_cast<int>(self->m_suggestions.size())) {
             self->m_selectedSuggestion = idx;
             std::wstring selText = self->GetSelectedSuggestionText();
@@ -562,7 +693,7 @@ LRESULT CALLBACK OmniboxToolbar::SuggestionsWndProc(HWND hwnd, UINT msg, WPARAM 
 
     case WM_MOUSEMOVE: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-        int idx = pt.y / 34;
+        int idx = pt.y / 38;
         if (idx >= 0 && idx < static_cast<int>(self->m_suggestions.size()) && idx != self->m_selectedSuggestion) {
             self->m_selectedSuggestion = idx;
             InvalidateRect(hwnd, nullptr, FALSE);
@@ -751,16 +882,24 @@ LRESULT CALLBACK OmniboxToolbar::EditSubclassProc(
             }
         } else if (wParam == VK_RETURN) {
             std::string input;
-            if (self && self->IsSuggestionsVisible() && self->m_selectedSuggestion >= 0) {
-                std::wstring sel = self->GetSelectedSuggestionText();
-                self->HideSuggestions();
-                int utf8Len = WideCharToMultiByte(CP_UTF8, 0, sel.c_str(), -1, nullptr, 0, nullptr, nullptr);
-                if (utf8Len > 0) {
-                    std::vector<char> utf8Buf(utf8Len);
-                    WideCharToMultiByte(CP_UTF8, 0, sel.c_str(), -1, utf8Buf.data(), utf8Len, nullptr, nullptr);
-                    input = utf8Buf.data();
+            if (self && self->IsSuggestionsVisible()) {
+                int selIdx = self->m_selectedSuggestion;
+                if (selIdx < 0 && !self->GetSuggestions().empty() &&
+                    self->GetSuggestions()[0].type == OmniboxSuggestion::Type::Website) {
+                    selIdx = 0;
                 }
-            } else {
+                if (selIdx >= 0 && selIdx < static_cast<int>(self->GetSuggestions().size())) {
+                    std::wstring sel = self->GetSuggestions()[selIdx].targetUrl;
+                    self->HideSuggestions();
+                    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, sel.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                    if (utf8Len > 0) {
+                        std::vector<char> utf8Buf(utf8Len);
+                        WideCharToMultiByte(CP_UTF8, 0, sel.c_str(), -1, utf8Buf.data(), utf8Len, nullptr, nullptr);
+                        input = utf8Buf.data();
+                    }
+                }
+            }
+            if (input.empty()) {
                 if (self) self->HideSuggestions();
                 int len = GetWindowTextLengthW(hwnd);
                 if (len > 0) {

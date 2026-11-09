@@ -612,7 +612,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_webview && status == 2) {
+    if (self && self->m_webview && (status == 1 || status == 2)) {
         self->InjectPageEnhancements();
     }
 }
@@ -961,6 +961,22 @@ void ServoViewHost::InjectPageEnhancements() {
                 if (++_dlgCount > 4) return;
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
+        }
+
+        // 5. Opacity watchdog for landing pages with delayed animation hydration (e.g. GitHub Intro/hero, GSAP)
+        if (typeof window !== 'undefined' && !window.__servo_opacity_watchdog_installed) {
+            window.__servo_opacity_watchdog_installed = true;
+            setTimeout(function() {
+                try {
+                    var els = document.querySelectorAll('[style*="opacity:0"], [style*="opacity: 0"]');
+                    for (var i = 0; i < els.length; i++) {
+                        var el = els[i];
+                        if (el.className && (el.className.indexOf('Intro') !== -1 || el.className.indexOf('content') !== -1 || el.className.indexOf('hero') !== -1)) {
+                            el.style.removeProperty('opacity');
+                        }
+                    }
+                } catch(e) {}
+            }, 1000);
         }
     } catch(e) {}
 })();

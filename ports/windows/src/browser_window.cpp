@@ -47,7 +47,7 @@ void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     wc.hIcon = hIcon;
     wc.hIconSm = hIcon;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hbrBackground = CreateSolidBrush(RGB(32, 32, 32));
+    wc.hbrBackground = nullptr;
     wc.lpszClassName = BROWSER_WINDOW_CLASS_NAME;
     RegisterClassExW(&wc);
 }
@@ -963,6 +963,9 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             servo_spin_event_loop(m_servo);
         }
         return 0;
+
+    case WM_ERASEBKGND:
+        return 1;
 
     case WM_PAINT: {
         PAINTSTRUCT ps;

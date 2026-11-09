@@ -3410,7 +3410,7 @@ impl Document {
         if self.window().font_context().web_fonts_still_loading() != 0 {
             return false;
         }
-        if self.ReadyState() != DocumentReadyState::Complete {
+        if self.ReadyState() == DocumentReadyState::Loading {
             return false;
         }
         if !self.restyle_reason(cx.no_gc()).is_empty() {

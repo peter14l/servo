@@ -395,7 +395,7 @@ void BrowserWindow::OnStatusTextChanged(const char* statusText) {
 
     RECT rc;
     GetClientRect(m_hwnd, &rc);
-    int pillW = std::min(rc.right - 40, (int)(wlen * 7 + 24));
+    int pillW = (std::min)(static_cast<int>(rc.right - 40), static_cast<int>(wlen * 7 + 24));
     int pillH = 22;
     int pillX = 14;
     int pillY = rc.bottom - pillH - 12;

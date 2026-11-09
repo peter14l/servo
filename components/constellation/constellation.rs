@@ -2954,13 +2954,11 @@ where
                 pipeline.browsing_context_id,
                 ExitPipelineMode::Force,
             );
-            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
             return;
         }
 
         if !is_active_pipeline {
             warn!("Inactive top-level pipeline {pipeline_id:?} disconnected: {error}");
-            self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
             return;
         }
 
@@ -2970,7 +2968,6 @@ where
             &format!("Send failed ({error})"),
             &None,
         );
-        self.handle_pipeline_exited(pipeline_id, PipelineExitSource::all());
     }
 
     #[servo_tracing::instrument(skip_all)]

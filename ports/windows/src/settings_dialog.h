@@ -23,6 +23,10 @@ struct BrowserSettings {
     bool enableWebGPU = false;
     bool enableWebGL2 = true;
     bool enableIndexedDB = true;
+    bool enableWebRTC = true;
+    bool enableNotifications = true;
+    bool enableGeolocation = false;
+    bool enableVariableFonts = true;
 };
 
 class SettingsDialog {
@@ -66,6 +70,10 @@ private:
     HWND m_chkWebGPU;
     HWND m_chkWebGL2;
     HWND m_chkIndexedDB;
+    HWND m_checkWebRTC;
+    HWND m_checkNotifications;
+    HWND m_checkGeolocation;
+    HWND m_checkVariableFonts;
     HWND m_btnClearData;
     HWND m_btnSave;
     HWND m_btnCancel;

@@ -15,6 +15,7 @@
 #include <cctype>
 #include "new_tab_page.h"
 #include "browser_data.h"
+#include "settings_dialog.h"
 
 class BrowserWindow;
 
@@ -69,6 +70,9 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
     }
     if (input == "servo://about" || input == "servo:about" || input == "about:about" || input == "servo://version" || input == "about:version") {
         return BrowserData::EnsureAboutPageExists();
+    }
+    if (input == "servo://settings" || input == "servo:settings" || input == "about:settings") {
+        return SettingsDialog::EnsureSettingsPageExists();
     }
 
     // Rewrite apex youtube.com to www.youtube.com to prevent TLS renegotiation failure

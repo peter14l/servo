@@ -34,6 +34,12 @@ public:
 #include "../src/tab_strip.h"
 #include "../src/omnibox.h"
 #include "../src/browser_data.h"
+#include "../src/settings_dialog.h"
+#include "../src/browser_window.h"
+
+void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
+    (void)settings;
+}
 
 // Test harness macros
 static int g_tests_run = 0;
@@ -614,6 +620,27 @@ void test_browser_data() {
     TEST_ASSERT(NormalizeOmniboxInput("servo://about") == aboutPage, "Omnibox normalizes servo://about");
 }
 
+void test_browser_settings() {
+    // 1. Verify default values of BrowserSettings
+    BrowserSettings s;
+    TEST_ASSERT(s.enableWebRTC == true, "BrowserSettings default enableWebRTC must be true");
+    TEST_ASSERT(s.enableNotifications == true, "BrowserSettings default enableNotifications must be true");
+    TEST_ASSERT(s.enableGeolocation == false, "BrowserSettings default enableGeolocation must be false");
+    TEST_ASSERT(s.enableVariableFonts == true, "BrowserSettings default enableVariableFonts must be true");
+    TEST_ASSERT(s.enableIndexedDB == true, "BrowserSettings default enableIndexedDB must be true");
+    TEST_ASSERT(s.enableWebGL2 == true, "BrowserSettings default enableWebGL2 must be true");
+    TEST_ASSERT(s.enableWebGPU == false, "BrowserSettings default enableWebGPU must be false");
+
+    // 2. Verify SettingsDialog::EnsureSettingsPageExists() returns a file:/// URI
+    std::string settingsUrl = SettingsDialog::EnsureSettingsPageExists();
+    TEST_ASSERT(!settingsUrl.empty(), "Settings page URL must not be empty");
+    TEST_ASSERT(settingsUrl.rfind("file:///", 0) == 0, "Settings page URL must be a file URI");
+
+    // 3. Verify NormalizeOmniboxInput returns the settings file URI
+    TEST_ASSERT(NormalizeOmniboxInput("servo://settings") == settingsUrl, "Omnibox normalizes servo://settings");
+    TEST_ASSERT(NormalizeOmniboxInput("about:settings") == settingsUrl, "Omnibox normalizes about:settings");
+}
+
 // -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
@@ -637,6 +664,7 @@ int main() {
     RUN_TEST(test_tab_favicon_lifecycle);
     RUN_TEST(test_new_tab_page);
     RUN_TEST(test_browser_data);
+    RUN_TEST(test_browser_settings);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

@@ -373,8 +373,8 @@
     "semantic_hash": "5a6df5c5462304cf41d1e788b2d71016"
   },
   "components/constellation/constellation.rs": {
-    "mtime": 1793456483.5285704,
-    "ast_hash": "0e6130e2db2682e47cc42c253726a57a",
+    "mtime": 1794193459.6114619,
+    "ast_hash": "a441624ffe6cb7a348f3d4c6b826aef8",
     "semantic_hash": ""
   },
   "components/constellation/constellation_webview.rs": {
@@ -1452,8 +1452,8 @@
     "semantic_hash": "ea1a412f13a841aff669a00763f4efbe"
   },
   "components/media/backends/dummy/lib.rs": {
-    "mtime": 1794160277.7030978,
-    "ast_hash": "6f1f0fb87eac6884cbc495bbda6350f8",
+    "mtime": 1794166076.9783719,
+    "ast_hash": "01c055bf4430cb5c113605c9e1b165fe",
     "semantic_hash": ""
   },
   "components/media/backends/gstreamer/Cargo.toml": {
@@ -12136,13 +12136,13 @@
     "semantic_hash": ""
   },
   "ports/windows/src/browser_window.cpp": {
-    "mtime": 1793533037.193871,
-    "ast_hash": "b01a98e15a03715d4e020abe65d8bb14",
+    "mtime": 1794193447.7995152,
+    "ast_hash": "8ce755989f2035aa9c8f1477201bdc61",
     "semantic_hash": ""
   },
   "ports/windows/src/browser_window.h": {
-    "mtime": 1793532929.1619837,
-    "ast_hash": "cf3d54a0ccd95bda32a3455c578f7063",
+    "mtime": 1794167200.0065262,
+    "ast_hash": "b509363c5562f15b210614569930ec25",
     "semantic_hash": ""
   },
   "ports/windows/src/find_bar.cpp": {
@@ -12156,18 +12156,18 @@
     "semantic_hash": ""
   },
   "ports/windows/src/main.cpp": {
-    "mtime": 1794148376.591578,
-    "ast_hash": "95dd31422be2371e6029bb2ec70670e5",
+    "mtime": 1794192456.7485752,
+    "ast_hash": "31cf1b975942d4a51d0d537374095120",
     "semantic_hash": ""
   },
   "ports/windows/src/omnibox.cpp": {
-    "mtime": 1793533130.7877235,
-    "ast_hash": "58ebe3c9ee9f95c8e119026638e58451",
+    "mtime": 1794167180.1537237,
+    "ast_hash": "52dc006cda4a89e4fc4d07e69afd5bd6",
     "semantic_hash": ""
   },
   "ports/windows/src/omnibox.h": {
-    "mtime": 1793533125.731212,
-    "ast_hash": "1fd8819ad944f5328499e2095900b352",
+    "mtime": 1794193086.0040536,
+    "ast_hash": "13f6d295219d4a27278d65ae446d8176",
     "semantic_hash": ""
   },
   "ports/windows/src/servo_raw_window.h": {
@@ -12176,13 +12176,13 @@
     "semantic_hash": ""
   },
   "ports/windows/src/servo_view_host.cpp": {
-    "mtime": 1794160312.1900747,
-    "ast_hash": "e91736b8c8e0e2ccb1a3dc45c5aea85e",
+    "mtime": 1794192226.1216767,
+    "ast_hash": "61fe07eec874c82e299ddd0141ee886b",
     "semantic_hash": ""
   },
   "ports/windows/src/servo_view_host.h": {
-    "mtime": 1793559488.3913002,
-    "ast_hash": "2502b55108b6187909f617a00eebe0b4",
+    "mtime": 1794167279.8535066,
+    "ast_hash": "30823fa5187e9a5950829a855fdadf5d",
     "semantic_hash": ""
   },
   "ports/windows/src/tab_strip.cpp": {
@@ -12196,8 +12196,8 @@
     "semantic_hash": ""
   },
   "ports/windows/CMakeLists.txt": {
-    "mtime": 1793543550.6911986,
-    "ast_hash": "7193e39b541c39442cad792c5da5c3fa",
+    "mtime": 1794193094.1653874,
+    "ast_hash": "0ab33979e3c7805a783e56ba363e8524",
     "semantic_hash": ""
   },
   "ports/windows/tests/mock_servo/servo/servo_capi.h": {
@@ -12206,8 +12206,8 @@
     "semantic_hash": ""
   },
   "ports/windows/tests/test_browser_unit.cpp": {
-    "mtime": 1793543568.1743379,
-    "ast_hash": "04a118f7f0ab156d7e8c73c1b06ce35c",
+    "mtime": 1794193115.6184213,
+    "ast_hash": "aa90d2fd76a7c75dbd16a2e354b38022",
     "semantic_hash": ""
   },
   "ports/windows/packaging/install.ps1": {
@@ -12251,13 +12251,13 @@
     "semantic_hash": ""
   },
   "ports/windows/src/settings_dialog.cpp": {
-    "mtime": 1793515369.5413744,
-    "ast_hash": "850ea7985b070d19717e9bbc731ee849",
+    "mtime": 1794192434.628036,
+    "ast_hash": "0b80f64ba06f34d18207ff09f7e5b635",
     "semantic_hash": ""
   },
   "ports/windows/src/settings_dialog.h": {
-    "mtime": 1793505418.0382185,
-    "ast_hash": "5f5165e29b57ed61a2ba0c8aebdf20c0",
+    "mtime": 1794192292.7730844,
+    "ast_hash": "384bff169c0af3122eb5a106b4f3e4b0",
     "semantic_hash": ""
   },
   "ports/windows/src/new_tab_page.cpp": {
@@ -12268,6 +12268,16 @@
   "ports/windows/src/new_tab_page.h": {
     "mtime": 1793532820.3013659,
     "ast_hash": "7121dbaec766c8dc377a4c5dc86addf3",
+    "semantic_hash": ""
+  },
+  "ports/windows/src/browser_data.cpp": {
+    "mtime": 1794167047.9567378,
+    "ast_hash": "c566c7d3041cfb86715914c804f8bd16",
+    "semantic_hash": ""
+  },
+  "ports/windows/src/browser_data.h": {
+    "mtime": 1794167004.9598112,
+    "ast_hash": "33ae6e0497acccd724ab8800a250c565",
     "semantic_hash": ""
   }
 }

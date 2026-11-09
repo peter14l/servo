@@ -238,6 +238,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
         // Modern web platform features required by complex web applications (Instagram, YouTube, Google, GitHub, ChatGPT)
         servo_preferences_set_bool(prefs, "network_use_webpki_roots", true);
+        servo_preferences_set_i64(prefs, "network_connection_timeout", 30);
         servo_preferences_set_bool(prefs, "dom_indexeddb_enabled", userSettings.enableIndexedDB);
         servo_preferences_set_bool(prefs, "dom_storage_manager_api_enabled", true);
         servo_preferences_set_bool(prefs, "dom_cookiestore_enabled", true);
@@ -253,11 +254,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         servo_preferences_set_bool(prefs, "dom_composition_event_enabled", true);
         servo_preferences_set_bool(prefs, "dom_credential_management_enabled", true);
         servo_preferences_set_bool(prefs, "dom_web_animations_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_entries_api_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_wakelock_enabled", true);
+        servo_preferences_set_bool(prefs, "dom_webrtc_enabled", userSettings.enableWebRTC);
+        servo_preferences_set_bool(prefs, "dom_webrtc_transceiver_enabled", userSettings.enableWebRTC);
+        servo_preferences_set_bool(prefs, "dom_notification_enabled", userSettings.enableNotifications);
+        servo_preferences_set_bool(prefs, "dom_geolocation_enabled", userSettings.enableGeolocation);
+        servo_preferences_set_bool(prefs, "dom_gamepad_enabled", true);
         servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
         servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
+        servo_preferences_set_bool(prefs, "layout_variable_fonts_enabled", userSettings.enableVariableFonts);
+        servo_preferences_set_bool(prefs, "layout_writing_mode_enabled", true);
+        servo_preferences_set_bool(prefs, "layout_css_ellipse_corners_enabled", true);
+        servo_preferences_set_bool(prefs, "media_glvideo_enabled", true);
+        servo_preferences_set_bool(prefs, "perf_thread_boost_enabled", true);
 
         // SpiderMonkey GC configuration and aggressive memory limits to prevent runaway RAM growth
-        servo_preferences_set_i64(prefs, "js_mem_max", 512); // Bound JS heap to 512MB max
+        servo_preferences_set_i64(prefs, "js_mem_max", 1024); // Bound JS heap to 1024MB max
         servo_preferences_set_bool(prefs, "js_mem_gc_incremental_enabled", false); // Full GC only: pre-barriers not implemented
         servo_preferences_set_bool(prefs, "js_mem_gc_per_zone_enabled", false);
         servo_preferences_set_bool(prefs, "js_mem_gc_compacting_enabled", true); // Compact and release heap chunks back to OS

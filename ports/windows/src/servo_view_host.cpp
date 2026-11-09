@@ -892,7 +892,161 @@ void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
     const char* script = R"JS(
 (function() {
-    // 1. YouTube & WebComponents ShadyCSS Shims
+    // 1. Client Hints (navigator.userAgentData)
+    // Modern sites (Google, Instagram, Twitter/X) inspect navigator.userAgentData.
+    if (typeof navigator !== 'undefined' && typeof navigator.userAgentData === 'undefined') {
+        try {
+            var uaData = {
+                brands: [
+                    { brand: 'Not A(Brand', version: '99' },
+                    { brand: 'Chromium', version: '131' },
+                    { brand: 'Google Chrome', version: '131' }
+                ],
+                mobile: false,
+                platform: 'Windows',
+                getHighEntropyValues: function(hints) {
+                    return Promise.resolve({
+                        architecture: 'x86',
+                        bitness: '64',
+                        brands: this.brands,
+                        fullVersionList: this.brands,
+                        mobile: false,
+                        model: '',
+                        platform: 'Windows',
+                        platformVersion: '15.0.0',
+                        uaFullVersion: '131.0.0.0'
+                    });
+                },
+                toJSON: function() {
+                    return { brands: this.brands, mobile: this.mobile, platform: this.platform };
+                }
+            };
+            try {
+                Object.defineProperty(navigator, 'userAgentData', {
+                    value: uaData,
+                    configurable: true,
+                    enumerable: true,
+                    writable: true
+                });
+            } catch(e) {
+                navigator.userAgentData = uaData;
+            }
+        } catch(e) {}
+    }
+
+    // 2. Cooperative Scheduling (requestIdleCallback & cancelIdleCallback)
+    if (typeof window.requestIdleCallback === 'undefined') {
+        try {
+            window.requestIdleCallback = function(cb, options) {
+                var start = Date.now();
+                var timeout = (options && options.timeout) || 50;
+                return setTimeout(function() {
+                    cb({
+                        didTimeout: false,
+                        timeRemaining: function() {
+                            return Math.max(0, 50 - (Date.now() - start));
+                        }
+                    });
+                }, 1);
+            };
+            window.cancelIdleCallback = function(id) {
+                clearTimeout(id);
+            };
+        } catch(e) {}
+    }
+
+    // 3. ResizeObserver Error Dampener
+    // Modern SPAs often trigger harmless ResizeObserver loop notifications which can
+    // break React/Vue unhandled error boundaries.
+    try {
+        if (!window.__resize_observer_dampener_installed) {
+            window.__resize_observer_dampener_installed = true;
+            window.addEventListener('error', function(e) {
+                if (e && e.message && (
+                    e.message.indexOf('ResizeObserver loop completed with undelivered notifications') !== -1 ||
+                    e.message.indexOf('ResizeObserver loop limit exceeded') !== -1
+                )) {
+                    e.stopImmediatePropagation();
+                    if (typeof e.preventDefault === 'function') {
+                        e.preventDefault();
+                    }
+                }
+            }, true);
+        }
+    } catch(e) {}
+
+    // 4. Notification permission stub
+    try {
+        if (typeof window.Notification === 'undefined') {
+            window.Notification = function() {};
+            window.Notification.permission = 'default';
+            window.Notification.requestPermission = function(cb) {
+                var p = Promise.resolve(window.Notification.permission);
+                if (typeof cb === 'function') {
+                    p.then(cb);
+                }
+                return p;
+            };
+        } else {
+            if (!window.Notification.permission) {
+                try {
+                    window.Notification.permission = 'default';
+                } catch(e) {}
+            }
+            if (typeof window.Notification.requestPermission !== 'function') {
+                try {
+                    window.Notification.requestPermission = function(cb) {
+                        var p = Promise.resolve(window.Notification.permission || 'default');
+                        if (typeof cb === 'function') {
+                            p.then(cb);
+                        }
+                        return p;
+                    };
+                } catch(e) {}
+            }
+        }
+    } catch(e) {}
+
+    // 5. navigator.mediaDevices.getUserMedia fallback
+    try {
+        if (typeof navigator !== 'undefined') {
+            if (!navigator.mediaDevices) {
+                try {
+                    Object.defineProperty(navigator, 'mediaDevices', {
+                        value: {},
+                        configurable: true,
+                        enumerable: true,
+                        writable: true
+                    });
+                } catch(e) {
+                    navigator.mediaDevices = {};
+                }
+            }
+            if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                navigator.mediaDevices.getUserMedia = function() {
+                    return Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+                };
+            }
+            if (typeof navigator.getUserMedia !== 'function') {
+                navigator.getUserMedia = function(constraints, success, error) {
+                    if (typeof error === 'function') {
+                        error(new DOMException('Permission denied', 'NotAllowedError'));
+                    }
+                };
+            }
+        }
+    } catch(e) {}
+
+    // 6. AudioContext fallback
+    try {
+        if (typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
+            window.AudioContext = window.webkitAudioContext;
+        } else if (typeof window.webkitAudioContext === 'undefined' && typeof window.AudioContext !== 'undefined') {
+            window.webkitAudioContext = window.AudioContext;
+        }
+    } catch(e) {}
+
+    // 7. YouTube & WebComponents ShadyCSS Shims
     // YouTube's custom-elements-es5-adapter and Polymer components call
     // window.ShadyCSS.prepareTemplate(...) and window.ShadyCSS.styleElement(...)
     // when window.ShadyCSS is present as a configuration object. If these methods
@@ -937,7 +1091,7 @@ void ServoViewHost::InjectPageEnhancements() {
         }
     }
 
-    // 2. MediaSource stub for adaptive video players (Instagram & YouTube)
+    // 8. MediaSource stub for adaptive video players (Instagram & YouTube)
     // When code accesses MediaSource.isTypeSupported, prevent ReferenceError.
     // Returning false signals that chunked MSE is unsupported so players
     // cleanly fall back to direct MP4 (<video src="...">) playback.
@@ -965,7 +1119,7 @@ void ServoViewHost::InjectPageEnhancements() {
         } catch(e) {}
     }
 
-    // 3. Instagram enhancements
+    // 9. Instagram enhancements
     if (/(^|\.)instagram\.com$/.test(location.hostname)) {
         if (!window.__servo_instagram_hooks_installed) {
             window.__servo_instagram_hooks_installed = true;

@@ -34,6 +34,10 @@ enum ControlIds {
     IDC_CHK_WEBGPU,
     IDC_CHK_WEBGL2,
     IDC_CHK_INDEXEDDB,
+    IDC_CHK_WEBRTC,
+    IDC_CHK_NOTIFICATIONS,
+    IDC_CHK_GEOLOCATION,
+    IDC_CHK_VARIABLE_FONTS,
     IDC_BTN_CLEAR_DATA,
     IDC_BTN_SAVE,
     IDC_BTN_CANCEL
@@ -47,6 +51,35 @@ static std::wstring GetSettingsIniPath() {
         return dir + L"\\settings.ini";
     }
     return L"settings.ini";
+}
+
+#pragma comment(lib, "advapi32.lib")
+
+static bool ReadRegistryDword(HKEY root, const wchar_t* subKey, const wchar_t* valueName, DWORD* outVal) {
+    HKEY hKey = nullptr;
+    if (RegOpenKeyExW(root, subKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        DWORD type = 0;
+        DWORD data = 0;
+        DWORD size = sizeof(DWORD);
+        LONG res = RegQueryValueExW(hKey, valueName, nullptr, &type, reinterpret_cast<LPBYTE>(&data), &size);
+        RegCloseKey(hKey);
+        if (res == ERROR_SUCCESS && (type == REG_DWORD || type == REG_BINARY)) {
+            *outVal = data;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool WriteRegistryDword(HKEY root, const wchar_t* subKey, const wchar_t* valueName, DWORD val) {
+    HKEY hKey = nullptr;
+    DWORD disposition = 0;
+    if (RegCreateKeyExW(root, subKey, 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, &disposition) == ERROR_SUCCESS) {
+        LONG res = RegSetValueExW(hKey, valueName, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&val), sizeof(DWORD));
+        RegCloseKey(hKey);
+        return res == ERROR_SUCCESS;
+    }
+    return false;
 }
 
 std::string SettingsDialog::EnsureSettingsPageExists() {
@@ -452,6 +485,10 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE9E9;</span><div class=\"card-info\"><h3>WebGPU Support</h3><p>Experimental GPU compute & rendering via wgpu.</p></div></div><div class=\"win-toggle\" id=\"toggle-webgpu\" onclick=\"toggleSwitch('webgpu')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-webgpu\">Off</span></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE790;</span><div class=\"card-info\"><h3>WebGL 2.0</h3><p>Hardware 3D graphics acceleration via ANGLE.</p></div></div><div class=\"win-toggle active\" id=\"toggle-webgl2\" onclick=\"toggleSwitch('webgl2')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-webgl2\">On</span></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE74C;</span><div class=\"card-info\"><h3>IndexedDB Storage</h3><p>Client-side structured offline database.</p></div></div><div class=\"win-toggle active\" id=\"toggle-idb\" onclick=\"toggleSwitch('idb')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-idb\">On</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE717;</span><div class=\"card-info\"><h3>WebRTC Real-Time Communication</h3><p>Real-time audio/video streaming and peer-to-peer data channels.</p></div></div><div class=\"win-toggle active\" id=\"toggle-webrtc\" onclick=\"toggleSwitch('webrtc')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-webrtc\">On</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xEA8F;</span><div class=\"card-info\"><h3>Web Notifications</h3><p>Allows web applications to deliver desktop system notifications.</p></div></div><div class=\"win-toggle active\" id=\"toggle-notifications\" onclick=\"toggleSwitch('notifications')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-notifications\">On</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE819;</span><div class=\"card-info\"><h3>Geolocation API</h3><p>Prompt-based website access to physical device location.</p></div></div><div class=\"win-toggle\" id=\"toggle-geolocation\" onclick=\"toggleSwitch('geolocation')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-geolocation\">Off</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE8D2;</span><div class=\"card-info\"><h3>Variable Fonts Typography</h3><p>Support for OpenType Font Variations dynamic styling axes.</p></div></div><div class=\"win-toggle active\" id=\"toggle-varfonts\" onclick=\"toggleSwitch('varfonts')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-varfonts\">On</span></div></div>\n"
                 "  </div>\n"
                 "  <div id=\"privacy\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">Privacy & Data</h1>\n"
@@ -522,6 +559,10 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  if (s.webgpu !== undefined) setToggleActive('webgpu', s.webgpu);\n"
                 "  if (s.webgl2 !== undefined) setToggleActive('webgl2', s.webgl2);\n"
                 "  if (s.idb !== undefined) setToggleActive('idb', s.idb);\n"
+                "  if (s.webrtc !== undefined) setToggleActive('webrtc', s.webrtc);\n"
+                "  if (s.notifications !== undefined) setToggleActive('notifications', s.notifications);\n"
+                "  if (s.geolocation !== undefined) setToggleActive('geolocation', s.geolocation);\n"
+                "  if (s.varfonts !== undefined) setToggleActive('varfonts', s.varfonts);\n"
                 "}\n"
                 "function save() {\n"
                 "  const f = getSegmentVal('font') || 'Inter';\n"
@@ -537,7 +578,11 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    sugg: isToggleActive('sugg'),\n"
                 "    webgpu: isToggleActive('webgpu'),\n"
                 "    webgl2: isToggleActive('webgl2'),\n"
-                "    idb: isToggleActive('idb')\n"
+                "    idb: isToggleActive('idb'),\n"
+                "    webrtc: isToggleActive('webrtc'),\n"
+                "    notifications: isToggleActive('notifications'),\n"
+                "    geolocation: isToggleActive('geolocation'),\n"
+                "    varfonts: isToggleActive('varfonts')\n"
                 "  };\n"
                 "  _setPref('servo_prefs', JSON.stringify(s));\n"
                 "  const t = document.getElementById('toast');\n"
@@ -591,6 +636,30 @@ BrowserSettings SettingsDialog::LoadSettings() {
     s.enableWebGL2 = GetPrivateProfileIntW(L"Experiments", L"EnableWebGL2", 1, ini.c_str()) != 0;
     s.enableIndexedDB = GetPrivateProfileIntW(L"Experiments", L"EnableIndexedDB", 1, ini.c_str()) != 0;
 
+    DWORD dwWebRTC = 1;
+    if (!ReadRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableWebRTC", &dwWebRTC)) {
+        dwWebRTC = GetPrivateProfileIntW(L"Experiments", L"EnableWebRTC", 1, ini.c_str());
+    }
+    s.enableWebRTC = (dwWebRTC != 0);
+
+    DWORD dwNotifications = 1;
+    if (!ReadRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableNotifications", &dwNotifications)) {
+        dwNotifications = GetPrivateProfileIntW(L"Experiments", L"EnableNotifications", 1, ini.c_str());
+    }
+    s.enableNotifications = (dwNotifications != 0);
+
+    DWORD dwGeolocation = 0;
+    if (!ReadRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableGeolocation", &dwGeolocation)) {
+        dwGeolocation = GetPrivateProfileIntW(L"Experiments", L"EnableGeolocation", 0, ini.c_str());
+    }
+    s.enableGeolocation = (dwGeolocation != 0);
+
+    DWORD dwVariableFonts = 1;
+    if (!ReadRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableVariableFonts", &dwVariableFonts)) {
+        dwVariableFonts = GetPrivateProfileIntW(L"Experiments", L"EnableVariableFonts", 1, ini.c_str());
+    }
+    s.enableVariableFonts = (dwVariableFonts != 0);
+
     return s;
 }
 
@@ -609,6 +678,18 @@ void SettingsDialog::SaveSettings(const BrowserSettings& s) {
     WritePrivateProfileStringW(L"Experiments", L"EnableWebGPU", s.enableWebGPU ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"Experiments", L"EnableWebGL2", s.enableWebGL2 ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"Experiments", L"EnableIndexedDB", s.enableIndexedDB ? L"1" : L"0", ini.c_str());
+
+    // Registry DWORD persistence for expanded web platform features
+    WriteRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableWebRTC", s.enableWebRTC ? 1 : 0);
+    WriteRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableNotifications", s.enableNotifications ? 1 : 0);
+    WriteRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableGeolocation", s.enableGeolocation ? 1 : 0);
+    WriteRegistryDword(HKEY_CURRENT_USER, L"Software\\Servo Browser", L"EnableVariableFonts", s.enableVariableFonts ? 1 : 0);
+
+    // INI persistence mirror
+    WritePrivateProfileStringW(L"Experiments", L"EnableWebRTC", s.enableWebRTC ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"Experiments", L"EnableNotifications", s.enableNotifications ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"Experiments", L"EnableGeolocation", s.enableGeolocation ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"Experiments", L"EnableVariableFonts", s.enableVariableFonts ? L"1" : L"0", ini.c_str());
 }
 
 void SettingsDialog::RegisterWindowClass(HINSTANCE hInstance) {
@@ -649,11 +730,32 @@ SettingsDialog::SettingsDialog(HWND parentHwnd, BrowserWindow* browserWindow)
     : m_hwnd(nullptr)
     , m_parentHwnd(parentHwnd)
     , m_browserWindow(browserWindow)
+    , m_titleFont(nullptr)
+    , m_headerFont(nullptr)
+    , m_bodyFont(nullptr)
+    , m_comboSearchEngine(nullptr)
+    , m_editHomePage(nullptr)
+    , m_editDownloadDir(nullptr)
+    , m_btnBrowseDir(nullptr)
+    , m_comboTheme(nullptr)
+    , m_comboBackdrop(nullptr)
+    , m_comboUserAgent(nullptr)
+    , m_chkSuggestions(nullptr)
+    , m_chkWebGPU(nullptr)
+    , m_chkWebGL2(nullptr)
+    , m_chkIndexedDB(nullptr)
+    , m_checkWebRTC(nullptr)
+    , m_checkNotifications(nullptr)
+    , m_checkGeolocation(nullptr)
+    , m_checkVariableFonts(nullptr)
+    , m_btnClearData(nullptr)
+    , m_btnSave(nullptr)
+    , m_btnCancel(nullptr)
 {
     m_settings = LoadSettings();
 
     int width = 560;
-    int height = 620;
+    int height = 670;
 
     RECT rcParent;
     GetWindowRect(parentHwnd, &rcParent);
@@ -819,7 +921,7 @@ void SettingsDialog::CreateControls() {
     SendMessageW(secExp, WM_SETFONT, (WPARAM)m_headerFont, TRUE);
     y += 24;
 
-    m_chkIndexedDB = CreateWindowW(L"BUTTON", L"Enable IndexedDB API (Session & Token Storage)",
+    m_chkIndexedDB = CreateWindowW(L"BUTTON", L"Enable IndexedDB API (Storage)",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
         x, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_INDEXEDDB, hInst, nullptr);
     SendMessageW(m_chkIndexedDB, BM_SETCHECK, m_settings.enableIndexedDB ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -827,17 +929,43 @@ void SettingsDialog::CreateControls() {
 
     m_chkWebGL2 = CreateWindowW(L"BUTTON", L"Enable WebGL2 3D Graphics",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 250, y, 220, 20, m_hwnd, (HMENU)IDC_CHK_WEBGL2, hInst, nullptr);
+        x + 250, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_WEBGL2, hInst, nullptr);
     SendMessageW(m_chkWebGL2, BM_SETCHECK, m_settings.enableWebGL2 ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkWebGL2, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
-    y += 26;
+    y += 24;
 
-    m_chkWebGPU = CreateWindowW(L"BUTTON", L"Enable Experimental WebGPU Pipeline",
+    m_chkWebGPU = CreateWindowW(L"BUTTON", L"Enable Experimental WebGPU",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x, y, 280, 20, m_hwnd, (HMENU)IDC_CHK_WEBGPU, hInst, nullptr);
+        x, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_WEBGPU, hInst, nullptr);
     SendMessageW(m_chkWebGPU, BM_SETCHECK, m_settings.enableWebGPU ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkWebGPU, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
-    y += 42;
+
+    m_checkWebRTC = CreateWindowW(L"BUTTON", L"Enable WebRTC PeerConnection",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        x + 250, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_WEBRTC, hInst, nullptr);
+    SendMessageW(m_checkWebRTC, BM_SETCHECK, m_settings.enableWebRTC ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_checkWebRTC, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
+    y += 24;
+
+    m_checkNotifications = CreateWindowW(L"BUTTON", L"Enable Web Notifications",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        x, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_NOTIFICATIONS, hInst, nullptr);
+    SendMessageW(m_checkNotifications, BM_SETCHECK, m_settings.enableNotifications ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_checkNotifications, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
+
+    m_checkGeolocation = CreateWindowW(L"BUTTON", L"Enable Geolocation API",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        x + 250, y, 240, 20, m_hwnd, (HMENU)IDC_CHK_GEOLOCATION, hInst, nullptr);
+    SendMessageW(m_checkGeolocation, BM_SETCHECK, m_settings.enableGeolocation ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_checkGeolocation, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
+    y += 24;
+
+    m_checkVariableFonts = CreateWindowW(L"BUTTON", L"Enable Variable Font Typography",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        x, y, 280, 20, m_hwnd, (HMENU)IDC_CHK_VARIABLE_FONTS, hInst, nullptr);
+    SendMessageW(m_checkVariableFonts, BM_SETCHECK, m_settings.enableVariableFonts ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_checkVariableFonts, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
+    y += 34;
 
     // --- Footer Action Buttons ---
     m_btnSave = CreateWindowW(L"BUTTON", L"Save & Apply",
@@ -911,6 +1039,10 @@ void SettingsDialog::ApplyAndClose() {
     m_settings.enableWebGPU = (SendMessageW(m_chkWebGPU, BM_GETCHECK, 0, 0) == BST_CHECKED);
     m_settings.enableWebGL2 = (SendMessageW(m_chkWebGL2, BM_GETCHECK, 0, 0) == BST_CHECKED);
     m_settings.enableIndexedDB = (SendMessageW(m_chkIndexedDB, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    m_settings.enableWebRTC = (SendMessageW(m_checkWebRTC, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    m_settings.enableNotifications = (SendMessageW(m_checkNotifications, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    m_settings.enableGeolocation = (SendMessageW(m_checkGeolocation, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    m_settings.enableVariableFonts = (SendMessageW(m_checkVariableFonts, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
     SaveSettings(m_settings);
 

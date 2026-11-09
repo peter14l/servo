@@ -5,6 +5,7 @@
 #include "omnibox.h"
 #include "browser_window.h"
 #include "fluent_theme.h"
+#include "browser_data.h"
 #include <commctrl.h>
 #include <windowsx.h>
 #include <vector>
@@ -464,27 +465,36 @@ void OmniboxToolbar::UpdateSuggestions(const std::wstring& query) {
     }
 
     // 2. Bookmarks matching query
-    auto bookmarks = BrowserData::GetBookmarks();
+    std::vector<BookmarkItem> bookmarks = BrowserData::LoadBookmarks();
     for (const auto& bm : bookmarks) {
-        int wlen = MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, nullptr, 0);
-        if (wlen > 1) {
-            std::wstring wurl(wlen - 1, 0);
-            MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, &wurl[0], wlen);
+        int wlenUrl = MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, nullptr, 0);
+        std::wstring wurl;
+        if (wlenUrl > 1) {
+            wurl.resize(wlenUrl - 1);
+            MultiByteToWideChar(CP_UTF8, 0, bm.url.c_str(), -1, &wurl[0], wlenUrl);
+        }
 
-            std::wstring lowerUrl = wurl;
-            std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::towlower);
-            std::wstring lowerTitle = bm.title;
-            std::transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::towlower);
+        int wlenTitle = MultiByteToWideChar(CP_UTF8, 0, bm.title.c_str(), -1, nullptr, 0);
+        std::wstring wtitle;
+        if (wlenTitle > 1) {
+            wtitle.resize(wlenTitle - 1);
+            MultiByteToWideChar(CP_UTF8, 0, bm.title.c_str(), -1, &wtitle[0], wlenTitle);
+        }
 
-            if (lowerUrl.find(lowerQuery) != std::wstring::npos || lowerTitle.find(lowerQuery) != std::wstring::npos) {
-                OmniboxSuggestion item;
-                item.type = OmniboxSuggestion::Type::Bookmark;
-                item.text = bm.title.empty() ? wurl : bm.title;
-                item.targetUrl = wurl;
-                item.secondary = wurl;
-                m_suggestions.push_back(item);
-                if (m_suggestions.size() >= 5) break;
-            }
+        std::wstring lowerUrl = wurl;
+        std::transform(lowerUrl.begin(), lowerUrl.end(), lowerUrl.begin(), ::towlower);
+        std::wstring lowerTitle = wtitle;
+        std::transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::towlower);
+
+        if ((!lowerUrl.empty() && lowerUrl.find(lowerQuery) != std::wstring::npos) ||
+            (!lowerTitle.empty() && lowerTitle.find(lowerQuery) != std::wstring::npos)) {
+            OmniboxSuggestion item;
+            item.type = OmniboxSuggestion::Type::Bookmark;
+            item.text = wtitle.empty() ? wurl : wtitle;
+            item.targetUrl = wurl;
+            item.secondary = wurl;
+            m_suggestions.push_back(item);
+            if (m_suggestions.size() >= 5) break;
         }
     }
 

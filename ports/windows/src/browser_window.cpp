@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "browser_window.h"
+#include "fluent_theme.h"
 #include "tab_strip.h"
 #include "omnibox.h"
 #include "find_bar.h"

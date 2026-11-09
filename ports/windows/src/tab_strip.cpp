@@ -330,6 +330,9 @@ void TabStrip::Paint(HDC hdc) {
     FillRect(memDC, &rc, bgBrush);
     DeleteObject(bgBrush);
 
+    HFONT oldFont = (HFONT)SelectObject(memDC, m_font);
+    SetBkMode(memDC, TRANSPARENT);
+
     if (!m_isVertical) {
         // Bottom dividing line across tab strip separating from Omnibox
         HPEN sepPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
@@ -345,8 +348,7 @@ void TabStrip::Paint(HDC hdc) {
         RECT toggleRc = m_toggleVerticalBtnBounds;
         DrawTextW(memDC, fluent::icons::SidePanel, -1, &toggleRc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-        HFONT oldFont = (HFONT)SelectObject(memDC, m_font);
-        SetBkMode(memDC, TRANSPARENT);
+        SelectObject(memDC, m_font);
 
         // Render Tabs with WinUI 3 TabView geometry
         for (size_t i = 0; i < m_tabs.size(); ++i) {

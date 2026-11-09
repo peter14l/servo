@@ -691,9 +691,14 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
     size_t len = 0;
     ServoError err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, nullptr, &len);
     if ((err == SERVO_ERROR_CAPACITY || err == SERVO_ERROR_OK) && len > 0 && width > 0 && height > 0) {
+        size_t requiredBytes = (size_t)width * height * 4;
+        if (len < requiredBytes) {
+            // Buffer does not contain uncompressed raw RGBA pixels (e.g. encoded ICO/PNG/SVG)
+            return;
+        }
         std::vector<uint8_t> buffer(len);
         err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, buffer.data(), &len);
-        if (err == SERVO_ERROR_OK) {
+        if (err == SERVO_ERROR_OK && buffer.size() >= requiredBytes) {
             BITMAPINFO bmi = {};
             bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
             bmi.bmiHeader.biWidth = width;
@@ -726,6 +731,8 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
 
                 if (m_browserWindow) {
                     m_browserWindow->OnTabFaviconUpdated(this, hBitmap, width, height);
+                } else {
+                    DeleteObject(hBitmap);
                 }
             }
         }

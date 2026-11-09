@@ -1040,41 +1040,43 @@ pub unsafe extern "C" fn servo_webview_get_favicon_image(
     buffer: *mut u8,
     buffer_len: *mut usize,
 ) -> ServoError {
-    if webview.is_null() || width.is_null() || height.is_null() || buffer_len.is_null() {
-        return ServoError::NullArgument;
-    }
-
-    let webview = unsafe { &*webview };
-    let Some(favicon) = webview.favicon() else {
-        return ServoError::NotFound;
-    };
-
-    unsafe {
-        *width = favicon.width;
-        *height = favicon.height;
-        if !format.is_null() {
-            *format = match favicon.format {
-                embedder_traits::PixelFormat::RGBA8 => 0,
-                embedder_traits::PixelFormat::BGRA8 => 1,
-                _ => 0,
-            };
+    ServoError::catch_ffi(|| {
+        if webview.is_null() || width.is_null() || height.is_null() || buffer_len.is_null() {
+            return ServoError::NullArgument;
         }
-    }
 
-    let data = favicon.data();
-    let needed = data.len();
+        let webview = unsafe { &*webview };
+        let Some(favicon) = webview.favicon() else {
+            return ServoError::NotFound;
+        };
 
-    unsafe {
-        if buffer.is_null() || *buffer_len < needed {
+        unsafe {
+            *width = favicon.width;
+            *height = favicon.height;
+            if !format.is_null() {
+                *format = match favicon.format {
+                    embedder_traits::PixelFormat::RGBA8 => 0,
+                    embedder_traits::PixelFormat::BGRA8 => 1,
+                    _ => 0,
+                };
+            }
+        }
+
+        let data = favicon.data();
+        let needed = data.len();
+
+        unsafe {
+            if buffer.is_null() || *buffer_len < needed {
+                *buffer_len = needed;
+                return ServoError::Capacity;
+            }
+
             *buffer_len = needed;
-            return ServoError::Capacity;
+            std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, needed);
         }
 
-        *buffer_len = needed;
-        std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, needed);
-    }
-
-    ServoError::Ok
+        ServoError::Ok
+    })
 }
 
 /// Returns the load status of `webview`.

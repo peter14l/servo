@@ -109,8 +109,13 @@ static const char* s_platformCompatScript = R"JS(
 static const char* s_appEnhancementsScript = R"JS(
 (function() {
     try {
+        // Escape hatch: `servo_noshim=1` in the URL disables app-specific shims
+        // so page behaviour can be A/B compared against stock web standards.
+        var shimsDisabled = typeof location !== 'undefined' && location.href &&
+            /[?&#]servo_noshim(=1)?(&|#|$)/.test(location.href);
+
         // 1. YouTube WebComponents ShadyCSS Shims (strictly scoped to YouTube)
-        if (typeof window !== 'undefined' && typeof location !== 'undefined' && location.hostname && /(^|\.)youtube\.com$/.test(location.hostname)) {
+        if (!shimsDisabled && typeof window !== 'undefined' && typeof location !== 'undefined' && location.hostname && /(^|\.)youtube\.com$/.test(location.hostname)) {
             function setupShadyCSS(obj) {
                 if (!obj || typeof obj !== 'object') obj = {};
                 var noop = function() {};
@@ -221,6 +226,118 @@ static const char* s_appEnhancementsScript = R"JS(
 })();
 )JS";
 
+// Script 3: Opt-in page diagnostics. Append `servo_diag=1` to the URL (query or
+// hash) to dump DOM / custom-element state and uncaught page errors to the log.
+static const char* s_diagnosticsScript = R"JS(
+(function() {
+    try {
+        if (typeof location === 'undefined' || !location.href || location.href.indexOf('servo_diag') === -1) return;
+        if (typeof window === 'undefined' || window.__servo_diag_installed) return;
+        window.__servo_diag_installed = true;
+
+        var errors = [];
+        function note(msg) {
+            if (errors.length < 30) errors.push(msg);
+            console.warn('[servo-diag] ' + msg);
+        }
+        window.addEventListener('error', function(e) {
+            note('error: ' + ((e && e.message) || 'unknown') +
+                 ' @ ' + ((e && e.filename) || '?') + ':' + ((e && e.lineno) || 0));
+        }, true);
+        window.addEventListener('unhandledrejection', function(e) {
+            var r = e && e.reason;
+            note('rejection: ' + String((r && (r.message || r)) || 'unknown'));
+        }, true);
+
+        function describe(el) {
+            var out = { tag: el.tagName ? el.tagName.toLowerCase() : '?' };
+            try {
+                var cs = getComputedStyle(el);
+                out.display = cs.display;
+                out.visibility = cs.visibility;
+                out.opacity = cs.opacity;
+            } catch (e) { out.display = 'computedStyle-failed'; }
+            var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+            out.rect = r ? (Math.round(r.width) + 'x' + Math.round(r.height)) : 'none';
+            out.shadow = el.shadowRoot ? ('yes:' + el.shadowRoot.childNodes.length) : 'no';
+            out.kids = el.children ? el.children.length : 0;
+            out.htmlLen = el.innerHTML ? el.innerHTML.length : 0;
+            return out;
+        }
+
+        function snapshot(tag) {
+            try {
+                var probe = [
+                    'ytd-app', 'ytd-search', 'ytd-two-column-search-results-renderer',
+                    'ytd-section-list-renderer', 'ytd-item-section-renderer',
+                    'ytd-video-renderer', 'ytd-thumbnail', 'ytd-rich-item-renderer',
+                    'yt-lockup-view-model', 'ytd-watch-metadata'
+                ];
+                var counts = [];
+                for (var i = 0; i < probe.length; i++) {
+                    var els = document.getElementsByTagName(probe[i]);
+                    var shadowed = 0;
+                    for (var j = 0; j < els.length; j++) if (els[j].shadowRoot) shadowed++;
+                    counts.push(probe[i] + '=' + els.length + '/' + shadowed);
+                }
+                var ce = 'n/a';
+                try {
+                    if (typeof customElements === 'undefined') {
+                        ce = 'no-api';
+                    } else {
+                        ce = 'video=' + (customElements.get('ytd-video-renderer') ? 'defined' : 'undefined') +
+                             ',itemSection=' + (customElements.get('ytd-item-section-renderer') ? 'defined' : 'undefined') +
+                             ',app=' + (customElements.get('ytd-app') ? 'defined' : 'undefined');
+                    }
+                } catch (e) { ce = 'probe-failed'; }
+                var io = typeof IntersectionObserver === 'undefined' ? 'missing' : 'present';
+                var data = 'missing';
+                try {
+                    data = window.ytInitialData
+                        ? ('keys=' + Object.keys(window.ytInitialData).slice(0, 6).join('|'))
+                        : 'missing';
+                } catch (e) { data = 'probe-failed'; }
+                var first = document.querySelector('ytd-video-renderer') ||
+                            document.querySelector('yt-lockup-view-model') ||
+                            document.querySelector('ytd-item-section-renderer');
+                var bodyText = (document.body && document.body.innerText)
+                    ? document.body.innerText.replace(/\s+/g, ' ').slice(0, 200)
+                    : '';
+                console.warn('[servo-diag:' + tag + '] url=' + location.href);
+                console.warn('[servo-diag:' + tag + '] shims=' +
+                    (/[?&#]servo_noshim(=1)?(&|#|$)/.test(location.href) ? 'disabled' : 'enabled'));
+                console.warn('[servo-diag:' + tag + '] counts(tag=n/shadow) ' + counts.join(' '));
+                console.warn('[servo-diag:' + tag + '] ce(' + ce + ') io=' + io + ' ytInitialData=' + data);
+                console.warn('[servo-diag:' + tag + '] scrollH=' +
+                    (document.documentElement ? document.documentElement.scrollHeight : -1) +
+                    ' first=' + (first ? JSON.stringify(describe(first)) : 'none'));
+                console.warn('[servo-diag:' + tag + '] bodyText="' + bodyText + '"');
+                var container = document.querySelector('ytd-search ytd-section-list-renderer #contents') ||
+                                document.querySelector('ytd-section-list-renderer #contents') ||
+                                document.querySelector('ytd-item-section-renderer #contents') ||
+                                document.querySelector('#contents');
+                var containerHtml = container && container.innerHTML
+                    ? container.innerHTML.replace(/\s+/g, ' ').slice(0, 400)
+                    : '';
+                console.warn('[servo-diag:' + tag + '] container(' +
+                    (container ? container.tagName.toLowerCase() + '#' + (container.id || '?') +
+                        ' kids=' + container.children.length : 'none') +
+                    ') html="' + containerHtml + '"');
+                console.warn('[servo-diag:' + tag + '] errors(' + errors.length + ') ' +
+                    JSON.stringify(errors.slice(0, 8)));
+            } catch (e) {
+                console.warn('[servo-diag:' + tag + '] snapshot failed: ' + String((e && e.message) || e));
+            }
+        }
+
+        var delays = [1500, 4000, 8000, 15000, 25000];
+        for (var d = 0; d < delays.length; d++) {
+            (function(ms) { setTimeout(function() { snapshot(ms + 'ms'); }, ms); })(delays[d]);
+        }
+    } catch (e) {}
+})();
+)JS";
+
 static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder* builder) {
     if (!servo || !builder) return;
     auto* ucm = servo_user_content_manager_create(servo);
@@ -264,6 +381,13 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
         servo_user_content_manager_add_script(ucm, appScript);
         servo_user_script_free(appScript);
         LogDebug("App enhancements user script registered successfully.");
+    }
+
+    auto* diagScript = servo_user_script_create(s_diagnosticsScript, "servo_diagnostics.js");
+    if (diagScript) {
+        servo_user_content_manager_add_script(ucm, diagScript);
+        servo_user_script_free(diagScript);
+        LogDebug("Opt-in diagnostics user script registered successfully.");
     }
 
     servo_webview_builder_set_user_content_manager(builder, ucm);
@@ -874,7 +998,8 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
     if (self && self->m_webview && (status == 1 || status == 2)) {
-        self->InjectPageEnhancements();
+        // InjectPageEnhancements disabled for crash diagnosis
+        // self->InjectPageEnhancements();
     }
 }
 

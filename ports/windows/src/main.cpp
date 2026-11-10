@@ -30,6 +30,8 @@
 #include <cstdio>
 #include <cstdarg>
 #include <share.h>
+#include <dbghelp.h>
+#pragma comment(lib, "dbghelp.lib")
 
 // Serializes log writes: the UI watchdog thread reports on the UI thread while
 // the UI thread itself may be inside `LogDebug`.
@@ -62,6 +64,39 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
                     (unsigned long long)((uintptr_t)addr - (uintptr_t)mbi.AllocationBase),
                     mbi.AllocationBase);
             }
+
+            // Initialize DbgHelp so we can symbolicate using the shipped PDBs.
+            HANDLE hProc = GetCurrentProcess();
+            wchar_t searchPath[MAX_PATH * 2] = {};
+            GetModuleFileNameW(nullptr, searchPath, MAX_PATH);
+            wchar_t* sp = wcsrchr(searchPath, L'\\');
+            if (sp) *sp = L'\0';
+            SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+            SymInitializeW(hProc, searchPath, TRUE);
+
+            auto symbolicate = [&](PVOID a) {
+                char buf[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(char)] = {};
+                PSYMBOL_INFO sym = (PSYMBOL_INFO)buf;
+                sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+                sym->MaxNameLen = MAX_SYM_NAME;
+                DWORD64 disp = 0;
+                if (SymFromAddr(hProc, (DWORD64)a, &disp, sym)) {
+                    fprintf(f, "    -> %s + 0x%llX", sym->Name, (unsigned long long)disp);
+                    IMAGEHLP_LINE64 line = {};
+                    line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+                    DWORD ldisp = 0;
+                    if (SymGetLineFromAddr64(hProc, (DWORD64)a, &ldisp, &line) && line.FileName) {
+                        fprintf(f, "  (%s:%lu)", line.FileName, (unsigned long)line.LineNumber);
+                    }
+                    fprintf(f, "\n");
+                } else {
+                    fprintf(f, "    -> (no symbol, err=%lu)\n", GetLastError());
+                }
+            };
+
+            fprintf(f, "Crash address symbol:\n");
+            symbolicate(addr);
+
             // Capture and log stack backtrace
             PVOID frames[32] = {};
             USHORT frameCount = CaptureStackBackTrace(0, 32, frames, nullptr);
@@ -80,7 +115,9 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
                 } else {
                     fprintf(f, "  [%u] %p\n", (unsigned)i, frames[i]);
                 }
+                symbolicate(frames[i]);
             }
+            SymCleanup(hProc);
             fflush(f);
             fclose(f);
         }

@@ -85,6 +85,7 @@ jobs:
           RUSTC_WRAPPER: ""
           SCCACHE_GHA_ENABLED: "false"
           MSYS_NO_PATHCONV: "1"
+          CARGO_PROFILE_RELEASE_DEBUG: "true"
         run: |
           set -euo pipefail
           PREFIX="$(pwd)/target/artifacts"
@@ -106,6 +107,9 @@ jobs:
 
           # Ensure import library exists in target/artifacts/lib
           find target/ -name "servo_capi.lib" -exec cp {} target/artifacts/lib/ \; || true
+          # Ship debug symbols (PDB) alongside the DLL for crash symbolication
+          find target/ -name "servo_capi.pdb" -exec cp {} target/artifacts/bin/ \; || true
+          find target/ -name "servo_capi.pdb" -exec cp {} target/artifacts/lib/ \; || true
           find target/ -name "servo_capi.dll.a" -exec cp {} target/artifacts/lib/ \; || true
           find target/ -name "servo_capi.dll" -exec cp {} target/artifacts/bin/ \; || true
 
@@ -163,6 +167,8 @@ jobs:
 
           # Copy servo_capi.dll and import lib
           Copy-Item "target/artifacts/bin/servo_capi.dll" -Destination $Dist/
+          # Copy debug symbols if present
+          if (Test-Path "target/artifacts/bin/servo_capi.pdb") { Copy-Item "target/artifacts/bin/servo_capi.pdb" -Destination $Dist/ }
           
           # Copy ANGLE DLLs
           Get-ChildItem -Path "target" -Filter "libEGL.dll" -Recurse | Select-Object -First 1 | Copy-Item -Destination $Dist/

@@ -707,12 +707,47 @@ impl servo_api::EventLoopWaker for ServoEventLoopWaker {
 
 /// Creates a new `ServoBuilder` populated with default values.
 ///
+static PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+pub fn ensure_panic_hook_installed() {
+    PANIC_HOOK_INIT.call_once(|| {
+        let prev_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let thread_name = std::thread::current().name().unwrap_or("<unknown>").to_string();
+            let payload = if let Some(s) = info.payload().downcast_ref::<&str>() {
+                (*s).to_string()
+            } else if let Some(s) = info.payload().downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Box<dyn Any>".to_string()
+            };
+            let location = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+                .unwrap_or_else(|| "unknown location".to_string());
+            let backtrace = std::backtrace::Backtrace::capture();
+            let msg = format!(
+                "=== SERVO RUST PANIC ===\nThread: {}\nLocation: {}\nPayload: {}\nBacktrace:\n{}\n========================\n",
+                thread_name, location, payload, backtrace
+            );
+            log::error!("{msg}");
+
+            if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
+                let p1 = std::path::PathBuf::from(&local_appdata).join("Programs").join("Servo Browser").join("servo_panic.log");
+                let _ = std::fs::write(&p1, msg.as_bytes());
+                let p2 = std::path::PathBuf::from(&local_appdata).join("Servo Browser").join("servo_panic.log");
+                let _ = std::fs::write(&p2, msg.as_bytes());
+            }
+            prev_hook(info);
+        }));
+    });
+}
+
 /// Returns a newly allocated `ServoBuilder` handle. The ownership of
 /// the returned handle is transferred to the caller, who must free it
 /// with [`servo_builder_free`] or consume it by passing it to
 /// [`servo_builder_build`]. Returns `NULL` on allocation failure.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_builder_create() -> *mut ServoBuilder {
+    ensure_panic_hook_installed();
     ServoError::catch_ffi_ptr(|| Box::into_raw(Box::new(ServoBuilder::default())))
 }
 

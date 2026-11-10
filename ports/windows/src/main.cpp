@@ -36,6 +36,29 @@
 static CRITICAL_SECTION g_log_cs;
 static bool g_log_cs_ready = false;
 
+static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
+    wchar_t logPath[MAX_PATH] = {};
+    if (GetModuleFileNameW(nullptr, logPath, MAX_PATH) > 0) {
+        wchar_t* lastSlash = wcsrchr(logPath, L'\\');
+        if (lastSlash) *(lastSlash + 1) = L'\0';
+        wcscat_s(logPath, L"servo_crash.log");
+        FILE* f = _wfsopen(logPath, L"a", _SH_DENYNO);
+        if (f) {
+            DWORD code = ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionCode : 0;
+            PVOID addr = ep->ExceptionRecord ? ep->ExceptionRecord->ExceptionAddress : nullptr;
+            fprintf(f, "=== UNHANDLED CRASH ===\nCode: 0x%08lX\nAddress: %p\n", (unsigned long)code, addr);
+            if (code == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2) {
+                fprintf(f, "Access type: %s, Target address: %p\n",
+                    ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" : "WRITE",
+                    (void*)ep->ExceptionRecord->ExceptionInformation[1]);
+            }
+            fflush(f);
+            fclose(f);
+        }
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void LogDebug(const char* fmt, ...) {
     static FILE* f = nullptr;
     if (!f) {
@@ -134,6 +157,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // Declare Per-Monitor V2 DPI awareness so Windows does not virtual-scale coordinates
     // and click hit-testing aligns 1:1 with WebRender's physical device pixels.
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+    // Install unhandled exception filter to capture crash offsets and parameters
+    SetUnhandledExceptionFilter(CrashHandler);
 
     g_main_thread_id = GetCurrentThreadId();
 
@@ -420,10 +446,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     InterlockedExchange(&g_ui_watchdog_running, 0);
     LogDebug("Message pump finished with code %d", (int)msg.wParam);
 
-    // 6. Cleanup
+    // 6. Cleanup: safely terminate process to avoid background thread teardown races
     delete browserWindow;
-    servo_free(servo);
-    CoUninitialize();
-
-    return static_cast<int>(msg.wParam);
+    ExitProcess(static_cast<UINT>(msg.wParam));
 }

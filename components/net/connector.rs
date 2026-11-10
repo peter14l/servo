@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, LazyLock};
@@ -119,7 +118,7 @@ impl<T> From<HyperRustlsHttpsConnector<T>> for InstrumentedConnector<T> {
 
 pub struct InstrumentedStream<T> {
     inner: MaybeHttpsStream<T>,
-    tls_info: RefCell<Option<TlsHandshakeInfo>>,
+    tls_info: Mutex<Option<TlsHandshakeInfo>>,
 }
 
 impl<T: Unpin> Unpin for InstrumentedStream<T> {}
@@ -179,7 +178,7 @@ where
         match stream {
             MaybeHttpsStream::Http(inner) => Self {
                 inner: MaybeHttpsStream::Http(inner),
-                tls_info: RefCell::new(None),
+                tls_info: Mutex::new(None),
             },
             MaybeHttpsStream::Https(tls_stream) => {
                 let (_tcp, tls) = tls_stream.inner().get_ref();
@@ -187,7 +186,7 @@ where
 
                 Self {
                     inner: MaybeHttpsStream::Https(tls_stream),
-                    tls_info: RefCell::new(Some(tls_info)),
+                    tls_info: Mutex::new(Some(tls_info)),
                 }
             },
         }
@@ -210,7 +209,7 @@ where
                 }
             },
         };
-        if let Some(info) = self.tls_info.borrow_mut().take() {
+        if let Some(info) = self.tls_info.lock().take() {
             connected.extra(info)
         } else {
             connected
@@ -673,6 +672,6 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
         // limit controls the maximum idle connections per host, which we still don't want to grow
         // without bound.
         .pool_max_idle_per_host(6)
-        .pool_idle_timeout(Duration::from_secs(15))
+        .pool_idle_timeout(Duration::from_secs(90))
         .build(InstrumentedConnector::from(connector))
 }

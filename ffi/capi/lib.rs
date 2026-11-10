@@ -731,10 +731,11 @@ pub fn ensure_panic_hook_installed() {
             log::error!("{msg}");
 
             if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
-                let p1 = std::path::PathBuf::from(&local_appdata).join("Programs").join("Servo Browser").join("servo_panic.log");
+                let p1 = std::path::PathBuf::from(&local_appdata)
+                    .join("Programs")
+                    .join("Servo Browser")
+                    .join("servo_panic.log");
                 let _ = std::fs::write(&p1, msg.as_bytes());
-                let p2 = std::path::PathBuf::from(&local_appdata).join("Servo Browser").join("servo_panic.log");
-                let _ = std::fs::write(&p2, msg.as_bytes());
             }
             prev_hook(info);
         }));

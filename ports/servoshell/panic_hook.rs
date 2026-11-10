@@ -55,7 +55,7 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
     if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
         let crash_path = std::path::PathBuf::from(local_app_data)
             .join("Programs")
-            .join("ServoBrowser")
+            .join("Servo Browser")
             .join("servo_crash.log");
         if let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)

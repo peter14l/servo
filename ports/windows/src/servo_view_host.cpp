@@ -647,7 +647,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
-    if (self && self->m_webview && status == 2) {
+    if (self && self->m_webview && (status == 1 || status == 2)) {
         self->InjectPageEnhancements();
     }
 }

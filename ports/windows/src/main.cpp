@@ -152,6 +152,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         FILE* fpOut = nullptr;
         _wfreopen_s(&fpOut, engLog.c_str(), L"a", stdout);
 
+        if (fpErr) {
+            setvbuf(fpErr, nullptr, _IONBF, 0);
+        }
+        if (fpOut) {
+            setvbuf(fpOut, nullptr, _IONBF, 0);
+        }
+
         HANDLE hLogFile = CreateFileW(
             engLog.c_str(),
             FILE_APPEND_DATA,

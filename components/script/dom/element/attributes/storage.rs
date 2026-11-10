@@ -116,7 +116,7 @@ impl AttrName {
 }
 
 /// Lightweight attribute storage that avoids allocating a full DOM `Attr` node.
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct ContentAttributeData {
     pub identifier: AttrName,
     pub value: AttrValue,
@@ -409,6 +409,9 @@ impl AttributeStorage {
     ///
     /// This method carefully splits the mutable borrow around the `Attr::new()`
     /// allocation so that GC tracing can safely borrow the storage.
+    /// It also guards against re-entrant borrows (e.g. when an outer iterator or
+    /// accessor holds an immutable borrow on this attribute storage), preventing
+    /// fatal "RefCell already borrowed" panics.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn ensure_dom(
         &self,
@@ -417,22 +420,39 @@ impl AttributeStorage {
         element: &Element,
     ) -> DomRoot<Attr> {
         // Fast path: already materialized.
-        if let AttributeEntry::Dom(attr) = &self.0.borrow()[index] {
-            return DomRoot::from_ref(&**attr);
+        if let Ok(entries) = self.0.try_borrow() {
+            if let Some(AttributeEntry::Dom(attr)) = entries.get(index) {
+                return DomRoot::from_ref(&**attr);
+            }
         }
 
         // Extract the raw data, dropping the mutable borrow before allocating.
-        let data = {
-            let mut entries = self.0.borrow_mut();
-            let placeholder = AttributeEntry::Raw(ContentAttributeData {
-                identifier: AttrName::Unqualified(html5ever::local_name!("")),
-                value: AttrValue::String(String::new()),
-            });
-            let old = std::mem::replace(&mut entries[index], placeholder);
-            match old {
-                AttributeEntry::Raw(data) => data,
-                _ => unreachable!(),
-            }
+        // We attempt try_borrow_mut first (the optimal zero-clone path).
+        // If an outer read borrow is active on self.0, we fallback to safe clone via
+        // shared borrow, preventing a fatal "RefCell already borrowed" panic.
+        let data = match self.0.try_borrow_mut() {
+            Ok(mut entries) => {
+                if let Some(AttributeEntry::Dom(attr)) = entries.get(index) {
+                    return DomRoot::from_ref(&**attr);
+                }
+                let placeholder = AttributeEntry::Raw(ContentAttributeData {
+                    identifier: AttrName::Unqualified(html5ever::local_name!("")),
+                    value: AttrValue::String(String::new()),
+                });
+                let old = std::mem::replace(&mut entries[index], placeholder);
+                match old {
+                    AttributeEntry::Raw(data) => data,
+                    _ => unreachable!(),
+                }
+            },
+            Err(_) => {
+                let entries = self.0.borrow();
+                match entries.get(index) {
+                    Some(AttributeEntry::Dom(attr)) => return DomRoot::from_ref(&**attr),
+                    Some(AttributeEntry::Raw(data)) => data.clone(),
+                    None => unreachable!("index out of bounds in ensure_dom"),
+                }
+            },
         };
 
         let doc = element.owner_document();
@@ -448,7 +468,14 @@ impl AttributeStorage {
             Some(element),
         );
 
-        self.0.borrow_mut()[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
+        // Attempt to store materialized Dom<Attr> back into storage.
+        // If storage is currently borrowed, skip caching in this cycle; it will be cached later.
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            if index < entries.len() {
+                entries[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
+            }
+        }
+
         attr
     }
 }

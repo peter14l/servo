@@ -131,6 +131,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     (void)lpCmdLine;
     (void)nCmdShow;
 
+    // Declare Per-Monitor V2 DPI awareness so Windows does not virtual-scale coordinates
+    // and click hit-testing aligns 1:1 with WebRender's physical device pixels.
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
     g_main_thread_id = GetCurrentThreadId();
 
     InitializeCriticalSection(&g_log_cs);

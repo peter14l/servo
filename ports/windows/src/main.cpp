@@ -52,6 +52,13 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
                     ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" : "WRITE",
                     (void*)ep->ExceptionRecord->ExceptionInformation[1]);
             }
+            // Capture and log stack backtrace
+            PVOID frames[32] = {};
+            USHORT frameCount = CaptureStackBackTrace(0, 32, frames, nullptr);
+            fprintf(f, "Stack backtrace (%u frames):\n", (unsigned)frameCount);
+            for (USHORT i = 0; i < frameCount; ++i) {
+                fprintf(f, "  [%u] %p\n", (unsigned)i, frames[i]);
+            }
             fflush(f);
             fclose(f);
         }
@@ -447,6 +454,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     LogDebug("Message pump finished with code %d", (int)msg.wParam);
 
     // 6. Cleanup: safely terminate process to avoid background thread teardown races
-    delete browserWindow;
+    // Do not run C++ destructors on destroyed HWNDs, exit directly.
     ExitProcess(static_cast<UINT>(msg.wParam));
 }

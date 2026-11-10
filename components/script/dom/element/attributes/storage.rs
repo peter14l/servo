@@ -421,38 +421,26 @@ impl AttributeStorage {
     ) -> DomRoot<Attr> {
         // Fast path: already materialized.
         if let Ok(entries) = self.0.try_borrow() {
-            if let Some(AttributeEntry::Dom(attr)) = entries.get(index) {
-                return DomRoot::from_ref(&**attr);
+            if let Some(entry) = entries.get(index) {
+                if let AttributeEntry::Dom(attr) = entry {
+                    return DomRoot::from_ref(&**attr);
+                }
             }
         }
 
-        // Extract the raw data, dropping the mutable borrow before allocating.
-        // We attempt try_borrow_mut first (the optimal zero-clone path).
-        // If an outer read borrow is active on self.0, we fallback to safe clone via
-        // shared borrow, preventing a fatal "RefCell already borrowed" panic.
-        let data = match self.0.try_borrow_mut() {
-            Ok(mut entries) => {
-                if let Some(AttributeEntry::Dom(attr)) = entries.get(index) {
-                    return DomRoot::from_ref(&**attr);
-                }
-                let placeholder = AttributeEntry::Raw(ContentAttributeData {
-                    identifier: AttrName::Unqualified(html5ever::local_name!("")),
-                    value: AttrValue::String(String::new()),
-                });
-                let old = std::mem::replace(&mut entries[index], placeholder);
-                match old {
-                    AttributeEntry::Raw(data) => data,
-                    _ => unreachable!(),
-                }
-            },
-            Err(_) => {
-                let entries = self.0.borrow();
-                match entries.get(index) {
-                    Some(AttributeEntry::Dom(attr)) => return DomRoot::from_ref(&**attr),
-                    Some(AttributeEntry::Raw(data)) => data.clone(),
-                    None => unreachable!("index out of bounds in ensure_dom"),
-                }
-            },
+        // Extract the attribute data safely without inserting destructible placeholders.
+        // We clone the lightweight ContentAttributeData with an immutable borrow and
+        // immediately drop the borrow before allocating the DOM node.
+        let data = {
+            let entries = match self.0.try_borrow() {
+                Ok(entries) => entries,
+                Err(_) => self.0.borrow(),
+            };
+            match entries.get(index) {
+                Some(AttributeEntry::Dom(attr)) => return DomRoot::from_ref(&**attr),
+                Some(AttributeEntry::Raw(data)) => data.clone(),
+                None => unreachable!("index out of bounds in ensure_dom"),
+            }
         };
 
         let doc = element.owner_document();
@@ -468,8 +456,9 @@ impl AttributeStorage {
             Some(element),
         );
 
-        // Attempt to store materialized Dom<Attr> back into storage.
-        // If storage is currently borrowed, skip caching in this cycle; it will be cached later.
+        // Store materialized Dom<Attr> back into storage.
+        // If storage is currently borrowed by layout or script, skip caching in this cycle;
+        // it will be safely materialized or cached on subsequent access.
         if let Ok(mut entries) = self.0.try_borrow_mut() {
             if index < entries.len() {
                 entries[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
@@ -482,12 +471,15 @@ impl AttributeStorage {
 
 // Safety: Only Dom entries contain GC-traced Dom<Attr> pointers.
 // Raw entries have no pointers to trace.
+// We use try_borrow() so GC tracing never panics if attribute storage is being mutated.
 #[expect(unsafe_code)]
 unsafe impl crate::dom::bindings::trace::JSTraceable for AttributeStorage {
     unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
-        for entry in self.0.borrow().iter() {
-            if let AttributeEntry::Dom(attr) = entry {
-                unsafe { js::rust::Trace::trace(attr, trc) };
+        if let Ok(entries) = self.0.try_borrow() {
+            for entry in entries.iter() {
+                if let AttributeEntry::Dom(attr) = entry {
+                    unsafe { js::rust::Trace::trace(attr, trc) };
+                }
             }
         }
     }

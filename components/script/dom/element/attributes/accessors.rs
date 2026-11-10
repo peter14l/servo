@@ -358,20 +358,27 @@ impl Element {
         target_element: &Element,
     ) {
         // Step 2.5. For each attribute of node’s attribute list:
-        let attribute_count = self.attrs().borrow().len();
-        target_element.attrs().reserve_exact(attribute_count);
-        for attr in self.attrs().borrow().iter() {
-            // Step 2.5.1. Let copyAttribute be the result of cloning a single node given attribute, document, and null.
-            let new_value = self.compute_attribute_value_with_style_fast_path(attr);
-            // Step 2.5.2. Append copyAttribute to copy.
-            target_element.push_new_attribute(
-                cx,
-                attr.local_name().clone(),
-                new_value,
-                attr.name().clone(),
-                attr.namespace().clone(),
-                attr.prefix().cloned(),
-            );
+        // We collect all attribute parts while holding a brief read borrow on self,
+        // and drop the borrow before calling push_new_attribute so that target_element
+        // (even if aliasing self) is never mutably modified while borrowed.
+        let attrs: Vec<_> = self
+            .attrs()
+            .borrow()
+            .iter()
+            .map(|attr| {
+                (
+                    attr.local_name().clone(),
+                    self.compute_attribute_value_with_style_fast_path(attr),
+                    attr.name().clone(),
+                    attr.namespace().clone(),
+                    attr.prefix().cloned(),
+                )
+            })
+            .collect();
+
+        target_element.attrs().reserve_exact(attrs.len());
+        for (local_name, new_value, name, namespace, prefix) in attrs {
+            target_element.push_new_attribute(cx, local_name, new_value, name, namespace, prefix);
         }
     }
 }

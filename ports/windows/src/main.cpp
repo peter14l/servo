@@ -245,6 +245,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     ServoOptions* options = servo_options_create();
     if (options) {
         servo_options_set_multiprocess(options, false);
+        servo_options_set_hard_fail(options, false);
 
         wchar_t localAppData[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {

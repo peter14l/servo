@@ -52,12 +52,34 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
                     ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" : "WRITE",
                     (void*)ep->ExceptionRecord->ExceptionInformation[1]);
             }
+            MEMORY_BASIC_INFORMATION mbi = {};
+            if (VirtualQuery(addr, &mbi, sizeof(mbi))) {
+                wchar_t modPath[MAX_PATH] = {};
+                GetModuleFileNameW((HMODULE)mbi.AllocationBase, modPath, MAX_PATH);
+                wchar_t* modName = wcsrchr(modPath, L'\\');
+                fprintf(f, "Crash module: %ls + 0x%llX (base: %p)\n",
+                    modName ? modName + 1 : modPath,
+                    (unsigned long long)((uintptr_t)addr - (uintptr_t)mbi.AllocationBase),
+                    mbi.AllocationBase);
+            }
             // Capture and log stack backtrace
             PVOID frames[32] = {};
             USHORT frameCount = CaptureStackBackTrace(0, 32, frames, nullptr);
             fprintf(f, "Stack backtrace (%u frames):\n", (unsigned)frameCount);
             for (USHORT i = 0; i < frameCount; ++i) {
-                fprintf(f, "  [%u] %p\n", (unsigned)i, frames[i]);
+                MEMORY_BASIC_INFORMATION fmbi = {};
+                if (VirtualQuery(frames[i], &fmbi, sizeof(fmbi))) {
+                    wchar_t fmodPath[MAX_PATH] = {};
+                    GetModuleFileNameW((HMODULE)fmbi.AllocationBase, fmodPath, MAX_PATH);
+                    wchar_t* fmodName = wcsrchr(fmodPath, L'\\');
+                    fprintf(f, "  [%u] %ls + 0x%llX (%p)\n",
+                        (unsigned)i,
+                        fmodName ? fmodName + 1 : fmodPath,
+                        (unsigned long long)((uintptr_t)frames[i] - (uintptr_t)fmbi.AllocationBase),
+                        frames[i]);
+                } else {
+                    fprintf(f, "  [%u] %p\n", (unsigned)i, frames[i]);
+                }
             }
             fflush(f);
             fclose(f);

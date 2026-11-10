@@ -101,33 +101,6 @@ static const char* s_platformCompatScript = R"JS(
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
         }
-
-        // 10. Defensive shield for CSSStyleSheet.prototype.cssRules cross-origin security errors
-        if (typeof CSSStyleSheet !== 'undefined' && CSSStyleSheet.prototype) {
-            try {
-                var wrapRulesGetter = function(prop) {
-                    var desc = Object.getOwnPropertyDescriptor(CSSStyleSheet.prototype, prop);
-                    if (desc && desc.get) {
-                        var orig = desc.get;
-                        Object.defineProperty(CSSStyleSheet.prototype, prop, {
-                            configurable: true, enumerable: true,
-                            get: function() {
-                                try {
-                                    return orig.call(this);
-                                } catch(e) {
-                                    if (e && (e.name === 'SecurityError' || (e.message && (e.message.indexOf('insecure') !== -1 || e.message.indexOf('cross-origin') !== -1)))) {
-                                        return null;
-                                    }
-                                    throw e;
-                                }
-                            }
-                        });
-                    }
-                };
-                wrapRulesGetter('cssRules');
-                wrapRulesGetter('rules');
-            } catch(e) {}
-        }
     } catch(e) {}
 })();
 )JS";

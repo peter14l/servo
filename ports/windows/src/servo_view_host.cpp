@@ -998,8 +998,7 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
     }
     if (self && self->m_webview && (status == 1 || status == 2)) {
-        // InjectPageEnhancements disabled for crash diagnosis
-        // self->InjectPageEnhancements();
+        self->InjectPageEnhancements();
     }
 }
 

@@ -107,6 +107,20 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
 
     // 3. Explicit scheme present
     if (input.find("://") != std::string::npos || input.rfind("about:", 0) == 0) {
+        // Ensure spaces in explicit URLs (e.g. query strings) are percent-encoded
+        // because WHATWG url::Url::parse rejects raw spaces with ServoError::InvalidState.
+        if (input.find(' ') != std::string::npos) {
+            std::string encoded;
+            encoded.reserve(input.size() + 16);
+            for (char c : input) {
+                if (c == ' ') {
+                    encoded += "%20";
+                } else {
+                    encoded += c;
+                }
+            }
+            return encoded;
+        }
         return input;
     }
 

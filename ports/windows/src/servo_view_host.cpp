@@ -101,6 +101,33 @@ static const char* s_platformCompatScript = R"JS(
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
         }
+
+        // 10. Defensive shield for CSSStyleSheet.prototype.cssRules cross-origin security errors
+        if (typeof CSSStyleSheet !== 'undefined' && CSSStyleSheet.prototype) {
+            try {
+                var wrapRulesGetter = function(prop) {
+                    var desc = Object.getOwnPropertyDescriptor(CSSStyleSheet.prototype, prop);
+                    if (desc && desc.get) {
+                        var orig = desc.get;
+                        Object.defineProperty(CSSStyleSheet.prototype, prop, {
+                            configurable: true, enumerable: true,
+                            get: function() {
+                                try {
+                                    return orig.call(this);
+                                } catch(e) {
+                                    if (e && (e.name === 'SecurityError' || (e.message && (e.message.indexOf('insecure') !== -1 || e.message.indexOf('cross-origin') !== -1)))) {
+                                        return null;
+                                    }
+                                    throw e;
+                                }
+                            }
+                        });
+                    }
+                };
+                wrapRulesGetter('cssRules');
+                wrapRulesGetter('rules');
+            } catch(e) {}
+        }
     } catch(e) {}
 })();
 )JS";
@@ -126,6 +153,24 @@ static const char* s_appEnhancementsScript = R"JS(
                 if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
                 if (obj.nativeShadow === undefined) obj.nativeShadow = true;
                 if (obj.nativeCss === undefined) obj.nativeCss = true;
+                if (!obj.ScopingShim) {
+                    obj.ScopingShim = {
+                        prepareTemplate: noop,
+                        prepareTemplateStyles: noop,
+                        prepareTemplateDom: noop,
+                        styleElement: noop,
+                        styleSubtree: noop,
+                        styleDocument: noop,
+                        flush: noop,
+                        flushCustomStyles: noop,
+                        getComputedStyleValue: emptyStr
+                    };
+                }
+                if (!obj.CustomStyleInterface) {
+                    obj.CustomStyleInterface = {
+                        addCustomStyle: noop
+                    };
+                }
                 return obj;
             }
 
@@ -140,6 +185,10 @@ static const char* s_appEnhancementsScript = R"JS(
                         set: function(val) { _currentShady = setupShadyCSS(val); }
                     });
                 } catch(e) { window.ShadyCSS = _currentShady; }
+            }
+
+            if (typeof window.customElements !== 'undefined' && !window.customElements.polyfillWrapFlushCallback) {
+                window.customElements.polyfillWrapFlushCallback = function(fn) { fn(); };
             }
         }
 
@@ -204,37 +253,18 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
     auto* ucm = servo_user_content_manager_create(servo);
     if (!ucm) return;
 
-    // Hardbound Layer 1: Universal content visibility and native font fallback guarantee.
+    // Universal font fallback mappings and selective visibility guarantees:
     // 1. Map web font names (Mona Sans, Hubot Sans) to local native fonts (Segoe UI, Arial)
     //    so glyphs are never invisible during variable font loading or format stalls.
-    // 2. Override opacity: 0 on hero/intro containers across modern SPAs.
-    // 3. Ensure button labels, headings, body text, and SVG icons remain fully visible.
+    // 2. Unhide GitHub Intro hero text without affecting hidden menus or icon fonts.
     const char* s_userCss =
         "@font-face { font-family: 'Mona Sans'; src: local('Segoe UI'), local('Arial'); }\n"
         "@font-face { font-family: 'Hubot Sans'; src: local('Segoe UI'), local('Arial'); }\n"
         "@font-face { font-family: 'Mona Sans Mono'; src: local('Consolas'), local('Courier New'); }\n"
-        "html, body, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, textarea, select, li, td, th, label {"
-        "    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Emoji', Arial, sans-serif !important;"
-        "}\n"
-        "[class*=\"Intro__content\"], [class*=\"Intro__mona\"], "
-        "[class*=\"Intro\"], [class*=\"intro\"], "
-        "[class*=\"hero\"], [class*=\"Hero\"], "
-        "[data-testid*=\"hero\"], [data-testid*=\"Hero\"], "
-        "[id*=\"hero\"], [id*=\"Hero\"], "
-        "main [style*=\"opacity\"], [role=\"main\"] [style*=\"opacity\"], "
-        "article [style*=\"opacity\"], section [style*=\"opacity\"] {"
-        "    opacity: 1 !important;"
-        "    visibility: visible !important;"
-        "}\n"
-        "[class*=\"Primer_Brand__Heading\"], [class*=\"Primer_Brand__Text\"], "
-        "[class*=\"Button__text\"], [class*=\"Button--label\"], button, input, label, p, h1, h2, h3, h4, h5, h6 {"
-        "    visibility: visible !important;"
-        "    opacity: 1 !important;"
-        "}\n"
-        "svg[class*=\"octicon\"], svg[data-component=\"Octicon\"] {"
-        "    visibility: visible !important;"
-        "    opacity: 1 !important;"
-        "}";
+        "[class*=\"Intro__content\"], [class*=\"Intro__mona\"] {\n"
+        "    opacity: 1 !important;\n"
+        "    visibility: visible !important;\n"
+        "}\n";
 
     auto* ss = servo_user_style_sheet_create(s_userCss, "about:blank");
     if (ss) {

@@ -106,6 +106,7 @@ void test_raw_window_handle_layout() {
 void test_omnibox_normalization_edge_cases() {
     TEST_ASSERT(NormalizeOmniboxInput("https://servo.org") == "https://servo.org", "Standard HTTPS URL");
     TEST_ASSERT(NormalizeOmniboxInput("http://servo.org/docs") == "http://servo.org/docs", "Standard HTTP URL");
+    TEST_ASSERT(NormalizeOmniboxInput("https://www.youtube.com/results?search_query=hello world") == "https://www.youtube.com/results?search_query=hello%20world", "Explicit URL with unencoded space query");
     TEST_ASSERT(NormalizeOmniboxInput("about:blank") == "about:blank", "about:blank scheme");
     TEST_ASSERT(NormalizeOmniboxInput("about:version") == "about:version", "about:version scheme");
 

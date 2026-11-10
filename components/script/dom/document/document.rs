@@ -3418,13 +3418,13 @@ impl Document {
         if self.window().font_context().web_fonts_still_loading() != 0 && !font_timeout_expired {
             return false;
         }
-        if self.ReadyState() == DocumentReadyState::Loading {
+        if self.ReadyState() == DocumentReadyState::Loading && !font_timeout_expired {
             return false;
         }
-        if !self.restyle_reason(cx.no_gc()).is_empty() {
+        if !self.restyle_reason(cx.no_gc()).is_empty() && !font_timeout_expired {
             return false;
         }
-        if !self.rendering_update_reasons.get().is_empty() {
+        if !self.rendering_update_reasons.get().is_empty() && !font_timeout_expired {
             return false;
         }
 

@@ -11,15 +11,208 @@
 
 static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 
+// Script 1: Platform Web Standards Compatibility
+static const char* s_platformCompatScript = R"JS(
+(function() {
+    try {
+        // 1. Cooperative Scheduling (requestIdleCallback)
+        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'undefined') {
+            window.requestIdleCallback = function(cb) {
+                var start = Date.now();
+                return setTimeout(function() {
+                    cb({ didTimeout: false, timeRemaining: function() { return Math.max(0, 50 - (Date.now() - start)); } });
+                }, 1);
+            };
+            window.cancelIdleCallback = function(id) { clearTimeout(id); };
+        }
+
+        // 2. Notification API safe fallback
+        if (typeof window !== 'undefined' && typeof window.Notification === 'undefined') {
+            window.Notification = function() {};
+            window.Notification.permission = 'default';
+            window.Notification.requestPermission = function(cb) {
+                var p = Promise.resolve('default');
+                if (typeof cb === 'function') p.then(cb);
+                return p;
+            };
+        }
+
+        // 3. AudioContext standard fallback
+        if (typeof window !== 'undefined' && typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
+            window.AudioContext = window.webkitAudioContext;
+        }
+
+        // 4. ResizeObserver defensive shield
+        if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
+            window.ResizeObserver = function(callback) {
+                this.observe = function() {};
+                this.unobserve = function() {};
+                this.disconnect = function() {};
+            };
+        }
+
+        // 5. BroadcastChannel safe fallback
+        if (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'undefined') {
+            window.BroadcastChannel = function(name) {
+                this.name = name;
+                this.onmessage = null;
+                this.onmessageerror = null;
+                this.postMessage = function() {};
+                this.close = function() {};
+                this.addEventListener = function() {};
+                this.removeEventListener = function() {};
+                this.dispatchEvent = function() { return false; };
+            };
+        }
+
+        // 6. ReportingObserver safe fallback
+        if (typeof window !== 'undefined' && typeof window.ReportingObserver === 'undefined') {
+            window.ReportingObserver = function(callback, options) {
+                this.observe = function() {};
+                this.disconnect = function() {};
+                this.takeRecords = function() { return []; };
+            };
+        }
+
+        // 7. Clipboard API safe fallback
+        if (typeof navigator !== 'undefined' && !navigator.clipboard) {
+            navigator.clipboard = {
+                readText: function() { return Promise.resolve(''); },
+                writeText: function(text) { return Promise.resolve(); }
+            };
+        }
+
+        // 8. Web Share API safe fallback
+        if (typeof navigator !== 'undefined' && !navigator.share) {
+            navigator.share = function() { return Promise.reject(new Error('Share not supported')); };
+        }
+
+        // 9. Alert / Confirm dialog limiter to protect against spam loops
+        if (typeof window !== 'undefined' && !window.__servo_dialog_limiter_installed) {
+            window.__servo_dialog_limiter_installed = true;
+            var _dlgCount = 0;
+            var _lastDlg = 0;
+            var _origAlert = window.alert;
+            window.alert = function() {
+                var now = Date.now();
+                if (now - _lastDlg > 2000) _dlgCount = 0;
+                _lastDlg = now;
+                if (++_dlgCount > 4) return;
+                return _origAlert ? _origAlert.apply(this, arguments) : undefined;
+            };
+        }
+    } catch(e) {}
+})();
+)JS";
+
+// Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Video MediaSource, Instagram DM hooks)
+static const char* s_appEnhancementsScript = R"JS(
+(function() {
+    try {
+        // 1. YouTube WebComponents ShadyCSS Shims (strictly scoped to YouTube)
+        if (typeof window !== 'undefined' && typeof location !== 'undefined' && location.hostname && /(^|\.)youtube\.com$/.test(location.hostname)) {
+            function setupShadyCSS(obj) {
+                if (!obj || typeof obj !== 'object') obj = {};
+                var noop = function() {};
+                var emptyStr = function() { return ''; };
+                if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
+                if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
+                if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
+                if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
+                if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
+                if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
+                if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
+                if (typeof obj.flush !== 'function') obj.flush = noop;
+                if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
+                if (obj.nativeShadow === undefined) obj.nativeShadow = true;
+                if (obj.nativeCss === undefined) obj.nativeCss = true;
+                return obj;
+            }
+
+            if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
+            if (!window.__shadycss_trap_installed) {
+                window.__shadycss_trap_installed = true;
+                var _currentShady = setupShadyCSS(window.ShadyCSS || {});
+                try {
+                    Object.defineProperty(window, 'ShadyCSS', {
+                        configurable: true, enumerable: true,
+                        get: function() { return _currentShady; },
+                        set: function(val) { _currentShady = setupShadyCSS(val); }
+                    });
+                } catch(e) { window.ShadyCSS = _currentShady; }
+            }
+        }
+
+        // 2. MediaSource stub for video players
+        if (typeof window !== 'undefined' && typeof window.MediaSource === 'undefined') {
+            var DummyMediaSource = function() { this.sourceBuffers = []; this.activeSourceBuffers = []; this.readyState = 'closed'; };
+            DummyMediaSource.isTypeSupported = function() { return false; };
+            DummyMediaSource.prototype.addSourceBuffer = function() { throw new DOMException('Not supported', 'NotSupportedError'); };
+            DummyMediaSource.prototype.endOfStream = function() {};
+            window.MediaSource = DummyMediaSource;
+            window.WebKitMediaSource = DummyMediaSource;
+        }
+
+        // 3. Instagram DM hooks and chat scroller
+        if (typeof location !== 'undefined' && location.hostname && /(^|\.)instagram\.com$/.test(location.hostname)) {
+            if (!window.__servo_instagram_hooks_installed && typeof document !== 'undefined') {
+                window.__servo_instagram_hooks_installed = true;
+
+                document.addEventListener('click', function(e) {
+                    if (!location.pathname.startsWith('/direct/')) return;
+                    var target = e.target;
+                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
+                    var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
+                    if (!composer) return;
+                    var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
+                    if (editable && typeof editable.focus === 'function') {
+                        editable.focus();
+                    }
+                }, true);
+
+                document.addEventListener('keydown', function(e) {
+                    if (!location.pathname.startsWith('/direct/')) return;
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        var target = e.target;
+                        if (!target) return;
+                        var composer = target.closest('footer, form, [data-lexical-editor="true"]');
+                        if (!composer) return;
+                        if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
+                            setTimeout(function() {
+                                var buttons = composer.querySelectorAll('button, div[role="button"]');
+                                for (var i = 0; i < buttons.length; i++) {
+                                    var b = buttons[i];
+                                    var text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                                    var aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                                    if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
+                                        b.click();
+                                        break;
+                                    }
+                                }
+                            }, 50);
+                        }
+                    }
+                }, true);
+            }
+        }
+    } catch(e) {}
+})();
+)JS";
+
 static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder* builder) {
     if (!servo || !builder) return;
     auto* ucm = servo_user_content_manager_create(servo);
     if (!ucm) return;
 
-    // Hardbound Layer 1: Universal content visibility guarantee.
-    // Core semantic content, hero sections, and intro containers cannot remain permanently hidden
-    // by inline opacity: 0 or unhydrated framework states.
+    // Hardbound Layer 1: Universal content visibility and native font fallback guarantee.
+    // 1. Map web font names (Mona Sans, Hubot Sans) to local native fonts (Segoe UI, Arial)
+    //    so glyphs are never invisible during variable font loading or format stalls.
+    // 2. Override opacity: 0 on hero/intro containers across modern SPAs.
+    // 3. Ensure button labels, headings, body text, and SVG icons remain fully visible.
     const char* s_userCss =
+        "@font-face { font-family: 'Mona Sans'; src: local('Segoe UI'), local('Arial'); }\n"
+        "@font-face { font-family: 'Hubot Sans'; src: local('Segoe UI'), local('Arial'); }\n"
+        "@font-face { font-family: 'Mona Sans Mono'; src: local('Consolas'), local('Courier New'); }\n"
         "[class*=\"Intro__content\"], [class*=\"Intro__mona\"], "
         "[class*=\"Intro\"], [class*=\"intro\"], "
         "[class*=\"hero\"], [class*=\"Hero\"], "
@@ -29,6 +222,15 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
         "article [style*=\"opacity\"], section [style*=\"opacity\"] {"
         "    opacity: 1 !important;"
         "    visibility: visible !important;"
+        "}\n"
+        "[class*=\"Primer_Brand__Heading\"], [class*=\"Primer_Brand__Text\"], "
+        "[class*=\"Button__text\"], [class*=\"Button--label\"], button, input, label, p, h1, h2, h3, h4, h5, h6 {"
+        "    visibility: visible !important;"
+        "    opacity: 1 !important;"
+        "}\n"
+        "svg[class*=\"octicon\"], svg[data-component=\"Octicon\"] {"
+        "    visibility: visible !important;"
+        "    opacity: 1 !important;"
         "}";
 
     auto* ss = servo_user_style_sheet_create(s_userCss, "about:blank");
@@ -38,6 +240,21 @@ static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder
         servo_user_style_sheet_free(ss);
     } else {
         LogDebug("WARNING: servo_user_style_sheet_create returned NULL - user CSS will NOT be applied!");
+    }
+
+    // Register UserScripts to execute at document_start before any page scripts
+    auto* script = servo_user_script_create(s_platformCompatScript, "compat_shield.js");
+    if (script) {
+        servo_user_content_manager_add_script(ucm, script);
+        servo_user_script_free(script);
+        LogDebug("Platform compat user script registered successfully.");
+    }
+
+    auto* appScript = servo_user_script_create(s_appEnhancementsScript, "app_enhancements.js");
+    if (appScript) {
+        servo_user_content_manager_add_script(ucm, appScript);
+        servo_user_script_free(appScript);
+        LogDebug("App enhancements user script registered successfully.");
     }
 
     servo_webview_builder_set_user_content_manager(builder, ucm);
@@ -958,195 +1175,6 @@ static void OnJsEvalCallback(const char* /*res*/, const char* err, void* /*userD
 
 void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
-
-    // Script 1: Platform Web Standards Compatibility
-    const char* s_platformCompatScript = R"JS(
-(function() {
-    try {
-        // 1. Cooperative Scheduling (requestIdleCallback)
-        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'undefined') {
-            window.requestIdleCallback = function(cb) {
-                var start = Date.now();
-                return setTimeout(function() {
-                    cb({ didTimeout: false, timeRemaining: function() { return Math.max(0, 50 - (Date.now() - start)); } });
-                }, 1);
-            };
-            window.cancelIdleCallback = function(id) { clearTimeout(id); };
-        }
-
-        // 2. Notification API safe fallback
-        if (typeof window !== 'undefined' && typeof window.Notification === 'undefined') {
-            window.Notification = function() {};
-            window.Notification.permission = 'default';
-            window.Notification.requestPermission = function(cb) {
-                var p = Promise.resolve('default');
-                if (typeof cb === 'function') p.then(cb);
-                return p;
-            };
-        }
-
-        // 3. AudioContext standard fallback
-        if (typeof window !== 'undefined' && typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext !== 'undefined') {
-            window.AudioContext = window.webkitAudioContext;
-        }
-
-        // 4. ResizeObserver defensive shield
-        if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
-            window.ResizeObserver = function(callback) {
-                this.observe = function() {};
-                this.unobserve = function() {};
-                this.disconnect = function() {};
-            };
-        }
-
-        // 5. BroadcastChannel safe fallback
-        if (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'undefined') {
-            window.BroadcastChannel = function(name) {
-                this.name = name;
-                this.onmessage = null;
-                this.onmessageerror = null;
-                this.postMessage = function() {};
-                this.close = function() {};
-                this.addEventListener = function() {};
-                this.removeEventListener = function() {};
-                this.dispatchEvent = function() { return false; };
-            };
-        }
-
-        // 6. ReportingObserver safe fallback
-        if (typeof window !== 'undefined' && typeof window.ReportingObserver === 'undefined') {
-            window.ReportingObserver = function(callback, options) {
-                this.observe = function() {};
-                this.disconnect = function() {};
-                this.takeRecords = function() { return []; };
-            };
-        }
-
-        // 7. Clipboard API safe fallback
-        if (typeof navigator !== 'undefined' && !navigator.clipboard) {
-            navigator.clipboard = {
-                readText: function() { return Promise.resolve(''); },
-                writeText: function(text) { return Promise.resolve(); }
-            };
-        }
-
-        // 8. Web Share API safe fallback
-        if (typeof navigator !== 'undefined' && !navigator.share) {
-            navigator.share = function() { return Promise.reject(new Error('Share not supported')); };
-        }
-
-        // 9. Alert / Confirm dialog limiter to protect against spam loops
-        if (typeof window !== 'undefined' && !window.__servo_dialog_limiter_installed) {
-            window.__servo_dialog_limiter_installed = true;
-            var _dlgCount = 0;
-            var _lastDlg = 0;
-            var _origAlert = window.alert;
-            window.alert = function() {
-                var now = Date.now();
-                if (now - _lastDlg > 2000) _dlgCount = 0;
-                _lastDlg = now;
-                if (++_dlgCount > 4) return;
-                return _origAlert ? _origAlert.apply(this, arguments) : undefined;
-            };
-        }
-    } catch(e) {}
-})();
-)JS";
-
-    // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Video MediaSource, Instagram DM hooks)
-    const char* s_appEnhancementsScript = R"JS(
-(function() {
-    try {
-        // 1. YouTube WebComponents ShadyCSS Shims (strictly scoped to YouTube)
-        if (typeof window !== 'undefined' && typeof location !== 'undefined' && location.hostname && /(^|\.)youtube\.com$/.test(location.hostname)) {
-            function setupShadyCSS(obj) {
-                if (!obj || typeof obj !== 'object') obj = {};
-                var noop = function() {};
-                var emptyStr = function() { return ''; };
-                if (typeof obj.prepareTemplate !== 'function') obj.prepareTemplate = noop;
-                if (typeof obj.prepareTemplateStyles !== 'function') obj.prepareTemplateStyles = noop;
-                if (typeof obj.prepareTemplateDom !== 'function') obj.prepareTemplateDom = noop;
-                if (typeof obj.styleElement !== 'function') obj.styleElement = noop;
-                if (typeof obj.styleSubtree !== 'function') obj.styleSubtree = noop;
-                if (typeof obj.styleDocument !== 'function') obj.styleDocument = noop;
-                if (typeof obj.getComputedStyleValue !== 'function') obj.getComputedStyleValue = emptyStr;
-                if (typeof obj.flush !== 'function') obj.flush = noop;
-                if (typeof obj.flushCustomStyles !== 'function') obj.flushCustomStyles = noop;
-                if (obj.nativeShadow === undefined) obj.nativeShadow = true;
-                if (obj.nativeCss === undefined) obj.nativeCss = true;
-                return obj;
-            }
-
-            if (window.ShadyCSS) setupShadyCSS(window.ShadyCSS);
-            if (!window.__shadycss_trap_installed) {
-                window.__shadycss_trap_installed = true;
-                var _currentShady = setupShadyCSS(window.ShadyCSS || {});
-                try {
-                    Object.defineProperty(window, 'ShadyCSS', {
-                        configurable: true, enumerable: true,
-                        get: function() { return _currentShady; },
-                        set: function(val) { _currentShady = setupShadyCSS(val); }
-                    });
-                } catch(e) { window.ShadyCSS = _currentShady; }
-            }
-        }
-
-        // 2. MediaSource stub for video players
-        if (typeof window !== 'undefined' && typeof window.MediaSource === 'undefined') {
-            var DummyMediaSource = function() { this.sourceBuffers = []; this.activeSourceBuffers = []; this.readyState = 'closed'; };
-            DummyMediaSource.isTypeSupported = function() { return false; };
-            DummyMediaSource.prototype.addSourceBuffer = function() { throw new DOMException('Not supported', 'NotSupportedError'); };
-            DummyMediaSource.prototype.endOfStream = function() {};
-            window.MediaSource = DummyMediaSource;
-            window.WebKitMediaSource = DummyMediaSource;
-        }
-
-        // 3. Instagram DM hooks and chat scroller
-        if (typeof location !== 'undefined' && location.hostname && /(^|\.)instagram\.com$/.test(location.hostname)) {
-            if (!window.__servo_instagram_hooks_installed && typeof document !== 'undefined') {
-                window.__servo_instagram_hooks_installed = true;
-
-                document.addEventListener('click', function(e) {
-                    if (!location.pathname.startsWith('/direct/')) return;
-                    var target = e.target;
-                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
-                    var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
-                    if (!composer) return;
-                    var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
-                    if (editable && typeof editable.focus === 'function') {
-                        editable.focus();
-                    }
-                }, true);
-
-                document.addEventListener('keydown', function(e) {
-                    if (!location.pathname.startsWith('/direct/')) return;
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        var target = e.target;
-                        if (!target) return;
-                        var composer = target.closest('footer, form, [data-lexical-editor="true"]');
-                        if (!composer) return;
-                        if (target.isContentEditable || target.getAttribute('role') === 'textbox' || target.closest('[contenteditable="true"], [role="textbox"]')) {
-                            setTimeout(function() {
-                                var buttons = composer.querySelectorAll('button, div[role="button"]');
-                                for (var i = 0; i < buttons.length; i++) {
-                                    var b = buttons[i];
-                                    var text = (b.innerText || b.textContent || '').trim().toLowerCase();
-                                    var aria = (b.getAttribute('aria-label') || '').toLowerCase();
-                                    if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
-                                        b.click();
-                                        break;
-                                    }
-                                }
-                            }, 50);
-                        }
-                    }
-                }, true);
-            }
-        }
-    } catch(e) {}
-})();
-)JS";
-
     servo_webview_evaluate_javascript(m_webview, s_platformCompatScript, OnJsEvalCallback, nullptr);
     servo_webview_evaluate_javascript(m_webview, s_appEnhancementsScript, OnJsEvalCallback, nullptr);
 }

@@ -143,14 +143,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         _wputenv_s(L"RUST_LOG", L"warn");
     }
 
-    // Redirect stdout/stderr to servo_engine.log in %LOCALAPPDATA%\Servo Browser for engine diagnostics
-    wchar_t localAppData[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
-        std::wstring engLog = std::wstring(localAppData) + L"\\Servo Browser\\servo_engine.log";
+    // Redirect stdout/stderr to servo_engine.log next to the executable for engine diagnostics
+    wchar_t engLog[MAX_PATH];
+    if (GetModuleFileNameW(nullptr, engLog, MAX_PATH) > 0) {
+        wchar_t* lastSlash = wcsrchr(engLog, L'\\');
+        if (lastSlash) *(lastSlash + 1) = L'\0';
+        wcscat_s(engLog, L"servo_engine.log");
         FILE* fpErr = nullptr;
-        _wfreopen_s(&fpErr, engLog.c_str(), L"a", stderr);
+        _wfreopen_s(&fpErr, engLog, L"a", stderr);
         FILE* fpOut = nullptr;
-        _wfreopen_s(&fpOut, engLog.c_str(), L"a", stdout);
+        _wfreopen_s(&fpOut, engLog, L"a", stdout);
 
         if (fpErr) {
             setvbuf(fpErr, nullptr, _IONBF, 0);
@@ -160,7 +162,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         }
 
         HANDLE hLogFile = CreateFileW(
-            engLog.c_str(),
+            engLog,
             FILE_APPEND_DATA,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             nullptr,

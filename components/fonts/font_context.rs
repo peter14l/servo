@@ -492,7 +492,8 @@ impl FontContext {
                 (string == "truetype-variations" ||
                     string == "opentype-variations" ||
                     string == "woff-variations" ||
-                    string == "woff2-variations");
+                    string == "woff2-variations" ||
+                    string.contains("variations"));
         }
 
         false
@@ -569,6 +570,10 @@ impl FontContext {
         let identifier = FontIdentifier::Web(url);
         let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
         else {
+            warn!("Failed to create platform font from web font data for {}", identifier);
+            for download_state in download_states {
+                self.process_next_web_font_source(download_state);
+            }
             return false;
         };
 

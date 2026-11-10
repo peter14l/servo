@@ -570,9 +570,10 @@ impl FontContext {
         let identifier = FontIdentifier::Web(url);
         let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
         else {
-            warn!("Failed to create platform font from web font data for {}", identifier);
+            log::warn!("Failed to create platform font from web font data for {}", identifier);
             for download_state in download_states {
-                self.process_next_web_font_source(download_state);
+                let font_context = download_state.font_context.clone();
+                font_context.process_next_web_font_source(download_state);
             }
             return false;
         };

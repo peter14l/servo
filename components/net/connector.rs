@@ -653,11 +653,12 @@ impl Service<Destination> for ProxyConnector {
 pub type ServoClient = Client<InstrumentedConnector<ProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
+    // Force HTTP/1.1 to avoid HTTP/2 framing reset errors (RFC 7540 PROTOCOL_ERROR)
+    // on Google / YouTube / Instagram / Cloudflare edge proxies.
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
-        .enable_http2()
         .wrap_connector(ProxyConnector::new());
 
     Client::builder(TokioExecutor {})

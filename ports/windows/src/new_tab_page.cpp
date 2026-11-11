@@ -445,7 +445,11 @@ static const char* NEW_TAB_SCRIPT = R"HTML(
       var query = input.value.trim();
       if (!query) return;
 
-      if (query.indexOf('://') !== -1 || query.startsWith('about:') || query.startsWith('servo:')) {
+      if (/^(servo|chrome|edge):/i.test(query) || query === 'settings' || query === 'history' || query === 'bookmarks' || query === 'about' || query === 'newtab' || query === 'about:settings' || query === 'about:bookmarks' || query === 'about:history') {
+        console.log('__servo_ipc__:navigate:' + query);
+        return;
+      }
+      if (query.indexOf('://') !== -1 || query.startsWith('about:')) {
         window.location.href = query;
         return;
       }

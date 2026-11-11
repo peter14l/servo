@@ -5,6 +5,9 @@
 #include "servo_view_host.h"
 #include "servo_raw_window.h"
 #include "browser_window.h"
+#include "browser_data.h"
+#include "settings_dialog.h"
+#include "new_tab_page.h"
 #include <windowsx.h>
 #include <commdlg.h>
 #include <vector>
@@ -100,6 +103,28 @@ static const char* s_platformCompatScript = R"JS(
                 if (++_dlgCount > 4) return;
                 return _origAlert ? _origAlert.apply(this, arguments) : undefined;
             };
+        }
+
+        // 10. Intercept custom/internal scheme navigation (servo://, about:settings, etc.)
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            document.addEventListener('click', function(e) {
+                var el = e.target;
+                while (el && el.tagName !== 'A') {
+                    el = el.parentElement;
+                }
+                if (el) {
+                    var href = el.getAttribute('href') || el.href;
+                    if (href && typeof href === 'string') {
+                        if (/^(servo|chrome|edge):/i.test(href) ||
+                            href.indexOf('about:settings') === 0 ||
+                            href.indexOf('about:bookmarks') === 0 ||
+                            href.indexOf('about:history') === 0) {
+                            e.preventDefault();
+                            console.log('__servo_ipc__:navigate:' + href);
+                        }
+                    }
+                }
+            }, true);
         }
     } catch(e) {}
 })();
@@ -627,8 +652,25 @@ void ServoViewHost::SetFocus() {
 
 void ServoViewHost::LoadUrl(const std::string& url) {
     if (m_webview && !url.empty()) {
-        ServoError err = servo_webview_load(m_webview, url.c_str());
-        LogDebug("servo_webview_load('%s') returned %d", url.c_str(), (int)err);
+        std::string target = url;
+        std::string clean = target;
+        while (!clean.empty() && (clean.back() == '/' || clean.back() == ' ')) {
+            clean.pop_back();
+        }
+        if (clean == "servo://settings" || clean == "servo:settings" || clean == "about:settings" || clean == "settings" || clean == "chrome://settings" || clean == "edge://settings") {
+            target = SettingsDialog::EnsureSettingsPageExists();
+        } else if (clean == "servo://bookmarks" || clean == "servo:bookmarks" || clean == "about:bookmarks" || clean == "bookmarks") {
+            target = BrowserData::EnsureBookmarksPageExists();
+        } else if (clean == "servo://history" || clean == "servo:history" || clean == "about:history" || clean == "history") {
+            target = BrowserData::EnsureHistoryPageExists();
+        } else if (clean == "servo://about" || clean == "servo:about" || clean == "about:about" || clean == "servo://version" || clean == "about:version" || clean == "about") {
+            target = BrowserData::EnsureAboutPageExists();
+        } else if (clean == "servo://newtab" || clean == "servo:newtab" || clean == "about:newtab" || clean == "newtab") {
+            target = NewTabPage::EnsureNewTabPageExists();
+        }
+
+        ServoError err = servo_webview_load(m_webview, target.c_str());
+        LogDebug("servo_webview_load('%s') returned %d", target.c_str(), (int)err);
     }
 }
 
@@ -1012,6 +1054,13 @@ void ServoViewHost::OnLoadError(struct WebView* webview, const char* url, int32_
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     LogDebug("[NET ERR] Load error url='%s', code=%d, text='%s'",
              url ? url : "", errorCode, errorText ? errorText : "");
+    if (url && (strncmp(url, "servo://", 8) == 0 || strncmp(url, "servo:", 6) == 0 ||
+                strncmp(url, "chrome://", 9) == 0 || strncmp(url, "edge://", 7) == 0)) {
+        if (self && self->m_browserWindow) {
+            self->m_browserWindow->NavigateUrl(url);
+            return;
+        }
+    }
     if (self && self->m_browserWindow && errorCode < 0) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(-1);
     }

@@ -363,32 +363,36 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
-    if (url == "servo://native-settings" || url == "about:native-settings") {
+    std::string clean = url;
+    while (!clean.empty() && (clean.back() == '/' || clean.back() == ' ')) {
+        clean.pop_back();
+    }
+    if (clean == "servo://native-settings" || clean == "about:native-settings") {
         SettingsDialog::ShowModal(m_hwnd, this);
         return;
     }
-    if (url == "about:settings" || url == "servo://settings" || url == "edge://settings" || url == "chrome://settings" || url == "settings") {
+    if (clean == "about:settings" || clean == "servo://settings" || clean == "servo:settings" || clean == "edge://settings" || clean == "chrome://settings" || clean == "settings") {
         OpenSettings();
         return;
     }
-    if (url == "servo://bookmarks" || url == "servo:bookmarks" || url == "about:bookmarks") {
+    if (clean == "servo://bookmarks" || clean == "servo:bookmarks" || clean == "about:bookmarks" || clean == "bookmarks") {
         OpenBookmarks();
         return;
     }
-    if (url == "servo://history" || url == "servo:history" || url == "about:history") {
+    if (clean == "servo://history" || clean == "servo:history" || clean == "about:history" || clean == "history") {
         OpenHistory();
         return;
     }
-    if (url == "servo://about" || url == "servo:about" || url == "about:about" || url == "servo://version" || url == "about:version") {
+    if (clean == "servo://about" || clean == "servo:about" || clean == "about:about" || clean == "servo://version" || clean == "about:version" || clean == "about") {
         OpenAbout();
         return;
     }
-    if (url == "servo://clear-history") {
+    if (clean == "servo://clear-history" || clean == "servo:clear-history") {
         BrowserData::ClearHistory();
         OpenHistory();
         return;
     }
-    if (url == "servo://session-restore" || url == "servo:session-restore" || url == "about:session-restore") {
+    if (clean == "servo://session-restore" || clean == "servo:session-restore" || clean == "about:session-restore") {
         RestorePreviousSession();
         return;
     }
@@ -399,7 +403,7 @@ void BrowserWindow::NavigateUrl(const std::string& url) {
         }
         return;
     }
-    if (url == "servo://newtab" || url == "servo:newtab" || url == "about:newtab") {
+    if (clean == "servo://newtab" || clean == "servo:newtab" || clean == "about:newtab" || clean == "newtab") {
         if (m_viewHost) m_viewHost->LoadUrl(NewTabPage::EnsureNewTabPageExists());
         return;
     }
@@ -645,6 +649,11 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
 
 void BrowserWindow::HandleWebIpcMessage(const std::string& message) {
     LogDebug("[IPC] Received message: %s", message.c_str());
+    if (message.rfind("navigate:", 0) == 0) {
+        std::string targetUrl = message.substr(9);
+        NavigateUrl(targetUrl);
+        return;
+    }
     if (message.rfind("apply_settings:", 0) == 0) {
         std::string json = message.substr(15);
         BrowserSettings s = SettingsDialog::LoadSettings();

@@ -72,22 +72,27 @@ inline std::string NormalizeOmniboxInput(const std::string& raw) {
         input = input.substr(first);
     }
 
-    if (input == "servo://newtab" || input == "about:newtab") {
+    std::string clean = input;
+    while (!clean.empty() && (clean.back() == '/' || clean.back() == ' ')) {
+        clean.pop_back();
+    }
+
+    if (clean == "servo://newtab" || clean == "servo:newtab" || clean == "about:newtab" || clean == "newtab") {
         return NewTabPage::EnsureNewTabPageExists();
     }
-    if (input == "servo://bookmarks" || input == "servo:bookmarks" || input == "about:bookmarks") {
+    if (clean == "servo://bookmarks" || clean == "servo:bookmarks" || clean == "about:bookmarks" || clean == "bookmarks") {
         return BrowserData::EnsureBookmarksPageExists();
     }
-    if (input == "servo://history" || input == "servo:history" || input == "about:history") {
+    if (clean == "servo://history" || clean == "servo:history" || clean == "about:history" || clean == "history") {
         return BrowserData::EnsureHistoryPageExists();
     }
-    if (input == "servo://about" || input == "servo:about" || input == "about:about" || input == "servo://version") {
+    if (clean == "servo://about" || clean == "servo:about" || clean == "about:about" || clean == "servo://version" || clean == "about") {
         return BrowserData::EnsureAboutPageExists();
     }
-    if (input == "servo://settings" || input == "servo:settings" || input == "about:settings") {
+    if (clean == "servo://settings" || clean == "servo:settings" || clean == "about:settings" || clean == "settings" || clean == "chrome://settings" || clean == "edge://settings") {
         return SettingsDialog::EnsureSettingsPageExists();
     }
-    if (input == "servo://session-restore" || input == "servo:session-restore" || input == "about:session-restore") {
+    if (clean == "servo://session-restore" || clean == "servo:session-restore" || clean == "about:session-restore") {
         return "servo://session-restore";
     }
 

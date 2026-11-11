@@ -715,11 +715,11 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(m_hwnd, &ps);
-        // DIAG: skip paint to isolate crash
-        // if (m_webview) {
-        //     servo_webview_paint(m_webview);
-        //     servo_webview_present(m_webview);
-        // }
+        if (m_webview) {
+            servo_webview_paint(m_webview);
+            servo_webview_present(m_webview);
+        }
+
         EndPaint(m_hwnd, &ps);
         return 0;
     }

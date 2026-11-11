@@ -18,6 +18,8 @@
 #include <vector>
 #include <algorithm>
 #include <sstream>
+#include <mutex>
+#include <regex>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winhttp.lib")
@@ -95,6 +97,18 @@ static void HandleClient(SOCKET clientSock) {
         targetUrl = UrlDecode(uri.substr(qPos + 13));
     } else if (uri.find("/gateway/") == 0) {
         targetUrl = "https://" + uri.substr(9);
+    } else if (!uri.empty() && uri[0] == '/') {
+        // Direct path preservation: /services/student-registration.aspx, /Style/style.css, /services/Login.aspx
+        // Handle common root-relative login redirect if requested as /Login.aspx -> /services/Login.aspx
+        if (uri == "/Login.aspx" || uri.find("/Login.aspx?") == 0) {
+            std::string redirectTarget = "/services" + uri;
+            std::string redir = "HTTP/1.1 302 Found\r\nLocation: " + redirectTarget + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+            send(clientSock, redir.c_str(), (int)redir.size(), 0);
+            closesocket(clientSock);
+            return;
+        } else {
+            targetUrl = "https://www.sxuk.org" + uri;
+        }
     }
 
     if (targetUrl.empty()) {
@@ -134,6 +148,10 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
+    // Enable TLS 1.2
+    DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
+    WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
+
     HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
     if (!hConnect) {
         WinHttpCloseHandle(hSession);
@@ -162,15 +180,73 @@ static void HandleClient(SOCKET clientSock) {
                      SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
     WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
 
+    // Follow redirects automatically in WinHTTP
+    DWORD redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+    WinHttpSetOption(hRequest, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, sizeof(redirectPolicy));
+
     // Extract POST payload if present
     std::string body;
     size_t headerEnd = request.find("\r\n\r\n");
     if (headerEnd != std::string::npos && method == "POST") {
         body = request.substr(headerEnd + 4);
+        size_t clPos = request.find("Content-Length: ");
+        if (clPos != std::string::npos) {
+            size_t clEnd = request.find("\r\n", clPos);
+            if (clEnd != std::string::npos) {
+                int expectedLen = std::atoi(request.substr(clPos + 16, clEnd - (clPos + 16)).c_str());
+                while ((int)body.size() < expectedLen) {
+                    char extraBuf[4096];
+                    int r = recv(clientSock, extraBuf, sizeof(extraBuf), 0);
+                    if (r <= 0) break;
+                    body.append(extraBuf, r);
+                }
+            }
+        }
+    }
+
+    // Forward client headers (Content-Type, Cookie, User-Agent, Accept, Referer, etc.)
+    std::ostringstream forwardHdrStream;
+    size_t headerStart = request.find("\r\n");
+    if (headerStart != std::string::npos && headerEnd != std::string::npos) {
+        std::string rawReqHeaders = request.substr(headerStart + 2, headerEnd - (headerStart + 2));
+        std::istringstream hIn(rawReqHeaders);
+        std::string hLine;
+        while (std::getline(hIn, hLine)) {
+            if (!hLine.empty() && hLine.back() == '\r') hLine.pop_back();
+            if (hLine.empty()) continue;
+            std::string lowerH = hLine;
+            std::transform(lowerH.begin(), lowerH.end(), lowerH.begin(), ::tolower);
+            if (lowerH.find("host:") == 0 || lowerH.find("connection:") == 0 || lowerH.find("content-length:") == 0) {
+                continue;
+            }
+            if (lowerH.find("referer:") == 0 || lowerH.find("origin:") == 0) {
+                // Rewrite 127.0.0.1:51820 to www.sxuk.org and http:// to https://
+                std::string portStr = std::to_string(s_port);
+                size_t p = hLine.find("127.0.0.1:" + portStr);
+                if (p != std::string::npos) {
+                    hLine.replace(p, 10 + portStr.length(), "www.sxuk.org");
+                }
+                size_t hp = hLine.find("http://www.sxuk.org");
+                if (hp != std::string::npos) {
+                    hLine.replace(hp, 19, "https://www.sxuk.org");
+                }
+            }
+            forwardHdrStream << hLine << "\r\n";
+        }
+    }
+    std::string extraHeadersA = forwardHdrStream.str();
+    std::wstring extraHeaders;
+    if (!extraHeadersA.empty()) {
+        int wLen = MultiByteToWideChar(CP_UTF8, 0, extraHeadersA.c_str(), -1, nullptr, 0);
+        if (wLen > 0) {
+            extraHeaders.resize(wLen);
+            MultiByteToWideChar(CP_UTF8, 0, extraHeadersA.c_str(), -1, &extraHeaders[0], wLen);
+        }
     }
 
     BOOL bResults = WinHttpSendRequest(hRequest,
-                                       WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                                       extraHeaders.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : extraHeaders.c_str(),
+                                       extraHeaders.empty() ? 0 : -1L,
                                        body.empty() ? WINHTTP_NO_REQUEST_DATA : (LPVOID)body.data(),
                                        (DWORD)body.size(),
                                        (DWORD)body.size(), 0);
@@ -189,9 +265,66 @@ static void HandleClient(SOCKET clientSock) {
                                     WINHTTP_HEADER_NAME_BY_INDEX, wHeaderBuf.data(), &headerSize, WINHTTP_NO_HEADER_INDEX)) {
                 int aHeaderLen = WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, nullptr, 0, nullptr, nullptr);
                 if (aHeaderLen > 0) {
-                    std::string aHeaders(aHeaderLen - 1, '\0');
-                    WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, &aHeaders[0], aHeaderLen, nullptr, nullptr);
-                    send(clientSock, aHeaders.c_str(), (int)aHeaders.size(), 0);
+                    std::string rawHeaders(aHeaderLen - 1, '\0');
+                    WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, &rawHeaders[0], aHeaderLen, nullptr, nullptr);
+
+                    // Filter and clean headers:
+                    // 1. Remove Transfer-Encoding (WinHttp already de-chunks body, so sending chunked header breaks browser parsing)
+                    // 2. Remove Connection and replace with Connection: close
+                    // 3. Rewrite Location header to keep browser on gateway
+                    // 4. Strip '; secure' and '; domain=...' from Set-Cookie so the browser retains cookies on 127.0.0.1
+                    std::istringstream hStream(rawHeaders);
+                    std::string line;
+                    std::ostringstream cleanedHeaders;
+                    bool isFirst = true;
+                    while (std::getline(hStream, line)) {
+                        if (!line.empty() && line.back() == '\r') line.pop_back();
+                        if (isFirst) {
+                            cleanedHeaders << line << "\r\n";
+                            isFirst = false;
+                            continue;
+                        }
+                        if (line.empty()) continue;
+
+                        std::string lowerLine = line;
+                        std::transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(), ::tolower);
+
+                        if (lowerLine.find("transfer-encoding:") == 0) continue;
+                        if (lowerLine.find("connection:") == 0) continue;
+
+                        if (lowerLine.find("location:") == 0) {
+                            // Rewrite Location: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
+                            std::string locVal = line.substr(9);
+                            while (!locVal.empty() && locVal.front() == ' ') locVal.erase(0, 1);
+                            std::string rewritten = locVal;
+                            size_t sxPos = rewritten.find("sxuk.org");
+                            if (sxPos != std::string::npos) {
+                                size_t slashPos = rewritten.find('/', sxPos);
+                                if (slashPos != std::string::npos) {
+                                    rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten.substr(slashPos);
+                                }
+                            } else if (!rewritten.empty() && rewritten[0] == '/') {
+                                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten;
+                            }
+                            cleanedHeaders << "Location: " << rewritten << "\r\n";
+                            continue;
+                        }
+
+                        if (lowerLine.find("set-cookie:") == 0) {
+                            std::string cookieVal = line;
+                            std::regex secRegex(R"(;\s*secure)", std::regex_constants::icase);
+                            cookieVal = std::regex_replace(cookieVal, secRegex, "");
+                            std::regex domRegex(R"(;\s*domain=[^;]+)", std::regex_constants::icase);
+                            cookieVal = std::regex_replace(cookieVal, domRegex, "");
+                            cleanedHeaders << cookieVal << "\r\n";
+                            continue;
+                        }
+
+                        cleanedHeaders << line << "\r\n";
+                    }
+                    cleanedHeaders << "Connection: close\r\n\r\n";
+                    std::string finalHdr = cleanedHeaders.str();
+                    send(clientSock, finalHdr.c_str(), (int)finalHdr.size(), 0);
                 }
             }
         }
@@ -303,12 +436,31 @@ bool ShouldUseGateway(const std::string& url) {
 }
 
 bool IsGatewayUrl(const std::string& url) {
-    return url.find("http://127.0.0.1:51820/gateway") == 0 ||
-           url.find("http://localhost:51820/gateway") == 0;
+    return url.find("http://127.0.0.1:51820") == 0 ||
+           url.find("http://localhost:51820") == 0;
 }
 
 std::string WrapUrl(const std::string& originalUrl) {
     if (IsGatewayUrl(originalUrl)) return originalUrl;
+
+    // Direct path preservation: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
+    // This guarantees that relative links (Login.aspx) and relative assets (../Style/style.css)
+    // resolve to their exact matching paths on the gateway!
+    const std::string prefixes[] = {
+        "https://www.sxuk.org",
+        "http://www.sxuk.org",
+        "https://sxuk.org",
+        "http://sxuk.org"
+    };
+
+    for (const auto& prefix : prefixes) {
+        if (originalUrl.find(prefix) == 0) {
+            std::string path = originalUrl.substr(prefix.length());
+            if (path.empty() || path[0] != '/') path = "/" + path;
+            return "http://127.0.0.1:" + std::to_string(s_port) + path;
+        }
+    }
+
     return "http://127.0.0.1:" + std::to_string(s_port) + "/gateway?url=" + UrlEncode(originalUrl);
 }
 
@@ -317,6 +469,12 @@ std::string UnwrapUrl(const std::string& url) {
     size_t qPos = url.find("?url=");
     if (qPos != std::string::npos) {
         return UrlDecode(url.substr(qPos + 5));
+    }
+    // Unwrap http://127.0.0.1:51820/path -> https://www.sxuk.org/path
+    size_t portPos = url.find(":51820");
+    if (portPos != std::string::npos) {
+        std::string path = url.substr(portPos + 6);
+        return "https://www.sxuk.org" + path;
     }
     return url;
 }

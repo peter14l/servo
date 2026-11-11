@@ -131,12 +131,13 @@ static const char* s_platformCompatScript = R"JS(
 
         // 11. Legacy TLS host bridge (e.g. sxuk.org IIS 8.5 with legacy CBC/SHA-1 ciphers)
         if (typeof window !== 'undefined') {
+            var rewriteSxuk = function(u) {
+                if (!u || typeof u !== 'string') return u;
+                return u.replace(/^https?:\/\/(?:www\.)?sxuk\.org/i, 'http://127.0.0.1:51820');
+            };
             var origOpen = window.open;
             window.open = function(url, target, features) {
-                if (url && typeof url === 'string' && url.indexOf('sxuk.org') !== -1 && url.indexOf(':51820') === -1) {
-                    url = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(url);
-                }
-                return origOpen ? origOpen.call(this, url, target, features) : null;
+                return origOpen ? origOpen.call(this, rewriteSxuk(url), target, features) : null;
             };
 
             if (typeof document !== 'undefined') {
@@ -147,9 +148,16 @@ static const char* s_platformCompatScript = R"JS(
                     }
                     if (el) {
                         var href = el.getAttribute('href') || el.href;
-                        if (href && typeof href === 'string' && href.indexOf('sxuk.org') !== -1 && href.indexOf(':51820') === -1) {
-                            el.href = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(href);
+                        if (href && typeof href === 'string' && /^(?:https?:)?\/\/(?:www\.)?sxuk\.org/i.test(href)) {
+                            el.href = rewriteSxuk(href);
                         }
+                    }
+                }, true);
+
+                document.addEventListener('submit', function(e) {
+                    var form = e.target;
+                    if (form && form.action && /^(?:https?:)?\/\/(?:www\.)?sxuk\.org/i.test(form.action)) {
+                        form.action = rewriteSxuk(form.action);
                     }
                 }, true);
             }

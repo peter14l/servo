@@ -57,7 +57,17 @@ std::string PasswordManager::EncryptPassword(const std::string& plaintext) {
     inBlob.pbData = reinterpret_cast<BYTE*>(const_cast<char*>(plaintext.data()));
     inBlob.cbData = static_cast<DWORD>(plaintext.size());
     DATA_BLOB outBlob = {};
-    if (CryptProtectData(&inBlob, L"ServoBrowserCredential", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &outBlob)) {
+    DWORD flags = CRYPTPROTECT_UI_FORBIDDEN;
+    if (CryptProtectData(&inBlob, L"ServoBrowserCredential", nullptr, nullptr, nullptr, flags, &outBlob)) {
+        std::ostringstream hexStream;
+        for (DWORD i = 0; i < outBlob.cbData; ++i) {
+            hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(outBlob.pbData[i]);
+        }
+        LocalFree(outBlob.pbData);
+        return hexStream.str();
+    }
+    // Fallback for headless / CI environments without loaded user profile
+    if (CryptProtectData(&inBlob, L"ServoBrowserCredential", nullptr, nullptr, nullptr, flags | CRYPTPROTECT_LOCAL_MACHINE, &outBlob)) {
         std::ostringstream hexStream;
         for (DWORD i = 0; i < outBlob.cbData; ++i) {
             hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(outBlob.pbData[i]);
@@ -94,7 +104,13 @@ std::string PasswordManager::DecryptPassword(const std::string& ciphertextHex) {
     inBlob.pbData = cipherBytes.data();
     inBlob.cbData = static_cast<DWORD>(cipherBytes.size());
     DATA_BLOB outBlob = {};
-    if (CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &outBlob)) {
+    DWORD flags = CRYPTPROTECT_UI_FORBIDDEN;
+    if (CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, flags, &outBlob)) {
+        std::string result(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData);
+        LocalFree(outBlob.pbData);
+        return result;
+    }
+    if (CryptUnprotectData(&inBlob, nullptr, nullptr, nullptr, nullptr, flags | CRYPTPROTECT_LOCAL_MACHINE, &outBlob)) {
         std::string result(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData);
         LocalFree(outBlob.pbData);
         return result;
@@ -121,6 +137,10 @@ static std::string EscapeJsonString(const std::string& input) {
 static std::string ExtractJsonField(const std::string& obj, const std::string& key) {
     std::string search = "\"" + key + "\":\"";
     size_t pos = obj.find(search);
+    if (pos == std::string::npos) {
+        search = "\"" + key + "\": \"";
+        pos = obj.find(search);
+    }
     if (pos == std::string::npos) return "";
     size_t start = pos + search.size();
     size_t end = obj.find("\"", start);

@@ -24,9 +24,9 @@ public:
     static bool HasCredential(const std::string& origin, const std::string& username, const std::string& password);
     static bool DeleteCredential(const std::string& origin, const std::string& username);
     static void ClearAllCredentials();
+    static std::wstring GetPasswordsFilePath();
 
 private:
-    static std::wstring GetPasswordsFilePath();
     static std::string EncryptPassword(const std::string& plaintext);
     static std::string DecryptPassword(const std::string& ciphertextHex);
 };

@@ -186,23 +186,6 @@ std::vector<SavedCredential> PasswordManager::LoadCredentials() {
     return list;
 }
 
-static void SaveCredentialsToDisk(const std::vector<SavedCredential>& list) {
-    std::wstring path = PasswordManager::GetPasswordsFilePath();
-    std::ofstream file(path, std::ios::trunc);
-    if (!file.is_open()) return;
-
-    file << "[\n";
-    for (size_t i = 0; i < list.size(); ++i) {
-        const auto& c = list[i];
-        file << "  {\n";
-        file << "    \"origin\": \"" << EscapeJsonString(c.origin) << "\",\n";
-        file << "    \"username\": \"" << EscapeJsonString(c.username) << "\",\n";
-        // Encrypt with DPAPI before writing to disk
-        // (Access private static method by calling PasswordManager::SaveCredential or inline)
-        // Here we call Encrypt through friend or save logic
-    }
-}
-
 bool PasswordManager::SaveCredential(const std::string& origin, const std::string& username, const std::string& password) {
     if (origin.empty() || username.empty() || password.empty()) return false;
     std::string normOrigin = NormalizeOrigin(origin);

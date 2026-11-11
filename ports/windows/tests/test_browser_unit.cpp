@@ -35,11 +35,18 @@ public:
 #include "../src/omnibox.h"
 #include "../src/browser_data.h"
 #include "../src/settings_dialog.h"
+#include "../src/password_manager.h"
 #include "../src/browser_window.h"
 #include "../src/servo_logo.h"
 
 void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
     (void)settings;
+}
+
+void BrowserWindow::PromptSavePassword(const std::string&, const std::string&, const std::string&) {
+}
+
+void BrowserWindow::RequestAutofill(const std::string&) {
 }
 
 // Test harness macros
@@ -678,6 +685,38 @@ void test_vertical_tabs_and_logo() {
     TEST_ASSERT(state.activeIndex == 1, "Active index must be 1");
 }
 
+void test_password_manager() {
+    // 1. Origin normalization
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("https://www.sxuk.org/services/Login.aspx") == "https://www.sxuk.org", "Normalize SXUK URL");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("http://127.0.0.1:51820/services/student-registration.aspx") == "https://www.sxuk.org", "Unwrap gateway URL to SXUK origin");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("https://Instagram.COM/direct/t/123") == "https://instagram.com", "Normalize Instagram origin");
+
+    // 2. Clean start
+    PasswordManager::ClearAllCredentials();
+
+    // 3. Save credential
+    bool saved = PasswordManager::SaveCredential("https://www.sxuk.org", "student_42", "SecretPass123!");
+    TEST_ASSERT(saved, "SaveCredential must succeed");
+
+    // 4. HasCredential check
+    TEST_ASSERT(PasswordManager::HasCredential("https://www.sxuk.org", "student_42", "SecretPass123!"), "HasCredential must be true");
+    TEST_ASSERT(!PasswordManager::HasCredential("https://www.sxuk.org", "student_42", "WrongPass"), "HasCredential with wrong password must be false");
+
+    // 5. FindCredential check
+    SavedCredential cred;
+    bool found = PasswordManager::FindCredential("http://127.0.0.1:51820/services/Login.aspx", cred);
+    TEST_ASSERT(found, "FindCredential via gateway URL must match SXUK origin");
+    TEST_ASSERT(cred.username == "student_42", "Username must match");
+    TEST_ASSERT(cred.password == "SecretPass123!", "Password must match decrypted");
+
+    // 6. DeleteCredential check
+    bool deleted = PasswordManager::DeleteCredential("https://www.sxuk.org", "student_42");
+    TEST_ASSERT(deleted, "DeleteCredential must succeed");
+    TEST_ASSERT(!PasswordManager::FindCredential("https://www.sxuk.org", cred), "Credential must be gone");
+
+    PasswordManager::ClearAllCredentials();
+}
+
 // -----------------------------------------------------------------------------
 // Main Runner
 // -----------------------------------------------------------------------------
@@ -703,6 +742,7 @@ int main() {
     RUN_TEST(test_browser_data);
     RUN_TEST(test_browser_settings);
     RUN_TEST(test_vertical_tabs_and_logo);
+    RUN_TEST(test_password_manager);
 
     std::cout << "========================================" << std::endl;
     std::cout << " Summary: " << g_tests_run << " tests run, "

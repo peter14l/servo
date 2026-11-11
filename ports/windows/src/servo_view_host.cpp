@@ -162,6 +162,90 @@ static const char* s_platformCompatScript = R"JS(
                 }, true);
             }
         }
+
+        // 12. Password & Credential Autofill and Capture
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            function getCleanOrigin() {
+                var o = window.location.origin;
+                if (!o) o = window.location.protocol + '//' + window.location.host;
+                if (o && (o.indexOf('127.0.0.1:51820') !== -1 || o.indexOf('localhost:51820') !== -1)) {
+                    return 'https://www.sxuk.org';
+                }
+                return o;
+            }
+
+            // Autofill request on page load
+            setTimeout(function() {
+                try {
+                    var pwdInputs = document.querySelectorAll('input[type="password"]');
+                    if (pwdInputs.length > 0) {
+                        console.log('__servo_ipc__:request_autofill:' + getCleanOrigin());
+                    }
+                } catch(e) {}
+            }, 300);
+
+            // Capture password on form submit or submit button click
+            function checkAndPromptPassword(form) {
+                try {
+                    var container = form || document;
+                    var pwdInput = container.querySelector('input[type="password"]');
+                    if (!pwdInput || !pwdInput.value) return;
+
+                    var pwdVal = pwdInput.value;
+                    var userVal = '';
+
+                    // Find username input preceding password field
+                    var allInputs = Array.from(document.querySelectorAll('input'));
+                    var pwdIdx = allInputs.indexOf(pwdInput);
+                    for (var i = pwdIdx - 1; i >= 0; i--) {
+                        var inp = allInputs[i];
+                        var t = (inp.type || 'text').toLowerCase();
+                        if (t === 'text' || t === 'email' || t === 'tel') {
+                            if (inp.value && inp.value.trim().length > 0) {
+                                userVal = inp.value.trim();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (userVal && pwdVal) {
+                        var orig = getCleanOrigin();
+                        var payload = JSON.stringify({
+                            origin: orig,
+                            username: userVal,
+                            password: pwdVal
+                        });
+                        console.log('__servo_ipc__:prompt_save_password:' + payload);
+                    }
+                } catch(e) {}
+            }
+
+            document.addEventListener('submit', function(e) {
+                checkAndPromptPassword(e.target);
+            }, true);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    var target = e.target;
+                    if (target && target.tagName === 'INPUT') {
+                        checkAndPromptPassword(target.form);
+                    }
+                }
+            }, true);
+
+            document.addEventListener('click', function(e) {
+                var el = e.target;
+                while (el && el.tagName !== 'BUTTON' && el.tagName !== 'INPUT') {
+                    el = el.parentElement;
+                }
+                if (el) {
+                    var t = (el.type || '').toLowerCase();
+                    if (t === 'submit' || el.tagName === 'BUTTON' || (el.value && /login|sign in|submit/i.test(el.value)) || (el.innerText && /login|sign in|submit/i.test(el.innerText))) {
+                        checkAndPromptPassword(el.form);
+                    }
+                }
+            }, true);
+        }
     } catch(e) {}
 })();
 )JS";
@@ -553,6 +637,15 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
+
+        ServoClipboardDelegate clipDelegate = {};
+        clipDelegate.struct_size = sizeof(ServoClipboardDelegate);
+        clipDelegate.user_data = this;
+        clipDelegate.clear = OnClipboardClear;
+        clipDelegate.get_text = OnClipboardGetText;
+        clipDelegate.set_text = OnClipboardSetText;
+        servo_webview_builder_set_clipboard_delegate(builder, clipDelegate);
+
         m_webview = servo_webview_builder_build(builder);
         LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
     }
@@ -635,6 +728,15 @@ ServoViewHost::ServoViewHost(
         delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
 
             servo_webview_builder_set_delegate(builder, delegate);
+
+            ServoClipboardDelegate clipDelegate = {};
+            clipDelegate.struct_size = sizeof(ServoClipboardDelegate);
+            clipDelegate.user_data = this;
+            clipDelegate.clear = OnClipboardClear;
+            clipDelegate.get_text = OnClipboardGetText;
+            clipDelegate.set_text = OnClipboardSetText;
+            servo_webview_builder_set_clipboard_delegate(builder, clipDelegate);
+
             m_webview = servo_webview_builder_build(builder);
             LogDebug("Popup WebView created: 0x%p", m_webview);
         }
@@ -972,6 +1074,18 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         if (m_webview) {
             servo_webview_notify_wheel_event(
                 m_webview, delta, 0, 0, SERVO_WHEEL_DELTA_PIXEL, pt.x, pt.y
+            );
+        }
+        return 0;
+    }
+
+    case WM_PASTE: {
+        if (m_webview) {
+            servo_webview_notify_key_event(
+                m_webview, SERVO_KEY_EVENT_DOWN, "v", "KeyV", 0, SERVO_MODIFIER_CONTROL, false, false
+            );
+            servo_webview_notify_key_event(
+                m_webview, SERVO_KEY_EVENT_UP, "v", "KeyV", 0, SERVO_MODIFIER_CONTROL, false, false
             );
         }
         return 0;
@@ -1398,6 +1512,62 @@ void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
     servo_webview_evaluate_javascript(m_webview, s_platformCompatScript, OnJsEvalCallback, nullptr);
     servo_webview_evaluate_javascript(m_webview, s_appEnhancementsScript, OnJsEvalCallback, nullptr);
+}
+
+void ServoViewHost::EvaluateJavaScript(const std::string& script) {
+    if (m_webview && !script.empty()) {
+        servo_webview_evaluate_javascript(m_webview, script.c_str(), OnJsEvalCallback, nullptr);
+    }
+}
+
+void ServoViewHost::OnClipboardClear(struct WebView* /*webview*/, void* /*userData*/) {
+    if (OpenClipboard(nullptr)) {
+        EmptyClipboard();
+        CloseClipboard();
+    }
+}
+
+void ServoViewHost::OnClipboardGetText(struct WebView* /*webview*/, struct ServoClipboardStringRequest* request, void* /*userData*/) {
+    if (!request) return;
+    std::string textUtf8;
+    if (OpenClipboard(nullptr)) {
+        HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+        if (hData) {
+            const wchar_t* wstr = static_cast<const wchar_t*>(GlobalLock(hData));
+            if (wstr) {
+                int len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+                if (len > 0) {
+                    textUtf8.resize(len - 1);
+                    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &textUtf8[0], len, nullptr, nullptr);
+                }
+                GlobalUnlock(hData);
+            }
+        }
+        CloseClipboard();
+    }
+    servo_webview_clipboard_request_success(request, textUtf8.c_str());
+}
+
+void ServoViewHost::OnClipboardSetText(struct WebView* /*webview*/, const char* text, void* /*userData*/) {
+    if (!text) return;
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
+    if (wlen <= 0) return;
+
+    if (OpenClipboard(nullptr)) {
+        EmptyClipboard();
+        HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, wlen * sizeof(wchar_t));
+        if (hGlobal) {
+            wchar_t* wbuf = static_cast<wchar_t*>(GlobalLock(hGlobal));
+            if (wbuf) {
+                MultiByteToWideChar(CP_UTF8, 0, text, -1, wbuf, wlen);
+                GlobalUnlock(hGlobal);
+                SetClipboardData(CF_UNICODETEXT, hGlobal);
+            } else {
+                GlobalFree(hGlobal);
+            }
+        }
+        CloseClipboard();
+    }
 }
 
 

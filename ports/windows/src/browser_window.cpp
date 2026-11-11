@@ -11,6 +11,7 @@
 #include "settings_dialog.h"
 #include "new_tab_page.h"
 #include "browser_data.h"
+#include "password_manager.h"
 #include "servo_view_host.h"
 #include <windowsx.h>
 #include <commdlg.h>
@@ -719,6 +720,123 @@ void BrowserWindow::HandleWebIpcMessage(const std::string& message) {
 
         SettingsDialog::SaveSettings(s);
         ApplySettings(s);
+        return;
+    }
+    if (message.rfind("prompt_save_password:", 0) == 0) {
+        std::string payload = message.substr(21);
+        auto extractField = [](const std::string& obj, const std::string& key) -> std::string {
+            std::string search = "\"" + key + "\":\"";
+            size_t pos = obj.find(search);
+            if (pos == std::string::npos) {
+                search = "\"" + key + "\": \"";
+                pos = obj.find(search);
+            }
+            if (pos == std::string::npos) return "";
+            size_t start = pos + search.size();
+            size_t end = obj.find("\"", start);
+            if (end == std::string::npos) return "";
+            std::string val = obj.substr(start, end - start);
+            std::string out;
+            for (size_t i = 0; i < val.size(); ++i) {
+                if (val[i] == '\\' && i + 1 < val.size()) {
+                    char next = val[++i];
+                    if (next == '"') out += '"';
+                    else if (next == '\\') out += '\\';
+                    else if (next == 'n') out += '\n';
+                    else if (next == 'r') out += '\r';
+                    else if (next == 't') out += '\t';
+                    else out += next;
+                } else {
+                    out += val[i];
+                }
+            }
+            return out;
+        };
+        std::string origin = extractField(payload, "origin");
+        std::string username = extractField(payload, "username");
+        std::string password = extractField(payload, "password");
+        if (!origin.empty() && !username.empty() && !password.empty()) {
+            PromptSavePassword(origin, username, password);
+        }
+        return;
+    }
+    if (message.rfind("request_autofill:", 0) == 0) {
+        std::string origin = message.substr(17);
+        if (!origin.empty()) {
+            RequestAutofill(origin);
+        }
+        return;
+    }
+}
+
+void BrowserWindow::PromptSavePassword(const std::string& origin, const std::string& username, const std::string& password) {
+    if (origin.empty() || username.empty() || password.empty()) return;
+    std::string normOrigin = PasswordManager::NormalizeOrigin(origin);
+    if (PasswordManager::HasCredential(normOrigin, username, password)) {
+        return;
+    }
+
+    int uLen = MultiByteToWideChar(CP_UTF8, 0, username.c_str(), -1, nullptr, 0);
+    std::wstring wUser(uLen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, username.c_str(), -1, &wUser[0], uLen);
+    if (!wUser.empty() && wUser.back() == L'\0') wUser.pop_back();
+
+    int oLen = MultiByteToWideChar(CP_UTF8, 0, normOrigin.c_str(), -1, nullptr, 0);
+    std::wstring wOrigin(oLen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, normOrigin.c_str(), -1, &wOrigin[0], oLen);
+    if (!wOrigin.empty() && wOrigin.back() == L'\0') wOrigin.pop_back();
+
+    std::wstring msg = L"Do you want Servo Browser to save the password for \"" + wUser + L"\" on " + wOrigin + L"?";
+    int answer = MessageBoxW(m_hwnd, msg.c_str(), L"Save Password? - Servo Browser", MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1);
+    if (answer == IDYES) {
+        PasswordManager::SaveCredential(normOrigin, username, password);
+        LogDebug("[PASSWORDS] Saved credential for user '%s' on '%s'", username.c_str(), normOrigin.c_str());
+    }
+}
+
+void BrowserWindow::RequestAutofill(const std::string& origin) {
+    if (origin.empty()) return;
+    std::string normOrigin = PasswordManager::NormalizeOrigin(origin);
+    SavedCredential cred;
+    if (PasswordManager::FindCredential(normOrigin, cred)) {
+        auto escapeJs = [](const std::string& in) -> std::string {
+            std::string out;
+            for (char c : in) {
+                if (c == '\\') out += "\\\\";
+                else if (c == '\'') out += "\\'";
+                else if (c == '\"') out += "\\\"";
+                else if (c == '\n') out += "\\n";
+                else if (c == '\r') out += "\\r";
+                else out += c;
+            }
+            return out;
+        };
+        std::string js = "(function() {\n"
+            "try {\n"
+            "    var pwd = document.querySelector('input[type=\"password\"]');\n"
+            "    if (!pwd) return;\n"
+            "    var allInputs = Array.from(document.querySelectorAll('input'));\n"
+            "    var pwdIdx = allInputs.indexOf(pwd);\n"
+            "    var user = null;\n"
+            "    for (var i = pwdIdx - 1; i >= 0; i--) {\n"
+            "        var t = (allInputs[i].type || 'text').toLowerCase();\n"
+            "        if (t === 'text' || t === 'email' || t === 'tel') { user = allInputs[i]; break; }\n"
+            "    }\n"
+            "    if (user && !user.value) {\n"
+            "        user.value = '" + escapeJs(cred.username) + "';\n"
+            "        user.dispatchEvent(new Event('input', {bubbles: true}));\n"
+            "        user.dispatchEvent(new Event('change', {bubbles: true}));\n"
+            "    }\n"
+            "    if (pwd && !pwd.value) {\n"
+            "        pwd.value = '" + escapeJs(cred.password) + "';\n"
+            "        pwd.dispatchEvent(new Event('input', {bubbles: true}));\n"
+            "        pwd.dispatchEvent(new Event('change', {bubbles: true}));\n"
+            "    }\n"
+            "} catch(e) {}\n"
+            "})();\n";
+        if (m_viewHost) {
+            m_viewHost->EvaluateJavaScript(js);
+        }
     }
 }
 

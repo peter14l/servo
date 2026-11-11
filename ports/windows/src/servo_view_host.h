@@ -42,6 +42,7 @@ public:
     std::string GetTitle() const;
     void HandleFaviconChanged(const char* url);
     void ShowContextMenu(int screenX, int screenY);
+    void EvaluateJavaScript(const std::string& script);
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -68,6 +69,10 @@ private:
     static void OnNotifyCrashed(struct WebView* webview, const char* reason, const char* backtrace, void* userData);
     static void OnStatusTextChanged(struct WebView* webview, const char* status, void* userData);
     static void OnRequestAuthentication(struct WebView* webview, const char* host, uint16_t port, const char* realm, void (*callback)(const char*, const char*, void*), void* userData);
+
+    static void OnClipboardClear(struct WebView* webview, void* userData);
+    static void OnClipboardGetText(struct WebView* webview, struct ServoClipboardStringRequest* request, void* userData);
+    static void OnClipboardSetText(struct WebView* webview, const char* text, void* userData);
 
     uint32_t GetServoModifiers() const;
     void InjectPageEnhancements();

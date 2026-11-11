@@ -24,6 +24,7 @@ set(SOURCES
     src/settings_dialog.cpp
     src/new_tab_page.cpp
     src/browser_data.cpp
+    src/password_manager.cpp
     src/schannel_gateway.cpp
     src/browser.manifest
     src/browser.rc
@@ -42,6 +43,7 @@ set(HEADERS
     src/settings_dialog.h
     src/new_tab_page.h
     src/browser_data.h
+    src/password_manager.h
     src/fluent_theme.h
     src/servo_logo.h
 )
@@ -88,6 +90,7 @@ target_link_libraries(servo_browser PRIVATE
     shell32
     winhttp
     ws2_32
+    crypt32
 )
 
 set_target_properties(servo_browser PROPERTIES
@@ -97,7 +100,8 @@ set_target_properties(servo_browser PROPERTIES
 
 # Unit test suite
 enable_testing()
-add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp src/browser_data.cpp src/settings_dialog.cpp)
+add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp src/browser_data.cpp src/settings_dialog.cpp src/password_manager.cpp)
+target_link_libraries(test_browser_unit PRIVATE crypt32 shlwapi shell32 user32)
 target_include_directories(test_browser_unit PRIVATE src tests/mock_servo)
 target_link_libraries(test_browser_unit PRIVATE
     dwmapi

@@ -68,6 +68,8 @@ public:
     void RestorePreviousSession();
     void ApplySettings(const struct BrowserSettings& settings);
     void HandleWebIpcMessage(const std::string& message);
+    void PromptSavePassword(const std::string& origin, const std::string& username, const std::string& password);
+    void RequestAutofill(const std::string& origin);
     void ToggleVerticalTabs();
     void SetVerticalTabs(bool enable);
     bool IsVerticalTabs() const { return m_verticalTabs; }

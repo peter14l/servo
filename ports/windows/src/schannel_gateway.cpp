@@ -180,9 +180,16 @@ static void HandleClient(SOCKET clientSock) {
                      SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
     WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
 
-    // Follow redirects automatically in WinHTTP
-    DWORD redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+    // Do NOT follow redirects automatically in WinHTTP!
+    // The browser must receive 302/301 responses with Set-Cookie headers intact,
+    // and update its navigation location so that relative URLs and session states remain consistent.
+    DWORD redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
     WinHttpSetOption(hRequest, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, sizeof(redirectPolicy));
+
+    // Disable WinHTTP's internal cookie engine so WinHTTP passes through client Cookie headers
+    // and returns upstream Set-Cookie headers untouched.
+    DWORD disableCookies = WINHTTP_DISABLE_COOKIES;
+    WinHttpSetOption(hRequest, WINHTTP_OPTION_DISABLE_FEATURE, &disableCookies, sizeof(disableCookies));
 
     // Extract POST payload if present
     std::string body;
@@ -305,6 +312,14 @@ static void HandleClient(SOCKET clientSock) {
                                 }
                             } else if (!rewritten.empty() && rewritten[0] == '/') {
                                 rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten;
+                            } else if (!rewritten.empty() && rewritten.find("http://") != 0 && rewritten.find("https://") != 0) {
+                                // Relative redirect like "StudentHome.aspx"
+                                std::string dir = "/";
+                                size_t lastSlash = uri.rfind('/');
+                                if (lastSlash != std::string::npos) {
+                                    dir = uri.substr(0, lastSlash + 1);
+                                }
+                                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + dir + rewritten;
                             }
                             cleanedHeaders << "Location: " << rewritten << "\r\n";
                             continue;
@@ -316,6 +331,8 @@ static void HandleClient(SOCKET clientSock) {
                             cookieVal = std::regex_replace(cookieVal, secRegex, "");
                             std::regex domRegex(R"(;\s*domain=[^;]+)", std::regex_constants::icase);
                             cookieVal = std::regex_replace(cookieVal, domRegex, "");
+                            std::regex sameSiteNone(R"(;\s*samesite=none)", std::regex_constants::icase);
+                            cookieVal = std::regex_replace(cookieVal, sameSiteNone, "; SameSite=Lax");
                             cleanedHeaders << cookieVal << "\r\n";
                             continue;
                         }

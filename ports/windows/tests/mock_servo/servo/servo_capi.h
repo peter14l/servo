@@ -155,6 +155,44 @@ inline ServoError servo_webview_builder_set_user_content_manager(
     return SERVO_ERROR_OK;
 }
 
+typedef struct ServoClipboardStringRequest ServoClipboardStringRequest;
+typedef void (*ServoClipboardClearCallback)(WebView* webview, void* user_data);
+typedef void (*ServoClipboardGetTextCallback)(WebView* webview, ServoClipboardStringRequest* request, void* user_data);
+typedef void (*ServoClipboardSetTextCallback)(WebView* webview, const char* text, void* user_data);
+
+typedef struct ServoClipboardDelegate {
+    size_t struct_size;
+    void* user_data;
+    ServoClipboardClearCallback clear;
+    ServoClipboardGetTextCallback get_text;
+    ServoClipboardSetTextCallback set_text;
+} ServoClipboardDelegate;
+
+inline ServoError servo_webview_builder_set_clipboard_delegate(
+    void* builder,
+    ServoClipboardDelegate delegate
+) {
+    (void)builder;
+    (void)delegate;
+    return SERVO_ERROR_OK;
+}
+
+inline void servo_webview_clipboard_request_success(
+    ServoClipboardStringRequest* request,
+    const char* text
+) {
+    (void)request;
+    (void)text;
+}
+
+inline void servo_webview_clipboard_request_failure(
+    ServoClipboardStringRequest* request,
+    const char* message
+) {
+    (void)request;
+    (void)message;
+}
+
 #ifdef __cplusplus
 }
 #endif

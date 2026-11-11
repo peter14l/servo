@@ -338,12 +338,6 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#attr-option-value>
     fn Value(&self) -> DOMString {
         let element = self.upcast::<Element>();
-        // Guard: skip if element has no valid attribute storage.
-        // This can happen when iterating options via list_of_options during SetValue,
-        // where UnrootedDom elements may have detached attrs.
-        if element.attrs.borrow().is_empty() && element.Text().is_empty() {
-            return DOMString::default();
-        }
         let attr = &local_name!("value");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -358,10 +352,6 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#attr-option-label>
     fn Label(&self) -> DOMString {
         let element = self.upcast::<Element>();
-        // Guard: skip if element has no valid attribute storage.
-        if element.attrs.borrow().is_empty() && element.Text().is_empty() {
-            return DOMString::default();
-        }
         let attr = &local_name!("label");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)

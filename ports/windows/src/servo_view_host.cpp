@@ -8,6 +8,7 @@
 #include "browser_data.h"
 #include "settings_dialog.h"
 #include "new_tab_page.h"
+#include "schannel_gateway.h"
 #include <windowsx.h>
 #include <commdlg.h>
 #include <vector>
@@ -126,6 +127,32 @@ static const char* s_platformCompatScript = R"JS(
                     }
                 }
             }, false);
+        }
+
+        // 11. Legacy TLS host bridge (e.g. sxuk.org IIS 8.5 with legacy CBC/SHA-1 ciphers)
+        if (typeof window !== 'undefined') {
+            var origOpen = window.open;
+            window.open = function(url, target, features) {
+                if (url && typeof url === 'string' && url.indexOf('sxuk.org') !== -1 && url.indexOf(':51820') === -1) {
+                    url = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(url);
+                }
+                return origOpen ? origOpen.call(this, url, target, features) : null;
+            };
+
+            if (typeof document !== 'undefined') {
+                document.addEventListener('click', function(e) {
+                    var el = e.target;
+                    while (el && el.tagName !== 'A') {
+                        el = el.parentElement;
+                    }
+                    if (el) {
+                        var href = el.getAttribute('href') || el.href;
+                        if (href && typeof href === 'string' && href.indexOf('sxuk.org') !== -1 && href.indexOf(':51820') === -1) {
+                            el.href = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(href);
+                        }
+                    }
+                }, true);
+            }
         }
     } catch(e) {}
 })();
@@ -668,6 +695,8 @@ void ServoViewHost::LoadUrl(const std::string& url) {
             target = BrowserData::EnsureAboutPageExists();
         } else if (clean == "servo://newtab" || clean == "servo:newtab" || clean == "about:newtab" || clean == "newtab") {
             target = NewTabPage::EnsureNewTabPageExists();
+        } else if (SchannelGateway::ShouldUseGateway(clean)) {
+            target = SchannelGateway::WrapUrl(clean);
         }
 
         ServoError err = servo_webview_load(m_webview, target.c_str());
@@ -1020,7 +1049,8 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
         LogDebug("[NAV] url changed: %s", url);
     }
     if (self && self->m_browserWindow && url) {
-        self->m_browserWindow->OnActiveTabUrlChanged(url);
+        std::string displayUrl = SchannelGateway::UnwrapUrl(url);
+        self->m_browserWindow->OnActiveTabUrlChanged(displayUrl.c_str());
     }
 }
 

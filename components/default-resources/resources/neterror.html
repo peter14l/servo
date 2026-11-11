@@ -71,6 +71,8 @@
     <div class="reason-box" id="reason-text">${reason}</div>
     <div id="tls-advice" style="display:none;" class="help-text">
       <strong>Note:</strong> Error 10054 indicates the server abruptly terminated the TLS handshake. This typically occurs on legacy servers (such as older IIS installations) that require outdated CBC or SHA-1 cipher suites which modern secure browsers disallow.
+      <br><br>
+      <a class="btn" id="gateway-btn" href="#" style="background:#0b8043;">Load via Windows Schannel Bridge</a>
     </div>
     <button class="btn" onclick="location.reload()">Try Again</button>
   </div>
@@ -78,6 +80,10 @@
     var reason = document.getElementById('reason-text').textContent;
     if (reason && (reason.indexOf('10054') !== -1 || reason.indexOf('forcibly closed') !== -1)) {
       document.getElementById('tls-advice').style.display = 'block';
+      var gw = document.getElementById('gateway-btn');
+      if (gw) {
+        gw.href = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(location.href);
+      }
     }
   </script>
 </body>

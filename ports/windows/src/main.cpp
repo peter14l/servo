@@ -20,6 +20,7 @@
 #include "settings_dialog.h"
 #include "new_tab_page.h"
 #include "servo_view_host.h"
+#include "schannel_gateway.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -435,6 +436,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     LogDebug("Servo instance built.");
 
     servo_setup_logging(servo);
+
+    // Start local Windows Schannel HTTP gateway for legacy TLS sites (e.g. IIS 8.5 CBC/SHA-1)
+    SchannelGateway::Start();
 
     // 3. Register Window Classes
     BrowserWindow::RegisterWindowClass(hInstance);

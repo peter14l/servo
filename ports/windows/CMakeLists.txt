@@ -24,6 +24,7 @@ set(SOURCES
     src/settings_dialog.cpp
     src/new_tab_page.cpp
     src/browser_data.cpp
+    src/schannel_gateway.cpp
     src/browser.manifest
     src/browser.rc
 )
@@ -33,6 +34,7 @@ set(HEADERS
     src/servo_view_host.h
     src/servo_view_utils.h
     src/servo_raw_window.h
+    src/schannel_gateway.h
     src/tab_strip.h
     src/omnibox.h
     src/find_bar.h
@@ -84,6 +86,8 @@ target_link_libraries(servo_browser PRIVATE
     msimg32
     ole32
     shell32
+    winhttp
+    ws2_32
 )
 
 set_target_properties(servo_browser PROPERTIES
@@ -105,6 +109,8 @@ target_link_libraries(test_browser_unit PRIVATE
     msimg32
     ole32
     shell32
+    winhttp
+    ws2_32
 )
 add_test(NAME BrowserUnitTests COMMAND test_browser_unit)
 

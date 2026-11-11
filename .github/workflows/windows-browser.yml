@@ -9,6 +9,13 @@ on:
       - 'ffi/capi/**'
       - 'support/cmake/**'
       - 'components/**'
+  pull_request:
+    paths:
+      - '.github/workflows/windows-browser.yml'
+      - 'ports/windows/**'
+      - 'ffi/capi/**'
+      - 'support/cmake/**'
+      - 'components/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

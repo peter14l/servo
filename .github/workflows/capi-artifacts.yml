@@ -33,6 +33,8 @@ on:
   push:
     branches:
       - embedding/cef-parity
+      - fix/xpath-crash-and-internal-schemes
+      - 'fix/**'
     paths:
       - '.github/workflows/capi-artifacts.yml'
       - 'examples/c-embedder/**'

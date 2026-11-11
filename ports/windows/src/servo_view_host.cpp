@@ -113,18 +113,19 @@ static const char* s_platformCompatScript = R"JS(
                     el = el.parentElement;
                 }
                 if (el) {
-                    var href = el.getAttribute('href') || el.href;
-                    if (href && typeof href === 'string') {
-                        if (/^(servo|chrome|edge):/i.test(href) ||
-                            href.indexOf('about:settings') === 0 ||
-                            href.indexOf('about:bookmarks') === 0 ||
-                            href.indexOf('about:history') === 0) {
-                            e.preventDefault();
-                            console.log('__servo_ipc__:navigate:' + href);
-                        }
+                    var rawHref = el.getAttribute('href');
+                    var fullHref = el.href;
+                    var targetUrl = (rawHref && /^(servo|chrome|edge):|^about:(settings|bookmarks|history)/i.test(rawHref))
+                        ? rawHref
+                        : (fullHref && typeof fullHref === 'string' && /^(servo|chrome|edge):|^about:(settings|bookmarks|history)/i.test(fullHref))
+                        ? fullHref
+                        : null;
+                    if (targetUrl) {
+                        e.preventDefault();
+                        console.log('__servo_ipc__:navigate:' + targetUrl);
                     }
                 }
-            }, true);
+            }, false);
         }
     } catch(e) {}
 })();
@@ -213,14 +214,14 @@ static const char* s_appEnhancementsScript = R"JS(
                 document.addEventListener('click', function(e) {
                     if (!location.pathname.startsWith('/direct/')) return;
                     var target = e.target;
-                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article')) return;
+                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article, aside, [role="navigation"], [aria-label*="Navigation" i]')) return;
                     var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
                     if (!composer) return;
                     var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
                     if (editable && typeof editable.focus === 'function') {
                         editable.focus();
                     }
-                }, true);
+                }, false);
 
                 document.addEventListener('keydown', function(e) {
                     if (!location.pathname.startsWith('/direct/')) return;

@@ -1096,30 +1096,10 @@ impl ComputedValuesExt for ComputedValues {
         let inline_end_direction = self.writing_mode.inline_end_physical_side();
         let block_end_direction = self.writing_mode.block_end_physical_side();
 
-        let mut rightward = inline_end_direction == PhysicalSide::Right ||
+        let rightward = inline_end_direction == PhysicalSide::Right ||
             block_end_direction == PhysicalSide::Right;
-        let mut downward = inline_end_direction == PhysicalSide::Bottom ||
+        let downward = inline_end_direction == PhysicalSide::Bottom ||
             block_end_direction == PhysicalSide::Bottom;
-
-        let is_flex = match Display::from(self.get_box().display) {
-            Display::GeneratingBox(generating_box) => {
-                generating_box.display_inside() == DisplayInside::Flex
-            },
-            _ => false,
-        };
-
-        if is_flex {
-            use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
-            match self.get_position().flex_direction {
-                FlexDirection::ColumnReverse => {
-                    downward = !downward;
-                },
-                FlexDirection::RowReverse => {
-                    rightward = !rightward;
-                },
-                _ => {},
-            }
-        }
 
         OverflowDirection {
             rightward,

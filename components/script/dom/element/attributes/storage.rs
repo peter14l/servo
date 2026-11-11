@@ -376,32 +376,70 @@ impl AttributeStorage {
     }
 
     /// Reserve room for at least `additional` more attributes.
+    #[expect(unsafe_code)]
     #[inline]
     pub(crate) fn reserve_exact(&self, additional: usize) {
-        self.0.borrow_mut().reserve_exact(additional);
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.reserve_exact(additional);
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().reserve_exact(additional);
+            }
+        }
     }
 
     /// Push raw attribute data.
+    #[expect(unsafe_code)]
     pub(crate) fn push_raw(&self, data: ContentAttributeData) {
-        self.0.borrow_mut().push(AttributeEntry::Raw(data));
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.push(AttributeEntry::Raw(data));
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().push(AttributeEntry::Raw(data));
+            }
+        }
     }
 
     /// Push a Dom Attr node.
+    #[expect(unsafe_code)]
     pub(crate) fn push_dom(&self, attr: &Attr) {
-        self.0
-            .borrow_mut()
-            .push(AttributeEntry::Dom(Dom::from_ref(attr)));
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.push(AttributeEntry::Dom(Dom::from_ref(attr)));
+        } else {
+            unsafe {
+                self.0
+                    .borrow_for_script_deallocation()
+                    .push(AttributeEntry::Dom(Dom::from_ref(attr)));
+            }
+        }
     }
 
     /// Remove an attribute by index, returning the entry.
+    #[expect(unsafe_code)]
     pub(crate) fn remove(&self, index: usize) -> AttributeEntry {
-        self.0.borrow_mut().remove(index)
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.remove(index)
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().remove(index)
+            }
+        }
     }
 
     /// Set an attribute entry by index.
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set(&self, index: usize, entry: AttributeEntry) {
-        self.0.borrow_mut()[index] = entry;
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries[index] = entry;
+        } else {
+            unsafe {
+                let vec = self.0.borrow_for_script_deallocation();
+                if index < vec.len() {
+                    vec[index] = entry;
+                }
+            }
+        }
     }
 
     /// Ensure entry at index is a Dom Attr node, materializing if needed.

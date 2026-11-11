@@ -18,6 +18,8 @@ class BrowserWindow;
 class ServoViewHost {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);
+    static ServoViewHost* FromHwnd(HWND hwnd);
+    static ServoViewHost* GetActiveHost();
 
     ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl);
     ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, struct ServoCreateNewWebViewRequest* request);
@@ -62,6 +64,7 @@ private:
     static void OnConfirmDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData);
     static void OnPromptDialog(struct WebView* webview, const char* message, const char* defaultVal, void (*callback)(const char*, void*), void* userData);
     static void OnFilePicker(struct WebView* webview, bool allowMultiple, void (*callback)(const char* const*, size_t, void*), void* userData);
+    static void OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData);
     static void OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData);
     static void OnBeforeDownload(struct WebView* webview, struct ServoDownloadItem* download, void (*callback)(bool, void*), void* userData);
     static void OnDownloadUpdated(struct WebView* webview, struct ServoDownloadItem* download, void* userData);

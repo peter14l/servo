@@ -193,6 +193,34 @@ inline void servo_webview_clipboard_request_failure(
     (void)message;
 }
 
+typedef struct ServoSelectElementOption {
+    size_t id;
+    const char* label;
+    bool is_disabled;
+} ServoSelectElementOption;
+
+typedef struct ServoSelectElementOptionOrOptgroup {
+    uint8_t tag;
+    ServoSelectElementOption option;
+    const char* optgroup_label;
+    const ServoSelectElementOption* optgroup_options;
+    size_t optgroup_options_count;
+} ServoSelectElementOptionOrOptgroup;
+
+typedef struct ServoSelectElementParams {
+    const ServoSelectElementOptionOrOptgroup* options;
+    size_t options_count;
+    const size_t* selected_options;
+    size_t selected_options_count;
+    bool allow_select_multiple;
+} ServoSelectElementParams;
+
+typedef void (*ServoSelectElementCallback)(
+    const size_t* selected_indices,
+    size_t count,
+    void* user_data
+);
+
 #ifdef __cplusplus
 }
 #endif

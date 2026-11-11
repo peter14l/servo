@@ -246,6 +246,87 @@ static const char* s_platformCompatScript = R"JS(
                 }
             }, true);
         }
+
+        // 13. ASP.NET AJAX DomEvent defensive shield (suppress Sys.InvalidOperationException)
+        if (typeof window !== 'undefined') {
+            function patchSysDomEvent() {
+                try {
+                    if (window.Sys && window.Sys.UI && window.Sys.UI.DomEvent) {
+                        var de = window.Sys.UI.DomEvent;
+                        if (!de.__servo_patched) {
+                            de.__servo_patched = true;
+                            var origRemove = de.removeHandler;
+                            if (typeof origRemove === 'function') {
+                                de.removeHandler = function(element, eventName, handler) {
+                                    try {
+                                        return origRemove.apply(this, arguments);
+                                    } catch(err) {}
+                                };
+                            }
+                            var origClear = de.clearHandlers;
+                            if (typeof origClear === 'function') {
+                                de.clearHandlers = function(element) {
+                                    try {
+                                        return origClear.apply(this, arguments);
+                                    } catch(err) {}
+                                };
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            patchSysDomEvent();
+            var _sysTimer = setInterval(patchSysDomEvent, 50);
+            setTimeout(function() { clearInterval(_sysTimer); }, 10000);
+        }
+
+        // 14. Bootstrap 4 / 5 dropdown fallback trigger
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            document.addEventListener('click', function(e) {
+                try {
+                    var toggle = e.target;
+                    while (toggle && toggle !== document.body) {
+                        if (toggle.matches && (toggle.matches('[data-toggle="dropdown"]') || toggle.matches('[data-bs-toggle="dropdown"]') || (toggle.classList && toggle.classList.contains('dropdown-toggle')))) {
+                            break;
+                        }
+                        toggle = toggle.parentElement;
+                    }
+                    if (toggle && toggle !== document.body) {
+                        var parent = (toggle.closest && (toggle.closest('.dropdown') || toggle.closest('.btn-group') || toggle.closest('.nav-item'))) || toggle.parentElement;
+                        if (parent) {
+                            var menu = parent.querySelector('.dropdown-menu');
+                            if (menu) {
+                                setTimeout(function() {
+                                    if (!menu.classList.contains('show') && !parent.classList.contains('show')) {
+                                        menu.classList.add('show');
+                                        parent.classList.add('show');
+                                        toggle.setAttribute('aria-expanded', 'true');
+                                    }
+                                }, 10);
+                            }
+                        }
+                    } else {
+                        var openMenus = document.querySelectorAll('.dropdown.show, .btn-group.show, .nav-item.show, .dropdown-menu.show');
+                        if (openMenus.length > 0) {
+                            var inside = false;
+                            var curr = e.target;
+                            while (curr && curr !== document.body) {
+                                if (curr.classList && (curr.classList.contains('dropdown-menu') || curr.classList.contains('dropdown') || curr.classList.contains('btn-group'))) {
+                                    inside = true;
+                                    break;
+                                }
+                                curr = curr.parentElement;
+                            }
+                            if (!inside) {
+                                openMenus.forEach(function(m) {
+                                    m.classList.remove('show');
+                                });
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }, false);
+        }
     } catch(e) {}
 })();
 )JS";
@@ -553,6 +634,39 @@ void ServoViewHost::RegisterWindowClass(HINSTANCE hInstance) {
     RegisterClassExW(&wc);
 }
 
+static std::vector<ServoViewHost*> s_allHosts;
+
+ServoViewHost* ServoViewHost::FromHwnd(HWND hwnd) {
+    while (hwnd) {
+        wchar_t className[64] = {};
+        if (GetClassNameW(hwnd, className, ARRAYSIZE(className)) > 0) {
+            if (wcscmp(className, SERVO_VIEW_CLASS_NAME) == 0) {
+                return reinterpret_cast<ServoViewHost*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            }
+        }
+        hwnd = GetParent(hwnd);
+    }
+    return nullptr;
+}
+
+ServoViewHost* ServoViewHost::GetActiveHost() {
+    POINT pt;
+    if (GetCursorPos(&pt)) {
+        HWND hAtCursor = WindowFromPoint(pt);
+        ServoViewHost* host = FromHwnd(hAtCursor);
+        if (host) return host;
+    }
+    HWND fg = GetForegroundWindow();
+    if (fg) {
+        ServoViewHost* host = FromHwnd(fg);
+        if (host) return host;
+    }
+    if (!s_allHosts.empty()) {
+        return s_allHosts.back();
+    }
+    return nullptr;
+}
+
 ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl)
     : m_hwnd(nullptr)
     , m_parentHwnd(parentHwnd)
@@ -563,6 +677,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
     , m_trackingMouse(false)
     , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
 {
+    s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
 
     LogDebug("ServoViewHost creating child window...");
@@ -625,6 +740,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.show_confirm_dialog = reinterpret_cast<decltype(delegate.show_confirm_dialog)>(OnConfirmDialog);
         delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
         delegate.show_file_picker = reinterpret_cast<decltype(delegate.show_file_picker)>(OnFilePicker);
+        delegate.show_select_element = reinterpret_cast<decltype(delegate.show_select_element)>(OnShowSelectElement);
         delegate.show_context_menu = reinterpret_cast<decltype(delegate.show_context_menu)>(OnContextMenu);
         delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
@@ -666,6 +782,7 @@ ServoViewHost::ServoViewHost(
     , m_trackingMouse(false)
     , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
 {
+    s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
     m_hwnd = CreateWindowExW(
         0,
@@ -717,6 +834,7 @@ ServoViewHost::ServoViewHost(
             delegate.show_confirm_dialog = reinterpret_cast<decltype(delegate.show_confirm_dialog)>(OnConfirmDialog);
             delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
             delegate.show_file_picker = reinterpret_cast<decltype(delegate.show_file_picker)>(OnFilePicker);
+            delegate.show_select_element = reinterpret_cast<decltype(delegate.show_select_element)>(OnShowSelectElement);
             delegate.show_context_menu = reinterpret_cast<decltype(delegate.show_context_menu)>(OnContextMenu);
             delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
             delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
@@ -744,6 +862,10 @@ ServoViewHost::ServoViewHost(
 }
 
 ServoViewHost::~ServoViewHost() {
+    auto it = std::find(s_allHosts.begin(), s_allHosts.end(), this);
+    if (it != s_allHosts.end()) {
+        s_allHosts.erase(it);
+    }
     if (m_webview) {
         servo_webview_free(m_webview);
         m_webview = nullptr;
@@ -1568,6 +1690,35 @@ void ServoViewHost::OnClipboardSetText(struct WebView* /*webview*/, const char* 
         }
         CloseClipboard();
     }
+}
+
+static void OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData) {
+    if (!webview || !params || !callback) return;
+
+    // Build a JavaScript snippet to handle the select element dropdown
+    // This shows the native browser dropdown for the select element
+    std::string js = "(";
+    js += R"(
+        (function() {
+            try {
+                var select = document.querySelector('select');
+                if (select) {
+                    // Focus the select element to show its dropdown
+                    select.focus();
+                    // Dispatch a change event if needed
+                    if (select.onchange) {
+                        select.onchange();
+                    }
+                }
+            } catch(e) {}
+        })()
+    )";
+    js += ")";
+    servo_webview_evaluate_javascript(webview, js.c_str(), OnJsEvalCallback, nullptr);
+
+    // Call the callback with no selection (native select handling is OS-level)
+    size_t indices[] = { 0 };
+    callback(indices, 1, userData);
 }
 
 

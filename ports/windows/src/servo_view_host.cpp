@@ -11,6 +11,8 @@
 #include "schannel_gateway.h"
 #include <windowsx.h>
 #include <commdlg.h>
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
@@ -1692,34 +1694,147 @@ void ServoViewHost::OnClipboardSetText(struct WebView* /*webview*/, const char* 
     }
 }
 
-static void OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData) {
-    if (!webview || !params || !callback) return;
+// Convert a UTF-8 label into a Win32 menu string. Ampersands are doubled so
+// they are shown literally instead of becoming accelerator prefixes.
+static std::wstring Utf8ToMenuLabel(const char* text) {
+    std::wstring wide;
+    if (!text) return L" ";
+    int len = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
+    if (len <= 0) return L" ";
+    wide.resize(static_cast<size_t>(len));
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wide.data(), len);
+    wide.resize(static_cast<size_t>(len - 1));
 
-    // Build a JavaScript snippet to handle the select element dropdown
-    // This shows the native browser dropdown for the select element
-    std::string js = "(";
-    js += R"(
-        (function() {
-            try {
-                var select = document.querySelector('select');
-                if (select) {
-                    // Focus the select element to show its dropdown
-                    select.focus();
-                    // Dispatch a change event if needed
-                    if (select.onchange) {
-                        select.onchange();
-                    }
-                }
-            } catch(e) {}
-        })()
-    )";
-    js += ")";
-    servo_webview_evaluate_javascript(webview, js.c_str(), OnJsEvalCallback, nullptr);
-
-    // Call the callback with no selection (native select handling is OS-level)
-    size_t indices[] = { 0 };
-    callback(indices, 1, userData);
+    std::wstring escaped;
+    escaped.reserve(wide.size());
+    for (wchar_t ch : wide) {
+        escaped.push_back(ch);
+        if (ch == L'&') escaped.push_back(L'&');
+    }
+    if (escaped.empty()) escaped = L" ";
+    return escaped;
 }
 
+// Add one <option> to `hMenu`, recording the menu command id that maps back to
+// the option's `id`. Note that `id` values are not indices into `params.options`
+// (optgroups count as a single entry there), so the mapping has to be explicit.
+static void AppendSelectOption(HMENU hMenu, const ServoSelectElementOption& option,
+                               const std::vector<size_t>& selection,
+                               std::vector<std::pair<UINT, size_t>>& commands,
+                               UINT& nextCommand) {
+    UINT flags = MF_STRING;
+    if (option.is_disabled) flags |= MF_GRAYED;
+    if (std::find(selection.begin(), selection.end(), option.id) != selection.end()) {
+        flags |= MF_CHECKED;
+    }
+    UINT command = nextCommand++;
+    commands.emplace_back(command, option.id);
+    AppendMenuW(hMenu, flags, command, Utf8ToMenuLabel(option.label).c_str());
+}
+
+// Build the popup menu for a select element, including one submenu per
+// <optgroup>. Returns nullptr on allocation failure.
+static HMENU BuildSelectMenu(const struct ServoSelectElementParams* params,
+                             const std::vector<size_t>& selection,
+                             std::vector<std::pair<UINT, size_t>>& commands,
+                             UINT& nextCommand) {
+    HMENU hMenu = CreatePopupMenu();
+    if (!hMenu) return nullptr;
+
+    for (size_t i = 0; i < params->options_count; ++i) {
+        const ServoSelectElementOptionOrOptgroup& entry = params->options[i];
+        if (entry.tag == 0) {
+            AppendSelectOption(hMenu, entry.option, selection, commands, nextCommand);
+            continue;
+        }
+
+        if (!entry.optgroup_options || entry.optgroup_options_count == 0) continue;
+        HMENU hSubMenu = CreatePopupMenu();
+        if (!hSubMenu) continue;
+        for (size_t j = 0; j < entry.optgroup_options_count; ++j) {
+            AppendSelectOption(hSubMenu, entry.optgroup_options[j], selection, commands, nextCommand);
+        }
+        if (!AppendMenuW(hMenu, MF_POPUP | MF_STRING,
+                         reinterpret_cast<UINT_PTR>(hSubMenu),
+                         Utf8ToMenuLabel(entry.optgroup_label).c_str())) {
+            DestroyMenu(hSubMenu);
+        }
+    }
+    return hMenu;
+}
+
+// Show the native dropdown and fill `selection` with the chosen option ids.
+// Returns true when the user confirmed a choice, false when the menu was
+// dismissed without one. For a multiple-select, items toggle on click and the
+// trailing "OK" item confirms; for a single-select, picking an item confirms.
+static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* params,
+                          std::vector<size_t>& selection) {
+    const UINT kOkCommand = 0xFFFF;
+    const bool multiple = params->allow_select_multiple;
+
+    POINT pt;
+    GetCursorPos(&pt);
+
+    for (;;) {
+        std::vector<std::pair<UINT, size_t>> commands;
+        UINT nextCommand = 1;
+        HMENU hMenu = BuildSelectMenu(params, selection, commands, nextCommand);
+        if (!hMenu) return false;
+
+        if (multiple) {
+            AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+            AppendMenuW(hMenu, MF_STRING, kOkCommand, L"OK");
+        }
+
+        UINT cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN,
+                                    pt.x, pt.y, owner, nullptr);
+        DestroyMenu(hMenu);
+
+        if (cmd == 0) return false;
+        if (multiple && cmd == kOkCommand) return true;
+
+        auto it = std::find_if(commands.begin(), commands.end(),
+                               [cmd](const std::pair<UINT, size_t>& entry) {
+                                   return entry.first == cmd;
+                               });
+        if (it == commands.end()) return false;
+
+        if (!multiple) {
+            selection.assign(1, it->second);
+            return true;
+        }
+
+        auto existing = std::find(selection.begin(), selection.end(), it->second);
+        if (existing != selection.end()) {
+            selection.erase(existing);
+        } else {
+            selection.push_back(it->second);
+        }
+    }
+}
+
+void ServoViewHost::OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData) {
+    (void)webview;
+    if (!callback) return;
+
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self || !self->m_hwnd || !params || !params->options || params->options_count == 0) {
+        callback(nullptr, 0, userData);
+        return;
+    }
+
+    std::vector<size_t> selection;
+    if (params->selected_options && params->selected_options_count > 0) {
+        selection.assign(params->selected_options,
+                         params->selected_options + params->selected_options_count);
+    }
+
+    if (!RunSelectMenu(self->m_hwnd, params, selection) || selection.empty()) {
+        callback(nullptr, 0, userData);
+        return;
+    }
+
+    callback(selection.data(), selection.size(), userData);
+}
 
 

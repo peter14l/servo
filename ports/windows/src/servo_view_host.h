@@ -19,6 +19,7 @@ class ServoViewHost {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);
     static ServoViewHost* FromHwnd(HWND hwnd);
+    static ServoViewHost* FromWebView(struct WebView* webview);
     static ServoViewHost* GetActiveHost();
 
     ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl);

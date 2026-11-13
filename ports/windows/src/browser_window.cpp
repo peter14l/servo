@@ -34,6 +34,24 @@ static const int TAB_STRIP_HEIGHT = 38;
 static const int OMNIBOX_HEIGHT = 44;
 static const int TOP_CHROME_HEIGHT = TAB_STRIP_HEIGHT + OMNIBOX_HEIGHT; // 82px (Tabs + Omnibox)
 
+void ServoSpinEventLoopOnce(struct Servo* servo) {
+    static thread_local bool spinning = false;
+    static thread_local bool pending = false;
+    if (!servo) return;
+    if (spinning) {
+        // A modal loop is pumping messages: remember the wake and run it once
+        // the outer spin (and the modal loop) has returned.
+        pending = true;
+        return;
+    }
+    spinning = true;
+    do {
+        pending = false;
+        servo_spin_event_loop(servo);
+    } while (pending);
+    spinning = false;
+}
+
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
         hInstance = GetModuleHandleW(nullptr);
@@ -1087,7 +1105,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_APP_SERVO_WAKE:
     case WM_TIMER:
         if (m_servo) {
-            servo_spin_event_loop(m_servo);
+            ServoSpinEventLoopOnce(m_servo);
         }
         return 0;
 

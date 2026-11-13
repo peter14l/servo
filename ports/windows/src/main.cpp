@@ -503,7 +503,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         InterlockedExchange(&g_ui_current_msg, (LONG)msg.message);
         InterlockedExchange64(&g_ui_msg_started, (LONG64)start);
         if (msg.message == WM_APP_SERVO_WAKE) {
-            servo_spin_event_loop(servo);
+            ServoSpinEventLoopOnce(servo);
         } else {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);

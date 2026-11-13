@@ -187,6 +187,8 @@ static const char* s_platformCompatScript = R"JS(
             }, 300);
 
             // Capture password on form submit or submit button click
+            var _lastPromptKey = '';
+            var _lastPromptAt = 0;
             function checkAndPromptPassword(form) {
                 try {
                     var container = form || document;
@@ -212,6 +214,12 @@ static const char* s_platformCompatScript = R"JS(
 
                     if (userVal && pwdVal) {
                         var orig = getCleanOrigin();
+                        // submit + keydown + click can all fire for one login: send only once.
+                        var dedupeKey = orig + '\n' + userVal + '\n' + pwdVal;
+                        var now = Date.now();
+                        if (dedupeKey === _lastPromptKey && now - _lastPromptAt < 3000) return;
+                        _lastPromptKey = dedupeKey;
+                        _lastPromptAt = now;
                         var payload = JSON.stringify({
                             origin: orig,
                             username: userVal,
@@ -326,6 +334,29 @@ static const char* s_platformCompatScript = R"JS(
                             }
                         }
                     }
+                } catch(e) {}
+            }, false);
+        }
+
+        // 15. ASP.NET AJAX self-heal: if the ACT client framework never loaded,
+        // reload once so the page re-requests its ScriptResource.axd bundles.
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            window.addEventListener('load', function() {
+                try {
+                    var retryKey = '__servo_ajax_retry:' + location.pathname;
+                    if (typeof window.Sys !== 'undefined') {
+                        try { sessionStorage.removeItem(retryKey); } catch(e) {}
+                        return;
+                    }
+                    var isAspx = /\.aspx(?:$|\?)/i.test(location.pathname + location.search);
+                    var hasViewState = !!document.getElementById('__VIEWSTATE');
+                    if (!isAspx && !hasViewState) return;
+                    if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+                    var attempts = 0;
+                    try { attempts = parseInt(sessionStorage.getItem(retryKey) || '0', 10) || 0; } catch(e) { attempts = 0; }
+                    if (attempts >= 1) return;
+                    try { sessionStorage.setItem(retryKey, '1'); } catch(e) {}
+                    location.reload();
                 } catch(e) {}
             }, false);
         }
@@ -665,6 +696,17 @@ ServoViewHost* ServoViewHost::GetActiveHost() {
     }
     if (!s_allHosts.empty()) {
         return s_allHosts.back();
+    }
+    return nullptr;
+}
+
+// Embedder-control callbacks receive an opaque responder handle as `user_data`
+// (see docs/embedding/C_API_GUIDE.md, "Embedder controls"), so the host has to
+// be resolved from the WebView that fired the callback.
+ServoViewHost* ServoViewHost::FromWebView(struct WebView* webview) {
+    if (!webview) return nullptr;
+    for (ServoViewHost* host : s_allHosts) {
+        if (host && host->m_webview == webview) return host;
     }
     return nullptr;
 }
@@ -1416,7 +1458,7 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
 }
 
 void ServoViewHost::OnAlertDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData) {
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    auto self = FromWebView(webview);
     int len = MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, nullptr, 0);
     std::vector<wchar_t> wmsg(len);
     MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, wmsg.data(), len);
@@ -1426,7 +1468,7 @@ void ServoViewHost::OnAlertDialog(struct WebView* webview, const char* message, 
 }
 
 void ServoViewHost::OnConfirmDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData) {
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    auto self = FromWebView(webview);
     int len = MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, nullptr, 0);
     std::vector<wchar_t> wmsg(len);
     MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, wmsg.data(), len);
@@ -1441,7 +1483,7 @@ void ServoViewHost::OnPromptDialog(struct WebView* webview, const char* message,
 }
 
 void ServoViewHost::OnFilePicker(struct WebView* webview, bool allowMultiple, void (*callback)(const char* const*, size_t, void*), void* userData) {
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    auto self = FromWebView(webview);
     wchar_t szFile[MAX_PATH * 4] = { 0 };
 
     OPENFILENAMEW ofn = {};
@@ -1520,23 +1562,25 @@ void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
 }
 
 void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData) {
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (!self) return;
-
-    POINT pt;
-    GetCursorPos(&pt);
-    self->ShowContextMenu(pt.x, pt.y);
+    (void)webview;
+    (void)params;
+    // -1 is SERVO_CONTEXT_MENU_ACTION_DISMISS. The host already renders its own
+    // menu from WM_RBUTTONUP/WM_CONTEXTMENU, so this control is answered as
+    // dismissed instead of opening a second one.
     if (callback) callback(-1, userData);
 }
 
 void ServoViewHost::OnConsoleMessage(struct WebView* webview, int32_t level, const char* message, void* userData) {
     (void)webview;
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (message && strncmp(message, "__servo_ipc__:", 14) == 0) {
-        if (self && self->m_browserWindow) {
-            self->m_browserWindow->HandleWebIpcMessage(message + 14);
+    if (message) {
+        const char* ipc = strstr(message, "__servo_ipc__:");
+        if (ipc) {
+            if (self && self->m_browserWindow) {
+                self->m_browserWindow->HandleWebIpcMessage(ipc + 14);
+            }
+            return;
         }
-        return;
     }
     const char* lvlStr = (level == 1) ? "ERROR" : (level == 2) ? "WARN" : (level == 3) ? "INFO" : "LOG";
     LogDebug("[JS %s] %s", lvlStr, message ? message : "");
@@ -1775,33 +1819,56 @@ static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* par
     POINT pt;
     GetCursorPos(&pt);
 
+    // A popup menu only tracks the mouse reliably when its owner is the
+    // foreground window, so take the foreground first. Without this the menu
+    // can fail to appear or be dismissed immediately. `owner` is a child
+    // window, and SetForegroundWindow only accepts top-level windows.
+    HWND topLevel = GetAncestor(owner, GA_ROOT);
+    if (!topLevel) topLevel = owner;
+    HWND previousForeground = GetForegroundWindow();
+    if (previousForeground != topLevel) {
+        SetForegroundWindow(topLevel);
+    }
+
+    bool confirmed = false;
     for (;;) {
         std::vector<std::pair<UINT, size_t>> commands;
         UINT nextCommand = 1;
         HMENU hMenu = BuildSelectMenu(params, selection, commands, nextCommand);
-        if (!hMenu) return false;
+        if (!hMenu) break;
 
         if (multiple) {
             AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
             AppendMenuW(hMenu, MF_STRING, kOkCommand, L"OK");
         }
 
-        UINT cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN,
-                                    pt.x, pt.y, owner, nullptr);
+        SetLastError(0);
+        UINT cmd = TrackPopupMenuEx(
+            hMenu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
+            pt.x, pt.y, owner, nullptr);
+        DWORD menuError = GetLastError();
         DestroyMenu(hMenu);
 
-        if (cmd == 0) return false;
-        if (multiple && cmd == kOkCommand) return true;
+        if (cmd == 0) {
+            LogDebug("[SELECT] TrackPopupMenuEx returned 0 (error=%lu, owner=0x%p)",
+                     (unsigned long)menuError, (void*)owner);
+            break;
+        }
+        if (multiple && cmd == kOkCommand) {
+            confirmed = true;
+            break;
+        }
 
         auto it = std::find_if(commands.begin(), commands.end(),
                                [cmd](const std::pair<UINT, size_t>& entry) {
                                    return entry.first == cmd;
                                });
-        if (it == commands.end()) return false;
+        if (it == commands.end()) break;
 
         if (!multiple) {
             selection.assign(1, it->second);
-            return true;
+            confirmed = true;
+            break;
         }
 
         auto existing = std::find(selection.begin(), selection.end(), it->second);
@@ -1811,26 +1878,56 @@ static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* par
             selection.push_back(it->second);
         }
     }
+
+    // Documented workaround: without a posted WM_NULL the owner can be left
+    // without keyboard focus after the menu's modal loop ends.
+    PostMessageW(owner, WM_NULL, 0, 0);
+    if (previousForeground && previousForeground != topLevel &&
+        IsWindow(previousForeground) && GetForegroundWindow() == topLevel) {
+        SetForegroundWindow(previousForeground);
+    }
+    return confirmed;
 }
 
 void ServoViewHost::OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData) {
-    (void)webview;
     if (!callback) return;
 
-    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    // `userData` is the opaque responder handle Rust handed us, not this host,
+    // so resolve the host from the WebView and pass the handle back untouched.
+    auto self = FromWebView(webview);
     if (!self || !self->m_hwnd || !params || !params->options || params->options_count == 0) {
+        LogDebug("[SELECT] ignoring control (host=0x%p hwnd=0x%p params=0x%p options=%lu)",
+                 (void*)self, self ? (void*)self->m_hwnd : nullptr, (const void*)params,
+                 params ? (unsigned long)params->options_count : 0UL);
         callback(nullptr, 0, userData);
         return;
     }
+
+    LogDebug("[SELECT] showing menu (options=%lu selected=%lu multiple=%d thread=%lu)",
+             (unsigned long)params->options_count,
+             (unsigned long)params->selected_options_count,
+             params->allow_select_multiple ? 1 : 0,
+             (unsigned long)GetCurrentThreadId());
 
     std::vector<size_t> selection;
     if (params->selected_options && params->selected_options_count > 0) {
         selection.assign(params->selected_options,
                          params->selected_options + params->selected_options_count);
     }
+    const std::vector<size_t> initialSelection = selection;
 
-    if (!RunSelectMenu(self->m_hwnd, params, selection) || selection.empty()) {
-        callback(nullptr, 0, userData);
+    bool confirmed = RunSelectMenu(self->m_hwnd, params, selection);
+    LogDebug("[SELECT] menu closed (confirmed=%d selection=%lu)",
+             confirmed ? 1 : 0, (unsigned long)selection.size());
+
+    if (!confirmed || selection.empty()) {
+        // Dismissed: answer with the current selection so the page is left
+        // unchanged (answering with an empty list would clear the element).
+        if (!initialSelection.empty()) {
+            callback(initialSelection.data(), initialSelection.size(), userData);
+        } else {
+            callback(nullptr, 0, userData);
+        }
         return;
     }
 

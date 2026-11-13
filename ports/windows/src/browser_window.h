@@ -17,6 +17,11 @@
 
 void LogDebug(const char* fmt, ...);
 
+// Runs one Servo event-loop spin unless one is already running on this thread.
+// Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or
+// timer can otherwise re-enter Servo while a delegate callback is running.
+void ServoSpinEventLoopOnce(struct Servo* servo);
+
 class TabStrip;
 class OmniboxToolbar;
 class FindBar;

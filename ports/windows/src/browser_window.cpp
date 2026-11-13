@@ -667,7 +667,12 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
 }
 
 void BrowserWindow::HandleWebIpcMessage(const std::string& message) {
-    LogDebug("[IPC] Received message: %s", message.c_str());
+    // Log only the command token, never the payload: `prompt_save_password`
+    // carries the plaintext password and `request_autofill` the saved username.
+    size_t separator = message.find(':');
+    std::string command = message.substr(0, separator == std::string::npos ? message.size() : separator);
+    if (command.size() > 48) command.resize(48);
+    LogDebug("[IPC] Received message: %s", command.c_str());
     if (message.rfind("navigate:", 0) == 0) {
         std::string targetUrl = message.substr(9);
         NavigateUrl(targetUrl);

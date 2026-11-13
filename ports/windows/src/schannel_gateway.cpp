@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <sstream>
 #include <mutex>
+#include <map>
 #include <regex>
 
 #pragma comment(lib, "ws2_32.lib")
@@ -67,19 +68,146 @@ static std::string UrlEncode(const std::string& in) {
     return escaped.str();
 }
 
+// Send the whole buffer, handling partial sends and transient would-block errors.
+static bool SendAll(SOCKET sock, const char* data, size_t len) {
+    size_t sent = 0;
+    while (sent < len) {
+        int chunk = static_cast<int>(std::min<size_t>(len - sent, 1u << 20));
+        int r = send(sock, data + sent, chunk, 0);
+        if (r == SOCKET_ERROR) {
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK || err == WSAETIMEDOUT) {
+                fd_set writeSet;
+                FD_ZERO(&writeSet);
+                FD_SET(sock, &writeSet);
+                timeval tv = { 15, 0 };
+                if (select(0, nullptr, &writeSet, nullptr, &tv) <= 0) return false;
+                continue;
+            }
+            return false;
+        }
+        if (r == 0) return false;
+        sent += static_cast<size_t>(r);
+    }
+    return true;
+}
+
+static bool SendAll(SOCKET sock, const std::string& data) {
+    return SendAll(sock, data.data(), data.size());
+}
+
+// Half-close and drain briefly so the peer receives every byte before the socket disappears.
+static void CloseGracefully(SOCKET sock) {
+    shutdown(sock, SD_SEND);
+    char drain[4096];
+    int total = 0;
+    while (total < 262144) {
+        fd_set readSet;
+        FD_ZERO(&readSet);
+        FD_SET(sock, &readSet);
+        timeval tv = { 0, 20000 }; // 20ms: never stall a worker waiting for a FIN
+        if (select(0, &readSet, nullptr, nullptr, &tv) <= 0) break;
+        int r = recv(sock, drain, sizeof(drain), 0);
+        if (r <= 0) break;
+        total += r;
+    }
+    closesocket(sock);
+}
+
+static void SendErrorResponse(SOCKET sock, const char* status, const std::string& body) {
+    std::string resp = std::string("HTTP/1.1 ") + status + "\r\n";
+    resp += "Content-Type: text/plain\r\n";
+    resp += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    resp += "Connection: close\r\n\r\n";
+    resp += body;
+    if (SendAll(sock, resp)) {
+        CloseGracefully(sock);
+    } else {
+        closesocket(sock);
+    }
+}
+
+// Read until the end of the request headers (or a hard cap) instead of assuming one recv is enough.
+static bool ReadRequest(SOCKET sock, std::string& request) {
+    std::vector<char> buffer(65536);
+    while (true) {
+        int bytesRead = recv(sock, buffer.data(), static_cast<int>(buffer.size()), 0);
+        if (bytesRead <= 0) return false;
+        request.append(buffer.data(), static_cast<size_t>(bytesRead));
+        if (request.find("\r\n\r\n") != std::string::npos) return true;
+        if (request.size() > 256 * 1024) return false;
+    }
+}
+
+static size_t ParseContentLength(const std::string& headerBlock) {
+    std::istringstream in(headerBlock);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        std::string lower = line;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+        if (lower.rfind("content-length:", 0) == 0) {
+            return static_cast<size_t>(strtoul(line.c_str() + 15, nullptr, 10));
+        }
+    }
+    return 0;
+}
+
+// Small in-memory cache for static assets. Servo requests every script twice
+// (preload scanner + parser), so this also halves upstream requests.
+static std::mutex s_cacheMutex;
+static std::map<std::string, std::string> s_cache;
+static size_t s_cacheBytes = 0;
+static const size_t kCacheLimit = 64u * 1024u * 1024u;
+
+static bool IsCacheableUrl(const std::string& url) {
+    static const char* fragments[] = {
+        "/ScriptResource.axd", "/WebResource.axd", "/Script/", "/Style/", "/images/", "/fonts/"
+    };
+    for (const char* fragment : fragments) {
+        if (url.find(fragment) != std::string::npos) return true;
+    }
+    return false;
+}
+
+static bool CacheGet(const std::string& key, std::string& out) {
+    std::lock_guard<std::mutex> lock(s_cacheMutex);
+    auto it = s_cache.find(key);
+    if (it == s_cache.end()) return false;
+    out = it->second;
+    return true;
+}
+
+static void CachePut(const std::string& key, const std::string& value) {
+    if (value.size() > kCacheLimit / 4) return;
+    std::lock_guard<std::mutex> lock(s_cacheMutex);
+    auto it = s_cache.find(key);
+    if (it != s_cache.end()) {
+        s_cacheBytes -= it->second.size();
+        it->second = value;
+        s_cacheBytes += value.size();
+        return;
+    }
+    if (s_cacheBytes + value.size() > kCacheLimit) return;
+    s_cache.emplace(key, value);
+    s_cacheBytes += value.size();
+}
+
 static void HandleClient(SOCKET clientSock) {
     DWORD timeout = 15000;
     setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
     setsockopt(clientSock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 
-    std::vector<char> buffer(65536);
-    int bytesRead = recv(clientSock, buffer.data(), static_cast<int>(buffer.size()) - 1, 0);
-    if (bytesRead <= 0) {
+    BOOL nodelay = TRUE;
+    setsockopt(clientSock, IPPROTO_TCP, TCP_NODELAY, (const char*)&nodelay, sizeof(nodelay));
+    int sndBufSize = 256 * 1024;
+    setsockopt(clientSock, SOL_SOCKET, SO_SNDBUF, (const char*)&sndBufSize, sizeof(sndBufSize));
+
+    std::string request;
+    if (!ReadRequest(clientSock, request)) {
         closesocket(clientSock);
         return;
     }
-    buffer[bytesRead] = '\0';
-    std::string request(buffer.data(), bytesRead);
 
     size_t lineEnd = request.find("\r\n");
     if (lineEnd == std::string::npos) {
@@ -103,8 +231,11 @@ static void HandleClient(SOCKET clientSock) {
         if (uri == "/Login.aspx" || uri.find("/Login.aspx?") == 0) {
             std::string redirectTarget = "/services" + uri;
             std::string redir = "HTTP/1.1 302 Found\r\nLocation: " + redirectTarget + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-            send(clientSock, redir.c_str(), (int)redir.size(), 0);
-            closesocket(clientSock);
+            if (SendAll(clientSock, redir)) {
+                CloseGracefully(clientSock);
+            } else {
+                closesocket(clientSock);
+            }
             return;
         } else {
             targetUrl = "https://www.sxuk.org" + uri;
@@ -112,10 +243,21 @@ static void HandleClient(SOCKET clientSock) {
     }
 
     if (targetUrl.empty()) {
-        const char* notFound = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        send(clientSock, notFound, (int)strlen(notFound), 0);
-        closesocket(clientSock);
+        SendErrorResponse(clientSock, "404 Not Found", "");
         return;
+    }
+
+    bool cacheable = (method == "GET") && IsCacheableUrl(targetUrl);
+    if (cacheable) {
+        std::string cached;
+        if (CacheGet(targetUrl, cached)) {
+            if (SendAll(clientSock, cached)) {
+                CloseGracefully(clientSock);
+            } else {
+                closesocket(clientSock);
+            }
+            return;
+        }
     }
 
     // Convert target URL to wide characters
@@ -133,9 +275,7 @@ static void HandleClient(SOCKET clientSock) {
     urlComp.dwUrlPathLength = ARRAYSIZE(urlPath);
 
     if (!WinHttpCrackUrl(wTargetUrl.c_str(), 0, 0, &urlComp)) {
-        const char* badReq = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-        send(clientSock, badReq, (int)strlen(badReq), 0);
-        closesocket(clientSock);
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: malformed upstream URL.");
         return;
     }
 
@@ -144,9 +284,12 @@ static void HandleClient(SOCKET clientSock) {
                                      WINHTTP_NO_PROXY_NAME,
                                      WINHTTP_NO_PROXY_BYPASS, 0);
     if (!hSession) {
-        closesocket(clientSock);
+        SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP session init failed.");
         return;
     }
+
+    // Bound every phase so a stuck upstream cannot pin a worker thread forever.
+    WinHttpSetTimeouts(hSession, 10000, 10000, 30000, 30000);
 
     // Enable TLS 1.2
     DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
@@ -155,7 +298,7 @@ static void HandleClient(SOCKET clientSock) {
     HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
     if (!hConnect) {
         WinHttpCloseHandle(hSession);
-        closesocket(clientSock);
+        SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP connect failed.");
         return;
     }
 
@@ -170,7 +313,7 @@ static void HandleClient(SOCKET clientSock) {
     if (!hRequest) {
         WinHttpCloseHandle(hConnect);
         WinHttpCloseHandle(hSession);
-        closesocket(clientSock);
+        SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP request init failed.");
         return;
     }
 
@@ -191,24 +334,19 @@ static void HandleClient(SOCKET clientSock) {
     DWORD disableCookies = WINHTTP_DISABLE_COOKIES;
     WinHttpSetOption(hRequest, WINHTTP_OPTION_DISABLE_FEATURE, &disableCookies, sizeof(disableCookies));
 
-    // Extract POST payload if present
+    // Extract the request payload, if any (any method with a Content-Length).
     std::string body;
     size_t headerEnd = request.find("\r\n\r\n");
-    if (headerEnd != std::string::npos && method == "POST") {
+    if (headerEnd != std::string::npos) {
+        size_t expectedLen = ParseContentLength(request.substr(0, headerEnd));
         body = request.substr(headerEnd + 4);
-        size_t clPos = request.find("Content-Length: ");
-        if (clPos != std::string::npos) {
-            size_t clEnd = request.find("\r\n", clPos);
-            if (clEnd != std::string::npos) {
-                int expectedLen = std::atoi(request.substr(clPos + 16, clEnd - (clPos + 16)).c_str());
-                while ((int)body.size() < expectedLen) {
-                    char extraBuf[4096];
-                    int r = recv(clientSock, extraBuf, sizeof(extraBuf), 0);
-                    if (r <= 0) break;
-                    body.append(extraBuf, r);
-                }
-            }
+        while (body.size() < expectedLen) {
+            char extraBuf[16384];
+            int r = recv(clientSock, extraBuf, sizeof(extraBuf), 0);
+            if (r <= 0) break;
+            body.append(extraBuf, r);
         }
+        if (body.size() > expectedLen) body.resize(expectedLen);
     }
 
     // Forward client headers (Content-Type, Cookie, User-Agent, Accept, Referer, etc.)
@@ -223,7 +361,8 @@ static void HandleClient(SOCKET clientSock) {
             if (hLine.empty()) continue;
             std::string lowerH = hLine;
             std::transform(lowerH.begin(), lowerH.end(), lowerH.begin(), ::tolower);
-            if (lowerH.find("host:") == 0 || lowerH.find("connection:") == 0 || lowerH.find("content-length:") == 0) {
+            if (lowerH.find("host:") == 0 || lowerH.find("connection:") == 0 ||
+                lowerH.find("content-length:") == 0 || lowerH.find("accept-encoding:") == 0) {
                 continue;
             }
             if (lowerH.find("referer:") == 0 || lowerH.find("origin:") == 0) {
@@ -241,6 +380,9 @@ static void HandleClient(SOCKET clientSock) {
             forwardHdrStream << hLine << "\r\n";
         }
     }
+    // Always request an identity body: the gateway buffers and re-frames every response,
+    // so compression would only add a second failure mode.
+    forwardHdrStream << "Accept-Encoding: identity\r\n";
     std::string extraHeadersA = forwardHdrStream.str();
     std::wstring extraHeaders;
     if (!extraHeadersA.empty()) {
@@ -262,112 +404,149 @@ static void HandleClient(SOCKET clientSock) {
         bResults = WinHttpReceiveResponse(hRequest, nullptr);
     }
 
+    std::string responseBody;
+    DWORD statusCode = 0;
+    bool tooLarge = false;
+    const size_t kMaxResponseBody = 256u * 1024u * 1024u;
+
     if (bResults) {
-        DWORD headerSize = 0;
-        WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
-                            WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &headerSize, WINHTTP_NO_HEADER_INDEX);
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER && headerSize > 0) {
-            std::vector<wchar_t> wHeaderBuf(headerSize / sizeof(wchar_t) + 1);
-            if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
-                                    WINHTTP_HEADER_NAME_BY_INDEX, wHeaderBuf.data(), &headerSize, WINHTTP_NO_HEADER_INDEX)) {
-                int aHeaderLen = WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, nullptr, 0, nullptr, nullptr);
-                if (aHeaderLen > 0) {
-                    std::string rawHeaders(aHeaderLen - 1, '\0');
-                    WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, &rawHeaders[0], aHeaderLen, nullptr, nullptr);
+        DWORD statusSize = sizeof(statusCode);
+        WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                            WINHTTP_HEADER_NAME_BY_INDEX, &statusCode, &statusSize, WINHTTP_NO_HEADER_INDEX);
 
-                    // Filter and clean headers:
-                    // 1. Remove Transfer-Encoding (WinHttp already de-chunks body, so sending chunked header breaks browser parsing)
-                    // 2. Remove Connection and replace with Connection: close
-                    // 3. Rewrite Location header to keep browser on gateway
-                    // 4. Strip '; secure' and '; domain=...' from Set-Cookie so the browser retains cookies on 127.0.0.1
-                    std::istringstream hStream(rawHeaders);
-                    std::string line;
-                    std::ostringstream cleanedHeaders;
-                    bool isFirst = true;
-                    while (std::getline(hStream, line)) {
-                        if (!line.empty() && line.back() == '\r') line.pop_back();
-                        if (isFirst) {
-                            cleanedHeaders << line << "\r\n";
-                            isFirst = false;
-                            continue;
-                        }
-                        if (line.empty()) continue;
+        // Read the entire body before touching the client socket. This guarantees the
+        // browser receives a fully framed response and can never observe a truncated script.
+        while (true) {
+            DWORD available = 0;
+            if (!WinHttpQueryDataAvailable(hRequest, &available) || available == 0) break;
+            std::vector<char> outBuf(available);
+            DWORD downloaded = 0;
+            if (!WinHttpReadData(hRequest, outBuf.data(), available, &downloaded) || downloaded == 0) break;
+            if (responseBody.size() + downloaded > kMaxResponseBody) {
+                tooLarge = true;
+                break;
+            }
+            responseBody.append(outBuf.data(), downloaded);
+        }
+    }
 
-                        std::string lowerLine = line;
-                        std::transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(), ::tolower);
+    if (!bResults || tooLarge) {
+        WinHttpCloseHandle(hRequest);
+        WinHttpCloseHandle(hConnect);
+        WinHttpCloseHandle(hSession);
+        SendErrorResponse(clientSock, "502 Bad Gateway",
+                          tooLarge ? "Gateway Error: upstream response too large."
+                                   : "Gateway Error: WinHTTP failed to connect to legacy TLS server.");
+        return;
+    }
 
-                        if (lowerLine.find("transfer-encoding:") == 0) continue;
-                        if (lowerLine.find("connection:") == 0) continue;
+    DWORD headerSize = 0;
+    WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+                        WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &headerSize, WINHTTP_NO_HEADER_INDEX);
 
-                        if (lowerLine.find("location:") == 0) {
-                            // Rewrite Location: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
-                            std::string locVal = line.substr(9);
-                            while (!locVal.empty() && locVal.front() == ' ') locVal.erase(0, 1);
-                            std::string rewritten = locVal;
-                            size_t sxPos = rewritten.find("sxuk.org");
-                            if (sxPos != std::string::npos) {
-                                size_t slashPos = rewritten.find('/', sxPos);
-                                if (slashPos != std::string::npos) {
-                                    rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten.substr(slashPos);
-                                }
-                            } else if (!rewritten.empty() && rewritten[0] == '/') {
-                                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten;
-                            } else if (!rewritten.empty() && rewritten.find("http://") != 0 && rewritten.find("https://") != 0) {
-                                // Relative redirect like "StudentHome.aspx"
-                                std::string dir = "/";
-                                size_t lastSlash = uri.rfind('/');
-                                if (lastSlash != std::string::npos) {
-                                    dir = uri.substr(0, lastSlash + 1);
-                                }
-                                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + dir + rewritten;
-                            }
-                            cleanedHeaders << "Location: " << rewritten << "\r\n";
-                            continue;
-                        }
-
-                        if (lowerLine.find("set-cookie:") == 0) {
-                            std::string cookieVal = line;
-                            std::regex secRegex(R"(;\s*secure)", std::regex_constants::icase);
-                            cookieVal = std::regex_replace(cookieVal, secRegex, "");
-                            std::regex domRegex(R"(;\s*domain=[^;]+)", std::regex_constants::icase);
-                            cookieVal = std::regex_replace(cookieVal, domRegex, "");
-                            std::regex sameSiteNone(R"(;\s*samesite=none)", std::regex_constants::icase);
-                            cookieVal = std::regex_replace(cookieVal, sameSiteNone, "; SameSite=Lax");
-                            cleanedHeaders << cookieVal << "\r\n";
-                            continue;
-                        }
-
-                        cleanedHeaders << line << "\r\n";
-                    }
-                    cleanedHeaders << "Connection: close\r\n\r\n";
-                    std::string finalHdr = cleanedHeaders.str();
-                    send(clientSock, finalHdr.c_str(), (int)finalHdr.size(), 0);
-                }
+    std::string rawHeaders;
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER && headerSize > 0) {
+        std::vector<wchar_t> wHeaderBuf(headerSize / sizeof(wchar_t) + 1);
+        if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+                                WINHTTP_HEADER_NAME_BY_INDEX, wHeaderBuf.data(), &headerSize, WINHTTP_NO_HEADER_INDEX)) {
+            int aHeaderLen = WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, nullptr, 0, nullptr, nullptr);
+            if (aHeaderLen > 0) {
+                rawHeaders.resize(aHeaderLen - 1);
+                WideCharToMultiByte(CP_UTF8, 0, wHeaderBuf.data(), -1, &rawHeaders[0], aHeaderLen, nullptr, nullptr);
             }
         }
-
-        // Stream body data
-        DWORD dwSize = 0;
-        do {
-            dwSize = 0;
-            if (WinHttpQueryDataAvailable(hRequest, &dwSize) && dwSize > 0) {
-                std::vector<char> outBuf(dwSize);
-                DWORD dwDownloaded = 0;
-                if (WinHttpReadData(hRequest, outBuf.data(), dwSize, &dwDownloaded) && dwDownloaded > 0) {
-                    send(clientSock, outBuf.data(), (int)dwDownloaded, 0);
-                }
-            }
-        } while (dwSize > 0);
-    } else {
-        const char* gatewayErr = "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nGateway Error: WinHTTP failed to connect to legacy TLS server.";
-        send(clientSock, gatewayErr, (int)strlen(gatewayErr), 0);
     }
+    if (rawHeaders.empty()) {
+        rawHeaders = "HTTP/1.1 " + std::to_string(statusCode ? statusCode : 200) + " OK\r\n";
+    }
+
+    // Filter and clean headers:
+    // 1. Remove Transfer-Encoding (WinHttp already de-chunks body, so sending chunked header breaks browser parsing)
+    // 2. Remove Connection and replace with Connection: close
+    // 3. Remove Content-Length and emit our own after buffering the body
+    // 4. Rewrite Location header to keep browser on gateway
+    // 5. Strip '; secure' and '; domain=...' from Set-Cookie so the browser retains cookies on 127.0.0.1
+    std::istringstream hStream(rawHeaders);
+    std::string line;
+    std::ostringstream cleanedHeaders;
+    bool isFirst = true;
+    while (std::getline(hStream, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (isFirst) {
+            cleanedHeaders << line << "\r\n";
+            isFirst = false;
+            continue;
+        }
+        if (line.empty()) continue;
+
+        std::string lowerLine = line;
+        std::transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(), ::tolower);
+
+        if (lowerLine.find("transfer-encoding:") == 0) continue;
+        if (lowerLine.find("connection:") == 0) continue;
+        if (lowerLine.find("content-length:") == 0) continue;
+
+        if (lowerLine.find("location:") == 0) {
+            // Rewrite Location: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
+            std::string locVal = line.substr(9);
+            while (!locVal.empty() && locVal.front() == ' ') locVal.erase(0, 1);
+            std::string rewritten = locVal;
+            size_t sxPos = rewritten.find("sxuk.org");
+            if (sxPos != std::string::npos) {
+                size_t slashPos = rewritten.find('/', sxPos);
+                if (slashPos != std::string::npos) {
+                    rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten.substr(slashPos);
+                }
+            } else if (!rewritten.empty() && rewritten[0] == '/') {
+                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten;
+            } else if (!rewritten.empty() && rewritten.find("http://") != 0 && rewritten.find("https://") != 0) {
+                // Relative redirect like "StudentHome.aspx"
+                std::string dir = "/";
+                size_t lastSlash = uri.rfind('/');
+                if (lastSlash != std::string::npos) {
+                    dir = uri.substr(0, lastSlash + 1);
+                }
+                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + dir + rewritten;
+            }
+            cleanedHeaders << "Location: " << rewritten << "\r\n";
+            continue;
+        }
+
+        if (lowerLine.find("set-cookie:") == 0) {
+            std::string cookieVal = line;
+            std::regex secRegex(R"(;\s*secure)", std::regex_constants::icase);
+            cookieVal = std::regex_replace(cookieVal, secRegex, "");
+            std::regex domRegex(R"(;\s*domain=[^;]+)", std::regex_constants::icase);
+            cookieVal = std::regex_replace(cookieVal, domRegex, "");
+            std::regex sameSiteNone(R"(;\s*samesite=none)", std::regex_constants::icase);
+            cookieVal = std::regex_replace(cookieVal, sameSiteNone, "; SameSite=Lax");
+            cleanedHeaders << cookieVal << "\r\n";
+            continue;
+        }
+
+        cleanedHeaders << line << "\r\n";
+    }
+    cleanedHeaders << "Content-Length: " << responseBody.size() << "\r\n";
+    cleanedHeaders << "Connection: close\r\n\r\n";
+
+    std::string fullResponse = cleanedHeaders.str();
+    fullResponse += responseBody;
 
     WinHttpCloseHandle(hRequest);
     WinHttpCloseHandle(hConnect);
     WinHttpCloseHandle(hSession);
-    closesocket(clientSock);
+
+    if (cacheable && statusCode == 200 && !responseBody.empty()) {
+        CachePut(targetUrl, fullResponse);
+    }
+
+    if (SendAll(clientSock, fullResponse)) {
+        CloseGracefully(clientSock);
+    } else {
+        closesocket(clientSock);
+    }
 }
+
 
 static void ServerLoop() {
     while (s_running.load()) {

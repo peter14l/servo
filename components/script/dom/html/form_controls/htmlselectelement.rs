@@ -261,7 +261,7 @@ impl HTMLSelectElement {
                 .next()
                 .filter(|node| {
                     let parent = node.upcast::<Node>().GetParentNode();
-                    node.Value().is_empty() && parent.as_deref() == Some(self.upcast())
+                    node.as_rooted().Value().is_empty() && parent.as_deref() == Some(self.upcast())
                 })
                 .map(|node| node.as_rooted())
         } else {
@@ -313,6 +313,7 @@ impl HTMLSelectElement {
         }
         for opt in self.list_of_options(no_gc) {
             let element = opt.upcast::<Element>();
+            let opt = opt.as_rooted();
             if opt.Selected() && element.enabled_state() {
                 data_set.push(FormDatum {
                     ty: self.Type(),
@@ -691,13 +692,18 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     fn Value(&self, cx: &JSContext) -> DOMString {
         self.list_of_options(cx.no_gc())
             .find(|opt_elem| opt_elem.Selected())
-            .map(|opt_elem| opt_elem.Value())
+            .map(|opt_elem| opt_elem.as_rooted().Value())
             .unwrap_or_default()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
-        let mut opt_iter = self.list_of_options(cx.no_gc());
+        // Root all options up front so they cannot be collected by the GC while
+        // we mutate selectedness below (see issue #48538-style reachability bugs).
+        let no_gc = cx.no_gc();
+        let options: Vec<DomRoot<HTMLOptionElement>> =
+            self.list_of_options(no_gc).map(|opt| opt.as_rooted()).collect();
+        let mut opt_iter = options.into_iter();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
             if opt.Value() == value {

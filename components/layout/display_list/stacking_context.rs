@@ -20,6 +20,7 @@ use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::AbsoluteColor;
+use style::computed_values::flex_direction::T as FlexDirection;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
@@ -249,6 +250,7 @@ impl StackingContextTree {
         clip_rect: LayoutRect,
         scroll_sensitivity: AxesScrollSensitivity,
         touch_action: TouchAction,
+        offset: LayoutVector2D,
     ) -> ScrollTreeNodeId {
         self.paint_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
@@ -258,7 +260,7 @@ impl StackingContextTree {
                 clip_rect,
                 scroll_sensitivity,
                 touch_action,
-                offset: LayoutVector2D::zero(),
+                offset,
                 offset_changed: Cell::new(false),
             }),
         )
@@ -460,6 +462,7 @@ impl StackingContext {
     }
 
     fn sort(&mut self) {
+        // sort_by_key is stable, so equal z-index preserves tree order as required by CSS paint order.
         self.children.sort_by_key(|child| child.z_index)
     }
 
@@ -1074,7 +1077,7 @@ impl BoxFragmentWithStyle<'_> {
                     },
                     OverflowClipMarginBox::BorderBox => {},
                 };
-                radii = offset_radii(builder.border_radius(), offsets_from_border);
+                radii = offset_radii(builder.border_radius(), offsets_from_border, &overflow_clip_rect);
             } else if overflow.x != ComputedOverflow::Clip {
                 let max = LayoutRect::max_rect();
                 overflow_clip_rect.min.x = max.min.x;
@@ -1142,13 +1145,39 @@ impl BoxFragmentWithStyle<'_> {
             y: y_sensitivity,
         };
 
+        let content_rect = self.scrollable_overflow().to_webrender();
+        let mut initial_offset = LayoutVector2D::zero();
+        // A scroll container that is also a flex container starts scrolled to the
+        // initial position selected by `flex-direction`. See
+        // <https://drafts.csswg.org/css-flexbox-1/#flex-direction-property>.
+        let is_flex = match crate::style_ext::Display::from(style.get_box().display) {
+            crate::style_ext::Display::GeneratingBox(generating_box) => {
+                generating_box.display_inside() == crate::style_ext::DisplayInside::Flex
+            },
+            _ => false,
+        };
+        if is_flex {
+            match style.get_position().flex_direction {
+                FlexDirection::ColumnReverse => {
+                    let max_scroll_y = (content_rect.height() - scroll_frame_rect.height()).max(0.0);
+                    initial_offset.y = max_scroll_y;
+                },
+                FlexDirection::RowReverse => {
+                    let max_scroll_x = (content_rect.width() - scroll_frame_rect.width()).max(0.0);
+                    initial_offset.x = max_scroll_x;
+                },
+                _ => {},
+            }
+        }
+
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_scroll_id,
-            self.scrollable_overflow().to_webrender(),
+            content_rect,
             scroll_frame_rect,
             sensitivity,
             touch_action,
+            initial_offset,
         );
 
         Some(OverflowFrameData {

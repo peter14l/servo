@@ -281,16 +281,20 @@ impl<'dom> LayoutDom<'dom, Node> {
         Some(RangeAny::new(start, end))
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn text_node_paints_caret(&self) -> bool {
-        // TODO: Add support for `contenteditable`.
-        self.parent_node_ref()
-            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+        self.parent_node_ref().is_some_and(|parent| {
+            parent.is_text_container_of_single_line_input() ||
+                unsafe { parent.unsafe_get().is_editable_or_editing_host() }
+        })
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
-        // TODO: Add support for `contenteditable`.
-        self.parent_node_ref()
-            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+        self.parent_node_ref().is_some_and(|parent| {
+            parent.is_text_container_of_single_line_input() ||
+                unsafe { parent.unsafe_get().is_editable_or_editing_host() }
+        })
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {

@@ -7,6 +7,7 @@ use embedder_traits::Cursor;
 use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 use style_traits::CSSPixel;
@@ -14,7 +15,7 @@ use style_traits::CSSPixel;
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEvent_Binding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::node::Node;
@@ -29,6 +30,7 @@ pub(crate) struct InputEvent {
     data: Option<DOMString>,
     is_composing: bool,
     input_type: DOMString,
+    target_ranges: DomRefCell<Vec<Dom<StaticRange>>>,
 }
 
 impl InputEvent {
@@ -53,6 +55,7 @@ impl InputEvent {
                 data,
                 is_composing,
                 input_type,
+                target_ranges: DomRefCell::new(Vec::new()),
             }),
             window,
             proto,
@@ -61,6 +64,13 @@ impl InputEvent {
             .uievent
             .init_event(event_type, can_bubble, cancelable, view, detail);
         event
+    }
+
+    pub(crate) fn set_target_ranges(&self, target_ranges: Vec<DomRoot<StaticRange>>) {
+        *self.target_ranges.borrow_mut() = target_ranges
+            .iter()
+            .map(|r| Dom::from_ref(&**r))
+            .collect();
     }
 }
 
@@ -112,8 +122,11 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 
     /// <https://w3c.github.io/input-events/#dom-inputevent-gettargetranges>
     fn GetTargetRanges(&self) -> Vec<DomRoot<StaticRange>> {
-        // TODO: Populate targetRanges for contenteditable
-        Vec::new()
+        self.target_ranges
+            .borrow()
+            .iter()
+            .map(|r| DomRoot::from_ref(&**r))
+            .collect()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

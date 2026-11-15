@@ -10,6 +10,7 @@ use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontWidthKeyword;
+use unicode_properties::UnicodeEmoji;
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
@@ -55,7 +56,12 @@ where
 // Based on gfxWindowsPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
-    if options.presentation_preference == EmojiPresentationPreference::Emoji {
+    if options.presentation_preference == EmojiPresentationPreference::Emoji ||
+        options.character.is_emoji_char()
+    {
+        families.push("Twemoji Mozilla");
+        families.push("Noto Color Emoji");
+        families.push("EmojiOne Color");
         families.push("Segoe UI Emoji");
     }
 
@@ -302,6 +308,10 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
 
         // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
         1 => {
+            families.push("Twemoji Mozilla");
+            families.push("Noto Color Emoji");
+            families.push("EmojiOne Color");
+            families.push("Segoe UI Emoji");
             families.push("Segoe UI Symbol");
             families.push("Ebrima");
             families.push("Nirmala UI");

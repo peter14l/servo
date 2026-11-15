@@ -22,6 +22,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::selection::Selection;
+use crate::dom::staticrange::StaticRange;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#miscellaneous-commands>
 fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool {
@@ -275,6 +276,12 @@ impl DocumentExecCommandSupport for Document {
         let Some((command, mut selection)) = self.check_support_and_enabled(cx, &command_id) else {
             return false;
         };
+        let event_data = if value.is_empty() {
+            None
+        } else {
+            Some(value.clone())
+        };
+
         // Step 4. If command is not in the Miscellaneous commands section:
         let affected_editing_host = if !is_command_listed_in_miscellaneous_section(command) {
             // Step 4.1. Let affected editing host be the editing host that is an inclusive ancestor
@@ -290,8 +297,8 @@ impl DocumentExecCommandSupport for Document {
             };
 
             // Step 4.2. Fire an event named "beforeinput" at affected editing host using InputEvent,
-            // with its bubbles and cancelable attributes initialized to true, and its data attribute initialized to null
-            let event = InputEvent::new(
+            // with its bubbles and cancelable attributes initialized to true, and its data attribute
+            let input_event = InputEvent::new(
                 cx,
                 window,
                 None,
@@ -300,11 +307,22 @@ impl DocumentExecCommandSupport for Document {
                 true,
                 Some(window),
                 0,
-                None,
+                event_data.clone(),
                 false,
                 mapped_value_of_command(command),
             );
-            let event = event.upcast::<Event>();
+            if let Some(range) = selection.active_range(cx) {
+                let static_range = StaticRange::new(
+                    cx,
+                    self,
+                    &range.start_container(),
+                    range.start_offset(),
+                    &range.end_container(),
+                    range.end_offset(),
+                );
+                input_event.set_target_ranges(vec![static_range]);
+            }
+            let event = input_event.upcast::<Event>();
             // Step 4.3. If the value returned by the previous step is false, return false.
             if !event.fire(cx, affected_editing_host.upcast()) {
                 return false;
@@ -342,9 +360,9 @@ impl DocumentExecCommandSupport for Document {
         }
         // Step 7. If the action modified DOM tree, then fire an event named "input" at affected editing
         // host using InputEvent, with its isTrusted and bubbles attributes initialized to true,
-        // inputType attribute initialized to the mapped value of command, and its data attribute initialized to null.
+        // inputType attribute initialized to the mapped value of command, and its data attribute.
         if let Some(affected_editing_host) = affected_editing_host {
-            let event = InputEvent::new(
+            let input_event = InputEvent::new(
                 cx,
                 window,
                 None,
@@ -353,11 +371,22 @@ impl DocumentExecCommandSupport for Document {
                 false,
                 Some(window),
                 0,
-                None,
+                event_data,
                 false,
                 mapped_value_of_command(command),
             );
-            let event = event.upcast::<Event>();
+            if let Some(range) = selection.active_range(cx) {
+                let static_range = StaticRange::new(
+                    cx,
+                    self,
+                    &range.start_container(),
+                    range.start_offset(),
+                    &range.end_container(),
+                    range.end_offset(),
+                );
+                input_event.set_target_ranges(vec![static_range]);
+            }
+            let event = input_event.upcast::<Event>();
             event.set_trusted(true);
             event.fire(cx, affected_editing_host.upcast());
         }

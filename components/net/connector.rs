@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, LazyLock};
@@ -50,7 +49,8 @@ impl ServoHttpConnector {
     fn new() -> ServoHttpConnector {
         let mut inner = HyperHttpConnector::new();
         inner.enforce_http(false);
-        inner.set_happy_eyeballs_timeout(None);
+        inner.set_happy_eyeballs_timeout(Some(Duration::from_millis(300)));
+        inner.set_nodelay(true);
         inner.set_connect_timeout(Some(Duration::from_secs(pref!(network_connection_timeout))));
         ServoHttpConnector { inner }
     }
@@ -118,7 +118,7 @@ impl<T> From<HyperRustlsHttpsConnector<T>> for InstrumentedConnector<T> {
 
 pub struct InstrumentedStream<T> {
     inner: MaybeHttpsStream<T>,
-    tls_info: RefCell<Option<TlsHandshakeInfo>>,
+    tls_info: Mutex<Option<TlsHandshakeInfo>>,
 }
 
 impl<T: Unpin> Unpin for InstrumentedStream<T> {}
@@ -178,7 +178,7 @@ where
         match stream {
             MaybeHttpsStream::Http(inner) => Self {
                 inner: MaybeHttpsStream::Http(inner),
-                tls_info: RefCell::new(None),
+                tls_info: Mutex::new(None),
             },
             MaybeHttpsStream::Https(tls_stream) => {
                 let (_tcp, tls) = tls_stream.inner().get_ref();
@@ -186,7 +186,7 @@ where
 
                 Self {
                     inner: MaybeHttpsStream::Https(tls_stream),
-                    tls_info: RefCell::new(Some(tls_info)),
+                    tls_info: Mutex::new(Some(tls_info)),
                 }
             },
         }
@@ -209,7 +209,7 @@ where
                 }
             },
         };
-        if let Some(info) = self.tls_info.borrow_mut().take() {
+        if let Some(info) = self.tls_info.lock().take() {
             connected.extra(info)
         } else {
             connected
@@ -433,6 +433,7 @@ pub fn prewarm_tls() {
 
     if let Err(error) = std::thread::Builder::new()
         .name("Net-TLS-prewarm".into())
+        .stack_size(8 * 1024 * 1024)
         .spawn(prewarm_tls_impl)
     {
         warn!("Failed to spawn thread to prewarm TLS: {error:?}");
@@ -651,15 +652,17 @@ impl Service<Destination> for ProxyConnector {
 pub type ServoClient = Client<InstrumentedConnector<ProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
+    // Force HTTP/1.1 to avoid HTTP/2 framing reset errors (RFC 7540 PROTOCOL_ERROR)
+    // on Google / YouTube / Instagram / Cloudflare edge proxies.
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
-        .enable_http2()
         .wrap_connector(ProxyConnector::new());
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
+        .http2_adaptive_window(true)
         // This is necessary to allow hyper to perform various background tasks for HTTP/2.
         .timer(TokioTimer::new())
         // This is necessary for hyper to reap unused idle keep-alive connections.
@@ -669,5 +672,6 @@ pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
         // limit controls the maximum idle connections per host, which we still don't want to grow
         // without bound.
         .pool_max_idle_per_host(6)
+        .pool_idle_timeout(Duration::from_secs(90))
         .build(InstrumentedConnector::from(connector))
 }

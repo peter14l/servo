@@ -116,7 +116,7 @@ impl AttrName {
 }
 
 /// Lightweight attribute storage that avoids allocating a full DOM `Attr` node.
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct ContentAttributeData {
     pub identifier: AttrName,
     pub value: AttrValue,
@@ -376,32 +376,70 @@ impl AttributeStorage {
     }
 
     /// Reserve room for at least `additional` more attributes.
+    #[expect(unsafe_code)]
     #[inline]
     pub(crate) fn reserve_exact(&self, additional: usize) {
-        self.0.borrow_mut().reserve_exact(additional);
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.reserve_exact(additional);
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().reserve_exact(additional);
+            }
+        }
     }
 
     /// Push raw attribute data.
+    #[expect(unsafe_code)]
     pub(crate) fn push_raw(&self, data: ContentAttributeData) {
-        self.0.borrow_mut().push(AttributeEntry::Raw(data));
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.push(AttributeEntry::Raw(data));
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().push(AttributeEntry::Raw(data));
+            }
+        }
     }
 
     /// Push a Dom Attr node.
+    #[expect(unsafe_code)]
     pub(crate) fn push_dom(&self, attr: &Attr) {
-        self.0
-            .borrow_mut()
-            .push(AttributeEntry::Dom(Dom::from_ref(attr)));
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.push(AttributeEntry::Dom(Dom::from_ref(attr)));
+        } else {
+            unsafe {
+                self.0
+                    .borrow_for_script_deallocation()
+                    .push(AttributeEntry::Dom(Dom::from_ref(attr)));
+            }
+        }
     }
 
     /// Remove an attribute by index, returning the entry.
+    #[expect(unsafe_code)]
     pub(crate) fn remove(&self, index: usize) -> AttributeEntry {
-        self.0.borrow_mut().remove(index)
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries.remove(index)
+        } else {
+            unsafe {
+                self.0.borrow_for_script_deallocation().remove(index)
+            }
+        }
     }
 
     /// Set an attribute entry by index.
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set(&self, index: usize, entry: AttributeEntry) {
-        self.0.borrow_mut()[index] = entry;
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            entries[index] = entry;
+        } else {
+            unsafe {
+                let vec = self.0.borrow_for_script_deallocation();
+                if index < vec.len() {
+                    vec[index] = entry;
+                }
+            }
+        }
     }
 
     /// Ensure entry at index is a Dom Attr node, materializing if needed.
@@ -409,6 +447,9 @@ impl AttributeStorage {
     ///
     /// This method carefully splits the mutable borrow around the `Attr::new()`
     /// allocation so that GC tracing can safely borrow the storage.
+    /// It also guards against re-entrant borrows (e.g. when an outer iterator or
+    /// accessor holds an immutable borrow on this attribute storage), preventing
+    /// fatal "RefCell already borrowed" panics.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn ensure_dom(
         &self,
@@ -417,21 +458,26 @@ impl AttributeStorage {
         element: &Element,
     ) -> DomRoot<Attr> {
         // Fast path: already materialized.
-        if let AttributeEntry::Dom(attr) = &self.0.borrow()[index] {
-            return DomRoot::from_ref(&**attr);
+        if let Ok(entries) = self.0.try_borrow() {
+            if let Some(entry) = entries.get(index) {
+                if let AttributeEntry::Dom(attr) = entry {
+                    return DomRoot::from_ref(&**attr);
+                }
+            }
         }
 
-        // Extract the raw data, dropping the mutable borrow before allocating.
+        // Extract the attribute data safely without inserting destructible placeholders.
+        // We clone the lightweight ContentAttributeData with an immutable borrow and
+        // immediately drop the borrow before allocating the DOM node.
         let data = {
-            let mut entries = self.0.borrow_mut();
-            let placeholder = AttributeEntry::Raw(ContentAttributeData {
-                identifier: AttrName::Unqualified(html5ever::local_name!("")),
-                value: AttrValue::String(String::new()),
-            });
-            let old = std::mem::replace(&mut entries[index], placeholder);
-            match old {
-                AttributeEntry::Raw(data) => data,
-                _ => unreachable!(),
+            let entries = match self.0.try_borrow() {
+                Ok(entries) => entries,
+                Err(_) => self.0.borrow(),
+            };
+            match entries.get(index) {
+                Some(AttributeEntry::Dom(attr)) => return DomRoot::from_ref(&**attr),
+                Some(AttributeEntry::Raw(data)) => data.clone(),
+                None => unreachable!("index out of bounds in ensure_dom"),
             }
         };
 
@@ -448,19 +494,30 @@ impl AttributeStorage {
             Some(element),
         );
 
-        self.0.borrow_mut()[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
+        // Store materialized Dom<Attr> back into storage.
+        // If storage is currently borrowed by layout or script, skip caching in this cycle;
+        // it will be safely materialized or cached on subsequent access.
+        if let Ok(mut entries) = self.0.try_borrow_mut() {
+            if index < entries.len() {
+                entries[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
+            }
+        }
+
         attr
     }
 }
 
 // Safety: Only Dom entries contain GC-traced Dom<Attr> pointers.
 // Raw entries have no pointers to trace.
+// We use try_borrow() so GC tracing never panics if attribute storage is being mutated.
 #[expect(unsafe_code)]
 unsafe impl crate::dom::bindings::trace::JSTraceable for AttributeStorage {
     unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
-        for entry in self.0.borrow().iter() {
-            if let AttributeEntry::Dom(attr) = entry {
-                unsafe { js::rust::Trace::trace(attr, trc) };
+        if let Ok(entries) = self.0.try_borrow() {
+            for entry in entries.iter() {
+                if let AttributeEntry::Dom(attr) = entry {
+                    unsafe { js::rust::Trace::trace(attr, trc) };
+                }
             }
         }
     }

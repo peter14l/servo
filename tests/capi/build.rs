@@ -162,6 +162,12 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=servo_capi");
 
+    // `GetProcessMemoryInfo`, used by the W5.7 leak test in
+    // `test_integration.c`, is exported from psapi.
+    if cfg!(target_os = "windows") {
+        println!("cargo:rustc-link-lib=psapi");
+    }
+
     // cargo cinstall installs headers under "<prefix>/include/servo".
     // See [package.metadata.capi.header] in servo_capi/Cargo.toml.
     let include_dir = out_dir.join("include");
@@ -178,4 +184,15 @@ fn main() {
         .flag_if_supported("/experimental:c11atomics")
         .include(&include_dir)
         .compile("c_integration_tests");
+
+    // Compile the C++ tests against the generated header and the header-only
+    // RAII helpers in `ffi/capi/servo_capi.hpp`. This is what keeps the public
+    // header usable from C++ (see `cpp_compat` in ffi/capi/cbindgen.toml).
+    cc::Build::new()
+        .cpp(true)
+        .file(crate_dir.join("cpp").join("test_cpp_api.cpp"))
+        .std("c++17")
+        .include(&include_dir)
+        .include(root.join("ffi").join("capi"))
+        .compile("cpp_api_tests");
 }

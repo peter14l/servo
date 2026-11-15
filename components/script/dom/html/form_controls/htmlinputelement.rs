@@ -35,6 +35,7 @@ use xml5ever::ns;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -58,6 +59,7 @@ use crate::dom::html::form_controls::input_type::{
     InputActivationType, InputType, ValueChangeEvents,
 };
 use crate::dom::html::form_controls::text_control::TextControlElement;
+use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -816,11 +818,12 @@ impl HTMLInputElement {
 
         // https://html.spec.whatwg.org/multipage/#the-step-attribute%3Asuffering-from-a-step-mismatch
         if let Some(step) = self.allowed_value_step() {
-            // TODO: Spec has some issues here, see https://github.com/whatwg/html/issues/5207.
-            // Chrome and Firefox parse values as decimals to get exact results,
-            // we probably should too.
-            let diff = (self.step_base() - value_as_number) % step / value_as_number;
-            if diff.abs() > 1e-12 {
+            let delta = (value_as_number - self.step_base()).abs();
+            let steps = delta / step;
+            let nearest = steps.round();
+            // Step mismatch if distance to the nearest integer multiple exceeds floating-point tolerance.
+            let step_error = (steps - nearest).abs();
+            if step_error > 1e-6 {
                 failed_flags.insert(ValidationFlags::STEP_MISMATCH);
             }
         }
@@ -1919,20 +1922,23 @@ impl HTMLInputElement {
         if self.upcast::<Element>().click_in_progress() {
             return;
         }
-        let submit_button = node
+        let submit_button: Option<DomRoot<Node>> = node
             .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLInputElement>)
-            .filter(|input| matches!(*input.input_type(), InputType::Submit(_)))
-            .find(|r| r.form_owner() == owner);
+            .find_map(|child| {
+                if let Some(input) = child.downcast::<HTMLInputElement>() {
+                    if matches!(*input.input_type(), InputType::Submit(_)) && input.form_owner() == owner {
+                        return Some(child);
+                    }
+                } else if let Some(button) = child.downcast::<HTMLButtonElement>() {
+                    if button.Type() == "submit" && button.form_owner() == owner {
+                        return Some(child);
+                    }
+                }
+                None
+            });
         match submit_button {
             Some(ref button) => {
-                if button.is_instance_activatable() {
-                    // spec does not actually say to set the not trusted flag,
-                    // but we can get here from synthetic keydown events
-                    button
-                        .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
-                }
+                button.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
             },
             None => {
                 let mut inputs = node

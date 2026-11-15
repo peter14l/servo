@@ -3407,16 +3407,24 @@ impl Document {
         if !fonts.waiting_to_fullfill_promise() {
             return false;
         }
-        if self.window().font_context().web_fonts_still_loading() != 0 {
+        let font_timeout_expired = self
+            .navigation_timing
+            .dom_interactive
+            .get()
+            .or_else(|| self.navigation_timing.dom_loading.get())
+            .map(|t| (CrossProcessInstant::now() - t) > TimeDuration::milliseconds(1500))
+            .unwrap_or(false);
+
+        if self.window().font_context().web_fonts_still_loading() != 0 && !font_timeout_expired {
             return false;
         }
-        if self.ReadyState() != DocumentReadyState::Complete {
+        if self.ReadyState() == DocumentReadyState::Loading && !font_timeout_expired {
             return false;
         }
-        if !self.restyle_reason(cx.no_gc()).is_empty() {
+        if !self.restyle_reason(cx.no_gc()).is_empty() && !font_timeout_expired {
             return false;
         }
-        if !self.rendering_update_reasons.get().is_empty() {
+        if !self.rendering_update_reasons.get().is_empty() && !font_timeout_expired {
             return false;
         }
 

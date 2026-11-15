@@ -36,7 +36,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_exec_command_enabled",
     "dom_fontface_enabled",
     "dom_indexeddb_enabled",
-    "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",
@@ -107,6 +106,10 @@ pub(crate) struct ServoShellPreferences {
     /// Enable memory output if tracing is enabled.
     #[allow(unused)]
     pub memory_output: bool,
+    /// Whether private browsing / incognito mode is active.
+    pub incognito: bool,
+    /// Path to an unpacked WebExtension directory containing manifest.json to load.
+    pub load_extension: Option<PathBuf>,
 }
 
 impl Default for ServoShellPreferences {
@@ -116,7 +119,7 @@ impl Default for ServoShellPreferences {
             device_pixel_ratio_override: None,
             headless: false,
             homepage: "https://servo.org".into(),
-            initial_window_size: Size2D::new(1024, 740),
+            initial_window_size: Size2D::new(1280, 740),
             no_native_titlebar: true,
             screen_size_override: None,
             simulate_touch_events: false,
@@ -134,6 +137,8 @@ impl Default for ServoShellPreferences {
             log_to_file: false,
             experimental_preferences_enabled: false,
             memory_output: false,
+            incognito: false,
+            load_extension: None,
         }
     }
 }
@@ -383,6 +388,10 @@ struct CmdArgs {
     #[bpaf(short('B'), long("bhm"))]
     background_hang_monitor: bool,
 
+    /// Automatically terminate permanently hung scripts detected by the Background Hang Monitor.
+    #[bpaf(long("bhm-kill-hung-scripts"))]
+    hang_monitor_kill_script: bool,
+
     ///
     ///  Path to find SSL certificates.
     #[bpaf(argument("/home/servo/resources/certs"))]
@@ -453,6 +462,18 @@ struct CmdArgs {
     ///  Whether or not to completely ignore certificate errors.
     #[bpaf(long)]
     ignore_certificate_errors: bool,
+
+    /// Enable private browsing / incognito mode (isolated in-memory storage).
+    #[bpaf(long("incognito"), long("private"))]
+    incognito: bool,
+
+    /// Path to an unpacked WebExtension directory containing manifest.json to load.
+    #[bpaf(long("load-extension"), argument("/path/to/extension"))]
+    load_extension: Option<PathBuf>,
+
+    /// Enforce origin-keyed process and event-loop isolation instead of registrable domain (eTLD+1).
+    #[bpaf(long("origin-isolation"), long("site-isolation"))]
+    origin_isolation: bool,
 
     /// Number of threads to use for layout.
     #[bpaf(short('y'), long, argument("1"))]
@@ -574,7 +595,7 @@ struct CmdArgs {
 
     ///
     ///  Set the initial window size in logical (device independent) pixels.
-    #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
+    #[bpaf(argument::<String>("1280x740"), parse(parse_resolution_string), fallback(None))]
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// Set js_mem_gc_zeal_level=2 and js_mem_gc_zeal_frequency=1
@@ -703,8 +724,10 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         preferences.js_ion_enabled = false;
     }
 
+    // Keep the default above the common 1024px tablet/desktop breakpoint, so that
+    // websites serve their desktop layout on first launch.
     // Make sure the default window size is not larger than any provided screen size.
-    let default_window_size = Size2D::new(1024, 740);
+    let default_window_size = Size2D::new(1280, 740);
     let default_window_size = cmd_args
         .screen_size_override
         .map_or(default_window_size, |screen_size_override| {
@@ -739,6 +762,8 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
         memory_output: cmd_args.memory_output,
+        incognito: cmd_args.incognito,
+        load_extension: cmd_args.load_extension,
         ..Default::default()
     };
 
@@ -760,6 +785,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,
+        hang_monitor_kill_script: cmd_args.hang_monitor_kill_script,
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
@@ -776,6 +802,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
+        origin_isolation: cmd_args.origin_isolation,
         force_ipc: cmd_args.force_ipc,
     };
 

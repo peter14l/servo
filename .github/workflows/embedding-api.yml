@@ -1,0 +1,310 @@
+# Build Servo's C API (`servo-capi`) and run the C API integration tests, then
+# verify that the public C header can still be generated with cbindgen.
+#
+# The tests live in `tests/capi`. Their `build.rs` invokes `cargo cinstall` (a
+# `cargo-c` subcommand) to build `servo-capi` as a cdylib and to install its
+# generated headers into the test crate's `OUT_DIR`, which the C sources under
+# `tests/capi/c` are then compiled against. `cargo-c` is therefore a hard
+# requirement for this workflow.
+#
+# NOTE: `cargo-c` is incompatible with `sccache`, so this workflow deliberately
+# does NOT enable sccache (and explicitly disables it for the test step).
+name: Embedding API (C API)
+
+on:
+  workflow_dispatch:
+  push:
+    paths: &embedding-paths
+      - 'ffi/capi/**'
+      - 'tests/capi/**'
+      - 'components/**'
+      - 'ports/servoshell/**'
+      - 'docs/embedding/**'
+      - '.github/workflows/embedding-api.yml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+  pull_request:
+    paths: *embedding-paths
+
+# Cancel superseded runs for the same ref / pull request.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  # A single job definition shared by every supported platform. OS-specific
+  # setup steps are gated on `runner.os`, and the matrix is the one place to
+  # add or remove platforms.
+  capi:
+    name: C API (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            runner: ubuntu-22.04
+          - name: macOS
+            runner: macos-15
+          - name: Windows
+            runner: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+
+      # `rust-toolchain.toml` pins the toolchain (and components) used by the
+      # repository; `rustup show` makes sure it is installed on the runner.
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/setup-python
+
+      - name: Install LLVM and Clang
+        if: runner.os != 'macOS'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH env (Linux)
+        if: runner.os == 'Linux'
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
+
+      - name: Set LIBCLANG_PATH env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Change Mirror Priorities
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/apt-mirrors
+
+      - name: Install EGL library and headers
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+
+      # Cache dependency downloads shared by the outer and nested Cargo
+      # invocations.
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # cargo-c uses this separate target directory (see tests/capi/build.rs).
+      # It cannot use sccache, so persist its compiled build output instead.
+      - name: Cache cargo-c build
+        uses: actions/cache@v5
+        with:
+          path: target/cinstall
+          key: ${{ runner.os }}-cargo-cinstall-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-cinstall-
+
+      # `cargo-c` provides the `cargo cinstall` command invoked by
+      # tests/capi/build.rs to build and install `servo-capi`.
+      - name: Install cargo-c
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+
+      # Used by the header-generation check below; reads ffi/capi/cbindgen.toml.
+      - name: Install cbindgen
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cbindgen
+
+      # Windows needs the moztools that `servo` links against.
+      - name: Passive bootstrap (Windows)
+        if: runner.os == 'Windows'
+        run: .\mach fetch
+
+      - name: Configure Windows C compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CC=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOZTOOLS_PATH=${{ github.workspace }}\target\dependencies\moztools\4.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # This builds `servo-capi` via `cargo cinstall` (see tests/capi/build.rs)
+      # and then compiles and runs the C integration tests against it.
+      - name: Build and test servo-capi-tests
+        env:
+          # `cargo-c` does not work with sccache, so explicitly disable it.
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+          # W5.6: the integration tests write their observability metrics to
+          # this file. It is an absolute path so that it does not depend on the
+          # test binary's working directory. See
+          # docs/embedding/OBSERVABILITY.md.
+          SERVO_OBSERVABILITY_FILE: ${{ github.workspace }}/observability-metrics-${{ matrix.name }}.json
+        run: cargo test -p servo-capi-tests --locked
+
+      # Collect the metrics the tests recorded and add the cdylib size, which
+      # only the build can see. Runs even when the tests failed: the metrics of
+      # a failing run are part of the crash proxy.
+      - name: Collect observability metrics
+        if: always()
+        shell: bash
+        run: |
+          metrics="observability-metrics-${{ matrix.name }}.json"
+          if [ ! -f "$metrics" ]; then
+            echo "::warning::$metrics was not written; the integration tests did not reach the end of the suite."
+            printf '%s\n' '{"startup_ms":null,"load_complete_ms":null,"screenshot_ms":null,"js_ms":null}' > "$metrics"
+          fi
+
+          lib=""
+          for candidate in target/cinstall/*/*/libservo_capi.so target/cinstall/*/*/libservo_capi.dylib target/cinstall/*/*/servo_capi.dll; do
+            if [ -f "$candidate" ]; then
+              lib="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$lib" ]; then
+            echo "::warning::no servo_capi cdylib found under target/cinstall; the artifact size was not measured."
+            bytes=null
+          else
+            bytes=$(wc -c < "$lib" | tr -d '[:space:]')
+            echo "cdylib: $lib ($bytes bytes)"
+          fi
+
+          sed "s/}\$/,\"cdylib_bytes\":${bytes},\"platform\":\"${{ matrix.name }}\"}/" "$metrics" > observability-report.json
+          cat observability-report.json
+
+      - name: Upload observability metrics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: observability-metrics-${{ matrix.name }}
+          path: observability-report.json
+          if-no-files-found: warn
+
+      # Regenerate the public C header from ffi/capi/cbindgen.toml and fail if
+      # generation errors out or produces an empty header.
+      - name: Generate C API header (cbindgen)
+        shell: bash
+        run: |
+          mkdir -p target
+          cbindgen --config ffi/capi/cbindgen.toml --output target/servo_capi.h ffi/capi
+          test -s target/servo_capi.h
+
+      # Fail if the set of exported `servo_*` symbols changed without updating
+      # the checked-in allowlist at ffi/capi/symbols.txt. This catches
+      # accidental exports, renames, or removals of public C symbols.
+      - name: Check exported C API symbols
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Collect the `servo_*` function names declared in the header. Only
+          # prototype lines are considered (they start in column 0); doc
+          # comments are indented and therefore ignored.
+          grep -E '^[A-Za-z_].*servo_[a-z0-9_]+\(' target/servo_capi.h \
+            | grep -oE 'servo_[a-z0-9_]+\(' \
+            | sed 's/($//' \
+            | LC_ALL=C sort -u > target/exported_symbols.txt
+          if ! diff -u ffi/capi/symbols.txt target/exported_symbols.txt; then
+            echo "::error::Exported C API symbols differ from ffi/capi/symbols.txt"
+            echo "If the change is intentional, update ffi/capi/symbols.txt."
+            exit 1
+          fi
+          echo "Exported C API symbols match the allowlist ($(wc -l < ffi/capi/symbols.txt) symbols)."
+
+      # Assert the deprecation path is real. cbindgen must emit
+      # SERVO_DEPRECATED(...) for #[deprecated] declarations. Without this check,
+      # dropping the #[deprecated] attribute or the `deprecated`/`deprecated_with_note`
+      # keys in cbindgen.toml would silently stop emitting the deprecation, and the
+      # policy in docs/embedding/ABI_STABILITY.md section 6.1 would be a claim with
+      # nothing enforcing it.
+      - name: Check deprecation path is exercised
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=servo_webview_evaluate_javascript
+          if ! grep -qE 'SERVO_DEPRECATED\("[^"]+"\)' target/servo_capi.h; then
+            echo "::error::No SERVO_DEPRECATED(\"...\") declaration in the generated header; the deprecation path is not exercised."
+            exit 1
+          fi
+          if ! grep -B1 "^ServoError ${expected}(" target/servo_capi.h | grep -q 'SERVO_DEPRECATED('; then
+            echo "::error::${expected} is not declared SERVO_DEPRECATED in the generated header."
+            exit 1
+          fi
+          echo "Deprecation path exercised: ${expected} is emitted as SERVO_DEPRECATED."
+
+  # W5.6: the observability report. It aggregates the per-platform metrics that
+  # the `capi` job collected and compares them against the committed baseline in
+  # `docs/embedding/observability_baseline.json`.
+  #
+  # This is deliberately a reporting job, not a gate: see
+  # docs/embedding/OBSERVABILITY.md for why the timings are not enforced yet.
+  # It runs even when the `capi` job failed, because the failure is itself one of
+  # the four recorded signals (the crash proxy).
+  observability:
+    name: Observability report
+    needs:
+      - capi
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # A failed platform writes no artifact; that is reported, not fatal.
+      - name: Download the per-platform metrics
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: observability-metrics-*
+          path: observability
+
+      - name: Compare against the baseline
+        env:
+          CAPI_RESULT: ${{ needs.capi.result }}
+        run: |
+          # The reporter exits non-zero only when the collection itself broke
+          # (metrics missing although the C API job succeeded, or malformed
+          # input). Keep the step summary in that case, and fail the step after
+          # posting it.
+          rc=0
+          python3 etc/ci/embedding_observability.py \
+            --metrics observability \
+            --baseline docs/embedding/observability_baseline.json \
+            --capi-result "$CAPI_RESULT" \
+            --summary observability/summary.md \
+            --out observability/summary.json || rc=$?
+          cat observability/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: observability-summary
+          path: |
+            observability/summary.md
+            observability/summary.json

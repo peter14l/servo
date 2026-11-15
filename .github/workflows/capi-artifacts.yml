@@ -1,0 +1,312 @@
+# Build prebuilt `servo-capi` artifacts (the generated C header and the shared
+# library) on each supported desktop platform and upload them.
+#
+# This is the first step toward C7 ("Distribution") in
+# docs/embedding/PRODUCTION_READINESS.md §2: it turns "builds from source" into
+# "download a sysroot and link against it". It is intentionally separate from
+# .github/workflows/embedding-api.yml, which builds and *tests* the C API on
+# every relevant PR and does not upload anything.
+#
+# The build is heavy (it compiles the whole engine in release mode), so it runs
+# only for `capi-v*` tags or for pushes to this branch that touch
+# packaging-relevant paths — never on pull requests and never on ordinary
+# engine-code pushes.
+#
+# Triggering: a push to this branch that touches the paths below (or any
+# `capi-v*` tag push) starts a run; this is the trigger that bootstrapped the
+# workflow. Push events read the workflow file from the pushed ref, so they work
+# without the file being on the default branch (the same property
+# `embedding-api.yml` relies on).
+#
+# `workflow_dispatch` also works now, but only became usable *after* the first
+# push-triggered run: before that, `gh workflow run capi-artifacts.yml -r
+# embedding/cef-parity` failed with HTTP 404 "not found on the default branch"
+# and the Actions workflow endpoint 404'd for this file — GitHub had not
+# registered the workflow (the GitHub docs note on `on.workflow_dispatch`
+# requiring the default branch describes this registration step). Once the
+# workflow is registered, dispatch against a non-default ref succeeds; verified
+# on 2026-10-18 with run 39149442966 (`event: workflow_dispatch`, sha 7dba3701).
+name: C API prebuilt artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - embedding/cef-parity
+      - fix/xpath-crash-and-internal-schemes
+      - 'fix/**'
+    paths:
+      - '.github/workflows/capi-artifacts.yml'
+      - 'examples/c-embedder/**'
+      - 'ffi/capi/Cargo.toml'
+      - 'ffi/capi/cbindgen.toml'
+      - 'support/cmake/**'
+      - 'support/pkgconfig/**'
+    # Path filters are not evaluated for pushes of tags, so this trigger keeps
+    # working regardless of the `paths` list above.
+    tags:
+      - 'capi-v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  artifacts:
+    name: servo-capi (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            runner: ubuntu-22.04
+          - name: macos-aarch64
+            runner: macos-15
+          - name: windows-x86_64
+            runner: windows-2022
+    steps:
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
+
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/setup-python
+
+      - name: Install LLVM and Clang
+        if: runner.os != 'macOS'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH env (Linux)
+        if: runner.os == 'Linux'
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
+
+      - name: Set LIBCLANG_PATH env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Change Mirror Priorities
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/apt-mirrors
+
+      - name: Install EGL library and headers
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # cargo-c cannot use sccache, so persist its compiled output instead.
+      # The build is directed at target/cinstall via --target-dir below, which is
+      # what this cache restores.
+      - name: Cache cargo-c build
+        uses: actions/cache@v5
+        with:
+          path: target/cinstall
+          key: ${{ runner.os }}-cargo-cinstall-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-cinstall-
+
+      - name: Install cargo-c
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+
+      # Windows needs the moztools that `servo` links against.
+      - name: Passive bootstrap (Windows)
+        if: runner.os == 'Windows'
+        run: .\mach fetch
+
+      - name: Configure Windows C compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CC=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOZTOOLS_PATH=${{ github.workspace }}\target\dependencies\moztools\4.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # Build the cdylib and install the header + library under target/artifacts.
+      # `shell: bash` so the `\` line continuations work on the Windows runner
+      # (whose default run shell is PowerShell).
+      #
+      # --libdir lib: without --target, cargo-c's default_libdir() consults the
+      #   build machine and on Debian/Ubuntu returns the multiarch directory
+      #   `lib/x86_64-linux-gnu`, which ServoConfig.cmake and servo_capi.pc
+      #   (both hard-code `lib/`) would then miss. tests/capi/build.rs only
+      #   got plain `lib` because it passes an explicit --target.
+      # --meson-paths: installs the Windows import library as `servo_capi.lib`
+      #   instead of `servo_capi.dll.lib`, which is what ServoConfig.cmake's
+      #   find_library looks for; same flag tests/capi/build.rs uses.
+      - name: Build servo-capi (release)
+        shell: bash
+        env:
+          # cargo-c does not work with sccache, so explicitly disable it.
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+          # Git-bash (MSYS) rewrites POSIX-path-looking arguments when spawning
+          # native exes: `--prefix /` arrived as `--prefix C:/Program Files/Git`
+          # and buried the whole sysroot under
+          # `target/artifacts/Program Files/Git/`. MSYS_NO_PATHCONV=1 disables
+          # that (verified against Git for Windows bash; MSYS2_ARG_CONV_EXSL
+          # does not). Scoped to this step only: the cmake/gcc steps below
+          # still want `/d/a/...` converted to `D:/a/...`.
+          MSYS_NO_PATHCONV: "1"
+        run: |
+          cargo cinstall -p servo-capi \
+            --library-type cdylib \
+            --release \
+            --target-dir target/cinstall \
+            --destdir target/artifacts \
+            --prefix / \
+            --libdir lib \
+            --meson-paths \
+            --locked
+
+      - name: Install CMake package config and pkg-config files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/artifacts/lib/cmake/Servo
+          cp support/cmake/ServoConfig.cmake target/artifacts/lib/cmake/Servo/
+          cp support/cmake/ServoConfigVersion.cmake target/artifacts/lib/cmake/Servo/
+          mkdir -p target/artifacts/lib/pkgconfig
+          cp support/pkgconfig/servo_capi.pc target/artifacts/lib/pkgconfig/
+
+      - name: Verify C embedder compiles and links against sysroot
+        shell: bash
+        run: |
+          set -euo pipefail
+          SYSROOT="$(pwd)/target/artifacts"
+
+          # 1. Verify sysroot structure. The full tree is printed first, and
+          #    every check names the missing path, so a failure explains
+          #    itself in the log instead of dying silently like a bare
+          #    `test -f` does.
+          echo "=== Sysroot tree ==="
+          find target/artifacts -maxdepth 4 | sort
+
+          check() {
+            if [ ! -f "$1" ]; then
+              echo "::error::missing sysroot file: $1"
+              exit 1
+            fi
+          }
+          check "$SYSROOT/include/servo/servo_capi.h"
+          check "$SYSROOT/lib/cmake/Servo/ServoConfig.cmake"
+          check "$SYSROOT/lib/pkgconfig/servo_capi.pc"
+          case "${{ runner.os }}" in
+            Linux)   check "$SYSROOT/lib/libservo_capi.so" ;;
+            macOS)   check "$SYSROOT/lib/libservo_capi.dylib" ;;
+            Windows) check "$SYSROOT/bin/servo_capi.dll"
+                     check "$SYSROOT/lib/servo_capi.lib" ;;
+          esac
+
+          # 2. Compile and link examples/c-embedder using CMake (using find_package)
+          echo "=== Building examples/c-embedder with CMake (find_package) ==="
+          mkdir -p build-cmake
+          CMAKE_ARGS=()
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ -f "C:/msys64/mingw64/bin/gcc.exe" ]; then
+              export PATH="C:/msys64/mingw64/bin:$PATH"
+              CMAKE_ARGS+=(
+                -G "MinGW Makefiles"
+                -DCMAKE_C_COMPILER="C:/msys64/mingw64/bin/gcc.exe"
+                -DCMAKE_MAKE_PROGRAM="C:/msys64/mingw64/bin/mingw32-make.exe"
+              )
+            fi
+          elif [ "${{ runner.os }}" = "Linux" ]; then
+            CMAKE_ARGS+=(-DCMAKE_C_COMPILER=gcc)
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            CMAKE_ARGS+=(-DCMAKE_C_COMPILER=gcc)
+          fi
+
+          cmake -S examples/c-embedder -B build-cmake \
+            -DCMAKE_PREFIX_PATH="$SYSROOT" \
+            "${CMAKE_ARGS[@]}"
+          cmake --build build-cmake --verbose
+
+          # 3. Direct compilation and linking with gcc against sysroot
+          echo "=== Compiling examples/c-embedder/main.c directly with gcc ==="
+          mkdir -p build-direct
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ -f "C:/msys64/mingw64/bin/gcc.exe" ]; then
+              export PATH="C:/msys64/mingw64/bin:$PATH"
+            fi
+            GCC="gcc"
+            command -v "$GCC" >/dev/null 2>&1 || GCC="C:/msys64/mingw64/bin/gcc.exe"
+
+            "$GCC" -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed.exe
+            test -f build-direct/servo_embed.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            gcc -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed
+            test -f build-direct/servo_embed
+          else
+            gcc -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed
+            test -f build-direct/servo_embed
+          fi
+
+          echo "=== C embedder verification passed on ${{ matrix.name }} ==="
+
+      # Artifact names carry version + platform + sha (W5.2 step 4). The
+      # version is hard-coded: keep it in sync with SERVO_CAPI_VERSION in
+      # ffi/capi/lib.rs and the `version` in support/pkgconfig/servo_capi.pc.
+      - name: Compute artifact identity
+        id: meta
+        shell: bash
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload servo-capi artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-capi-0.1.0-${{ matrix.name }}-${{ steps.meta.outputs.short_sha }}
+          path: target/artifacts
+          if-no-files-found: error

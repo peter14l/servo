@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use servo_config::pref;
+
 use crate::dom::bindings::str::DOMString;
 
 #[expect(non_snake_case)]
@@ -16,7 +18,14 @@ pub(crate) fn ProductSub() -> DOMString {
 
 #[expect(non_snake_case)]
 pub(crate) fn Vendor() -> DOMString {
-    DOMString::new()
+    let ua = pref!(user_agent);
+    if ua.contains("Chrome") {
+        DOMString::from_static("Google Inc.")
+    } else if ua.contains("AppleWebKit") && !ua.contains("Chrome") {
+        DOMString::from_static("Apple Computer, Inc.")
+    } else {
+        DOMString::new()
+    }
 }
 
 #[expect(non_snake_case)]
@@ -70,7 +79,44 @@ pub(crate) fn UserAgent(user_agent: &str) -> DOMString {
 
 #[expect(non_snake_case)]
 pub(crate) fn AppVersion() -> DOMString {
-    DOMString::from_static("4.0")
+    let ua = pref!(user_agent);
+    if let Some(rest) = ua.strip_prefix("Mozilla/") {
+        DOMString::from(rest)
+    } else {
+        // Firefox intentionally reduces appVersion to a platform hint (for
+        // example "5.0 (Windows)") rather than echoing the full user agent.
+        // Legacy download pages parse this to decide which installer to offer.
+        let platform = match std::env::consts::OS {
+            "windows" => "Windows",
+            "macos" => "Macintosh",
+            "android" => "Android",
+            "ios" => "iPhone",
+            _ => "X11",
+        };
+        DOMString::from(format!("5.0 ({platform})"))
+    }
+}
+
+#[expect(non_snake_case)]
+pub(crate) fn Oscpu() -> DOMString {
+    // Keep these values in sync with Firefox's `navigator.oscpu` so that
+    // Firefox-targeted OS detection keeps working.
+    let oscpu = if cfg!(target_os = "windows") {
+        if cfg!(target_arch = "x86_64") || cfg!(target_arch = "aarch64") {
+            "Windows NT 10.0; Win64; x64"
+        } else {
+            "Windows NT 10.0"
+        }
+    } else if cfg!(target_os = "macos") {
+        "Intel Mac OS X 10.15"
+    } else if cfg!(target_os = "android") {
+        "Linux armv81"
+    } else if cfg!(target_os = "ios") {
+        "iPhone"
+    } else {
+        "Linux x86_64"
+    };
+    DOMString::from_static(oscpu)
 }
 
 #[expect(non_snake_case)]

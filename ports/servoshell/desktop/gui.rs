@@ -84,6 +84,12 @@ pub struct Gui {
     /// Whether or not the current `WebView` can navigate forward.
     can_go_forward: bool,
 
+    /// Session history entries of the active `WebView`.
+    history_entries: Vec<Url>,
+
+    /// Active index within `history_entries`.
+    history_index: usize,
+
     /// Handle to the GPU texture of the favicon.
     ///
     /// These need to be cached across egui draw calls.
@@ -261,6 +267,8 @@ impl Gui {
             status_text: None,
             can_go_back: false,
             can_go_forward: false,
+            history_entries: Vec::new(),
+            history_index: 0,
             favicon_textures: Default::default(),
             pending_accesskit_updates: vec![],
         }
@@ -442,6 +450,25 @@ impl Gui {
                                 *location_dirty = false;
                                 window.queue_user_interface_command(UserInterfaceCommand::Back);
                             }
+                            back_button.context_menu(|ui| {
+                                ui.label("History");
+                                if self.history_index > 0 {
+                                    let start = self.history_index.saturating_sub(10);
+                                    for idx in (start..self.history_index).rev() {
+                                        if let Some(entry) = self.history_entries.get(idx) {
+                                            let steps = self.history_index - idx;
+                                            let title = truncate_with_ellipsis(entry.as_str(), 40);
+                                            if ui.button(title).clicked() {
+                                                *location_dirty = false;
+                                                window.queue_user_interface_command(
+                                                    UserInterfaceCommand::Traverse(-(steps as isize)),
+                                                );
+                                                ui.close_menu();
+                                            }
+                                        }
+                                    }
+                                }
+                            });
 
                             let forward_button =
                                 ui.add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"));
@@ -454,6 +481,26 @@ impl Gui {
                                 *location_dirty = false;
                                 window.queue_user_interface_command(UserInterfaceCommand::Forward);
                             }
+                            forward_button.context_menu(|ui| {
+                                ui.label("Forward History");
+                                if self.history_index + 1 < self.history_entries.len() {
+                                    let end =
+                                        (self.history_index + 11).min(self.history_entries.len());
+                                    for idx in (self.history_index + 1)..end {
+                                        if let Some(entry) = self.history_entries.get(idx) {
+                                            let steps = idx - self.history_index;
+                                            let title = truncate_with_ellipsis(entry.as_str(), 40);
+                                            if ui.button(title).clicked() {
+                                                *location_dirty = false;
+                                                window.queue_user_interface_command(
+                                                    UserInterfaceCommand::Traverse(steps as isize),
+                                                );
+                                                ui.close_menu();
+                                            }
+                                        }
+                                    }
+                                }
+                            });
 
                             match self.load_status {
                                 LoadStatus::Started | LoadStatus::HeadParsed => {
@@ -464,7 +511,10 @@ impl Gui {
                                         info
                                     });
                                     if stop_button.clicked() {
-                                        warn!("Do not support stop yet.");
+                                        *location_dirty = false;
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Stop,
+                                        );
                                     }
                                 },
                                 LoadStatus::Complete => {
@@ -488,6 +538,10 @@ impl Gui {
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
+                                    if state.servoshell_preferences.incognito {
+                                        ui.label(egui::RichText::new("🕶 Incognito").italics().color(egui::Color32::from_rgb(180, 180, 240)));
+                                    }
+
                                     let mut experimental_preferences_enabled =
                                         state.experimental_preferences_enabled();
                                     let prefs_toggle = ui
@@ -506,6 +560,45 @@ impl Gui {
                                         *location_dirty = false;
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::ReloadAll,
+                                        );
+                                    }
+
+                                    let downloads_btn = ui
+                                        .add(Gui::toolbar_button("📥"))
+                                        .on_hover_text("View downloads (Ctrl+J)");
+                                    downloads_btn.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("View downloads".into());
+                                        info
+                                    });
+                                    let ctrl_j = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::J));
+                                    if downloads_btn.clicked() || ctrl_j {
+                                        let url = Url::parse("servo:downloads").expect("Valid internal URL");
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Go(url.to_string()),
+                                        );
+                                    }
+
+                                    let ctrl_h = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::H));
+                                    if ctrl_h {
+                                        let url = Url::parse("servo:history").expect("Valid internal URL");
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Go(url.to_string()),
+                                        );
+                                    }
+
+                                    let bookmark_btn = ui
+                                        .add(Gui::toolbar_button("★"))
+                                        .on_hover_text("Bookmark this page (Ctrl+D)");
+                                    bookmark_btn.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Bookmark current page".into());
+                                        info
+                                    });
+                                    let ctrl_d = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::D));
+                                    if bookmark_btn.clicked() || ctrl_d {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::BookmarkCurrentPage,
                                         );
                                     }
 
@@ -576,25 +669,48 @@ impl Gui {
                                         Self::browser_tab(ui, window, webview, favicon);
                                     }
 
+                                    let ctrl_w = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::W));
+                                    if ctrl_w {
+                                        if let Some(active_id) = window.webview_collection.borrow().active_id() {
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::CloseWebView(active_id),
+                                            );
+                                        }
+                                    }
+
+                                    let ctrl_shift_t = ui.input(|i| {
+                                        i.clone().consume_key(
+                                            Modifiers::COMMAND | Modifiers::SHIFT,
+                                            Key::T,
+                                        )
+                                    });
+                                    if ctrl_shift_t {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::ReopenClosedWebView,
+                                        );
+                                    }
+
+                                    let ctrl_t = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::T));
                                     let new_tab_button = ui.add(Gui::toolbar_button("+"));
                                     new_tab_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("New tab".into());
+                                        info.label = Some("New tab (Ctrl+T)".into());
                                         info
                                     });
-                                    if new_tab_button.clicked() {
+                                    if new_tab_button.clicked() || ctrl_t {
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::NewWebView,
                                         );
                                     }
 
+                                    let ctrl_n = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::N));
                                     let new_window_button = ui.add(Gui::toolbar_button("⊞"));
                                     new_window_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("New window".into());
+                                        info.label = Some("New window (Ctrl+N)".into());
                                         info
                                     });
-                                    if new_window_button.clicked() {
+                                    if new_window_button.clicked() || ctrl_n {
                                         let url = Url::parse("servo:newtab").expect("Should be able to unconditionally parse 'servo:newtab' as URL");
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::NewWindow(TopLevelWebViewCreationRequest::WithUrl(url)),
@@ -625,10 +741,10 @@ impl Gui {
                 // WebView's own origin, so this node supplies the offset of the WebView within
                 // the window, and scales it to the same scale as the rest of the nodes in egui's
                 // AccessKit tree.
-                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
+                let accesskit_scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
                 let x = available_rect.min.x as f64;
                 let y = available_rect.min.y as f64;
-                Affine::new([scale, 0.0, 0.0, scale, x, y])
+                Affine::new([accesskit_scale, 0.0, 0.0, accesskit_scale, x, y])
             };
             for (webview_id, webview) in window.webviews() {
                 if let Some(tree_id) = webview.accesskit_tree_id() {
@@ -641,14 +757,18 @@ impl Gui {
                     });
                 }
             }
-            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
+
+            let hidpi = window.platform_window().hidpi_scale_factor().get();
+            let physical_width = (available_rect.width() * hidpi).max(1.0).round();
+            let physical_height = (available_rect.height() * hidpi).max(1.0).round();
+            let target_device_size = Size2D::new(physical_width, physical_height);
             if let Some(webview) = window.active_webview() &&
-                size != webview.size()
+                target_device_size != webview.size()
             {
                 // `rect` is sized to just the WebView viewport, which is required by
                 // `OffscreenRenderingContext` See:
                 // <https://github.com/servo/servo/issues/38369#issuecomment-3138378527>
-                webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
+                webview.resize(PhysicalSize::new(physical_width as u32, physical_height as u32));
             }
 
             if let Some(status_text) = &self.status_text {
@@ -753,13 +873,26 @@ impl Gui {
     }
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
-        let (can_go_back, can_go_forward) = window
+        let (can_go_back, can_go_forward, history_entries, history_index) = window
             .active_webview()
-            .map(|webview| (webview.can_go_back(), webview.can_go_forward()))
-            .unwrap_or((false, false));
+            .map(|webview| {
+                (
+                    webview.can_go_back(),
+                    webview.can_go_forward(),
+                    webview.back_forward_list(),
+                    webview.back_forward_list_index(),
+                )
+            })
+            .unwrap_or((false, false, Vec::new(), 0));
         let old_can_go_back = std::mem::replace(&mut self.can_go_back, can_go_back);
         let old_can_go_forward = std::mem::replace(&mut self.can_go_forward, can_go_forward);
-        old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
+        let history_changed =
+            self.history_entries != history_entries || self.history_index != history_index;
+        self.history_entries = history_entries;
+        self.history_index = history_index;
+        old_can_go_back != self.can_go_back ||
+            old_can_go_forward != self.can_go_forward ||
+            history_changed
     }
 
     /// Updates all fields taken from the given [`ServoShellWindow`], such as the location field.

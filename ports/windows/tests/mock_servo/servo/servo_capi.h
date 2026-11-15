@@ -1,0 +1,226 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#pragma once
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct RenderingContext RenderingContext;
+typedef struct Servo Servo;
+typedef struct WebView WebView;
+
+#define SERVO_THEME_LIGHT 0
+#define SERVO_THEME_DARK 1
+
+#define SERVO_MODIFIER_ALT 0x01
+#define SERVO_MODIFIER_CONTROL 0x08
+#define SERVO_MODIFIER_SHIFT 0x200
+
+inline RenderingContext* servo_rendering_context_create_window(
+    void* display_handle,
+    void* window_handle,
+    uint32_t width,
+    uint32_t height
+) {
+    (void)display_handle;
+    (void)window_handle;
+    (void)width;
+    (void)height;
+    static int dummy = 42;
+    return (RenderingContext*)&dummy;
+}
+
+inline RenderingContext* servo_rendering_context_create_windows_hwnd(
+    void* hwnd,
+    void* hinstance,
+    uint32_t width,
+    uint32_t height
+) {
+    (void)hwnd;
+    (void)hinstance;
+    (void)width;
+    (void)height;
+    static int dummy = 42;
+    return (RenderingContext*)&dummy;
+}
+
+inline int servo_rendering_context_present(RenderingContext* context) {
+    (void)context;
+    return 0;
+}
+
+inline int servo_webview_paint(WebView* webview) {
+    (void)webview;
+    return 0;
+}
+
+inline int servo_webview_present(WebView* webview) {
+    (void)webview;
+    return 0;
+}
+
+#define SERVO_ERROR_OK 0
+#define SERVO_ERROR_NULL_ARGUMENT -1
+#define SERVO_ERROR_INVALID_UTF8 -2
+#define SERVO_ERROR_INVALID_STATE -3
+#define SERVO_ERROR_NOT_FOUND -4
+#define SERVO_ERROR_CAPACITY -5
+
+typedef int32_t ServoError;
+
+inline int servo_webview_set_page_zoom(WebView* webview, float zoom) {
+    (void)webview;
+    (void)zoom;
+    return 0;
+}
+
+inline float servo_webview_page_zoom(const WebView* webview) {
+    (void)webview;
+    return 1.0f;
+}
+
+inline int servo_webview_get_favicon_image(
+    const WebView* webview,
+    uint32_t* width,
+    uint32_t* height,
+    uint32_t* format,
+    uint8_t* buffer,
+    size_t* buffer_len
+) {
+    (void)webview;
+    (void)width;
+    (void)height;
+    (void)format;
+    (void)buffer;
+    (void)buffer_len;
+    return SERVO_ERROR_NOT_FOUND;
+}
+
+typedef void (*ServoJavaScriptCallback)(const char* result_json, const char* error_message, void* user_data);
+
+inline int servo_webview_evaluate_javascript(
+    WebView* webview,
+    const char* script,
+    ServoJavaScriptCallback callback,
+    void* user_data
+) {
+    (void)webview;
+    (void)script;
+    (void)callback;
+    (void)user_data;
+    return SERVO_ERROR_OK;
+}
+
+typedef struct ServoUserContentManager ServoUserContentManager;
+typedef struct ServoUserStyleSheet ServoUserStyleSheet;
+
+inline ServoUserContentManager* servo_user_content_manager_create(Servo* servo) {
+    (void)servo;
+    static int dummy = 1;
+    return (ServoUserContentManager*)&dummy;
+}
+
+inline ServoUserStyleSheet* servo_user_style_sheet_create(const char* source, const char* url) {
+    (void)source;
+    (void)url;
+    static int dummy = 2;
+    return (ServoUserStyleSheet*)&dummy;
+}
+
+inline ServoError servo_user_content_manager_add_style_sheet(
+    ServoUserContentManager* ucm,
+    ServoUserStyleSheet* stylesheet
+) {
+    (void)ucm;
+    (void)stylesheet;
+    return SERVO_ERROR_OK;
+}
+
+inline ServoError servo_user_style_sheet_free(ServoUserStyleSheet* stylesheet) {
+    (void)stylesheet;
+    return SERVO_ERROR_OK;
+}
+
+inline ServoError servo_webview_builder_set_user_content_manager(
+    void* builder,
+    ServoUserContentManager* ucm
+) {
+    (void)builder;
+    (void)ucm;
+    return SERVO_ERROR_OK;
+}
+
+typedef struct ServoClipboardStringRequest ServoClipboardStringRequest;
+typedef void (*ServoClipboardClearCallback)(WebView* webview, void* user_data);
+typedef void (*ServoClipboardGetTextCallback)(WebView* webview, ServoClipboardStringRequest* request, void* user_data);
+typedef void (*ServoClipboardSetTextCallback)(WebView* webview, const char* text, void* user_data);
+
+typedef struct ServoClipboardDelegate {
+    size_t struct_size;
+    void* user_data;
+    ServoClipboardClearCallback clear;
+    ServoClipboardGetTextCallback get_text;
+    ServoClipboardSetTextCallback set_text;
+} ServoClipboardDelegate;
+
+inline ServoError servo_webview_builder_set_clipboard_delegate(
+    void* builder,
+    ServoClipboardDelegate delegate
+) {
+    (void)builder;
+    (void)delegate;
+    return SERVO_ERROR_OK;
+}
+
+inline void servo_webview_clipboard_request_success(
+    ServoClipboardStringRequest* request,
+    const char* text
+) {
+    (void)request;
+    (void)text;
+}
+
+inline void servo_webview_clipboard_request_failure(
+    ServoClipboardStringRequest* request,
+    const char* message
+) {
+    (void)request;
+    (void)message;
+}
+
+typedef struct ServoSelectElementOption {
+    size_t id;
+    const char* label;
+    bool is_disabled;
+} ServoSelectElementOption;
+
+typedef struct ServoSelectElementOptionOrOptgroup {
+    uint8_t tag;
+    ServoSelectElementOption option;
+    const char* optgroup_label;
+    const ServoSelectElementOption* optgroup_options;
+    size_t optgroup_options_count;
+} ServoSelectElementOptionOrOptgroup;
+
+typedef struct ServoSelectElementParams {
+    const ServoSelectElementOptionOrOptgroup* options;
+    size_t options_count;
+    const size_t* selected_options;
+    size_t selected_options_count;
+    bool allow_select_multiple;
+} ServoSelectElementParams;
+
+typedef void (*ServoSelectElementCallback)(
+    const size_t* selected_indices,
+    size_t count,
+    void* user_data
+);
+
+#ifdef __cplusplus
+}
+#endif

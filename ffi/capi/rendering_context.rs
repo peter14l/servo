@@ -4,7 +4,10 @@
 
 use std::rc::Rc;
 
-use servo_api::SoftwareRenderingContext;
+use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
+use servo_api::{SoftwareRenderingContext, WindowRenderingContext};
+
+use crate::ServoError;
 
 /// An opaque struct that abstracts a rendering context used
 /// for managing an OpenGL or GLES rendering context.
@@ -21,7 +24,15 @@ use servo_api::SoftwareRenderingContext;
 // cbindgen:opaque
 pub struct RenderingContext {
     pub(crate) inner: Rc<dyn servo_api::RenderingContext>,
+    pub(crate) window_context: Option<Rc<WindowRenderingContext>>,
 }
+
+/// Rendering context type constants for future type queries.
+#[unsafe(no_mangle)]
+pub static SERVO_RENDERING_CONTEXT_SOFTWARE: u32 = 0;
+
+#[unsafe(no_mangle)]
+pub static SERVO_RENDERING_CONTEXT_WINDOW: u32 = 1;
 
 /// Creates a new software rendering context for headless rendering.
 ///
@@ -35,16 +46,138 @@ pub extern "C" fn servo_rendering_context_create_software(
     width: u32,
     height: u32,
 ) -> *mut RenderingContext {
-    let size = dpi::PhysicalSize::new(width, height);
-    match SoftwareRenderingContext::new(size) {
-        Ok(context) => Box::into_raw(Box::new(RenderingContext {
-            inner: Rc::new(context),
-        })),
-        Err(error) => {
-            log::error!("Failed to create SoftwareRenderingContext: {error:?}");
-            std::ptr::null_mut()
-        },
-    }
+    ServoError::catch_ffi_ptr(|| {
+        let size = dpi::PhysicalSize::new(width, height);
+        match SoftwareRenderingContext::new(size) {
+            Ok(context) => Box::into_raw(Box::new(RenderingContext {
+                inner: Rc::new(context),
+                window_context: None,
+            })),
+            Err(error) => {
+                log::error!("Failed to create SoftwareRenderingContext: {error:?}");
+                std::ptr::null_mut()
+            },
+        }
+    })
+}
+
+/// Creates a new windowed rendering context for GPU-accelerated rendering to a native window.
+///
+/// The `display_handle` and `window_handle` parameters are raw pointers to
+/// `raw_window_handle::RawDisplayHandle` and `raw_window_handle::RawWindowHandle`
+/// respectively, as provided by windowing libraries like winit, SDL, or GLFW.
+///
+/// Returns a newly allocated `RenderingContext` handle, or `NULL` on
+/// failure (including invalid handles or zero-sized requests).
+/// The ownership of the returned handle is transferred to the caller,
+/// who must free it with [`servo_rendering_context_free`] or consume it
+/// by passing it to `servo_webview_builder_create`.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `display_handle` and `window_handle` are valid pointers to the respective
+///   `raw_window_handle` types for the current platform.
+/// - The window and display handles remain valid for the lifetime of the
+///   returned `RenderingContext`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_create_window(
+    display_handle: *mut std::ffi::c_void,
+    window_handle: *mut std::ffi::c_void,
+    width: u32,
+    height: u32,
+) -> *mut RenderingContext {
+    ServoError::catch_ffi_ptr(|| {
+        if display_handle.is_null() || window_handle.is_null() {
+            log::error!("display_handle and window_handle must not be null");
+            return std::ptr::null_mut();
+        }
+
+        let size = dpi::PhysicalSize::new(width, height);
+        if size.width == 0 || size.height == 0 {
+            log::error!("WindowRenderingContext size must be at least 1x1");
+            return std::ptr::null_mut();
+        }
+
+        // SAFETY: The caller guarantees these are valid pointers to the correct types.
+        let display_handle = unsafe { &*(display_handle as *const RawDisplayHandle) };
+        let window_handle = unsafe { &*(window_handle as *const RawWindowHandle) };
+
+        let display_handle = unsafe { DisplayHandle::borrow_raw(*display_handle) };
+        let window_handle = unsafe { WindowHandle::borrow_raw(*window_handle) };
+
+        match WindowRenderingContext::new(display_handle, window_handle, size) {
+            Ok(context) => {
+                let rc = Rc::new(context);
+                Box::into_raw(Box::new(RenderingContext {
+                    inner: rc.clone(),
+                    window_context: Some(rc),
+                }))
+            },
+            Err(error) => {
+                log::error!("Failed to create WindowRenderingContext: {error:?}");
+                std::ptr::null_mut()
+            },
+        }
+    })
+}
+
+/// Creates a new offscreen rendering context for GPU-accelerated offscreen
+/// rendering (OSR / FBO composition).
+///
+/// The `parent` parameter must be a `RenderingContext` created by
+/// `servo_rendering_context_create_window`. The offscreen context will share
+/// the parent's OpenGL context and render to an FBO that can be composited
+/// into the parent window.
+///
+/// Returns a newly allocated `RenderingContext` handle, or `NULL` on
+/// failure (including null parent, non-window parent, or zero-sized requests).
+/// The ownership of the returned handle is transferred to the caller,
+/// who must free it with [`servo_rendering_context_free`] or consume it
+/// by passing it to `servo_webview_builder_create`.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `parent` is a non-null pointer to a `RenderingContext` previously
+///   returned by `servo_rendering_context_create_window` and has not yet been
+///   freed nor passed to another API that takes ownership of it.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_create_offscreen(
+    parent: *mut RenderingContext,
+    width: u32,
+    height: u32,
+) -> *mut RenderingContext {
+    ServoError::catch_ffi_ptr(|| {
+        if parent.is_null() {
+            log::error!("parent RenderingContext must not be null");
+            return std::ptr::null_mut();
+        }
+
+        let size = dpi::PhysicalSize::new(width, height);
+        if size.width == 0 || size.height == 0 {
+            log::error!("OffscreenRenderingContext size must be at least 1x1");
+            return std::ptr::null_mut();
+        }
+
+        // SAFETY: The caller guarantees `parent` is a valid pointer to a RenderingContext.
+        let parent_ctx = unsafe { &*parent };
+
+        let Some(window_ctx) = &parent_ctx.window_context else {
+            log::error!(
+                "parent RenderingContext must be a WindowRenderingContext (created by servo_rendering_context_create_window)"
+            );
+            return std::ptr::null_mut();
+        };
+
+        // Create the offscreen context as a child of the window context.
+        let offscreen_ctx = window_ctx.offscreen_context(size);
+
+        Box::into_raw(Box::new(RenderingContext {
+            inner: Rc::new(offscreen_ctx),
+            window_context: None,
+        }))
+    })
 }
 
 /// Destroys `context` and frees its memory.
@@ -60,13 +193,117 @@ pub extern "C" fn servo_rendering_context_create_software(
 /// - `context` was previously returned by one of the
 ///   `servo_rendering_context_create_*` functions and has not yet been
 ///   freed nor passed to another API that takes ownership of it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `context` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_rendering_context_free(context: *mut RenderingContext) {
-    assert!(!context.is_null(), "context pointer must not be null");
+pub unsafe extern "C" fn servo_rendering_context_free(
+    context: *mut RenderingContext,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if context.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `context` documented above.
-    unsafe {
-        let _ = Box::from_raw(context);
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `context` documented above.
+        unsafe {
+            let _ = Box::from_raw(context);
+        }
+
+        ServoError::Ok
+    })
+}
+
+/// Presents the surface of this `RenderingContext` to its associated window or screen.
+///
+/// For double-buffered window rendering contexts, this swaps the front and back buffers
+/// (e.g. calling `SwapBuffers` on Win32 or `IDXGISwapChain::Present`).
+///
+/// Returns `ServoError::Ok` on success, or `ServoError::NullArgument` if `context` is null.
+///
+/// # Safety
+///
+/// The caller must ensure that `context` is a valid pointer to a `RenderingContext` previously
+/// returned by one of the `servo_rendering_context_create_*` functions.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_present(
+    context: *mut RenderingContext,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if context.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller guarantees `context` is valid.
+        let context = unsafe { &*context };
+        context.inner.present();
+        ServoError::Ok
+    })
+}
+
+/// Creates a new windowed rendering context directly from a Win32 HWND handle and optional HINSTANCE.
+///
+/// This avoids `raw_window_handle` ABI layout divergence across FFI boundaries by
+/// constructing the exact `RawWindowHandle::Win32` and `RawDisplayHandle::Windows` inside Rust.
+///
+/// Returns a newly allocated `RenderingContext` handle, or `NULL` on failure.
+/// The ownership of the returned handle is transferred to the caller.
+///
+/// # Safety
+///
+/// The caller must ensure that `hwnd` is a valid Win32 HWND belonging to the current thread.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_rendering_context_create_windows_hwnd(
+    hwnd: *mut std::ffi::c_void,
+    hinstance: *mut std::ffi::c_void,
+    width: u32,
+    height: u32,
+) -> *mut RenderingContext {
+    ServoError::catch_ffi_ptr(|| {
+        if hwnd.is_null() {
+            log::error!("hwnd must not be null");
+            return std::ptr::null_mut();
+        }
+
+        let size = dpi::PhysicalSize::new(width, height);
+        if size.width == 0 || size.height == 0 {
+            log::error!("WindowRenderingContext size must be at least 1x1");
+            return std::ptr::null_mut();
+        }
+
+        let non_zero_hwnd = match std::num::NonZeroIsize::new(hwnd as isize) {
+            Some(h) => h,
+            None => {
+                log::error!("hwnd must be non-zero");
+                return std::ptr::null_mut();
+            }
+        };
+
+        let mut win32_handle = raw_window_handle::Win32WindowHandle::new(non_zero_hwnd);
+        if !hinstance.is_null() {
+            win32_handle.hinstance = std::num::NonZeroIsize::new(hinstance as isize);
+        }
+
+        let raw_window = RawWindowHandle::Win32(win32_handle);
+        let raw_display = RawDisplayHandle::Windows(raw_window_handle::WindowsDisplayHandle::new());
+
+        let display_handle = unsafe { DisplayHandle::borrow_raw(raw_display) };
+        let window_handle = unsafe { WindowHandle::borrow_raw(raw_window) };
+
+        match WindowRenderingContext::new(display_handle, window_handle, size) {
+            Ok(context) => {
+                let rc = Rc::new(context);
+                Box::into_raw(Box::new(RenderingContext {
+                    inner: rc.clone(),
+                    window_context: Some(rc),
+                }))
+            },
+            Err(error) => {
+                log::error!("Failed to create WindowRenderingContext from HWND: {error:?}");
+                std::ptr::null_mut()
+            },
+        }
+    })
 }

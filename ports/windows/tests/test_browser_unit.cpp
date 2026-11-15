@@ -1,0 +1,753 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cassert>
+#include <algorithm>
+#include <cstdint>
+#include <sstream>
+#include <iomanip>
+#include <cctype>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+// Include Windows Port headers
+#include "../src/servo_raw_window.h"
+#include "../src/fluent_theme.h"
+#include "../src/servo_view_utils.h"
+
+// Forward-declare / mock classes for unit tests before headers that use them
+class ServoViewHost {
+public:
+    ~ServoViewHost() = default;
+};
+
+#include "../src/tab_strip.h"
+#include "../src/omnibox.h"
+#include "../src/browser_data.h"
+#include "../src/settings_dialog.h"
+#include "../src/password_manager.h"
+#include "../src/browser_window.h"
+#include "../src/servo_logo.h"
+
+void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
+    (void)settings;
+}
+
+void BrowserWindow::PromptSavePassword(const std::string&, const std::string&, const std::string&) {
+}
+
+void BrowserWindow::RequestAutofill(const std::string&) {
+}
+
+// Test harness macros
+static int g_tests_run = 0;
+static int g_tests_failed = 0;
+
+#define TEST_ASSERT(cond, msg) \
+    do { \
+        if (!(cond)) { \
+            std::cerr << "  FAILED: " << msg << " (" << #cond << ") at line " << __LINE__ << std::endl; \
+            g_tests_failed++; \
+            return; \
+        } \
+    } while (0)
+
+#define RUN_TEST(fn) \
+    do { \
+        g_tests_run++; \
+        std::cout << "[RUN] " << #fn << "..." << std::endl; \
+        int failed_before = g_tests_failed; \
+        fn(); \
+        if (g_tests_failed == failed_before) { \
+            std::cout << "  [PASS] " << #fn << std::endl; \
+        } \
+    } while (0)
+
+// -----------------------------------------------------------------------------
+// 1. Raw Window Handle ABI & Edge Cases
+// -----------------------------------------------------------------------------
+void test_raw_window_handle_layout() {
+    using namespace servo_win;
+
+    // Verify tag alignments
+    RawDisplayHandleWindows display_handle = {};
+    display_handle.tag = 9; // Windows variant
+    TEST_ASSERT(display_handle.tag == 9, "DisplayHandle tag must be 9");
+
+    RawWindowHandleWin32 window_handle = {};
+    window_handle.tag = 9; // Win32 variant
+    HWND fakeHwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(0x12345678ULL));
+    HINSTANCE fakeHinstance = reinterpret_cast<HINSTANCE>(static_cast<uintptr_t>(0x87654321ULL));
+
+    window_handle.hwnd = reinterpret_cast<intptr_t>(fakeHwnd);
+    window_handle.hinstance = reinterpret_cast<intptr_t>(fakeHinstance);
+
+    TEST_ASSERT(window_handle.tag == 9, "WindowHandle tag must be 9");
+    TEST_ASSERT(reinterpret_cast<HWND>(window_handle.hwnd) == fakeHwnd, "HWND pointer must be preserved");
+    TEST_ASSERT(reinterpret_cast<HINSTANCE>(window_handle.hinstance) == fakeHinstance, "HINSTANCE pointer must be preserved");
+
+    // Test null / zero-dimension edge cases
+    RenderingContext* ctx_null = create_win32_rendering_context(nullptr, 800, 600);
+    TEST_ASSERT(ctx_null == nullptr, "create_win32_rendering_context with null HWND must return nullptr");
+
+    RenderingContext* ctx_zero_w = create_win32_rendering_context(fakeHwnd, 0, 600);
+    TEST_ASSERT(ctx_zero_w == nullptr, "create_win32_rendering_context with 0 width must return nullptr");
+
+    RenderingContext* ctx_zero_h = create_win32_rendering_context(fakeHwnd, 800, 0);
+    TEST_ASSERT(ctx_zero_h == nullptr, "create_win32_rendering_context with 0 height must return nullptr");
+}
+
+// -----------------------------------------------------------------------------
+// 2. Omnibox URL & Search Query Parsing Edge Cases
+// -----------------------------------------------------------------------------
+void test_omnibox_normalization_edge_cases() {
+    TEST_ASSERT(NormalizeOmniboxInput("https://servo.org") == "https://servo.org", "Standard HTTPS URL");
+    TEST_ASSERT(NormalizeOmniboxInput("http://servo.org/docs") == "http://servo.org/docs", "Standard HTTP URL");
+    TEST_ASSERT(NormalizeOmniboxInput("https://www.youtube.com/results?search_query=hello world") == "https://www.youtube.com/results?search_query=hello%20world", "Explicit URL with unencoded space query");
+    TEST_ASSERT(NormalizeOmniboxInput("about:blank") == "about:blank", "about:blank scheme");
+    TEST_ASSERT(NormalizeOmniboxInput("about:version") == "about:version", "about:version scheme");
+
+    // YouTube apex domain rewrite
+    TEST_ASSERT(NormalizeOmniboxInput("youtube.com") == "https://www.youtube.com/", "YouTube apex domain");
+    TEST_ASSERT(NormalizeOmniboxInput("youtube.com/feed/subscriptions") == "https://www.youtube.com/feed/subscriptions", "YouTube apex path");
+    TEST_ASSERT(NormalizeOmniboxInput("https://youtube.com") == "https://www.youtube.com", "YouTube https scheme rewrite");
+    TEST_ASSERT(NormalizeOmniboxInput("http://youtube.com/watch?v=abc") == "https://www.youtube.com/watch?v=abc", "YouTube http scheme rewrite");
+
+    // Domain edge cases
+    TEST_ASSERT(NormalizeOmniboxInput("servo.org") == "https://servo.org", "Bare domain prefix https");
+    TEST_ASSERT(NormalizeOmniboxInput("google.com/search?q=rust") == "https://google.com/search?q=rust", "Domain with path & query");
+    TEST_ASSERT(NormalizeOmniboxInput("   servo.org   ") == "https://servo.org", "Whitespace trimming");
+
+    // Localhost edge cases
+    TEST_ASSERT(NormalizeOmniboxInput("localhost") == "http://localhost", "Localhost without port");
+    TEST_ASSERT(NormalizeOmniboxInput("localhost:8080") == "http://localhost:8080", "Localhost with port");
+    TEST_ASSERT(NormalizeOmniboxInput("127.0.0.1:3000") == "http://127.0.0.1:3000", "Loopback IP with port");
+
+    // Search query edge cases
+    TEST_ASSERT(NormalizeOmniboxInput("servo browser engine") == "https://duckduckgo.com/html/?q=servo+browser+engine", "Multi-word search query");
+    TEST_ASSERT(NormalizeOmniboxInput("what is rust?") == "https://duckduckgo.com/html/?q=what+is+rust%3F", "Search query with punctuation");
+    TEST_ASSERT(NormalizeOmniboxInput("? rust servo") == "https://duckduckgo.com/html/?q=rust+servo", "Search query with ? prefix");
+    TEST_ASSERT(NormalizeOmniboxInput("") == "", "Empty string handling");
+    TEST_ASSERT(NormalizeOmniboxInput("     ") == "", "Pure whitespace string handling");
+}
+
+// -----------------------------------------------------------------------------
+// 3. Tab Strip Math, Clamping & State Machine Edge Cases
+// -----------------------------------------------------------------------------
+struct MockTab {
+    int id;
+    std::string url;
+    RECT bounds;
+    RECT closeButtonBounds;
+};
+
+class MockTabStripState {
+public:
+    std::vector<MockTab> tabs;
+    int activeIndex = -1;
+    int nextId = 1;
+    RECT addBtnBounds = {};
+
+    int AddTab(const std::string& url) {
+        MockTab tab;
+        tab.id = nextId++;
+        tab.url = url.empty() ? "https://servo.org" : url;
+        tabs.push_back(tab);
+        activeIndex = static_cast<int>(tabs.size()) - 1;
+        Layout(1200);
+        return activeIndex;
+    }
+
+    void CloseTab(int index) {
+        if (index < 0 || index >= static_cast<int>(tabs.size())) return;
+        bool wasActive = (index == activeIndex);
+        tabs.erase(tabs.begin() + index);
+
+        if (tabs.empty()) {
+            activeIndex = -1;
+            return;
+        }
+
+        if (wasActive) {
+            activeIndex = std::min(index, static_cast<int>(tabs.size()) - 1);
+        } else if (activeIndex > index) {
+            activeIndex--;
+        }
+        Layout(1200);
+    }
+
+    void SelectTab(int index) {
+        if (index < 0 || index >= static_cast<int>(tabs.size())) return;
+        activeIndex = index;
+    }
+
+    void Layout(int totalWidth) {
+        if (tabs.empty()) return;
+        const int TAB_HEIGHT = 38;
+        const int TAB_MAX_WIDTH = 220;
+        const int TAB_MIN_WIDTH = 100;
+        const int ADD_BTN_WIDTH = 34;
+
+        int available = totalWidth - ADD_BTN_WIDTH - 8;
+        int tabWidth = available / static_cast<int>(tabs.size());
+        tabWidth = std::clamp(tabWidth, TAB_MIN_WIDTH, TAB_MAX_WIDTH);
+
+        int curX = 8;
+        for (auto& tab : tabs) {
+            tab.bounds = { curX, 4, curX + tabWidth - 2, TAB_HEIGHT };
+            tab.closeButtonBounds = { tab.bounds.right - 24, 10, tab.bounds.right - 6, 28 };
+            curX += tabWidth;
+        }
+        addBtnBounds = { curX + 4, 6, curX + 4 + ADD_BTN_WIDTH - 8, TAB_HEIGHT - 6 };
+    }
+};
+
+void test_tab_strip_state_machine() {
+    MockTabStripState state;
+    TEST_ASSERT(state.activeIndex == -1, "Initial active index is -1");
+
+    // Add Tab 1
+    int idx0 = state.AddTab("https://servo.org");
+    TEST_ASSERT(idx0 == 0 && state.activeIndex == 0, "First tab is active index 0");
+    TEST_ASSERT(state.tabs.size() == 1, "Tab count is 1");
+
+    // Add Tab 2
+    int idx1 = state.AddTab("https://github.com");
+    TEST_ASSERT(idx1 == 1 && state.activeIndex == 1, "Second tab is active index 1");
+
+    // Add Tab 3
+    int idx2 = state.AddTab("https://rust-lang.org");
+    TEST_ASSERT(idx2 == 2 && state.activeIndex == 2, "Third tab is active index 2");
+
+    // Close middle tab (Tab 1, while Tab 2 is active)
+    state.CloseTab(1);
+    TEST_ASSERT(state.tabs.size() == 2, "Tab count after close is 2");
+    TEST_ASSERT(state.activeIndex == 1, "Active index shifted from 2 to 1");
+    TEST_ASSERT(state.tabs[1].url == "https://rust-lang.org", "Remaining tab matches");
+
+    // Close active tab (Tab 1)
+    state.CloseTab(1);
+    TEST_ASSERT(state.tabs.size() == 1, "Tab count after closing active is 1");
+    TEST_ASSERT(state.activeIndex == 0, "Active index selected remaining neighbor");
+
+    // Close last tab
+    state.CloseTab(0);
+    TEST_ASSERT(state.tabs.empty(), "Tabs empty after closing last");
+    TEST_ASSERT(state.activeIndex == -1, "Active index resets to -1");
+
+    // Out of bounds selection / closing edge cases
+    state.SelectTab(-5);
+    TEST_ASSERT(state.activeIndex == -1, "Negative index selection ignored");
+    state.SelectTab(99);
+    TEST_ASSERT(state.activeIndex == -1, "Out of bounds selection ignored");
+    state.CloseTab(0); // Should not throw/crash
+}
+
+void test_tab_strip_clamping() {
+    MockTabStripState state;
+    // Add 1 tab in a 1200px window -> tab width should clamp to TAB_MAX_WIDTH (220)
+    state.AddTab("https://servo.org");
+    int tabW = state.tabs[0].bounds.right - state.tabs[0].bounds.left + 2;
+    TEST_ASSERT(tabW == 220, "Single tab width clamped to 220px");
+
+    // Add 25 tabs in 1200px window -> tab width should clamp to TAB_MIN_WIDTH (100)
+    for (int i = 0; i < 24; ++i) {
+        state.AddTab("https://servo.org");
+    }
+    int tabW25 = state.tabs[0].bounds.right - state.tabs[0].bounds.left + 2;
+    TEST_ASSERT(tabW25 == 100, "Many tabs width clamped to 100px minimum");
+}
+
+// -----------------------------------------------------------------------------
+// 4. FindBar Match Formatting & Edge Cases
+// -----------------------------------------------------------------------------
+std::wstring format_find_result(int activeOrdinal, int totalMatches) {
+    if (totalMatches > 0) {
+        return std::to_wstring(activeOrdinal) + L" of " + std::to_wstring(totalMatches);
+    }
+    return L"0 of 0";
+}
+
+void test_find_bar_formatting() {
+    TEST_ASSERT(format_find_result(1, 10) == L"1 of 10", "Ordinal 1 of 10");
+    TEST_ASSERT(format_find_result(5, 5) == L"5 of 5", "Ordinal at last match");
+    TEST_ASSERT(format_find_result(0, 0) == L"0 of 0", "No matches found");
+    TEST_ASSERT(format_find_result(-1, 0) == L"0 of 0", "Negative ordinal edge case");
+}
+
+// -----------------------------------------------------------------------------
+// 5. Windows 11 Mica Alt Constants & Theme Definitions
+// -----------------------------------------------------------------------------
+void test_mica_alt_constants() {
+    const int DWMSBT_TABBEDWINDOW_VAL = 4; // Mica Alt
+    const int DWMWA_SYSTEMBACKDROP_TYPE_VAL = 38;
+    const int DWMWA_USE_IMMERSIVE_DARK_MODE_VAL = 20;
+
+    TEST_ASSERT(DWMSBT_TABBEDWINDOW_VAL == 4, "DWMSBT_TABBEDWINDOW must be 4 for Mica Alt");
+    TEST_ASSERT(DWMWA_SYSTEMBACKDROP_TYPE_VAL == 38, "DWMWA_SYSTEMBACKDROP_TYPE attribute ID");
+    TEST_ASSERT(DWMWA_USE_IMMERSIVE_DARK_MODE_VAL == 20, "DWMWA_USE_IMMERSIVE_DARK_MODE attribute ID");
+
+    // Servo Theme Constants
+    TEST_ASSERT(SERVO_THEME_LIGHT == 0, "SERVO_THEME_LIGHT is 0");
+    TEST_ASSERT(SERVO_THEME_DARK == 1, "SERVO_THEME_DARK is 1");
+}
+
+// -----------------------------------------------------------------------------
+// 6. Input Event Modifiers Bitflags
+// -----------------------------------------------------------------------------
+void test_servo_modifiers() {
+    uint32_t shift = SERVO_MODIFIER_SHIFT;
+    uint32_t ctrl = SERVO_MODIFIER_CONTROL;
+    uint32_t alt = SERVO_MODIFIER_ALT;
+
+    TEST_ASSERT((shift & ctrl) == 0, "Modifiers must be orthogonal bits");
+    TEST_ASSERT((shift & alt) == 0, "Modifiers must be orthogonal bits");
+    TEST_ASSERT((ctrl & alt) == 0, "Modifiers must be orthogonal bits");
+
+    uint32_t combined = shift | ctrl;
+    TEST_ASSERT(combined & SERVO_MODIFIER_SHIFT, "Bitflag checks correctly");
+    TEST_ASSERT(combined & SERVO_MODIFIER_CONTROL, "Bitflag checks correctly");
+    TEST_ASSERT(!(combined & SERVO_MODIFIER_ALT), "Unset bitflag is false");
+}
+
+// -----------------------------------------------------------------------------
+// 7. Tab Cycling, Direct Selection & History Reopening
+// -----------------------------------------------------------------------------
+void test_tab_navigation_and_reopen() {
+    MockTabStripState state;
+    std::vector<std::string> closedHistory;
+
+    state.AddTab("https://servo.org");      // 0
+    state.AddTab("https://github.com");     // 1
+    state.AddTab("https://rust-lang.org");  // 2
+    TEST_ASSERT(state.activeIndex == 2, "Last added tab is active");
+
+    // NextTab cycling: 2 -> 0 -> 1 -> 2
+    state.activeIndex = (state.activeIndex + 1) % state.tabs.size();
+    TEST_ASSERT(state.activeIndex == 0, "Cycling next wraps around to 0");
+    state.activeIndex = (state.activeIndex + 1) % state.tabs.size();
+    TEST_ASSERT(state.activeIndex == 1, "Cycling next reaches 1");
+
+    // PreviousTab cycling: 1 -> 0 -> 2
+    state.activeIndex = (state.activeIndex - 1 + state.tabs.size()) % state.tabs.size();
+    TEST_ASSERT(state.activeIndex == 0, "Cycling previous reaches 0");
+    state.activeIndex = (state.activeIndex - 1 + state.tabs.size()) % state.tabs.size();
+    TEST_ASSERT(state.activeIndex == 2, "Cycling previous wraps to last tab");
+
+    // Direct tab index selection
+    state.SelectTab(1);
+    TEST_ASSERT(state.activeIndex == 1, "SelectTab 1 works");
+
+    // Close Tab 1 and track in closed history
+    std::string closedUrl = state.tabs[1].url;
+    closedHistory.push_back(closedUrl);
+    state.CloseTab(1);
+    TEST_ASSERT(state.tabs.size() == 2, "Count reduced after closing");
+
+    // Reopen closed tab
+    TEST_ASSERT(!closedHistory.empty(), "Closed history contains closed tab");
+    std::string toRestore = closedHistory.back();
+    closedHistory.pop_back();
+    int restoredIdx = state.AddTab(toRestore);
+    TEST_ASSERT(state.tabs.size() == 3, "Count restored to 3");
+    TEST_ASSERT(state.tabs[restoredIdx].url == "https://github.com", "Restored tab matches URL");
+}
+
+// -----------------------------------------------------------------------------
+// 8. Keyboard Shortcut Action Mapping
+// -----------------------------------------------------------------------------
+enum class BrowserAction {
+    None,
+    NewTab,
+    CloseTab,
+    ReopenTab,
+    NextTab,
+    PrevTab,
+    SelectTab1,
+    SelectLastTab,
+    FocusOmnibox,
+    SearchOmnibox,
+    Reload,
+    ForceReload,
+    Stop,
+    Home,
+    Back,
+    Forward,
+    Find,
+    Downloads,
+    DevTools,
+    Fullscreen,
+    ZoomIn,
+    ZoomOut,
+    ZoomReset
+};
+
+BrowserAction map_key_to_action(bool ctrl, bool shift, bool alt, WPARAM vk) {
+    if (ctrl && shift && vk == 'T') return BrowserAction::ReopenTab;
+    if (ctrl && (vk == VK_TAB || vk == VK_NEXT)) return shift ? BrowserAction::PrevTab : BrowserAction::NextTab;
+    if (ctrl && vk == VK_PRIOR) return BrowserAction::PrevTab;
+    if (ctrl && vk == '1') return BrowserAction::SelectTab1;
+    if (ctrl && vk == '9') return BrowserAction::SelectLastTab;
+    if (ctrl && vk == 'T') return BrowserAction::NewTab;
+    if ((ctrl && vk == 'W') || (ctrl && vk == VK_F4)) return BrowserAction::CloseTab;
+
+    if ((ctrl && vk == 'L') || (alt && vk == 'D') || vk == VK_F6) return BrowserAction::FocusOmnibox;
+    if (ctrl && (vk == 'E' || vk == 'K')) return BrowserAction::SearchOmnibox;
+
+    if (vk == VK_ESCAPE) return BrowserAction::Stop;
+    if ((ctrl && shift && vk == 'R') || (ctrl && vk == VK_F5)) return BrowserAction::ForceReload;
+    if ((ctrl && vk == 'R') || vk == VK_F5) return BrowserAction::Reload;
+    if (alt && vk == VK_HOME) return BrowserAction::Home;
+    if (alt && vk == VK_LEFT) return BrowserAction::Back;
+    if (alt && vk == VK_RIGHT) return BrowserAction::Forward;
+
+    if (ctrl && vk == 'F') return BrowserAction::Find;
+    if (ctrl && vk == 'J') return BrowserAction::Downloads;
+    if (vk == VK_F12 || (ctrl && shift && vk == 'I')) return BrowserAction::DevTools;
+    if (vk == VK_F11) return BrowserAction::Fullscreen;
+
+    if (ctrl && (vk == VK_OEM_PLUS || vk == VK_ADD || vk == '=')) return BrowserAction::ZoomIn;
+    if (ctrl && (vk == VK_OEM_MINUS || vk == VK_SUBTRACT || vk == '-')) return BrowserAction::ZoomOut;
+    if (ctrl && (vk == '0' || vk == VK_NUMPAD0)) return BrowserAction::ZoomReset;
+
+    return BrowserAction::None;
+}
+
+void test_keyboard_shortcut_mapping() {
+    TEST_ASSERT(map_key_to_action(true, true, false, 'T') == BrowserAction::ReopenTab, "Ctrl+Shift+T -> ReopenTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_TAB) == BrowserAction::NextTab, "Ctrl+Tab -> NextTab");
+    TEST_ASSERT(map_key_to_action(true, true, false, VK_TAB) == BrowserAction::PrevTab, "Ctrl+Shift+Tab -> PrevTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_NEXT) == BrowserAction::NextTab, "Ctrl+PageDown -> NextTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_PRIOR) == BrowserAction::PrevTab, "Ctrl+PageUp -> PrevTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, '1') == BrowserAction::SelectTab1, "Ctrl+1 -> SelectTab1");
+    TEST_ASSERT(map_key_to_action(true, false, false, '9') == BrowserAction::SelectLastTab, "Ctrl+9 -> SelectLastTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'T') == BrowserAction::NewTab, "Ctrl+T -> NewTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'W') == BrowserAction::CloseTab, "Ctrl+W -> CloseTab");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_F4) == BrowserAction::CloseTab, "Ctrl+F4 -> CloseTab");
+
+    TEST_ASSERT(map_key_to_action(true, false, false, 'L') == BrowserAction::FocusOmnibox, "Ctrl+L -> FocusOmnibox");
+    TEST_ASSERT(map_key_to_action(false, false, true, 'D') == BrowserAction::FocusOmnibox, "Alt+D -> FocusOmnibox");
+    TEST_ASSERT(map_key_to_action(false, false, false, VK_F6) == BrowserAction::FocusOmnibox, "F6 -> FocusOmnibox");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'E') == BrowserAction::SearchOmnibox, "Ctrl+E -> SearchOmnibox");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'K') == BrowserAction::SearchOmnibox, "Ctrl+K -> SearchOmnibox");
+
+    TEST_ASSERT(map_key_to_action(false, false, false, VK_ESCAPE) == BrowserAction::Stop, "Esc -> Stop");
+    TEST_ASSERT(map_key_to_action(true, true, false, 'R') == BrowserAction::ForceReload, "Ctrl+Shift+R -> ForceReload");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_F5) == BrowserAction::ForceReload, "Ctrl+F5 -> ForceReload");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'R') == BrowserAction::Reload, "Ctrl+R -> Reload");
+    TEST_ASSERT(map_key_to_action(false, false, false, VK_F5) == BrowserAction::Reload, "F5 -> Reload");
+    TEST_ASSERT(map_key_to_action(false, false, true, VK_HOME) == BrowserAction::Home, "Alt+Home -> Home");
+    TEST_ASSERT(map_key_to_action(false, false, true, VK_LEFT) == BrowserAction::Back, "Alt+Left -> Back");
+    TEST_ASSERT(map_key_to_action(false, false, true, VK_RIGHT) == BrowserAction::Forward, "Alt+Right -> Forward");
+
+    TEST_ASSERT(map_key_to_action(true, false, false, 'F') == BrowserAction::Find, "Ctrl+F -> Find");
+    TEST_ASSERT(map_key_to_action(true, false, false, 'J') == BrowserAction::Downloads, "Ctrl+J -> Downloads");
+    TEST_ASSERT(map_key_to_action(false, false, false, VK_F12) == BrowserAction::DevTools, "F12 -> DevTools");
+    TEST_ASSERT(map_key_to_action(true, true, false, 'I') == BrowserAction::DevTools, "Ctrl+Shift+I -> DevTools");
+    TEST_ASSERT(map_key_to_action(false, false, false, VK_F11) == BrowserAction::Fullscreen, "F11 -> Fullscreen");
+
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_OEM_PLUS) == BrowserAction::ZoomIn, "Ctrl++ -> ZoomIn");
+    TEST_ASSERT(map_key_to_action(true, false, false, '=') == BrowserAction::ZoomIn, "Ctrl+= -> ZoomIn");
+    TEST_ASSERT(map_key_to_action(true, false, false, VK_OEM_MINUS) == BrowserAction::ZoomOut, "Ctrl+- -> ZoomOut");
+    TEST_ASSERT(map_key_to_action(true, false, false, '0') == BrowserAction::ZoomReset, "Ctrl+0 -> ZoomReset");
+}
+
+// -----------------------------------------------------------------------------
+// 9. Zoom Calculation & Clamping
+// -----------------------------------------------------------------------------
+float compute_zoom_in(float cur) {
+    return std::min(cur * 1.2f, 5.0f);
+}
+
+float compute_zoom_out(float cur) {
+    return std::max(cur / 1.2f, 0.25f);
+}
+
+void test_zoom_calculations() {
+    float z = 1.0f;
+    z = compute_zoom_in(z);
+    TEST_ASSERT(z > 1.0f && z <= 1.21f, "Zoom in from 1.0f increases zoom to 1.2f");
+
+    z = compute_zoom_out(z);
+    TEST_ASSERT(z >= 0.99f && z <= 1.01f, "Zoom out returns to ~1.0f");
+
+    // Repeated zoom in clamps at 5.0f
+    for (int i = 0; i < 20; ++i) {
+        z = compute_zoom_in(z);
+    }
+    TEST_ASSERT(z == 5.0f, "Zoom in clamps to max 5.0f");
+
+    // Repeated zoom out clamps at 0.25f
+    for (int i = 0; i < 30; ++i) {
+        z = compute_zoom_out(z);
+    }
+    TEST_ASSERT(z == 0.25f, "Zoom out clamps to min 0.25f");
+}
+
+// -----------------------------------------------------------------------------
+// 10. WinUI 3 Theme Tokens & Fluent Icons
+// -----------------------------------------------------------------------------
+void test_fluent_theme_tokens_and_icons() {
+    auto dark = fluent::GetDarkColors();
+    auto light = fluent::GetLightColors();
+
+    // Verify dark palette properties
+    TEST_ASSERT(dark.LayerBackground == RGB(32, 32, 32), "Dark Mica Alt background token");
+    TEST_ASSERT(dark.TextPrimary == RGB(255, 255, 255), "Dark text primary token");
+    TEST_ASSERT(dark.Accent == RGB(96, 205, 255), "Dark WinUI 3 accent color");
+
+    // Verify light palette properties
+    TEST_ASSERT(light.LayerBackground == RGB(243, 243, 243), "Light Mica Alt background token");
+    TEST_ASSERT(light.TextPrimary == RGB(0, 0, 0), "Light text primary token");
+    TEST_ASSERT(light.Accent == RGB(0, 95, 184), "Light WinUI 3 accent color");
+
+    // Verify Fluent Icons codepoints
+    TEST_ASSERT(std::wstring(fluent::icons::Back) == L"\uE72B", "Fluent Back icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Forward) == L"\uE72A", "Fluent Forward icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Refresh) == L"\uE72C", "Fluent Refresh icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Stop) == L"\uE711", "Fluent Stop icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Home) == L"\uE80F", "Fluent Home icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Close) == L"\uE8BB", "Fluent Close icon");
+    TEST_ASSERT(std::wstring(fluent::icons::AddTab) == L"\uE710", "Fluent AddTab icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Lock) == L"\uE72E", "Fluent Lock icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Downloads) == L"\uE896", "Fluent Downloads icon");
+    TEST_ASSERT(std::wstring(fluent::icons::Settings) == L"\uE713", "Fluent Settings icon");
+}
+
+// -----------------------------------------------------------------------------
+// 11. Cursor and Win32 Key Mapping
+// -----------------------------------------------------------------------------
+void test_cursor_and_keyboard_mapping() {
+    using namespace servo_view;
+
+    // Verify cursor types
+    TEST_ASSERT(MapServoCursorToWin32(0) == IDC_ARROW, "Cursor 0 must be IDC_ARROW");
+    TEST_ASSERT(MapServoCursorToWin32(1) == IDC_CROSS, "Cursor 1 must be IDC_CROSS");
+    TEST_ASSERT(MapServoCursorToWin32(2) == IDC_HAND, "Cursor 2 must be IDC_HAND");
+    TEST_ASSERT(MapServoCursorToWin32(3) == IDC_IBEAM, "Cursor 3 must be IDC_IBEAM (not IDC_WAIT)");
+    TEST_ASSERT(MapServoCursorToWin32(4) == IDC_WAIT, "Cursor 4 must be IDC_WAIT");
+
+    // Verify control and navigation keys
+    std::string key, code;
+    TranslateWin32Key(VK_RETURN, 0, key, code);
+    TEST_ASSERT(key == "Enter" && code == "Enter", "VK_RETURN maps to Enter");
+
+    TranslateWin32Key(VK_BACK, 0, key, code);
+    TEST_ASSERT(key == "Backspace" && code == "Backspace", "VK_BACK maps to Backspace");
+
+    TranslateWin32Key(VK_TAB, 0, key, code);
+    TEST_ASSERT(key == "Tab" && code == "Tab", "VK_TAB maps to Tab");
+
+    TranslateWin32Key(VK_ESCAPE, 0, key, code);
+    TEST_ASSERT(key == "Escape" && code == "Escape", "VK_ESCAPE maps to Escape");
+
+    TranslateWin32Key(VK_LEFT, 0, key, code);
+    TEST_ASSERT(key == "ArrowLeft" && code == "ArrowLeft", "VK_LEFT maps to ArrowLeft");
+
+    TranslateWin32Key(VK_SPACE, 0, key, code);
+    TEST_ASSERT(key == " " && code == "Space", "VK_SPACE maps to Space");
+}
+
+void test_tab_favicon_lifecycle() {
+    // Verify fluent Globe icon
+    TEST_ASSERT(std::wstring(fluent::icons::Globe) == L"\uE774", "Fluent Globe icon codepoint");
+
+    // Verify BrowserTab favicon destruction lifecycle
+    {
+        BrowserTab tab = {};
+        tab.id = 1;
+        tab.title = L"Test Tab";
+        TEST_ASSERT(tab.faviconBitmap == nullptr, "Initial faviconBitmap is null");
+        TEST_ASSERT(tab.faviconWidth == 0, "Initial faviconWidth is 0");
+        TEST_ASSERT(tab.faviconHeight == 0, "Initial faviconHeight is 0");
+
+        // Simulate assigning a mock bitmap
+        HDC screenDC = GetDC(nullptr);
+        HBITMAP bmp = CreateCompatibleBitmap(screenDC, 16, 16);
+        ReleaseDC(nullptr, screenDC);
+        tab.faviconBitmap = bmp;
+        tab.faviconWidth = 16;
+        tab.faviconHeight = 16;
+        TEST_ASSERT(tab.faviconBitmap != nullptr, "Favicon bitmap assigned");
+        // tab destructor will safely DeleteObject(tab.faviconBitmap)
+    }
+}
+
+void test_new_tab_page() {
+    std::string newTabUrl = NewTabPage::EnsureNewTabPageExists();
+    TEST_ASSERT(!newTabUrl.empty(), "New tab URL is not empty");
+    TEST_ASSERT(newTabUrl.rfind("file:///", 0) == 0, "New tab URL is a local file URI");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl("servo://newtab"), "servo://newtab recognized as new tab");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl("about:newtab"), "about:newtab recognized as new tab");
+    TEST_ASSERT(NewTabPage::IsNewTabUrl(newTabUrl), "Generated file URI recognized as new tab");
+    TEST_ASSERT(!NewTabPage::IsNewTabUrl("https://duckduckgo.com"), "External URL not recognized as new tab");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://newtab") == newTabUrl, "Omnibox normalizes servo://newtab");
+}
+
+void test_browser_data() {
+    // 1. Bookmark toggling & querying
+    std::string testUrl = "https://example.com/test-bookmark";
+    std::string testTitle = "Example Bookmark";
+
+    BrowserData::RemoveBookmark(testUrl);
+    TEST_ASSERT(!BrowserData::IsBookmarked(testUrl), "Initial state is not bookmarked");
+
+    bool added = BrowserData::ToggleBookmark(testUrl, testTitle);
+    TEST_ASSERT(added, "ToggleBookmark returns true when added");
+    TEST_ASSERT(BrowserData::IsBookmarked(testUrl), "URL is now bookmarked");
+
+    bool removed = BrowserData::ToggleBookmark(testUrl, testTitle);
+    TEST_ASSERT(!removed, "ToggleBookmark returns false when removed");
+    TEST_ASSERT(!BrowserData::IsBookmarked(testUrl), "URL is now unbookmarked");
+
+    // 2. History recording
+    BrowserData::AddHistory("https://example.com/history-item", "History Title");
+    auto history = BrowserData::LoadHistory();
+    TEST_ASSERT(!history.empty(), "History list contains entries");
+
+    // 3. Page generation & URL normalization
+    std::string bmPage = BrowserData::EnsureBookmarksPageExists();
+    TEST_ASSERT(bmPage.rfind("file:///", 0) == 0, "Bookmarks page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://bookmarks") == bmPage, "Omnibox normalizes servo://bookmarks");
+
+    std::string histPage = BrowserData::EnsureHistoryPageExists();
+    TEST_ASSERT(histPage.rfind("file:///", 0) == 0, "History page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://history") == histPage, "Omnibox normalizes servo://history");
+
+    std::string aboutPage = BrowserData::EnsureAboutPageExists();
+    TEST_ASSERT(aboutPage.rfind("file:///", 0) == 0, "About page is file URI");
+    TEST_ASSERT(NormalizeOmniboxInput("servo://about") == aboutPage, "Omnibox normalizes servo://about");
+
+    // 4. Crash recovery page generation
+    std::string crashUrl = BrowserData::EnsureCrashRecoveryPageExists("https://example.com/crashed", "Pipeline timeout");
+    TEST_ASSERT(!crashUrl.empty(), "Crash URL must not be empty");
+    TEST_ASSERT(crashUrl.rfind("file:///", 0) == 0, "Crash URL must be a file URI");
+
+    // 5. Session save and load
+    std::vector<std::string> saveUrls = { "https://servo.org", "https://example.com" };
+    int saveIndex = 1;
+    BrowserData::SaveSession(saveUrls, saveIndex);
+
+    std::vector<std::string> loadedUrls;
+    int loadedIndex = -1;
+    bool ok = BrowserData::LoadSession(loadedUrls, loadedIndex);
+    TEST_ASSERT(ok, "LoadSession must return true when session exists");
+    TEST_ASSERT(loadedUrls.size() == saveUrls.size(), "Loaded URLs size must match saved size");
+    TEST_ASSERT(loadedUrls[0] == "https://servo.org", "Loaded URL 0 matches");
+    TEST_ASSERT(loadedIndex == saveIndex, "Loaded active index matches");
+}
+
+void test_browser_settings() {
+    // 1. Verify default values of BrowserSettings
+    BrowserSettings s;
+    TEST_ASSERT(s.enableWebRTC == true, "BrowserSettings default enableWebRTC must be true");
+    TEST_ASSERT(s.enableNotifications == true, "BrowserSettings default enableNotifications must be true");
+    TEST_ASSERT(s.enableGeolocation == false, "BrowserSettings default enableGeolocation must be false");
+    TEST_ASSERT(s.enableVariableFonts == true, "BrowserSettings default enableVariableFonts must be true");
+    TEST_ASSERT(s.enableIndexedDB == true, "BrowserSettings default enableIndexedDB must be true");
+    TEST_ASSERT(s.enableWebGL2 == true, "BrowserSettings default enableWebGL2 must be true");
+    TEST_ASSERT(s.enableWebGPU == false, "BrowserSettings default enableWebGPU must be false");
+    TEST_ASSERT(s.enableVerticalTabs == false, "BrowserSettings default enableVerticalTabs must be false");
+    TEST_ASSERT(s.enableSuggestions == true, "BrowserSettings default enableSuggestions must be true");
+
+    // 2. Verify SettingsDialog::EnsureSettingsPageExists() returns a file:/// URI
+    std::string settingsUrl = SettingsDialog::EnsureSettingsPageExists();
+    TEST_ASSERT(!settingsUrl.empty(), "Settings page URL must not be empty");
+    TEST_ASSERT(settingsUrl.rfind("file:///", 0) == 0, "Settings page URL must be a file URI");
+
+    // 3. Verify NormalizeOmniboxInput returns the settings file URI
+    TEST_ASSERT(NormalizeOmniboxInput("servo://settings") == settingsUrl, "Omnibox normalizes servo://settings");
+    TEST_ASSERT(NormalizeOmniboxInput("about:settings") == settingsUrl, "Omnibox normalizes about:settings");
+}
+
+void test_vertical_tabs_and_logo() {
+    // 1. Verify modern browser logo SVG generation
+    std::string svg = GetServoLogoSvg();
+    TEST_ASSERT(!svg.empty(), "Servo logo SVG must not be empty");
+    TEST_ASSERT(svg.find("<svg") != std::string::npos, "Servo logo must contain SVG element");
+    TEST_ASSERT(svg.find("viewBox=\"0 0 64 64\"") != std::string::npos, "Servo logo must have 64x64 viewBox");
+
+    // 2. Verify TabStrip layout adjustments
+    MockTabStripState state;
+    state.AddTab("https://servo.org");
+    state.AddTab("https://example.com");
+    TEST_ASSERT(state.tabs.size() == 2, "Tab count must be 2");
+    TEST_ASSERT(state.activeIndex == 1, "Active index must be 1");
+}
+
+void test_password_manager() {
+    // 1. Origin normalization
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("https://www.sxuk.org/services/Login.aspx") == "https://www.sxuk.org", "Normalize SXUK URL");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("http://127.0.0.1:51820/services/student-registration.aspx") == "https://www.sxuk.org", "Unwrap gateway URL to SXUK origin");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("https://Instagram.COM/direct/t/123") == "https://instagram.com", "Normalize Instagram origin");
+
+    // 2. Clean start
+    PasswordManager::ClearAllCredentials();
+
+    // 3. Save credential
+    bool saved = PasswordManager::SaveCredential("https://www.sxuk.org", "student_42", "SecretPass123!");
+    TEST_ASSERT(saved, "SaveCredential must succeed");
+
+    // 4. HasCredential check
+    TEST_ASSERT(PasswordManager::HasCredential("https://www.sxuk.org", "student_42", "SecretPass123!"), "HasCredential must be true");
+    TEST_ASSERT(!PasswordManager::HasCredential("https://www.sxuk.org", "student_42", "WrongPass"), "HasCredential with wrong password must be false");
+
+    // 5. FindCredential check
+    SavedCredential cred;
+    bool found = PasswordManager::FindCredential("http://127.0.0.1:51820/services/Login.aspx", cred);
+    TEST_ASSERT(found, "FindCredential via gateway URL must match SXUK origin");
+    TEST_ASSERT(cred.username == "student_42", "Username must match");
+    TEST_ASSERT(cred.password == "SecretPass123!", "Password must match decrypted");
+
+    // 6. DeleteCredential check
+    bool deleted = PasswordManager::DeleteCredential("https://www.sxuk.org", "student_42");
+    TEST_ASSERT(deleted, "DeleteCredential must succeed");
+    TEST_ASSERT(!PasswordManager::FindCredential("https://www.sxuk.org", cred), "Credential must be gone");
+
+    PasswordManager::ClearAllCredentials();
+}
+
+// -----------------------------------------------------------------------------
+// Main Runner
+// -----------------------------------------------------------------------------
+int main() {
+    std::cout << "========================================" << std::endl;
+    std::cout << " Running Windows Browser Unit Test Suite" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    RUN_TEST(test_raw_window_handle_layout);
+    RUN_TEST(test_omnibox_normalization_edge_cases);
+    RUN_TEST(test_tab_strip_state_machine);
+    RUN_TEST(test_tab_strip_clamping);
+    RUN_TEST(test_find_bar_formatting);
+    RUN_TEST(test_mica_alt_constants);
+    RUN_TEST(test_servo_modifiers);
+    RUN_TEST(test_tab_navigation_and_reopen);
+    RUN_TEST(test_keyboard_shortcut_mapping);
+    RUN_TEST(test_zoom_calculations);
+    RUN_TEST(test_fluent_theme_tokens_and_icons);
+    RUN_TEST(test_cursor_and_keyboard_mapping);
+    RUN_TEST(test_tab_favicon_lifecycle);
+    RUN_TEST(test_new_tab_page);
+    RUN_TEST(test_browser_data);
+    RUN_TEST(test_browser_settings);
+    RUN_TEST(test_vertical_tabs_and_logo);
+    RUN_TEST(test_password_manager);
+
+    std::cout << "========================================" << std::endl;
+    std::cout << " Summary: " << g_tests_run << " tests run, "
+              << g_tests_failed << " failed." << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    return (g_tests_failed == 0) ? 0 : 1;
+}

@@ -28,7 +28,7 @@ pub struct ServoProtocolHandler {}
 
 impl ProtocolHandler for ServoProtocolHandler {
     fn privileged_paths(&self) -> &'static [&'static str] {
-        &["config", "preferences"]
+        &["config", "preferences", "settings", "bookmarks"]
     }
 
     fn is_fetchable(&self) -> bool {
@@ -57,7 +57,7 @@ impl ProtocolHandler for ServoProtocolHandler {
                 "/newtab.html",
             ),
 
-            "preferences" => ResourceProtocolHandler::response_for_path(
+            "preferences" | "settings" => ResourceProtocolHandler::response_for_path(
                 request,
                 done_chan,
                 context,
@@ -85,6 +85,85 @@ impl ProtocolHandler for ServoProtocolHandler {
                 json_response(request, format!("\"{user_agent}\""))
             },
 
+            "about" | "version" => {
+                let user_agent = UserAgentPlatform::default().to_user_agent_string();
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:bookmarks\">Bookmarks</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:downloads\">Downloads</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:settings\">Settings</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
+                    user_agent
+                );
+                html_response(request, body)
+            },
+
+            "downloads" => {
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Downloads</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Downloads</h1><p>Active and completed downloads will appear here.</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:bookmarks\">Bookmarks</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>"
+                );
+                html_response(request, body)
+            },
+
+            "bookmarks" => {
+                let items = crate::prefs::default_config_dir()
+                    .map(|mut p| {
+                        p.push("bookmarks.json");
+                        p
+                    })
+                    .and_then(|p| std::fs::read_to_string(p).ok())
+                    .and_then(|data| serde_json::from_str::<Vec<serde_json::Value>>(&data).ok())
+                    .unwrap_or_default();
+
+                let mut list_html = String::new();
+                for item in items.iter().rev() {
+                    if let Some(url) = item.get("url").and_then(|u| u.as_str()) {
+                        let title = item.get("title").and_then(|t| t.as_str()).unwrap_or(url);
+                        list_html.push_str(&format!(
+                            "<li><a href=\"{url}\"><b>{title}</b></a> &mdash; <span style=\"color:#888;\">{url}</span></li>"
+                        ));
+                    }
+                }
+                if list_html.is_empty() {
+                    list_html = "<p>No bookmarks saved yet. Click &#9733; or press Ctrl+D on any page to bookmark it!</p>".to_string();
+                } else {
+                    list_html = format!("<ul>{list_html}</ul>");
+                }
+
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Bookmarks</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Bookmarks</h1>{}<hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>",
+                    list_html
+                );
+                html_response(request, body)
+            },
+
+            "history" => {
+                let items = crate::prefs::default_config_dir()
+                    .map(|mut p| {
+                        p.push("history.json");
+                        p
+                    })
+                    .and_then(|p| std::fs::read_to_string(p).ok())
+                    .and_then(|data| serde_json::from_str::<Vec<serde_json::Value>>(&data).ok())
+                    .unwrap_or_default();
+
+                let mut list_html = String::new();
+                for item in items.iter().rev() {
+                    if let Some(url) = item.get("url").and_then(|u| u.as_str()) {
+                        list_html.push_str(&format!(
+                            "<li><a href=\"{url}\">{url}</a></li>"
+                        ));
+                    }
+                }
+                if list_html.is_empty() {
+                    list_html = "<p>No history entries recorded yet.</p>".to_string();
+                } else {
+                    list_html = format!("<ul>{list_html}</ul>");
+                }
+
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Browsing History</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Browsing History</h1>{}<hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:bookmarks\">Bookmarks</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>",
+                    list_html
+                );
+                html_response(request, body)
+            },
+
             _ => Box::pin(std::future::ready(Response::network_error(
                 NetworkError::ResourceLoadError("Invalid shortcut".to_owned()),
             ))),
@@ -101,6 +180,19 @@ fn json_response(
         ResourceFetchTiming::new(request.timing_type()),
     );
     response.headers.typed_insert(ContentType::json());
+    *response.body.lock() = ResponseBody::Done(body.into_bytes());
+    Box::pin(std::future::ready(response))
+}
+
+fn html_response(
+    request: &Request,
+    body: String,
+) -> Pin<Box<dyn Future<Output = Response> + Send>> {
+    let mut response = Response::new(
+        request.current_url(),
+        ResourceFetchTiming::new(request.timing_type()),
+    );
+    response.headers.typed_insert(ContentType::html());
     *response.body.lock() = ResponseBody::Done(body.into_bytes());
     Box::pin(std::future::ready(response))
 }

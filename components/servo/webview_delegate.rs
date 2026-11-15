@@ -139,6 +139,65 @@ impl AllowOrDenyRequest {
     }
 }
 
+/// Certificate error information for a navigation request.
+pub struct CertificateError {
+    /// The URL that triggered the certificate error.
+    pub url: Url,
+    /// The certificate error code (CEF-compatible).
+    pub error_code: i32,
+    /// Human-readable error description.
+    pub error_text: String,
+    /// The DER-encoded certificate that caused the error.
+    pub certificate_der: Vec<u8>,
+}
+
+impl CertificateError {
+    pub(crate) fn new(url: Url, error_code: i32, error_text: String, certificate_der: Vec<u8>) -> Self {
+        Self {
+            url,
+            error_code,
+            error_text,
+            certificate_der,
+        }
+    }
+}
+
+pub use net::embedder::CertificateErrorResponse;
+
+/// A request to handle a certificate error for a navigation.
+/// The embedder should allow or deny the request.
+pub struct CertificateErrorRequest(
+    AutomaticResponder<CertificateErrorResponse>,
+    ServoErrorSender,
+);
+
+impl CertificateErrorRequest {
+    pub(crate) fn new(
+        response_sender: Sender<CertificateErrorResponse>,
+        error_sender: ServoErrorSender,
+    ) -> Self {
+        Self(
+            AutomaticResponder::new_same_process(Box::new(OneshotSender::from(response_sender)), CertificateErrorResponse::Deny),
+            error_sender,
+        )
+    }
+
+    /// Allow the connection despite the certificate error.
+    /// The certificate will be added to the override list for future requests.
+    pub fn allow(mut self) {
+        if let Err(error) = self.0.send(CertificateErrorResponse::Allow) {
+            self.1.raise_response_send_error(error);
+        }
+    }
+
+    /// Deny the connection, reporting the certificate error.
+    pub fn deny(mut self) {
+        if let Err(error) = self.0.send(CertificateErrorResponse::Deny) {
+            self.1.raise_response_send_error(error);
+        }
+    }
+}
+
 /// A request to register or unregister a custom handler for a scheme.
 /// See <https://html.spec.whatwg.org/multipage/#custom-handlers>
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -469,7 +528,10 @@ impl SelectElement {
 
     /// Set the options that are selected.
     ///
-    /// `selected_options` is a vector of indices into the array returned by [`Self::options`].
+    /// `selected_options` is a vector of `SelectElementOption::id` values: one per
+    /// `<option>` element in document order, counting the options inside an
+    /// `<optgroup>` individually. These are *not* indices into the array returned by
+    /// [`Self::options`], which represents each `<optgroup>` as a single entry.
     ///
     /// If other options have previously been selected, this set of options
     /// will replace them.
@@ -477,8 +539,9 @@ impl SelectElement {
         self.select_element_request.selected_options = selected_options
     }
 
-    /// Get the currently selected options, represented by indices into the array
-    /// returned by [`Self::options`].
+    /// Get the currently selected options, as `SelectElementOption::id` values.
+    ///
+    /// The same indexing applies as for [`Self::select`].
     pub fn selected_options(&self) -> Vec<usize> {
         self.select_element_request.selected_options.clone()
     }
@@ -945,6 +1008,11 @@ pub trait WebViewDelegate {
     /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
     /// favicon [`Image`](embedder_traits::Image) can accessed via [`WebView::favicon`].
     fn notify_favicon_changed(&self, _webview: WebView) {}
+    /// This [`WebView`] has gained system focus.
+    fn notify_got_focus(&self, _webview: WebView) {}
+    /// The system focus state of this [`WebView`] has changed. The new state can be
+    /// accessed via [`WebView::focused`].
+    fn notify_focus_changed(&self, _webview: WebView, _focused: bool) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
     /// The navigation history of this [`WebView`] has changed. The navigation history is represented
@@ -979,6 +1047,37 @@ pub trait WebViewDelegate {
     /// the page will enter or leave fullscreen state internally according to the [Fullscreen
     /// API](https://fullscreen.spec.whatwg.org/).
     fn notify_fullscreen_state_changed(&self, _webview: WebView, _is_fullscreen: bool) {}
+
+    /// Called when the [`WebView`]'s window has been resized. The embedder should call this
+    /// when the containing window's size changes.
+    fn notify_window_resized(&self, _webview: WebView, _width: u32, _height: u32) {}
+
+    /// Called when the [`WebView`]'s window has been moved. The embedder should call this
+    /// when the containing window's position changes.
+    fn notify_window_moved(&self, _webview: WebView, _x: i32, _y: i32) {}
+
+    /// Called when the [`WebView`]'s window has been minimized.
+    fn notify_window_minimized(&self, _webview: WebView) {}
+
+    /// Called when the [`WebView`]'s window has been maximized.
+    fn notify_window_maximized(&self, _webview: WebView) {}
+
+    /// Called when the [`WebView`]'s window has been restored (from minimized or maximized).
+    fn notify_window_restored(&self, _webview: WebView) {}
+
+    /// Called when the [`WebView`]'s window fullscreen state has changed.
+    fn notify_window_fullscreen_changed(&self, _webview: WebView, _fullscreen: bool) {}
+
+    /// Called when the user attempts to close the window containing this [`WebView`].
+    /// The embedder can return `false` to prevent the window from closing.
+    fn notify_window_close_requested(&self, _webview: WebView) -> bool {
+        true
+    }
+
+    /// Called when a window move or resize operation has started (e.g. user dragging
+    /// window title bar or resize handle). The embedder should use this to pause
+    /// certain activities during the operation.
+    fn notify_window_move_or_resize_started(&self, _webview: WebView) {}
 
     /// Whether or not to allow a [`WebView`] to load a URL in its main frame or one of its
     /// nested `<iframe>`s. [`NavigationRequest`]s are accepted by default.
@@ -1039,6 +1138,21 @@ pub trait WebViewDelegate {
     ) {
     }
 
+    /// Called when a certificate error occurs during a navigation request.
+    ///
+    /// The embedder should decide whether to allow the connection despite the certificate error.
+    /// If allowed, the certificate will be added to the override list and the navigation will be retried.
+    /// If denied, the navigation will fail with a certificate error.
+    ///
+    /// The default implementation denies the request.
+    fn certificate_error(
+        &self,
+        _webview: WebView,
+        _certificate_error: CertificateError,
+        _request: CertificateErrorRequest,
+    ) {
+    }
+
     /// Open dialog to select bluetooth device.
     fn show_bluetooth_device_dialog(
         &self,
@@ -1085,7 +1199,110 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    /// Called when a find-in-page operation has a result.
+    ///
+    /// `identifier` is the unique identifier for the find request.
+    /// `count` is the number of matches found (0 if no matches or an error occurred).
+    /// `result` contains the details of the active match, or `None` if no matches.
+    fn on_find_result(
+        &self,
+        _webview: WebView,
+        _identifier: i32,
+        _count: i32,
+        _result: Option<servo_constellation_traits::FindResult>,
+    ) {
+    }
+
+    /// Called when a download is requested (before it starts).
+    ///
+    /// `download` contains information about the requested download.
+    /// The embedder should call `continue_callback` with `true` to allow the download
+    /// to proceed, or `false` to cancel it.
+    ///
+    /// If this method is not overridden, downloads are allowed by default.
+    fn on_before_download(
+        &self,
+        _webview: WebView,
+        _download: DownloadItem,
+        continue_callback: DownloadContinueCallback,
+    ) {
+        continue_callback(true);
+    }
+
+    /// Called when a download's progress is updated.
+    ///
+    /// `download` contains the updated download information.
+    fn on_download_updated(&self, _webview: WebView, _download: DownloadItem) {}
+
+    /// A message was received from JavaScript via `window.servo.postMessage`.
+    /// `handler_name` is the message identifier, and `message_json` is the JSON payload.
+    fn notify_script_message(
+        &self,
+        _webview: WebView,
+        _handler_name: &str,
+        _message_json: &str,
+    ) {}
 }
+
+/// A download item representing an in-progress or completed download.
+#[derive(Clone, Debug)]
+pub struct DownloadItem {
+    pub(crate) id: u64,
+    pub(crate) url: Url,
+    pub(crate) suggested_filename: String,
+    pub(crate) received_bytes: u64,
+    pub(crate) total_bytes: u64,
+    pub(crate) state: DownloadState,
+}
+
+impl DownloadItem {
+    /// Get the unique identifier for this download.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Get the URL being downloaded.
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    /// Get the suggested filename for the download.
+    pub fn suggested_filename(&self) -> &str {
+        &self.suggested_filename
+    }
+
+    /// Get the number of bytes received so far.
+    pub fn received_bytes(&self) -> u64 {
+        self.received_bytes
+    }
+
+    /// Get the total number of bytes expected (0 if unknown).
+    pub fn total_bytes(&self) -> u64 {
+        self.total_bytes
+    }
+
+    /// Get the current download state.
+    pub fn state(&self) -> DownloadState {
+        self.state
+    }
+}
+
+/// The state of a download.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DownloadState {
+    /// The download is in progress.
+    InProgress,
+    /// The download completed successfully.
+    Complete,
+    /// The download was cancelled.
+    Cancelled,
+    /// The download was interrupted (e.g., network error).
+    Interrupted,
+}
+
+/// Callback type for continuing a download after `on_before_download`.
+pub type DownloadContinueCallback = Box<dyn FnOnce(bool) + Send>;
 
 pub(crate) struct DefaultWebViewDelegate;
 impl WebViewDelegate for DefaultWebViewDelegate {}

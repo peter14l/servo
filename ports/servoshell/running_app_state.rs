@@ -177,12 +177,19 @@ pub(crate) enum UserInterfaceCommand {
     Go(String),
     Back,
     Forward,
+    Traverse(isize),
     Reload,
     ReloadAll,
+    Stop,
+    BookmarkCurrentPage,
     NewWebView,
     CloseWebView(WebViewId),
+    ReopenClosedWebView,
     NewWindow(TopLevelWebViewCreationRequest),
 }
+
+/// The maximum number of closed tabs remembered for "reopen closed tab".
+const MAX_CLOSED_WEBVIEWS: usize = 25;
 
 pub(crate) struct RunningAppState {
     /// The gamepad provider, used for handling gamepad events and set on each WebView.
@@ -247,6 +254,15 @@ pub(crate) struct RunningAppState {
     /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
     /// and [`ServoShellWindow::create_toplevel_webview()`].
     accessibility_active: Cell<bool>,
+
+    /// Active and completed download items.
+    downloads: RefCell<Vec<servo::DownloadItem>>,
+
+    /// URLs of recently closed tabs, with the most recently closed tab at the end.
+    ///
+    /// This is shared by all windows so that closing a tab in one window and reopening it
+    /// from another still works.
+    closed_webviews: RefCell<Vec<Url>>,
 }
 
 impl RunningAppState {
@@ -297,6 +313,8 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            downloads: Default::default(),
+            closed_webviews: Default::default(),
         }
     }
 
@@ -368,6 +386,32 @@ impl RunningAppState {
         self.windows()
             .iter()
             .find_map(|window| window.webview_by_id(webview_id))
+    }
+
+    /// Remember the URL of a closing tab so that it can be restored later.
+    pub(crate) fn record_closed_webview(&self, webview: &WebView) {
+        let Some(url) = webview.url() else {
+            return;
+        };
+
+        let mut closed_webviews = self.closed_webviews.borrow_mut();
+        closed_webviews.push(url);
+        if closed_webviews.len() > MAX_CLOSED_WEBVIEWS {
+            closed_webviews.remove(0);
+        }
+    }
+
+    /// Restore the most recently closed tab to the given window.
+    pub(crate) fn reopen_closed_webview(self: &Rc<Self>, window: &Rc<ServoShellWindow>) {
+        let url = self.closed_webviews.borrow_mut().pop();
+        let Some(url) = url else {
+            return;
+        };
+
+        window.create_and_activate_toplevel_webview(
+            self.clone(),
+            TopLevelWebViewCreationRequest::WithUrl(url),
+        );
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -748,6 +792,102 @@ impl RunningAppState {
     pub(crate) fn accessibility_active(&self) -> bool {
         self.accessibility_active.get()
     }
+
+    fn persist_history_entry(url: &Url) {
+        if url.scheme() == "about" || url.as_str() == "servo:newtab" {
+            return;
+        }
+        let Some(mut path) = crate::prefs::default_config_dir() else {
+            return;
+        };
+        if let Err(e) = std::fs::create_dir_all(&path) {
+            log::debug!("Could not create config directory for history: {e}");
+            return;
+        }
+        path.push("history.json");
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct PersistedHistoryEntry {
+            url: String,
+            timestamp: u64,
+        }
+
+        let mut entries: Vec<PersistedHistoryEntry> = if path.exists() {
+            std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|data| serde_json::from_str(&data).ok())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        if entries.last().map(|e| e.url.as_str()) != Some(url.as_str()) {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or_default();
+
+            entries.push(PersistedHistoryEntry {
+                url: url.as_str().to_string(),
+                timestamp,
+            });
+
+            if entries.len() > 500 {
+                entries.drain(0..entries.len() - 500);
+            }
+
+            if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
+                let _ = std::fs::write(&path, serialized);
+            }
+        }
+    }
+
+    pub(crate) fn persist_bookmark(url: &str, title: &str) {
+        if url.starts_with("servo:") || url.starts_with("about:") {
+            return;
+        }
+        let Some(mut path) = crate::prefs::default_config_dir() else {
+            return;
+        };
+        if let Err(e) = std::fs::create_dir_all(&path) {
+            log::debug!("Could not create config directory for bookmarks: {e}");
+            return;
+        }
+        path.push("bookmarks.json");
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct PersistedBookmark {
+            url: String,
+            title: String,
+            timestamp: u64,
+        }
+
+        let mut entries: Vec<PersistedBookmark> = if path.exists() {
+            std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|data| serde_json::from_str(&data).ok())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        if !entries.iter().any(|e| e.url == url) {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or_default();
+
+            entries.push(PersistedBookmark {
+                url: url.to_string(),
+                title: title.to_string(),
+                timestamp,
+            });
+
+            if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
+                let _ = std::fs::write(&path, serialized);
+            }
+        }
+    }
 }
 
 impl WebViewDelegate for RunningAppState {
@@ -823,7 +963,8 @@ impl WebViewDelegate for RunningAppState {
         self.pending_webdriver_events
             .borrow_mut()
             .retain(|_, (pending_webview_id, _)| *pending_webview_id != webview_id);
-        self.window_for_webview(&webview).close_webview(webview_id)
+        self.window_for_webview(&webview)
+            .close_webview(webview_id, self)
     }
 
     fn notify_input_event_handled(
@@ -847,6 +988,9 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview(&webview).set_needs_update();
 
         if status == LoadStatus::Complete {
+            if let Some(url) = webview.url() {
+                Self::persist_history_entry(&url);
+            }
             if let Some(sender) = self
                 .webdriver_senders
                 .borrow_mut()
@@ -945,6 +1089,39 @@ impl WebViewDelegate for RunningAppState {
     ) {
         self.platform_window_for_webview(&webview)
             .notify_accessibility_tree_update(webview, tree_update);
+    }
+
+    fn on_before_download(
+        &self,
+        webview: WebView,
+        download: servo::DownloadItem,
+        continue_callback: servo::DownloadContinueCallback,
+    ) {
+        log::info!(
+            "Download starting: {} ({})",
+            download.suggested_filename(),
+            download.url()
+        );
+        self.downloads.borrow_mut().push(download);
+        self.window_for_webview(&webview).set_needs_update();
+        continue_callback(true);
+    }
+
+    fn on_download_updated(&self, webview: WebView, download: servo::DownloadItem) {
+        log::debug!(
+            "Download update: {} - {}/{} bytes ({:?})",
+            download.suggested_filename(),
+            download.received_bytes(),
+            download.total_bytes(),
+            download.state()
+        );
+        let mut list = self.downloads.borrow_mut();
+        if let Some(existing) = list.iter_mut().find(|d| d.id() == download.id()) {
+            *existing = download;
+        } else {
+            list.push(download);
+        }
+        self.window_for_webview(&webview).set_needs_update();
     }
 }
 

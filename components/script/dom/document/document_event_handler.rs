@@ -1098,29 +1098,53 @@ impl DocumentEventHandler {
                     .upcast::<Event>()
                     .dispatch(cx, node.upcast(), false);
 
+                let is_editable = node.is_editable_or_editing_host() ||
+                    node.inclusive_ancestors(ShadowIncluding::Yes).any(|n| n.is_editable_or_editing_host());
+
                 // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
-                // called on them, call the default mousdown handler on retargeted node
-                // (`mouse_event.target` is mutated by `dispatch` above).
-                if result &&
-                    pointer_event_result &&
-                    let Some(node) = mouse_event
-                        .upcast::<Event>()
-                        .GetTarget()
-                        .and_then(DomRoot::downcast::<Node>)
-                {
-                    let editing_context = document.editing_context(cx, &node);
-                    editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
+                // called on them, call the default mousedown handler on retargeted node.
+                // Always handle mousedown for editable content so carets/focus are not blocked
+                // by preventDefault in rich text editors like Lexical/Draft.js.
+                if (result && pointer_event_result) || is_editable {
+                    let target_node = if node.is_editable_or_editing_host() {
+                        Some(DomRoot::from_ref(node))
+                    } else if let Some(n) = node.inclusive_ancestors(ShadowIncluding::Yes).find(|n| n.is_editable_or_editing_host()) {
+                        Some(n)
+                    } else {
+                        mouse_event
+                            .upcast::<Event>()
+                            .GetTarget()
+                            .and_then(DomRoot::downcast::<Node>)
+                    };
+
+                    if let Some(target_node) = target_node {
+                        let editing_context = document.editing_context(cx, &target_node);
+                        editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
+                    }
                 }
 
-                // Step 8. If result is true and target is a focusable area
+                // Step 8. If result is true (or node is editable) and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
-                if result {
-                    // Note that this differs from the specification, because we are going to look
-                    // for the first inclusive ancestor that is click focusable and then focus it.
-                    // See documentation for [`Node::find_click_focusable_area`].
-                    document
-                        .focus_handler()
-                        .focus(cx, &node.find_click_focusable_area(cx));
+                if result || is_editable {
+                    let focus_area = node.find_click_focusable_area(cx);
+                    if matches!(focus_area, FocusableArea::Viewport) && is_editable {
+                        if let Some(target) = node
+                            .inclusive_ancestors(ShadowIncluding::Yes)
+                            .find(|n| n.is_editable_or_editing_host())
+                        {
+                            document
+                                .focus_handler()
+                                .focus(cx, &target.find_click_focusable_area(cx));
+                        } else {
+                            document
+                                .focus_handler()
+                                .focus(cx, &focus_area);
+                        }
+                    } else {
+                        document
+                            .focus_handler()
+                            .focus(cx, &focus_area);
+                    }
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -1254,6 +1278,21 @@ impl DocumentEventHandler {
         .upcast::<Event>()
         .dispatch(cx, element.upcast(), false);
         element.set_click_in_progress(false);
+
+        // Ensure clicking an element or its editable ancestor establishes focus even if mousedown was prevented
+        let document = self.window.Document();
+        let focus_area = element.upcast::<Node>().find_click_focusable_area(cx);
+        if !matches!(focus_area, FocusableArea::Viewport) {
+            document.focus_handler().focus(cx, &focus_area);
+        } else if let Some(target) = element
+            .upcast::<Node>()
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .find(|n| n.is_editable_or_editing_host())
+        {
+            document
+                .focus_handler()
+                .focus(cx, &target.find_click_focusable_area(cx));
+        }
 
         // The firing of "dbclick" events is dependent on the platform, so we have
         // some flexibility here. Some browsers on some platforms only fire a

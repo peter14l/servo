@@ -158,13 +158,14 @@ use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
-    EmbedderToConstellationMessage, HistoryTraversalSource, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
-    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
+    EmbedderToConstellationMessage, FindNextRequest, FindRequest, FindResult, HistoryTraversalSource,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg,
+    NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, PortTransferInfo,
+    RemoteFocusOperation, SWManagerSenders, ScreenshotReadinessResponse,
+    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerAlgorithm,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, SessionHistoryTraversalRequest,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
+    UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -615,6 +616,7 @@ where
     ) {
         thread::Builder::new()
             .name("Constellation".to_owned())
+            .stack_size(8 * 1024 * 1024)
             .spawn(move || {
                 servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
                 let (script_ipc_sender, script_ipc_receiver) =
@@ -924,6 +926,8 @@ where
             .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
         {
             None
+        } else if opts::get().origin_isolation {
+            load_data.url.host().map(|h| h.to_owned())
         } else {
             registered_domain_name(&load_data.url)
         };
@@ -1222,9 +1226,15 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
-        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
-        // via the embedder?
         warn!("Component hang alert: {:?}", message);
+        if let HangAlert::Permanent(ref component_id, _, _) = message {
+            if opts::get().hang_monitor_kill_script {
+                warn!("Terminating permanently hung component {component_id:?}");
+                self.send_message_to_all_background_hang_monitors(
+                    BackgroundHangMonitorControlMsg::SignalComponentExit(component_id.clone()),
+                );
+            }
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1405,6 +1415,15 @@ where
             },
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
+            },
+            EmbedderToConstellationMessage::Find(webview_id, request) => {
+                self.handle_find(webview_id, request);
+            },
+            EmbedderToConstellationMessage::FindNext(webview_id, request) => {
+                self.handle_find_next(webview_id, request);
+            },
+            EmbedderToConstellationMessage::ClearFind(webview_id) => {
+                self.handle_clear_find(webview_id);
             },
         }
     }
@@ -2913,14 +2932,37 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_send_error(&mut self, pipeline_id: PipelineId, error: SendError) {
-        error!("Error sending message to {pipeline_id:?}: {error}",);
+        error!("Error sending message to {pipeline_id:?}: {error}");
 
         // Ignore errors from unknown Pipelines.
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
-        // Treat send error the same as receiving a panic message
+        let top_level_bc_id = BrowsingContextId::from(pipeline.webview_id);
+        let is_top_level = pipeline.browsing_context_id == top_level_bc_id;
+        let is_active_pipeline = self
+            .browsing_contexts
+            .get(&top_level_bc_id)
+            .map(|bc| bc.pipeline_id == pipeline_id)
+            .unwrap_or(false);
+
+        if !is_top_level {
+            warn!("Child browsing context pipeline {pipeline_id:?} disconnected: {error}");
+            self.close_browsing_context(
+                pipeline.webview_id,
+                pipeline.browsing_context_id,
+                ExitPipelineMode::Force,
+            );
+            return;
+        }
+
+        if !is_active_pipeline {
+            warn!("Inactive top-level pipeline {pipeline_id:?} disconnected: {error}");
+            return;
+        }
+
+        // Treat send error the same as receiving a panic message only for active top-level pipeline
         self.handle_panic_in_webview(
             pipeline.webview_id,
             &format!("Send failed ({error})"),
@@ -3207,6 +3249,42 @@ where
         self.notify_history_changed(webview_id);
     }
 
+    fn handle_find(&mut self, webview_id: WebViewId, request: FindRequest) {
+        // TODO: Implement find in page
+        // Default: just notify with no results
+        let result = FindResult {
+            identifier: request.identifier,
+            active_match_ordinal: 0,
+            number_of_matches: 0,
+            selection_rect: None,
+        };
+        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+            webview_id,
+            result,
+        ));
+    }
+
+    fn handle_find_next(&mut self, webview_id: WebViewId, request: FindNextRequest) {
+        // TODO: Implement find next in page
+        // Default: just notify with no results
+        let result = FindResult {
+            identifier: request.identifier,
+            active_match_ordinal: 0,
+            number_of_matches: 0,
+            selection_rect: None,
+        };
+        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+            webview_id,
+            result,
+        ));
+    }
+
+    fn handle_clear_find(&mut self, webview_id: WebViewId) {
+        // TODO: Implement clear find
+        // Nothing to do for now
+        let _ = webview_id;
+    }
+
     fn forward_input_event(
         &mut self,
         webview_id: WebViewId,
@@ -3269,12 +3347,12 @@ where
             webview_id,
             viewport_details,
             user_content_manager_id,
+            is_private,
         }: NewWebViewDetails,
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let load_data = LoadData::new_for_new_unrelated_webview(url);
-        let is_private = false;
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
@@ -3348,6 +3426,19 @@ where
             for request in webview.session_history_traversal_request_queue.drain(..) {
                 self.notify_embedder_of_completed_session_history_traversal_request(&request);
             }
+        }
+
+        // Drop the font keys the service pre-allocated for this painter. They
+        // are shared with every other `WebView` drawing to the same rendering
+        // context, so they can only go once that painter has no WebViews left,
+        // otherwise a surviving WebView would find its pool of keys emptied.
+        let painter_id = PainterId::from(webview_id);
+        let painter_is_still_used = self
+            .webviews
+            .keys()
+            .any(|id| PainterId::from(*id) == painter_id);
+        if !painter_is_still_used {
+            self.system_font_service.remove_painter(painter_id);
         }
 
         debug!("{webview_id}: Closed");
@@ -3622,6 +3713,7 @@ where
             webview_id: new_webview_id,
             viewport_details,
             user_content_manager_id,
+            is_private: _,
         } = match webview_id_receiver.recv() {
             Ok(Some(new_webview_details)) => new_webview_details,
             Ok(None) | Err(_) => {

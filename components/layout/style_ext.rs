@@ -1101,7 +1101,6 @@ impl ComputedValuesExt for ComputedValues {
         let downward = inline_end_direction == PhysicalSide::Bottom ||
             block_end_direction == PhysicalSide::Bottom;
 
-        // TODO(stevennovaryo): We should consider the flex-container's CSS (e.g. flow-direction: column-reverse).
         OverflowDirection {
             rightward,
             downward,

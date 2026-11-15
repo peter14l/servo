@@ -48,6 +48,9 @@ pub struct Opts {
     /// Whether we want background hang monitor enabled or not
     pub background_hang_monitor: bool,
 
+    /// Whether to automatically terminate permanently hung scripts detected by the background hang monitor.
+    pub hang_monitor_kill_script: bool,
+
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
@@ -88,6 +91,9 @@ pub struct Opts {
 
     /// Unminify Css.
     pub unminify_css: bool,
+
+    /// Enforce origin-keyed process and event-loop isolation instead of registrable domain (eTLD+1).
+    pub origin_isolation: bool,
 }
 
 /// The set of diagnostic options that can be enabled in Servo.
@@ -248,7 +254,8 @@ impl Default for Opts {
             hard_fail: true,
             multiprocess: false,
             force_ipc: false,
-            background_hang_monitor: false,
+            background_hang_monitor: true,
+            hang_monitor_kill_script: true,
             random_pipeline_closure_probability: None,
             random_pipeline_closure_seed: None,
             sandbox: false,
@@ -262,6 +269,7 @@ impl Default for Opts {
             unminify_js: false,
             local_script_source: None,
             unminify_css: false,
+            origin_isolation: false,
         }
     }
 }
@@ -276,7 +284,7 @@ static OPTIONS: OnceLock<Opts> = OnceLock::new();
 /// Should only be called once at process startup.
 /// Must be called before the first call to [`get`].
 pub fn initialize_options(opts: Opts) {
-    OPTIONS.set(opts).expect("Already initialized");
+    let _ = OPTIONS.set(opts);
 }
 
 /// Get the servo options

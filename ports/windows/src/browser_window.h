@@ -1,0 +1,121 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#pragma once
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <dwmapi.h>
+#include <string>
+#include <memory>
+#include <servo/servo_capi.h>
+
+#define WM_APP_SERVO_WAKE (WM_APP + 101)
+
+void LogDebug(const char* fmt, ...);
+
+// Runs one Servo event-loop spin unless one is already running on this thread.
+// Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or
+// timer can otherwise re-enter Servo while a delegate callback is running.
+void ServoSpinEventLoopOnce(struct Servo* servo);
+
+class TabStrip;
+class OmniboxToolbar;
+class FindBar;
+class ServoViewHost;
+
+class BrowserWindow {
+public:
+    static void RegisterWindowClass(HINSTANCE hInstance);
+    static BrowserWindow* Create(struct Servo* servo, const std::string& initialUrl = "");
+    static BrowserWindow* CreateForPopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request);
+
+    BrowserWindow(struct Servo* servo);
+    ~BrowserWindow();
+
+    HWND GetHwnd() const { return m_hwnd; }
+    struct Servo* GetServo() const { return m_servo; }
+    ServoViewHost* GetViewHost() const { return m_viewHost.get(); }
+
+    void NavigateUrl(const std::string& url);
+    void NavigateBack();
+    void NavigateForward();
+    void NavigateReload();
+    void NavigateStop();
+
+    int FindInPage(const char* text, bool forward, bool matchCase);
+    int FindNext(int identifier, bool forward);
+    void ClearFind(int identifier);
+
+    void OnActiveTabSwitched(const std::string& url, const std::wstring& title);
+    void OnActiveTabUrlChanged(const char* url);
+    void OnActiveTabTitleChanged(const char* title);
+    void OnActiveTabLoadStatusChanged(int32_t status);
+    void OnActiveTabCrashed(const char* reason);
+    void OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
+    void UpdateActiveTabUI(const std::string& url, const std::wstring& title);
+
+    void OpenDevTools();
+    void SetDevToolsInfo(uint16_t port, const std::string& token);
+    void HandleNewDownload(struct ServoDownloadItem* download);
+    void HandleDownloadUpdated(struct ServoDownloadItem* download);
+    void ToggleDownloads();
+    void ToggleCurrentPageBookmark();
+    void OpenBookmarks();
+    void OpenHistory();
+    void OpenAbout();
+    void OnStatusTextChanged(const char* statusText);
+    void OpenSettings();
+    void OpenUrlInNewTab(const std::string& url);
+    void RestorePreviousSession();
+    void ApplySettings(const struct BrowserSettings& settings);
+    void HandleWebIpcMessage(const std::string& message);
+    void PromptSavePassword(const std::string& origin, const std::string& username, const std::string& password);
+    void RequestAutofill(const std::string& origin);
+    void ToggleVerticalTabs();
+    void SetVerticalTabs(bool enable);
+    bool IsVerticalTabs() const { return m_verticalTabs; }
+    void PrintPage();
+    void ViewPageSource();
+
+    void ZoomIn();
+    void ZoomOut();
+    void ZoomReset();
+    void ToggleFullscreen();
+
+private:
+    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
+
+    void LayoutChildren();
+    void ApplyMicaAltTheme();
+    void SyncDarkMode();
+
+    HWND m_hwnd;
+    struct Servo* m_servo;
+
+    std::unique_ptr<ServoViewHost> m_viewHost;
+    std::unique_ptr<TabStrip> m_tabStrip;
+    std::unique_ptr<OmniboxToolbar> m_omnibox;
+    std::unique_ptr<FindBar> m_findBar;
+    std::unique_ptr<class DownloadManager> m_downloadManager;
+
+    uint16_t m_devtoolsPort;
+    std::string m_devtoolsToken;
+    std::string m_currentUrl;
+    std::string m_currentTitle;
+    HWND m_statusPillHwnd = nullptr;
+    bool m_isDark;
+    bool m_isFullscreen;
+    bool m_verticalTabs = false;
+    RECT m_topBarToggleBtnBounds = {};
+    RECT m_topBarMinBtnBounds = {};
+    RECT m_topBarMaxBtnBounds = {};
+    RECT m_topBarCloseBtnBounds = {};
+    int m_hoveredTopBarBtn = 0;
+    WINDOWPLACEMENT m_savedPlacement;
+};
+

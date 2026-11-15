@@ -1,0 +1,43 @@
+[workspace]
+
+[package]
+name = "servo-fuzz"
+version = "0.0.1"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.net]
+package = "servo-net"
+path = "../components/net"
+
+[dependencies.net_traits]
+package = "servo-net-traits"
+path = "../components/shared/net"
+
+[dependencies.servo_url]
+package = "servo-url"
+path = "../components/url"
+
+[[bin]]
+name = "fuzz_cookie_parser"
+path = "fuzz_targets/fuzz_cookie_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_cookie_domain_joining"
+path = "fuzz_targets/fuzz_cookie_domain_joining.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_cookie_partitioning"
+path = "fuzz_targets/fuzz_cookie_partitioning.rs"
+test = false
+doc = false

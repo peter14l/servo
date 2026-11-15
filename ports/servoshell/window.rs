@@ -130,6 +130,10 @@ impl ServoShellWindow {
             webview_builder = webview_builder.gamepad_delegate(gamepad_delegate);
         }
 
+        if state.servoshell_preferences.incognito {
+            webview_builder = webview_builder.private(true);
+        }
+
         let webview = webview_builder.build();
         self.add_webview(webview.clone());
 
@@ -242,11 +246,16 @@ impl ServoShellWindow {
     ///
     /// Note: This can happen because we can trigger a close with a UI action and then get
     /// the close notification via the [`WebViewDelegate`] later.
-    pub(crate) fn close_webview(&self, webview_id: WebViewId) {
-        let mut webview_collection = self.webview_collection.borrow_mut();
-        if webview_collection.remove(webview_id).is_none() {
+    pub(crate) fn close_webview(&self, webview_id: WebViewId, state: &RunningAppState) {
+        let Some(webview) = self.webview_collection.borrow_mut().remove(webview_id) else {
             return;
-        }
+        };
+
+        // Remember the tab before dropping our handle. `WebView::drop` sends the close
+        // request to Servo, after which this `WebView` can no longer be looked up.
+        state.record_closed_webview(&webview);
+        drop(webview);
+
         self.platform_window
             .dismiss_embedder_controls_for_webview(webview_id);
 
@@ -347,6 +356,16 @@ impl ServoShellWindow {
                         active_webview.go_forward(1);
                     }
                 },
+                UserInterfaceCommand::Traverse(delta) => {
+                    self.set_needs_update();
+                    if let Some(active_webview) = self.active_webview() {
+                        if delta < 0 {
+                            active_webview.go_back((-delta) as usize);
+                        } else if delta > 0 {
+                            active_webview.go_forward(delta as usize);
+                        }
+                    }
+                },
                 UserInterfaceCommand::Reload => {
                     self.set_needs_update();
                     if let Some(active_webview) = self.active_webview() {
@@ -361,6 +380,22 @@ impl ServoShellWindow {
                         }
                     }
                 },
+                UserInterfaceCommand::Stop => {
+                    self.set_needs_update();
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.stop();
+                    }
+                },
+                UserInterfaceCommand::BookmarkCurrentPage => {
+                    if let Some(active_webview) = self.active_webview() {
+                        if let Some(url) = active_webview.url() {
+                            let title = active_webview
+                                .page_title()
+                                .unwrap_or_else(|| url.to_string());
+                            RunningAppState::persist_bookmark(url.as_str(), &title);
+                        }
+                    }
+                },
                 UserInterfaceCommand::NewWebView => {
                     self.set_needs_update();
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
@@ -371,7 +406,10 @@ impl ServoShellWindow {
                 },
                 UserInterfaceCommand::CloseWebView(id) => {
                     self.set_needs_update();
-                    self.close_webview(id);
+                    self.close_webview(id, state);
+                },
+                UserInterfaceCommand::ReopenClosedWebView => {
+                    state.reopen_closed_webview(self);
                 },
                 UserInterfaceCommand::NewWindow(creation_request) => {
                     let Some(create_platform_window) = create_platform_window else {

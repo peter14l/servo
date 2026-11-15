@@ -60,6 +60,7 @@ pub(crate) enum IndependentFormattingContextContents {
     Flex(FlexContainer),
     Grid(TaffyContainer),
     Table(Table),
+    MultiColumn(BlockFormattingContext),
     // Other layout modes go here
 }
 
@@ -79,6 +80,9 @@ impl IndependentFormattingContextContents {
                 taffy_container.subtree_size()
             },
             IndependentFormattingContextContents::Table(table) => table.subtree_size(),
+            IndependentFormattingContextContents::MultiColumn(block_formatting_context) => {
+                block_formatting_context.contents.subtree_size()
+            },
         }
     }
 }
@@ -226,13 +230,25 @@ impl IndependentFormattingContext {
 
         match display_inside {
             DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
-                IndependentFormattingContextContents::Flow(BlockFormattingContext::construct(
-                    context,
-                    node_and_style_info,
-                    non_replaced_contents,
-                    propagated_data,
-                    is_list_item,
-                ))
+                if node_and_style_info.style.get_column().is_multicol() {
+                    IndependentFormattingContextContents::MultiColumn(
+                        BlockFormattingContext::construct(
+                            context,
+                            node_and_style_info,
+                            non_replaced_contents,
+                            propagated_data,
+                            is_list_item,
+                        ),
+                    )
+                } else {
+                    IndependentFormattingContextContents::Flow(BlockFormattingContext::construct(
+                        context,
+                        node_and_style_info,
+                        non_replaced_contents,
+                        propagated_data,
+                        is_list_item,
+                    ))
+                }
             },
             DisplayInside::Grid => {
                 IndependentFormattingContextContents::Grid(TaffyContainer::construct(
@@ -387,7 +403,8 @@ impl IndependentFormattingContext {
                     widget.borrow_mut().repair_style(context, &node, new_style);
                 }
             },
-            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+            IndependentFormattingContextContents::Flow(block_formatting_context) |
+            IndependentFormattingContextContents::MultiColumn(block_formatting_context) => {
                 block_formatting_context.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
@@ -404,7 +421,11 @@ impl IndependentFormattingContext {
 
     #[inline]
     pub(crate) fn is_block_container(&self) -> bool {
-        matches!(self.contents, IndependentFormattingContextContents::Flow(_))
+        matches!(
+            self.contents,
+            IndependentFormattingContextContents::Flow(_) |
+                IndependentFormattingContextContents::MultiColumn(_)
+        )
     }
 
     #[inline]
@@ -478,7 +499,8 @@ impl IndependentFormattingContext {
                 }
                 replaced_layout
             },
-            IndependentFormattingContextContents::Flow(bfc) => bfc.layout(
+            IndependentFormattingContextContents::Flow(bfc) |
+            IndependentFormattingContextContents::MultiColumn(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
@@ -574,7 +596,8 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.layout_style(&self.base)
             },
-            IndependentFormattingContextContents::Flow(fc) => fc.layout_style(&self.base),
+            IndependentFormattingContextContents::Flow(fc) |
+            IndependentFormattingContextContents::MultiColumn(fc) => fc.layout_style(&self.base),
             IndependentFormattingContextContents::Flex(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Grid(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Table(fc) => fc.layout_style(None),
@@ -602,7 +625,8 @@ impl IndependentFormattingContext {
                     widget.borrow_mut().base.parent_box.replace(layout_box);
                 }
             },
-            IndependentFormattingContextContents::Flow(contents) => {
+            IndependentFormattingContextContents::Flow(contents) |
+            IndependentFormattingContextContents::MultiColumn(contents) => {
                 contents.attached_to_tree(layout_box)
             },
             IndependentFormattingContextContents::Flex(contents) => {
@@ -643,7 +667,7 @@ impl ComputeInlineContentSizes for IndependentFormattingContextContents {
             Self::Replaced(inner, _) => {
                 inner.compute_inline_content_sizes(layout_context, constraint_space)
             },
-            Self::Flow(inner) => inner
+            Self::Flow(inner) | Self::MultiColumn(inner) => inner
                 .contents
                 .compute_inline_content_sizes(layout_context, constraint_space),
             Self::Flex(inner) => {

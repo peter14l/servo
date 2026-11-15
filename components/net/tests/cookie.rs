@@ -4,7 +4,7 @@
 
 use std::time::{Duration, SystemTime};
 
-use net::cookie::ServoCookie;
+use net::cookie::{SameSiteContext, ServoCookie};
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
@@ -619,4 +619,167 @@ fn test_delete_cookie_with_name_does_not_affect_other_domains() {
         storage.cookies_for_url(&other_url, source).as_deref(),
         Some("foo=bar")
     );
+}
+
+#[test]
+fn test_same_site_cookie_matching() {
+    let url = ServoUrl::parse("https://example.com/").unwrap();
+    let source = CookieSource::HTTP;
+
+    let make = |cookie_str: &str| {
+        let cookie = cookie::Cookie::parse(cookie_str.to_owned()).unwrap();
+        ServoCookie::new_wrapped(cookie, &url, source).unwrap()
+    };
+
+    let same_site = SameSiteContext::SAME_SITE;
+    // A cross-site top-level navigation using a safe method (e.g. a GET link
+    // click from another site).
+    let cross_site_safe_navigation = SameSiteContext {
+        cross_site: true,
+        top_level_navigation: true,
+        safe_method: true,
+        partition_key: None,
+    };
+    // A cross-site request that is not a top-level safe navigation (e.g. a
+    // cross-site fetch/XHR or subresource).
+    let cross_site_other = SameSiteContext {
+        cross_site: true,
+        top_level_navigation: false,
+        safe_method: false,
+        partition_key: None,
+    };
+
+    // `SameSite=Strict` is never sent on cross-site requests.
+    let strict = make("a=1; SameSite=Strict");
+    assert!(strict.appropriate_for_url_with_context(&url, source, same_site));
+    assert!(!strict.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
+    assert!(!strict.appropriate_for_url_with_context(&url, source, cross_site_other));
+
+    // `SameSite=Lax` is only sent on cross-site top-level safe navigations.
+    let lax = make("b=1; SameSite=Lax");
+    assert!(lax.appropriate_for_url_with_context(&url, source, same_site));
+    assert!(lax.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
+    assert!(!lax.appropriate_for_url_with_context(&url, source, cross_site_other));
+
+    // An absent attribute defaults to `Lax`.
+    let default = make("c=1");
+    assert!(default.appropriate_for_url_with_context(&url, source, same_site));
+    assert!(default.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
+    assert!(!default.appropriate_for_url_with_context(&url, source, cross_site_other));
+
+    // `SameSite=None` is sent on all requests.
+    let none = make("d=1; SameSite=None; Secure");
+    assert!(none.appropriate_for_url_with_context(&url, source, same_site));
+    assert!(none.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
+    assert!(none.appropriate_for_url_with_context(&url, source, cross_site_other));
+}
+
+#[test]
+fn test_same_site_cookie_storage_filtering() {
+    let url = ServoUrl::parse("https://example.com/foo").unwrap();
+    let source = CookieSource::HTTP;
+    let mut storage = CookieStorage::new(10);
+
+    add_cookie_to_storage(&mut storage, &url, "strict=1; SameSite=Strict");
+    add_cookie_to_storage(&mut storage, &url, "lax=1; SameSite=Lax");
+    add_cookie_to_storage(&mut storage, &url, "none=1; SameSite=None; Secure");
+
+    // Same-site requests see every cookie.
+    let sent = storage
+        .cookies_for_url_with_context(&url, source, SameSiteContext::SAME_SITE)
+        .unwrap();
+    assert!(sent.contains("strict=1"));
+    assert!(sent.contains("lax=1"));
+    assert!(sent.contains("none=1"));
+
+    // Cross-site non-navigation requests only see `SameSite=None` cookies.
+    let cross_site = SameSiteContext {
+        cross_site: true,
+        top_level_navigation: false,
+        safe_method: false,
+        partition_key: None,
+    };
+    let sent = storage
+        .cookies_for_url_with_context(&url, source, cross_site)
+        .unwrap();
+    assert!(!sent.contains("strict=1"));
+    assert!(!sent.contains("lax=1"));
+    assert!(sent.contains("none=1"));
+}
+
+#[test]
+fn test_partitioned_cookie_matching() {
+    let url = ServoUrl::parse("https://example.com/foo").unwrap();
+    let source = CookieSource::HTTP;
+
+    let partitioned_cookie =
+        ServoCookie::from_cookie_string("part=1; Partitioned; Secure", &url, source).unwrap();
+    assert_eq!(
+        partitioned_cookie.partition_key,
+        Some("example.com".to_string())
+    );
+
+    let matching_context = SameSiteContext {
+        cross_site: false,
+        top_level_navigation: false,
+        safe_method: true,
+        partition_key: Some("example.com".to_string()),
+    };
+    let other_partition_context = SameSiteContext {
+        cross_site: false,
+        top_level_navigation: false,
+        safe_method: true,
+        partition_key: Some("other.com".to_string()),
+    };
+    let unpartitioned_context = SameSiteContext::SAME_SITE;
+
+    // Matching partition sends the partitioned cookie.
+    assert!(partitioned_cookie.appropriate_for_url_with_context(&url, source, matching_context));
+    // Mismatching partition does NOT send the cookie.
+    assert!(!partitioned_cookie.appropriate_for_url_with_context(&url, source, other_partition_context));
+    // Missing partition key degrades to fail-closed (not sent).
+    assert!(!partitioned_cookie.appropriate_for_url_with_context(&url, source, unpartitioned_context));
+}
+
+#[test]
+fn test_partitioned_cookie_storage_filtering() {
+    let url = ServoUrl::parse("https://example.com/foo").unwrap();
+    let source = CookieSource::HTTP;
+    let mut storage = CookieStorage::new(10);
+
+    add_cookie_to_storage(&mut storage, &url, "unpart=1; Secure");
+    add_cookie_to_storage(&mut storage, &url, "part=1; Partitioned; Secure");
+
+    // Matching partition receives both cookies.
+    let matching_context = SameSiteContext {
+        cross_site: false,
+        top_level_navigation: false,
+        safe_method: true,
+        partition_key: Some("example.com".to_string()),
+    };
+    let sent = storage
+        .cookies_for_url_with_context(&url, source, matching_context)
+        .unwrap();
+    assert!(sent.contains("unpart=1"));
+    assert!(sent.contains("part=1"));
+
+    // Different partition receives only the unpartitioned cookie.
+    let different_partition_context = SameSiteContext {
+        cross_site: false,
+        top_level_navigation: false,
+        safe_method: true,
+        partition_key: Some("other.com".to_string()),
+    };
+    let sent_diff = storage
+        .cookies_for_url_with_context(&url, source, different_partition_context)
+        .unwrap();
+    assert!(sent_diff.contains("unpart=1"));
+    assert!(!sent_diff.contains("part=1"));
+
+    // Missing partition key receives only the unpartitioned cookie.
+    let sent_none = storage
+        .cookies_for_url_with_context(&url, source, SameSiteContext::SAME_SITE)
+        .unwrap();
+    assert!(sent_none.contains("unpart=1"));
+    assert!(!sent_none.contains("part=1"));
 }

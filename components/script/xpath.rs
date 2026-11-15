@@ -26,7 +26,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::element::attributes::storage::AttributeStorage;
 use crate::dom::iterators::{PrecedingNodeIterator, ShadowIncluding};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -214,32 +213,12 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
     }
 
     fn attributes(&self, cx: &mut JSContext) -> impl Iterator<Item = Self::Attribute> {
-        struct AttributeIterator<'a> {
-            attributes: &'a AttributeStorage,
-            position: usize,
+        let len = self.0.attrs().borrow().len();
+        let mut attrs = Vec::with_capacity(len);
+        for i in 0..len {
+            attrs.push(XPathWrapper::from(self.0.attrs().ensure_dom(cx, i, &self.0)));
         }
-
-        impl<'a> Iterator for AttributeIterator<'a> {
-            type Item = XPathWrapper<DomRoot<Attr>>;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                let entries = self.attributes.borrow();
-                let entry = entries.get(self.position)?;
-                self.position += 1;
-                Some(DomRoot::from_ref(entry.as_attr().unwrap()).into())
-            }
-
-            fn size_hint(&self) -> (usize, Option<usize>) {
-                let exact_length = self.attributes.borrow().len() - self.position;
-                (exact_length, Some(exact_length))
-            }
-        }
-
-        // XPath needs full DOM attribute nodes.
-        AttributeIterator {
-            attributes: self.0.dom_attrs(cx),
-            position: 0,
-        }
+        attrs.into_iter()
     }
 
     fn prefix(&self) -> Option<Prefix> {

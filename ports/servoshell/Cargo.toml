@@ -27,10 +27,10 @@ workspace = true
 winresource = { workspace = true }
 
 [package.metadata.winresource]
-FileDescription = "ServoShell"
+FileDescription = "Servo Browser"
 LegalCopyright = "© The Servo Project Developers"
-OriginalFilename = "servoshell.exe"
-ProductName = "ServoShell"
+OriginalFilename = "servobrowser.exe"
+ProductName = "Servo Browser"
 
 [features]
 # Don't add new features to `default` directly. Add to `default_without_allocator` instead.
@@ -82,6 +82,8 @@ log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }

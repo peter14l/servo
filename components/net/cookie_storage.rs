@@ -13,14 +13,14 @@ use std::time::SystemTime;
 
 use cookie::Cookie;
 use itertools::Itertools;
-use log::info;
+use log::trace;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::{CookieSource, SiteDescriptor};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
-use crate::cookie::ServoCookie;
+use crate::cookie::{SameSiteContext, ServoCookie};
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct CookieStorage {
@@ -79,7 +79,8 @@ impl CookieStorage {
         let position = cookies.iter().position(|c| {
             c.cookie.domain() == cookie.cookie.domain() &&
                 c.cookie.path() == cookie.cookie.path() &&
-                c.cookie.name() == cookie.cookie.name()
+                c.cookie.name() == cookie.cookie.name() &&
+                c.partition_key == cookie.partition_key
         });
 
         if let Some(ind) = position {
@@ -219,8 +220,19 @@ impl CookieStorage {
 
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
+        self.cookies_for_url_with_context(url, source, SameSiteContext::SAME_SITE)
+    }
+
+    /// Like [`CookieStorage::cookies_for_url`], but also enforces the
+    /// `SameSite` attribute using the given request context.
+    pub fn cookies_for_url_with_context(
+        &mut self,
+        url: &ServoUrl,
+        source: CookieSource,
+        context: SameSiteContext,
+    ) -> Option<String> {
         // Let cookie-list be the set of cookies from the cookie store
-        let cookie_list = self.cookies_data_for_url(url, source);
+        let cookie_list = self.cookies_data_for_url_with_context(url, source, context);
 
         let reducer = |acc: String, cookie: Cookie<'static>| -> String {
             // Serialize the cookie-list into a cookie-string by processing each cookie in the cookie-list in order:
@@ -240,7 +252,7 @@ impl CookieStorage {
         // Serialize the cookie-list into a cookie-string by processing each cookie in the cookie-list in order
         let result = cookie_list.fold(String::new(), reducer);
 
-        info!(" === COOKIES SENT: {}", result);
+        trace!("cookies sent: byte_len={}", result.len());
         match result.len() {
             0 => None,
             _ => Some(result),
@@ -273,12 +285,23 @@ impl CookieStorage {
         url: &'a ServoUrl,
         source: CookieSource,
     ) -> impl Iterator<Item = cookie::Cookie<'static>> + 'a {
+        self.cookies_data_for_url_with_context(url, source, SameSiteContext::SAME_SITE)
+    }
+
+    /// Like [`CookieStorage::cookies_data_for_url`], but also enforces the
+    /// `SameSite` attribute using the given request context.
+    pub fn cookies_data_for_url_with_context<'a>(
+        &'a mut self,
+        url: &'a ServoUrl,
+        source: CookieSource,
+        context: SameSiteContext,
+    ) -> impl Iterator<Item = cookie::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_default();
 
         cookies
             .iter_mut()
-            .filter(move |c| c.appropriate_for_url(url, source))
+            .filter(move |c| c.appropriate_for_url_with_context(url, source, context.clone()))
             .sorted_by(|a: &&mut ServoCookie, b: &&mut ServoCookie| {
                 // The user agent SHOULD sort the cookie-list
                 CookieStorage::cookie_comparator(a, b)
@@ -297,9 +320,24 @@ impl CookieStorage {
             .map(SiteDescriptor::new)
             .collect()
     }
+
+    /// Returns all cookies in the store (for visitor pattern).
+    pub fn all_cookies(&self) -> Vec<&ServoCookie> {
+        self.cookies_map.values().flat_map(|v| v.iter()).collect()
+    }
+
+    /// Returns all cookies in the store mutably (for deletion).
+    pub fn all_cookies_mut(&mut self) -> Vec<&mut ServoCookie> {
+        self.cookies_map.values_mut().flat_map(|v| v.iter_mut()).collect()
+    }
+
+    /// Returns cookies for a specific domain mutably.
+    pub fn cookies_for_domain_mut(&mut self, domain: &str) -> Option<Vec<&mut ServoCookie>> {
+        self.cookies_map.get_mut(domain).map(|v| v.iter_mut().collect())
+    }
 }
 
-fn reg_host(url: &str) -> String {
+pub fn reg_host(url: &str) -> String {
     let host_for_ip_parse = url
         .strip_prefix('[')
         .and_then(|url| url.strip_suffix(']'))

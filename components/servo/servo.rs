@@ -107,11 +107,13 @@ use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
+use crate::request_context::RequestContext;
 use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
-    FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CertificateError,
+    CertificateErrorRequest, CertificateErrorResponse, EmbedderControl, FilePicker,
+    NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -270,6 +272,8 @@ struct ServoInner {
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
+    task_sender: Sender<Box<dyn FnOnce() + Send>>,
+    task_receiver: Receiver<Box<dyn FnOnce() + Send>>,
 }
 
 impl ServoInner {
@@ -278,6 +282,12 @@ impl ServoInner {
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
+    }
+
+    fn post_task(&self, task: Box<dyn FnOnce() + Send>) {
+        if self.task_sender.send(task).is_ok() {
+            self.event_loop_waker.wake();
+        }
     }
 
     #[servo_tracing::instrument(level = "debug", skip_all)]
@@ -350,6 +360,10 @@ impl ServoInner {
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
+
+        while let Ok(task) = self.task_receiver.try_recv() {
+            task();
+        }
 
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
@@ -483,6 +497,33 @@ impl ServoInner {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
+            NetToEmbedderMsg::RequestCertificateError(
+                webview_id,
+                url,
+                error_code,
+                error_text,
+                certificate_der,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let certificate_error = CertificateError::new(
+                        url.into_url(),
+                        error_code,
+                        error_text,
+                        certificate_der,
+                    );
+                    let certificate_error_request = CertificateErrorRequest::new(
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .certificate_error(webview, certificate_error, certificate_error_request);
+                } else {
+                    // No webview found, deny by default
+                    let _ = response_sender.send(CertificateErrorResponse::Deny);
+                }
+            },
         }
     }
 
@@ -611,6 +652,7 @@ impl ServoInner {
             },
             EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_fullscreen_from_page(fullscreen);
                     webview
                         .delegate()
                         .notify_fullscreen_state_changed(webview, fullscreen);
@@ -872,6 +914,18 @@ impl ServoInner {
                         .notify_media_session_event(webview, media_session_event);
                 }
             },
+            ConstellationToEmbedderMsg::FindResult(webview_id, find_result) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let count = find_result.number_of_matches;
+                    let identifier = find_result.identifier;
+                    webview.delegate().on_find_result(
+                        webview,
+                        identifier,
+                        count,
+                        Some(find_result),
+                    );
+                }
+            },
         }
     }
 }
@@ -884,6 +938,7 @@ impl Drop for ServoInner {
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
+        PipelineNamespace::uninstall();
     }
 }
 
@@ -905,6 +960,11 @@ impl Servo {
         let opts = builder.opts.map(|opts| *opts).unwrap_or_default();
         opts::initialize_options(opts);
         let opts = opts::get();
+
+        // Use request context if provided, otherwise fall back to global opts.
+        let request_context = builder.request_context.unwrap_or_default();
+        let config_dir = request_context.config_dir.clone().or(opts.config_dir.clone());
+        let temporary_storage = request_context.temporary_storage || opts.temporary_storage;
 
         // Set the preferences globally.
         // TODO: It would be better to make these private to a particular Servo instance.
@@ -928,6 +988,9 @@ impl Servo {
         }
 
         // Reserving a namespace to create WebViewId.
+        if PipelineNamespace::is_installed() {
+            PipelineNamespace::uninstall();
+        }
         PipelineNamespace::install(EMBEDDER_PIPELINE_NAMESPACE_ID);
 
         // Get both endpoints of a special channel for communication between
@@ -990,7 +1053,7 @@ impl Servo {
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
                 net_embedder_proxy,
-                opts.config_dir.clone(),
+                config_dir.clone(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
                 protocols.clone(),
@@ -998,8 +1061,8 @@ impl Servo {
 
         let (private_storage_threads, public_storage_threads) = new_storage_threads(
             mem_profiler_chan.clone(),
-            opts.config_dir.clone(),
-            opts.temporary_storage,
+            config_dir.clone(),
+            temporary_storage,
         );
 
         create_constellation(
@@ -1025,6 +1088,8 @@ impl Servo {
         if opts::get().multiprocess {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
+
+        let (task_sender, task_receiver) = unbounded();
 
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
@@ -1052,6 +1117,8 @@ impl Servo {
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
             event_loop_waker,
+            task_sender,
+            task_receiver,
         }))
     }
 
@@ -1078,7 +1145,28 @@ impl Servo {
         self.0.spin_event_loop();
     }
 
+    /// Post a task to be executed on the Servo event loop thread during the next
+    /// [`Servo::spin_event_loop`] call, and wake up the event loop via [`EventLoopWaker`].
+    pub fn post_task(&self, task: Box<dyn FnOnce() + Send>) {
+        self.0.post_task(task);
+    }
+
+    /// Sets up logging for this [`Servo`] instance.
+    ///
+    /// Logging is process-global, so this fails if a logger has already been
+    /// installed. Prefer [`Servo::try_setup_logging`] when the caller can act
+    /// on that failure; this method logs a warning instead of panicking.
     pub fn setup_logging(&self) {
+        if let Err(error) = self.try_setup_logging() {
+            warn!("Failed to set logger ({error}); leaving the existing logger in place.");
+        }
+    }
+
+    /// Sets up logging for this [`Servo`] instance, returning an error when a
+    /// logger has already been installed for this process.
+    ///
+    /// This is the fallible form of [`Servo::setup_logging`].
+    pub fn try_setup_logging(&self) -> Result<(), log::SetLoggerError> {
         let constellation_chan = self.0.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
@@ -1087,8 +1175,9 @@ impl Servo {
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
 
-        log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
+        log::set_boxed_logger(Box::new(logger))?;
         log::set_max_level(filter);
+        Ok(())
     }
 
     pub fn create_memory_report(&self, snd: GenericCallback<MemoryReportResult>) {
@@ -1403,6 +1492,183 @@ pub fn run_content_process(token: String) {
     }
 }
 
+#[cfg(all(feature = "multiprocess", target_os = "windows"))]
+mod windows_sandbox {
+    use std::ffi::c_void;
+    use log::{info, warn};
+
+    #[repr(C)]
+    struct ProcessMitigationDepPolicy {
+        flags: u32,
+        permanent: u32,
+    }
+
+    #[repr(C)]
+    struct ProcessMitigationAslrPolicy {
+        flags: u32,
+    }
+
+    #[repr(C)]
+    struct ProcessMitigationStrictHandleCheckPolicy {
+        flags: u32,
+    }
+
+    #[repr(C)]
+    struct ProcessMitigationExtensionPointDisablePolicy {
+        flags: u32,
+    }
+
+    #[repr(C)]
+    struct IoCounters {
+        read_operation_count: u64,
+        write_operation_count: u64,
+        other_operation_count: u64,
+        read_transfer_count: u64,
+        write_transfer_count: u64,
+        other_transfer_count: u64,
+    }
+
+    #[repr(C)]
+    struct JobobjectBasicLimitInformation {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+
+    #[repr(C)]
+    struct JobobjectExtendedLimitInformation {
+        basic_limit_information: JobobjectBasicLimitInformation,
+        io_info: IoCounters,
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+
+    const PROCESS_DEP_POLICY: i32 = 0;
+    const PROCESS_ASLR_POLICY: i32 = 1;
+    const PROCESS_STRICT_HANDLE_CHECK_POLICY: i32 = 3;
+    const PROCESS_EXTENSION_POINT_DISABLE_POLICY: i32 = 6;
+    const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x00000008;
+    const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: i32 = 9;
+
+    unsafe extern "system" {
+        fn SetProcessMitigationPolicy(
+            policy: i32,
+            lp_buffer: *const c_void,
+            dw_length: usize,
+        ) -> i32;
+        fn CreateJobObjectW(lp_job_attributes: *const c_void, lp_name: *const u16) -> *mut c_void;
+        fn AssignProcessToJobObject(h_job: *mut c_void, h_process: *mut c_void) -> i32;
+        fn SetInformationJobObject(
+            h_job: *mut c_void,
+            job_object_info_class: i32,
+            lp_job_object_info: *const c_void,
+            cb_job_object_info_length: u32,
+        ) -> i32;
+        fn GetCurrentProcess() -> *mut c_void;
+        fn CloseHandle(h_object: *mut c_void) -> i32;
+    }
+
+    pub fn apply_windows_sandbox() {
+        info!("Initializing Windows renderer sandbox PoC mitigation policies...");
+
+        // 1. DEP Policy: Enable and disable ATL thunk emulation
+        let dep = ProcessMitigationDepPolicy {
+            flags: 0x01 | 0x02,
+            permanent: 1,
+        };
+        unsafe {
+            if SetProcessMitigationPolicy(
+                PROCESS_DEP_POLICY,
+                &dep as *const _ as *const c_void,
+                std::mem::size_of::<ProcessMitigationDepPolicy>(),
+            ) == 0 {
+                warn!("Windows sandbox: Failed to apply DEP policy");
+            }
+        }
+
+        // 2. ASLR Policy: Enable bottom-up randomization, forced relocation, high entropy
+        let aslr = ProcessMitigationAslrPolicy {
+            flags: 0x01 | 0x02 | 0x04,
+        };
+        unsafe {
+            if SetProcessMitigationPolicy(
+                PROCESS_ASLR_POLICY,
+                &aslr as *const _ as *const c_void,
+                std::mem::size_of::<ProcessMitigationAslrPolicy>(),
+            ) == 0 {
+                warn!("Windows sandbox: Failed to apply ASLR policy");
+            }
+        }
+
+        // 3. Strict Handle Checking Policy: raise exception on invalid handle reference
+        let strict_handle = ProcessMitigationStrictHandleCheckPolicy {
+            flags: 0x01,
+        };
+        unsafe {
+            if SetProcessMitigationPolicy(
+                PROCESS_STRICT_HANDLE_CHECK_POLICY,
+                &strict_handle as *const _ as *const c_void,
+                std::mem::size_of::<ProcessMitigationStrictHandleCheckPolicy>(),
+            ) == 0 {
+                warn!("Windows sandbox: Failed to apply Strict Handle Check policy");
+            }
+        }
+
+        // 4. Extension Point Disable Policy: block legacy Windows hooks and AppInit DLL injection
+        let ext_point = ProcessMitigationExtensionPointDisablePolicy {
+            flags: 0x01,
+        };
+        unsafe {
+            if SetProcessMitigationPolicy(
+                PROCESS_EXTENSION_POINT_DISABLE_POLICY,
+                &ext_point as *const _ as *const c_void,
+                std::mem::size_of::<ProcessMitigationExtensionPointDisablePolicy>(),
+            ) == 0 {
+                warn!("Windows sandbox: Failed to apply Extension Point Disable policy");
+            }
+        }
+
+        // 5. Job Object Isolation: restrict active process count to 1 to block subprocess creation
+        unsafe {
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            if !job.is_null() {
+                let mut info: JobobjectExtendedLimitInformation = std::mem::zeroed();
+                info.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+                info.basic_limit_information.active_process_limit = 1;
+
+                if SetInformationJobObject(
+                    job,
+                    JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                    &info as *const _ as *const c_void,
+                    std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
+                ) != 0 {
+                    if AssignProcessToJobObject(job, GetCurrentProcess()) != 0 {
+                        info!("Windows sandbox: Bound process to Job Object with active process limit = 1");
+                        // Keep handle open to preserve Job Object containment for process lifetime
+                        let _ = job;
+                    } else {
+                        warn!("Windows sandbox: Failed to assign process to Job Object");
+                        CloseHandle(job);
+                    }
+                } else {
+                    warn!("Windows sandbox: Failed to configure Job Object limits");
+                    CloseHandle(job);
+                }
+            }
+        }
+
+        info!("Windows renderer sandbox: Mitigation policies and Job Object successfully applied.");
+    }
+}
+
 #[cfg(all(
     feature = "multiprocess",
     not(target_os = "windows"),
@@ -1414,24 +1680,62 @@ pub fn run_content_process(token: String) {
     not(target_arch = "riscv64"),
     not(target_env = "ohos"),
 ))]
-fn create_sandbox() {
+pub fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile())
         .activate()
         .expect("Failed to activate sandbox!");
 }
 
-#[cfg(any(
-    target_os = "windows",
-    target_os = "ios",
-    target_os = "android",
-    target_arch = "arm",
-    target_arch = "aarch64",
-    target_arch = "riscv32",
-    target_arch = "riscv64",
-    target_env = "ohos",
+#[cfg(all(feature = "multiprocess", target_os = "windows"))]
+pub fn create_sandbox() {
+    windows_sandbox::apply_windows_sandbox();
+}
+
+#[cfg(all(
+    feature = "multiprocess",
+    any(target_os = "android", target_os = "ios")
 ))]
-fn create_sandbox() {
-    panic!("Sandboxing is not supported on Windows, iOS, ARM, RISC-V targets and android.");
+pub fn create_sandbox() {
+    // No engine-level renderer sandbox is applied on these targets. Any
+    // containment would come from the OS process model (Android isolated
+    // process / iOS app container), which Servo neither creates nor verifies.
+    // TODO(W2.2b): enforce or verify a real sandbox here, or have the capability
+    // query reflect exactly what is enforced. See
+    // docs/embedding/MULTI_PLATFORM_SANDBOX_DESIGN.md.
+    warn!("No renderer sandbox is enforced by Servo here; relying on the OS process model.");
+}
+
+#[cfg(all(
+    feature = "multiprocess",
+    not(target_os = "windows"),
+    not(target_os = "ios"),
+    not(target_os = "android"),
+    not(target_env = "ohos"),
+    any(target_arch = "arm", target_arch = "aarch64")
+))]
+pub fn create_sandbox() {
+    // No engine-level renderer sandbox is applied on ARM/AArch64 today (this
+    // includes Apple-Silicon macOS and ARM64 Linux). The gaol/Seatbelt profiles
+    // are only wired up for x86_64.
+    // TODO(W2.2b): port the profiles to arm64, or have the capability query
+    // reflect exactly what is enforced. See
+    // docs/embedding/MULTI_PLATFORM_SANDBOX_DESIGN.md.
+    warn!("No renderer sandbox is enforced by Servo on this target; running unsandboxed.");
+}
+
+#[cfg(any(
+    not(feature = "multiprocess"),
+    all(
+        feature = "multiprocess",
+        any(
+            target_arch = "riscv32",
+            target_arch = "riscv64",
+            target_env = "ohos"
+        )
+    )
+))]
+pub fn create_sandbox() {
+    panic!("Sandboxing is not supported on single-process, RISC-V, or OpenHarmony targets.");
 }
 
 struct DefaultEventLoopWaker;
@@ -1450,6 +1754,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
+    request_context: Option<RequestContext>,
 }
 
 impl Default for ServoBuilder {
@@ -1459,6 +1764,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
+            request_context: Default::default(),
         }
     }
 }
@@ -1485,6 +1791,17 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
+        self
+    }
+
+    /// Sets the request context for this Servo instance.
+    ///
+    /// The request context provides profile/cookie isolation, proxy configuration,
+    /// cache path selection, and accept language settings. All WebViews created
+    /// within this Servo instance will use this request context unless overridden
+    /// at the WebView level.
+    pub fn request_context(mut self, request_context: RequestContext) -> Self {
+        self.request_context = Some(request_context);
         self
     }
 }

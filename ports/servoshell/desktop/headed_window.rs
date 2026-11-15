@@ -57,7 +57,7 @@ use crate::window::{
     ServoShellWindowId, TopLevelWebViewCreationRequest,
 };
 
-pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
+pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo Browser";
 
 pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
@@ -128,7 +128,7 @@ impl HeadedWindow {
 
         // Set a name so it can be pinned to taskbars in Linux.
         #[cfg(target_os = "linux")]
-        let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
+        let window_attr = window_attr.with_name("org.servo.ServoBrowser", "Servo Browser");
 
         #[allow(deprecated)]
         let winit_window = event_loop
@@ -340,7 +340,7 @@ impl HeadedWindow {
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                window.close_webview(active_webview.id());
+                window.close_webview(active_webview.id(), &state);
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 active_webview.capture_webrender();
@@ -408,6 +408,9 @@ impl HeadedWindow {
                     let len = window.webviews().len();
                     window.activate_webview_by_index((index + len - 1) % len);
                 }
+            })
+            .shortcut(CMD_OR_CONTROL | Modifiers::SHIFT, 'T', || {
+                state.reopen_closed_webview(window);
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
                 let url = Url::parse("servo:newtab")
@@ -768,7 +771,7 @@ impl HeadedWindow {
                 },
                 egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
                     if req.target_tree != accesskit::TreeId::ROOT {
-                        // TODO(#4344): Forward action to Servo
+                        state.servo.forward_accessibility_action(req.clone());
                     }
                 },
                 egui_winit::accesskit_winit::WindowEvent::AccessibilityDeactivated => {
@@ -840,6 +843,7 @@ impl PlatformWindow for HeadedWindow {
                     .page_title()
                     .filter(|title| !title.is_empty())
                     .or_else(|| webview.url().map(|url| url.to_string()))
+                    .map(|title| format!("{title} — Servo Browser"))
             })
             .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
         if title != *self.last_title.borrow() {

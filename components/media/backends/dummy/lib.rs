@@ -25,14 +25,14 @@ use servo_media_audio::{AudioBackend, AudioStreamReader};
 use servo_media_player::context::PlayerGLContext;
 use servo_media_player::{Player, PlayerError, PlayerEvent, StreamType, audio, video};
 use servo_media_streams::capture::MediaTrackConstraintSet;
-use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceMonitor};
+use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
 use servo_media_streams::registry::{MediaStreamId, register_stream, unregister_stream};
 use servo_media_streams::{MediaOutput, MediaSocket, MediaStream, MediaStreamType};
 use servo_media_traits::{ClientContextId, MediaInstance};
 use servo_media_webrtc::{
-    BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, IceCandidate,
-    SessionDescription, WebRtcBackend, WebRtcController, WebRtcControllerBackend,
-    WebRtcDataChannelResult, WebRtcResult, WebRtcSignaller, thread,
+    BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, IceCandidate, IceServer,
+    IceTransportPolicy, RtcpMuxPolicy, SessionDescription, WebRtcBackend, WebRtcController,
+    WebRtcControllerBackend, WebRtcDataChannelResult, WebRtcResult, WebRtcSignaller, thread,
 };
 
 pub struct DummyBackend;
@@ -86,12 +86,38 @@ impl Backend for DummyBackend {
         &self,
         _id: &ClientContextId,
         _: StreamType,
-        _: GenericCallback<PlayerEvent>,
+        callback: GenericCallback<PlayerEvent>,
         _: Option<Arc<Mutex<dyn video::VideoFrameRenderer>>>,
         _: Option<Arc<Mutex<dyn audio::AudioRenderer>>>,
         _: Box<dyn PlayerGLContext>,
     ) -> Arc<Mutex<dyn Player>> {
-        Arc::new(Mutex::new(DummyPlayer))
+        let paused = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let position = Arc::new(Mutex::new(0.0));
+        let cb_clone = callback.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            let metadata = servo_media_player::metadata::Metadata {
+                duration: Some(std::time::Duration::from_secs(60)),
+                width: 720,
+                height: 1280,
+                format: "video/mp4".to_string(),
+                is_seekable: true,
+                video_tracks: vec!["video".to_string()],
+                audio_tracks: vec!["audio".to_string()],
+                is_live: false,
+                title: None,
+            };
+            let _ = cb_clone.send(PlayerEvent::MetadataUpdated(metadata));
+            let _ = cb_clone.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
+            let _ = cb_clone.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+            let _ = cb_clone.send(PlayerEvent::PositionChanged(0.0));
+            let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
+        });
+        Arc::new(Mutex::new(DummyPlayer {
+            callback: Some(callback),
+            paused,
+            position,
+        }))
     }
 
     fn create_audio_context(
@@ -113,8 +139,20 @@ impl Backend for DummyBackend {
         WebRtcController::new::<Self>(signaller)
     }
 
-    fn can_play_type(&self, _media_type: &str) -> SupportsMediaType {
-        SupportsMediaType::No
+    fn can_play_type(&self, media_type: &str) -> SupportsMediaType {
+        let media_type = media_type.to_ascii_lowercase();
+        if media_type.contains("mp4") ||
+            media_type.contains("webm") ||
+            media_type.contains("ogg") ||
+            media_type.contains("audio") ||
+            media_type.contains("video") ||
+            media_type.contains("hls") ||
+            media_type.contains("mpegurl")
+        {
+            SupportsMediaType::Maybe
+        } else {
+            SupportsMediaType::No
+        }
     }
 
     fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor> {
@@ -139,7 +177,17 @@ impl AudioBackend for DummyBackend {
     }
 }
 
-pub struct DummyPlayer;
+pub struct DummyPlayer {
+    callback: Option<GenericCallback<PlayerEvent>>,
+    paused: Arc<std::sync::atomic::AtomicBool>,
+    position: Arc<Mutex<f64>>,
+}
+
+impl Drop for DummyPlayer {
+    fn drop(&mut self) {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
 
 pub struct DummyStreamReader;
 
@@ -153,23 +201,64 @@ impl AudioStreamReader for DummyStreamReader {
 
 impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
+        let was_paused = self.paused.swap(false, std::sync::atomic::Ordering::SeqCst);
+        if let Some(ref cb) = self.callback {
+            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
+            let _ = cb.send(PlayerEvent::VideoFrameUpdated);
+            if was_paused {
+                let cb_clone = cb.clone();
+                let paused = self.paused.clone();
+                let pos = self.position.clone();
+                std::thread::spawn(move || {
+                    while !paused.load(std::sync::atomic::Ordering::SeqCst) {
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                        if paused.load(std::sync::atomic::Ordering::SeqCst) {
+                            break;
+                        }
+                        let cur_pos = {
+                            let mut p = pos.lock().unwrap();
+                            *p += 0.25;
+                            if *p >= 60.0 {
+                                *p = 0.0;
+                            }
+                            *p
+                        };
+                        let _ = cb_clone.send(PlayerEvent::PositionChanged(cur_pos));
+                        let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
+                    }
+                });
+            }
+        }
         Ok(())
     }
     fn pause(&self) -> Result<(), PlayerError> {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
+        if let Some(ref cb) = self.callback {
+            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+        }
         Ok(())
     }
 
     fn paused(&self) -> bool {
-        true
+        self.paused.load(std::sync::atomic::Ordering::SeqCst)
     }
     fn can_resume(&self) -> bool {
         true
     }
 
     fn stop(&self) -> Result<(), PlayerError> {
+        self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
-    fn seek(&self, _: f64) -> Result<(), PlayerError> {
+    fn seek(&self, position: f64) -> Result<(), PlayerError> {
+        if let Ok(mut p) = self.position.lock() {
+            *p = position;
+        }
+        if let Some(ref cb) = self.callback {
+            let _ = cb.send(PlayerEvent::SeekDone(position));
+            let _ = cb.send(PlayerEvent::PositionChanged(position));
+            let _ = cb.send(PlayerEvent::VideoFrameUpdated);
+        }
         Ok(())
     }
 
@@ -319,7 +408,13 @@ impl MediaOutput for DummyMediaOutput {
 pub struct DummyWebRtcController;
 
 impl WebRtcControllerBackend for DummyWebRtcController {
-    fn configure(&mut self, _: &str, _: BundlePolicy) -> WebRtcResult {
+    fn configure(
+        &mut self,
+        _: &[IceServer],
+        _: BundlePolicy,
+        _: IceTransportPolicy,
+        _: RtcpMuxPolicy,
+    ) -> WebRtcResult {
         Ok(())
     }
     fn set_remote_description(
@@ -395,6 +490,22 @@ struct DummyMediaDeviceMonitor;
 
 impl MediaDeviceMonitor for DummyMediaDeviceMonitor {
     fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
-        Some(vec![])
+        Some(vec![
+            MediaDeviceInfo {
+                device_id: "default-audio-input".to_string(),
+                kind: MediaDeviceKind::AudioInput,
+                label: "Default Microphone".to_string(),
+            },
+            MediaDeviceInfo {
+                device_id: "default-audio-output".to_string(),
+                kind: MediaDeviceKind::AudioOutput,
+                label: "Default Speaker".to_string(),
+            },
+            MediaDeviceInfo {
+                device_id: "default-video-input".to_string(),
+                kind: MediaDeviceKind::VideoInput,
+                label: "Default Camera".to_string(),
+            },
+        ])
     }
 }

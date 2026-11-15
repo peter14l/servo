@@ -36,10 +36,6 @@ impl RTCRtpReceiver {
         reflect_dom_object(cx, Box::new(Self::new_inherited(track)), global)
     }
 
-    pub(crate) fn track(&self) -> DomRoot<MediaStreamTrack> {
-        DomRoot::from_ref(&*self.track)
-    }
-}
 
 impl RTCRtpReceiverMethods<crate::DomTypeHolder> for RTCRtpReceiver {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-track>

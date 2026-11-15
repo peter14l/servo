@@ -60,14 +60,17 @@ impl RTCRtpTransceiver {
         )
     }
 
+    #[expect(dead_code)]
     pub(crate) fn set_mid(&self, mid: Option<String>) {
         *self.mid.borrow_mut() = mid;
     }
 
+    #[expect(dead_code)]
     pub(crate) fn set_current_direction(&self, direction: Option<RTCRtpTransceiverDirection>) {
         self.current_direction.set(direction);
     }
 
+    #[expect(dead_code)]
     pub(crate) fn is_stopped(&self) -> bool {
         self.stopped.get()
     }

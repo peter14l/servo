@@ -450,7 +450,6 @@ impl AttributeStorage {
     /// It also guards against re-entrant borrows (e.g. when an outer iterator or
     /// accessor holds an immutable borrow on this attribute storage), preventing
     /// fatal "RefCell already borrowed" panics.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn ensure_dom(
         &self,
         cx: &mut JSContext,

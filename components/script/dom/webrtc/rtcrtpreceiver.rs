@@ -36,6 +36,7 @@ impl RTCRtpReceiver {
         reflect_dom_object(cx, Box::new(Self::new_inherited(track)), global)
     }
 
+}
 
 impl RTCRtpReceiverMethods<crate::DomTypeHolder> for RTCRtpReceiver {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-track>

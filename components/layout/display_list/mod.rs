@@ -1680,7 +1680,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
+        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender(), self.padding_rect());
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -1700,6 +1700,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let radii = offset_radii(
             self.border_radius(),
             -(self.fragment.border + self.fragment.padding).to_webrender(),
+            self.content_rect(),
         );
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.content_rect(), force_clip_creation);
@@ -2350,7 +2351,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: offset_radii(self.border_radius(), SideOffsets2D::new_all_same(offset)),
+            radius: offset_radii(self.border_radius(), SideOffsets2D::new_all_same(offset), &outline_rect),
             do_aa: true,
         });
         builder
@@ -2396,9 +2397,13 @@ impl<'a> BuilderForBoxFragment<'a> {
                     // The `border-radius` value applies to the border box, but inset shadows
                     // use the padding box instead. So we need to shrink the `border-radius`
                     // by the border widths.
-                    offset_radii(self.border_radius(), -self.fragment.border.to_webrender())
+                    offset_radii(self.border_radius(), -self.fragment.border.to_webrender(), &rect)
                 },
                 BoxShadowClipMode::Outset => self.border_radius(),
+            };
+            let shadow_shape_rect = match clip_mode {
+                BoxShadowClipMode::Inset => rect.inflate(-spread, -spread),
+                BoxShadowClipMode::Outset => rect.inflate(spread, spread),
             };
             let shadow_radius = offset_radii(
                 border_radius,
@@ -2406,6 +2411,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     BoxShadowClipMode::Inset => -spread,
                     BoxShadowClipMode::Outset => spread,
                 }),
+                &shadow_shape_rect,
             );
             let common = builder.common_properties(state, clip_rect, style);
             builder.wr().push_box_shadow(
@@ -2475,8 +2481,12 @@ fn glyphs(
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii
 /// for the [outer rectangle][`Rect::outer_rect`] resulting from expanding the original
-/// rectangle by the given offsets.
-fn offset_radii(mut radii: BorderRadius, offsets: LayoutSideOffsets) -> BorderRadius {
+/// rectangle by the given offsets, then renormalizes them for `rect`.
+fn offset_radii(
+    mut radii: BorderRadius,
+    offsets: LayoutSideOffsets,
+    rect: &units::LayoutRect,
+) -> BorderRadius {
     let expand = |radius: &mut f32, offset: f32| {
         // For negative offsets, just shrink the radius by that amount.
         if offset < 0.0 {
@@ -2508,6 +2518,7 @@ fn offset_radii(mut radii: BorderRadius, offsets: LayoutSideOffsets) -> BorderRa
         expand(&mut radii.bottom_right.height, offsets.bottom);
         expand(&mut radii.bottom_left.height, offsets.bottom);
     }
+    normalize_radii(rect, &mut radii);
     radii
 }
 

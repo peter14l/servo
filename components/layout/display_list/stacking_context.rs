@@ -462,6 +462,7 @@ impl StackingContext {
     }
 
     fn sort(&mut self) {
+        // sort_by_key is stable, so equal z-index preserves tree order as required by CSS paint order.
         self.children.sort_by_key(|child| child.z_index)
     }
 

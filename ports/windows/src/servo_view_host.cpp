@@ -200,7 +200,8 @@ static const char* s_platformCompatScript = R"JS(
 
                     // Find username input preceding password field
                     var allInputs = Array.from(document.querySelectorAll('input'));
-                    var pwdIdx = allInputs.indexOf(pwdInput);
+                    var pwdIdx = allInputs.indexOf(pwdInput);)JS"
+    R"JS(
                     for (var i = pwdIdx - 1; i >= 0; i--) {
                         var inp = allInputs[i];
                         var t = (inp.type || 'text').toLowerCase();
@@ -701,14 +702,19 @@ ServoViewHost* ServoViewHost::GetActiveHost() {
 }
 
 // Embedder-control callbacks receive an opaque responder handle as `user_data`
-// (see docs/embedding/C_API_GUIDE.md, "Embedder controls"), so the host has to
-// be resolved from the WebView that fired the callback.
+// (see docs/embedding/C_API_GUIDE.md, "Embedder controls"), so the host cannot
+// be taken from that argument.
 ServoViewHost* ServoViewHost::FromWebView(struct WebView* webview) {
     if (!webview) return nullptr;
     for (ServoViewHost* host : s_allHosts) {
         if (host && host->m_webview == webview) return host;
     }
-    return nullptr;
+    // The C API currently passes `&mut webview` from a stack-local WebView
+    // clone (ffi/capi/webview_delegate.rs), so the pointer above is not the
+    // handle returned by servo_webview_builder_build and normally will not
+    // match. Select and context-menu controls are only reachable from trusted
+    // input, so the host under the cursor at callback time is the right one.
+    return GetActiveHost();
 }
 
 ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl)

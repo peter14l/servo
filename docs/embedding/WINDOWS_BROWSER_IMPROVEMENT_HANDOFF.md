@@ -76,7 +76,9 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 
 Installation verification (PASSED, 20 Nov 2026): both installers exited clean; exe timestamps changed 12 Nov → 20 Nov 17:09 → 20 Nov 17:41; browser launched and reached the new-tab page with `BrowserWindow::Create completed successfully` in the log. No plaintext password in the new log sections.
 
-**User dropdown verification: STILL PENDING.** The last log from the first installed build showed a popup being created (`CreateForPopup completed successfully`), a navigation to `facultyservices/Login.aspx`, then `WM_CLOSE`/`WM_DESTROY, posting quit message...` — i.e. the popup-quits-app bug, which is fixed in the currently installed build. No `[SELECT]` lines were logged, so the dropdown interaction itself has not yet been observed. Ask the user to retry on the 17:41 build.
+**User dropdown verification: PASSED (20 Nov 2026).** User reported the Semester dropdown works on the 17:41 build. Log confirms three successful interactions: `[SELECT] showing menu (options=9 selected=1 multiple=0 thread=6216)` followed each time by `[SELECT] menu closed (confirmed=1 selection=1)`. No `TrackPopupMenuEx returned 0`. New IPC log lines contain only `[IPC] Received message: prompt_save_password` (no payload); older entries are redacted. No plaintext password anywhere in the log.
+
+Performance signal observed during verification: `[SLOW] msg=0x8065 took 1187 ms` and `took 2343 ms` during attendance page loads (`0x8065` = `WM_APP_SERVO_WAKE`). This is the first concrete Phase 3 measurement — the synchronous `ServoSpinEventLoopOnce` can block the UI thread for >2 s on navigation.
 
 ## 5. Work plan
 

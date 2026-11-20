@@ -1822,8 +1822,14 @@ static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* par
     const UINT kOkCommand = 0xFFFF;
     const bool multiple = params->allow_select_multiple;
 
-    POINT pt;
-    GetCursorPos(&pt);
+    POINT pt = {};
+    if (!GetCursorPos(&pt)) {
+        RECT rc = {};
+        if (GetWindowRect(owner, &rc)) {
+            pt.x = rc.left + (rc.right - rc.left) / 2;
+            pt.y = rc.top + (rc.bottom - rc.top) / 2;
+        }
+    }
 
     // A popup menu only tracks the mouse reliably when its owner is the
     // foreground window, so take the foreground first. Without this the menu
@@ -1901,11 +1907,26 @@ void ServoViewHost::OnShowSelectElement(struct WebView* webview, const struct Se
     // `userData` is the opaque responder handle Rust handed us, not this host,
     // so resolve the host from the WebView and pass the handle back untouched.
     auto self = FromWebView(webview);
-    if (!self || !self->m_hwnd || !params || !params->options || params->options_count == 0) {
+
+    std::vector<size_t> selection;
+    if (params && params->selected_options && params->selected_options_count > 0) {
+        selection.assign(params->selected_options,
+                         params->selected_options + params->selected_options_count);
+    }
+    const std::vector<size_t> initialSelection = selection;
+
+    if (!self || !self->m_hwnd || !IsWindow(self->m_hwnd) ||
+        !params || !params->options || params->options_count == 0) {
         LogDebug("[SELECT] ignoring control (host=0x%p hwnd=0x%p params=0x%p options=%lu)",
                  (void*)self, self ? (void*)self->m_hwnd : nullptr, (const void*)params,
                  params ? (unsigned long)params->options_count : 0UL);
-        callback(nullptr, 0, userData);
+        // Even when the menu cannot be shown, answer with the current
+        // selection so the page is left unchanged.
+        if (!initialSelection.empty()) {
+            callback(initialSelection.data(), initialSelection.size(), userData);
+        } else {
+            callback(nullptr, 0, userData);
+        }
         return;
     }
 
@@ -1914,13 +1935,6 @@ void ServoViewHost::OnShowSelectElement(struct WebView* webview, const struct Se
              (unsigned long)params->selected_options_count,
              params->allow_select_multiple ? 1 : 0,
              (unsigned long)GetCurrentThreadId());
-
-    std::vector<size_t> selection;
-    if (params->selected_options && params->selected_options_count > 0) {
-        selection.assign(params->selected_options,
-                         params->selected_options + params->selected_options_count);
-    }
-    const std::vector<size_t> initialSelection = selection;
 
     bool confirmed = RunSelectMenu(self->m_hwnd, params, selection);
     LogDebug("[SELECT] menu closed (confirmed=%d selection=%lu)",

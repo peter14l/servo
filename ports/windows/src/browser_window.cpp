@@ -45,11 +45,15 @@ void ServoSpinEventLoopOnce(struct Servo* servo) {
         return;
     }
     spinning = true;
+    // Always clear the flag, even if a callback unwinds through here.
+    struct SpinGuard {
+        bool* flag;
+        ~SpinGuard() { *flag = false; }
+    } guard{&spinning};
     do {
         pending = false;
         servo_spin_event_loop(servo);
     } while (pending);
-    spinning = false;
 }
 
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {

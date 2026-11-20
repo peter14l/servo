@@ -111,6 +111,9 @@ private:
     bool m_isDark;
     bool m_isFullscreen;
     bool m_verticalTabs = false;
+    // Popups created by window.open() must not quit the app or overwrite the
+    // main window's saved session when they are closed.
+    bool m_isPopup = false;
     RECT m_topBarToggleBtnBounds = {};
     RECT m_topBarMinBtnBounds = {};
     RECT m_topBarMaxBtnBounds = {};

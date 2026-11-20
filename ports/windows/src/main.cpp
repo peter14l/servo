@@ -30,6 +30,7 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <mutex>
 #include <share.h>
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
@@ -128,7 +129,11 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
 
 void LogDebug(const char* fmt, ...) {
     static FILE* f = nullptr;
-    if (!f) {
+    // The watchdog thread can log concurrently with the UI thread. Make the
+    // one-time file open thread-safe independently of g_log_cs (which is not
+    // initialised until main() starts).
+    static std::once_flag initFlag;
+    std::call_once(initFlag, []() {
         wchar_t exePath[MAX_PATH] = {};
         GetModuleFileNameW(nullptr, exePath, MAX_PATH);
         wchar_t* lastSlash = wcsrchr(exePath, L'\\');
@@ -139,7 +144,7 @@ void LogDebug(const char* fmt, ...) {
         } else {
             f = _wfsopen(L"servo_browser.log", L"a", _SH_DENYNO);
         }
-    }
+    });
     if (f) {
         va_list args;
         va_start(args, fmt);

@@ -177,12 +177,16 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
         window
     );
     if (!hwnd) {
-        servo_create_new_webview_request_free(request);
+        LogDebug("CreateWindowExW for popup failed with error %lu", GetLastError());
+        // Do not free `request` here: returning nullptr makes
+        // OnRequestCreateNew return false, and the Rust side frees the handle
+        // in that case. Freeing it here as well would be a double free.
         delete window;
         return nullptr;
     }
 
     window->m_hwnd = hwnd;
+    window->m_isPopup = true;
 
     DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
     style &= ~WS_CAPTION;
@@ -204,6 +208,19 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
         window,
         request
     );
+
+    // The create request is owned by whichever side consumes it. If the
+    // popup constructor could not hand it to a WebView builder, leave it
+    // untouched so the Rust callback frees it after we return false.
+    if (!window->m_viewHost->WasRequestConsumed()) {
+        LogDebug("Popup WebView request was not consumed; denying popup.");
+        window->m_viewHost.reset();
+        DestroyWindow(hwnd);
+        // Leave the shell object allocated: normal shutdown uses ExitProcess
+        // without running BrowserWindow destructors, so their UI-teardown path
+        // is intentionally not exercised on this failure path either.
+        return nullptr;
+    }
 
     window->SyncDarkMode();
     window->m_tabStrip->AddTab("about:blank");
@@ -1360,16 +1377,22 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_CLOSE:
-        LogDebug("BrowserWindow received WM_CLOSE");
-        if (m_tabStrip) {
+        LogDebug("BrowserWindow received WM_CLOSE (popup=%d)", m_isPopup ? 1 : 0);
+        // Only the main window owns the persisted session. Popups start at
+        // about:blank, so saving from one would erase the user's real tabs.
+        if (!m_isPopup && m_tabStrip) {
             BrowserData::SaveSession(m_tabStrip->GetAllTabUrls(), m_tabStrip->GetActiveTabIndex());
         }
         break;
 
     case WM_DESTROY:
-        LogDebug("BrowserWindow received WM_DESTROY, posting quit message...");
+        LogDebug("BrowserWindow received WM_DESTROY (popup=%d)", m_isPopup ? 1 : 0);
         KillTimer(m_hwnd, 1);
-        PostQuitMessage(0);
+        // Closing an auxiliary popup must not terminate the whole browser.
+        if (!m_isPopup) {
+            LogDebug("Main window destroyed, posting quit message...");
+            PostQuitMessage(0);
+        }
         return 0;
     }
 

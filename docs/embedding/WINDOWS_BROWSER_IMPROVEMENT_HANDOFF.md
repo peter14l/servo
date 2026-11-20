@@ -29,8 +29,8 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 |---|---|
 | Branch | `fix/xpath-crash-and-internal-schemes` |
 | Remote | `https://github.com/peter14l/servo.git` (`origin`) |
-| Local HEAD at handoff | **not yet pushed** — `git log -1` for the current hash; remote branch head is `b21390fda22` (split compat script + `FromWebView` fallback) |
-| Local-only commit | Handoff doc, select/host hardening, exception-safe event-loop guard |
+| Local HEAD at handoff | **not yet pushed** — `b6fea8e7c37` (or later; confirm with `git log -1`); remote branch head is `b21390fda22` |
+| Local-only commits | `6003bdcd51d` — handoff doc, select/host hardening, exception-safe event-loop guard; `b6fea8e7c37` — stability audit fixes (popup lifecycle, TLS scoping, request ownership, UTF-8 checks, permissions, ABI, logging) |
 | CI run in flight | `44776900341` — *Native Windows Browser Build*, head `b21390fda22` |
 | Installed browser | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.exe` dated **12 Nov 2026 01:30** — **pre-fix build** |
 | Log file | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.log` |
@@ -74,15 +74,32 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 
 ## 5. Work plan
 
-### Phase 1 — Stability (in progress)
+### Phase 1 — Stability (audit complete, fixes in local commit — not pushed)
 
-A background `explore` subagent (session `ses_e062240a5ffekR3LV10autP7RA`) is auditing `ports/windows/src` and its C API interaction. Insert its ranked findings here when it reports; then implement Critical/High items first.
+The stability audit (explore session `ses_e062240a5ffekR3LV10autP7RA`) inspected `ports/windows/src` and the C API delegate ownership contracts in `ffi/capi`. Ranked findings and status:
 
-Known starting points / already hardened:
-- `servo_spin_event_loop` re-entry (`ServoSpinEventLoopOnce` in `browser_window.cpp`).
-- `HandleWebIpcMessage` payload redaction.
-- Schannel gateway response completeness.
-- Embedder-control `user_data` and `FromWebView` host resolution.
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | Critical | Popup `WM_DESTROY` called `PostQuitMessage(0)` — closing a `window.open()` popup killed the whole browser | **FIXED** — added `BrowserWindow::m_isPopup`; only the main window quits |
+| 2 | Critical | Schannel gateway disabled TLS cert validation globally (`SECURITY_FLAG_IGNORE_*`) | **PARTIALLY FIXED** — ignore flags and TLS 1.1 are now scoped to `sxuk.org` only; every other upstream uses TLS 1.2 with full chain/host/date validation. Residual: SXUK traffic remains unverified by design of the legacy bridge |
+| 3 | High | Popup create request double-free: `CreateForPopup` freed it on `CreateWindowExW` failure, returned `nullptr`, then Rust freed it again because the callback returned `false` | **FIXED** — failure paths never free; ownership is either taken by `servo_create_new_webview_builder_create` (returns `true`) or left for Rust (returns `false`). Added `ServoViewHost::WasRequestConsumed()` |
+| 4 | High | `notify_load_error` is dead ABI surface — Rust delegate trait never invokes it | **DEFERRED** — needs a Rust trait/C API change or reusing the load-status callback for error feedback |
+| 5 | High | Unchecked UTF-8→UTF-16 conversions in the gateway (`&empty_wstring[0]` UB) | **FIXED** — size checks, 400 on malformed input, WinHTTP handles closed on error paths |
+| 6 | High | Initial `ServoViewHost` did not check `CreateWindowExW` or WebView build failure | **FIXED** — early return on null HWND, explicit build-failure log, `IsValid()` helper |
+| 7 | High | Popup `WM_CLOSE` overwrote the saved session with `about:blank` | **FIXED** — only the main window persists session state |
+| 8 | Medium | Multi-select file picker parsed as a single path | **DEFERRED** to feature phase (parse double-NUL format or drop `OFN_ALLOWMULTISELECT`) |
+| 9 | Medium | `window.prompt()` returns the default value immediately | **DEFERRED** to feature phase (native input dialog) |
+| 10 | Medium | Permission requests silently granted (geolocation, camera, microphone, …) | **FIXED (fail closed)** — denied with a log; real per-origin prompt UI is Phase 2 |
+| 11 | Medium | Auth callback `port` is `uint16_t` in C++ but `int32_t` in the generated C header | **FIXED** — `int32_t` plus `%d` log format |
+| 12 | Medium | `LogDebug` lazy `FILE*` initialisation outside the logging lock | **FIXED** — `std::call_once` |
+
+Already hardened before the audit: `servo_spin_event_loop` re-entry guard (now exception-safe), IPC payload redaction, Schannel response completeness, embedder-control `user_data` and `FromWebView` host resolution, select-menu host/cursor hardening.
+
+Local verification so far: `g++ -fsyntax-only` clean for `servo_view_host.cpp`, `browser_window.cpp`, `main.cpp`, `schannel_gateway.cpp`; `node --check` clean for the concatenated compat script. The authentication delegate is now assigned directly (no `reinterpret_cast`), so the compiler enforces the ABI signature — this check passed. **Full MSVC build / ctest / real-browser verification: NOT_RUN** — blocked on downloading CI artifact `44776900341`.
+
+Residual risk: if `servo_create_new_webview_builder_create` were to panic *after* consuming the request but before returning, the C++ side would see a null builder and let Rust free the same handle. The Rust implementation consumes only after all fallible registry work, so this is considered very low probability; revisit if popup crashes/double-frees are observed.
+
+Test coverage gaps identified by the audit: no unit tests for real `ServoViewHost`/C API delegate callbacks, popup create-request ownership (success/null context/builder failure/double-free), popup `WM_CLOSE`/`WM_DESTROY`/session save, `notify_load_error` wiring, gateway UTF-8 request parsing and TLS option configuration, auth signature parity, or logging watchdog concurrency. Several existing tests reimplement constants instead of calling production functions.
 
 Acceptance criteria:
 - SXUK login → dashboard → attendance → dropdown → search completes without crash/hang across repeated runs.
@@ -120,7 +137,7 @@ Syntax-check the changed C++ files (MinGW; MSVC-specific limits are NOT covered)
 ```powershell
 $inc = "C:\Users\LOQ\AppData\Local\Temp\opencode\capi"
 $flags = @('-fsyntax-only','-std=c++17','-DUNICODE','-D_UNICODE','-DNOMINMAX','-DWIN32_LEAN_AND_MEAN','-I','ports/windows/src','-I',$inc)
-foreach ($f in @('servo_view_host.cpp','browser_window.cpp','main.cpp')) {
+foreach ($f in @('servo_view_host.cpp','browser_window.cpp','main.cpp','schannel_gateway.cpp')) {
   & g++ @flags "ports/windows/src/$f" 2>&1 | Select-String 'error:'
 }
 ```

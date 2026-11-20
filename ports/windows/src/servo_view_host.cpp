@@ -744,6 +744,11 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         this
     );
     LogDebug("ServoViewHost child window created: 0x%p", m_hwnd);
+    if (!m_hwnd) {
+        LogDebug("ServoViewHost child window creation failed (error %lu); aborting view construction.",
+                 GetLastError());
+        return;
+    }
 
     // Create windowed rendering context
     RECT rc = {};
@@ -799,7 +804,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
         delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
         delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
-        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
+        // Direct assignment (no reinterpret_cast) makes the compiler enforce
+        // the ABI signature, including the int32_t port type.
+        delegate.request_authentication = OnRequestAuthentication;
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
@@ -814,6 +821,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 
         m_webview = servo_webview_builder_build(builder);
         LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
+        if (!m_webview) {
+            LogDebug("Servo WebView build failed; the view will be empty until the window is recreated.");
+        }
     }
 }
 
@@ -864,6 +874,9 @@ ServoViewHost::ServoViewHost(
 
         auto* builder = servo_create_new_webview_builder_create(request, m_context);
         if (builder) {
+            // The request handle was consumed by the builder. From here on the
+            // Rust side must not free it, so the create callback returns true.
+            m_requestConsumed = true;
             m_context = nullptr; // Ownership transferred to builder
             servo_webview_builder_set_hidpi_scale_factor(builder, scale);
             ConfigureUserContentManager(m_servo, builder);
@@ -892,8 +905,10 @@ ServoViewHost::ServoViewHost(
             delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
             delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
             delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
-        delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
-        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
+            delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+            // Direct assignment (no reinterpret_cast) makes the compiler enforce
+            // the ABI signature, including the int32_t port type.
+            delegate.request_authentication = OnRequestAuthentication;
 
             servo_webview_builder_set_delegate(builder, delegate);
 
@@ -1615,9 +1630,13 @@ void ServoViewHost::OnRequestPermission(
     void* callbackUserData,
     void* /*userData*/
 ) {
-    LogDebug("Permission requested: type=%d for origin '%s'", permission, origin ? origin : "");
+    // No permission UI exists yet. Granting geolocation, camera, microphone,
+    // notifications, etc. silently is a privacy/security bug, so fail closed.
+    // A real per-origin permission prompt is tracked for the feature phase.
+    LogDebug("[PERMISSION] Denied type=%d for origin '%s' (no permission UI yet)",
+             permission, origin ? origin : "");
     if (callback) {
-        callback(true, callbackUserData);
+        callback(false, callbackUserData);
     }
 }
 
@@ -1661,12 +1680,12 @@ void ServoViewHost::OnStatusTextChanged(struct WebView* /*webview*/, const char*
 void ServoViewHost::OnRequestAuthentication(
     struct WebView* /*webview*/,
     const char* host,
-    uint16_t port,
+    int32_t port,
     const char* realm,
     void (*callback)(const char*, const char*, void*),
     void* userData
 ) {
-    LogDebug("[AUTH] HTTP authentication requested for %s:%u (realm: %s)",
+    LogDebug("[AUTH] HTTP authentication requested for %s:%d (realm: %s)",
              host ? host : "unknown",
              port,
              realm ? realm : "none");

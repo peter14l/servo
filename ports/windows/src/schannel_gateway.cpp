@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cwctype>
 #include <sstream>
 #include <mutex>
 #include <map>
@@ -260,10 +261,19 @@ static void HandleClient(SOCKET clientSock) {
         }
     }
 
-    // Convert target URL to wide characters
+    // Convert target URL to wide characters. Check the size query before
+    // indexing an empty std::wstring: malformed input must fail closed with a
+    // 400 rather than reaching WinHTTP as an empty URL (UB in &wstring[0]).
     int wlen = MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, nullptr, 0);
-    std::wstring wTargetUrl(wlen, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, &wTargetUrl[0], wlen);
+    if (wlen <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid upstream URL encoding.");
+        return;
+    }
+    std::wstring wTargetUrl(static_cast<size_t>(wlen), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, &wTargetUrl[0], wlen) <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid upstream URL encoding.");
+        return;
+    }
 
     URL_COMPONENTS urlComp = {};
     urlComp.dwStructSize = sizeof(urlComp);
@@ -291,9 +301,10 @@ static void HandleClient(SOCKET clientSock) {
     // Bound every phase so a stuck upstream cannot pin a worker thread forever.
     WinHttpSetTimeouts(hSession, 10000, 10000, 30000, 30000);
 
-    // Enable TLS 1.2
-    DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
-    WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
+    // Default every upstream to modern TLS. Legacy TLS 1.1 is enabled only for
+    // the known SXUK hosts on the request below, never globally.
+    DWORD sessionProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+    WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &sessionProtocols, sizeof(sessionProtocols));
 
     HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
     if (!hConnect) {
@@ -303,8 +314,19 @@ static void HandleClient(SOCKET clientSock) {
     }
 
     int methodWLen = MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, nullptr, 0);
-    std::wstring wMethod(methodWLen, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], methodWLen);
+    if (methodWLen <= 0) {
+        WinHttpCloseHandle(hConnect);
+        WinHttpCloseHandle(hSession);
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
+        return;
+    }
+    std::wstring wMethod(static_cast<size_t>(methodWLen), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], methodWLen) <= 0) {
+        WinHttpCloseHandle(hConnect);
+        WinHttpCloseHandle(hSession);
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
+        return;
+    }
 
     DWORD flags = (urlComp.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
     HINTERNET hRequest = WinHttpOpenRequest(hConnect, wMethod.c_str(), urlComp.lpszUrlPath,
@@ -317,11 +339,20 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
-    // Defensive option to allow legacy server certificates if needed
-    DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-                     SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
-                     SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
-    WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
+    // Relax TLS validation only for the legacy SXUK portal (IIS 8.5 with
+    // CBC/SHA-1 and a chain the modern stack rejects). Every other upstream
+    // proxied through this gateway keeps full chain, host and date validation.
+    std::wstring hostLower(hostName);
+    std::transform(hostLower.begin(), hostLower.end(), hostLower.begin(), ::towlower);
+    const bool legacyHost = hostLower.find(L"sxuk.org") != std::wstring::npos;
+    if (legacyHost) {
+        DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
+        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
+        DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+                         SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
+                         SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
+        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
+    }
 
     // Do NOT follow redirects automatically in WinHTTP!
     // The browser must receive 302/301 responses with Set-Cookie headers intact,

@@ -76,6 +76,7 @@ private:
     static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* callbackUserData, void* userData);
     static void OnNotifyCrashed(struct WebView* webview, const char* reason, const char* backtrace, void* userData);
     static void OnStatusTextChanged(struct WebView* webview, const char* status, void* userData);
+    static void OnFindResult(struct WebView* webview, int identifier, int count, const struct ServoFindResult* result, void* userData);
     // `port` must be int32_t to match the generated C API delegate signature.
     static void OnRequestAuthentication(struct WebView* webview, const char* host, int32_t port, const char* realm, void (*callback)(const char*, const char*, void*), void* userData);
 

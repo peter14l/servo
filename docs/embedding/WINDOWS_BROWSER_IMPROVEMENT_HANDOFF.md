@@ -32,7 +32,8 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 | Local HEAD at handoff | **not yet pushed** — `b6fea8e7c37` (or later; confirm with `git log -1`); remote branch head is `b21390fda22` |
 | Local-only commits | `6003bdcd51d` — handoff doc, select/host hardening, exception-safe event-loop guard; `b6fea8e7c37` — stability audit fixes (popup lifecycle, TLS scoping, request ownership, UTF-8 checks, permissions, ABI, logging) |
 | CI run in flight | `44776900341` — *Native Windows Browser Build*, head `b21390fda22` |
-| Installed browser | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.exe` dated **12 Nov 2026 01:30** — **pre-fix build** |
+| Installed browser | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.exe` dated **20 Nov 2026 17:09** — built from remote head `b21390fda22` (contains the dropdown/IPC/TLS-gateway fixes, **not** the later local stability/feature commits). exe SHA256 `C27E0358…B5AB001`, dll SHA256 `8AC4DD20…E216727B` |
+| CI artifact | Downloaded to `C:\Users\LOQ\AppData\Local\Temp\opencode\setup\servo-windows-browser-setup.zip` (284 MB), extracted to `…\setup\extracted`, installed with `install.ps1` on 20 Nov 2026 |
 | Log file | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.log` |
 | Disk | `E:` ~35 MB free; `C:` ~101 GB free — stage artifacts on `C:` |
 | Toolchain | Rust 1.97.1, `cbindgen`, MinGW `g++`, `gh`, Python 3.12, `node`, `graphify` |
@@ -54,8 +55,8 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 
 ## 4. Immediate next actions (in this order)
 
-1. **Wait for CI `44776900341`.** Do not push anything until its artifact is downloaded — a push cancels the run (`concurrency.cancel-in-progress: true`).
-2. Download, extract and install:
+1. ~~Wait for CI `44776900341`.~~ **DONE** — run completed successfully; artifact downloaded, extracted and installed locally. The push restriction is lifted.
+2. Download, extract and install (historical recipe):
    ```powershell
    cd E:\servo
    gh run download 44776900341 -n servo-windows-browser-setup -D C:\Users\LOQ\AppData\Local\Temp\opencode\setup
@@ -70,7 +71,9 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
    - `[SELECT] menu closed (confirmed=1 selection=1)`
    - absence of `TrackPopupMenuEx returned 0`; if present, use its `error=`/`owner=` values.
    - no plaintext password and no 8× duplicate `prompt_save_password` lines.
-5. Only then push the locally prepared stability work (§5) and start the next CI build.
+5. Push the locally prepared stability + feature work (§5) and start the next CI build. **Now unblocked.**
+
+Installation verification (PASSED, 20 Nov 2026): installer exit clean; exe/dll timestamps changed from 12 Nov to 20 Nov 17:09; exe SHA256 changed `48C5F955…CC19` → `C27E0358…B001`; dll SHA256 changed `0308B544…AFDD` → `8AC4DD20…727B`; browser launched and reached the new-tab page with `BrowserWindow::Create completed successfully` in the log. No plaintext password in the new log section.
 
 ## 5. Work plan
 
@@ -107,9 +110,30 @@ Acceptance criteria:
 - `ctest --test-dir build-browser -C Release --output-on-failure` passes.
 - Failure paths (TLS error, DNS failure, closed socket, invalid IPC JSON) produce visible feedback, not a hung page.
 
-### Phase 2 — Feature completeness
+### Phase 2 — Feature completeness (audit complete)
 
-Audit and implement the highest-value missing browser features. Candidates to confirm against the code first: history UI, bookmarks UI, session/tab restore, downloads UI, full context-menu actions, keyboard shortcuts, find-in-page polish, zoom, print, form autofill, spellcheck, privacy/clear-data, profile settings. Do not assume any of these are missing — inspect `ports/windows/src` first.
+Static audit (explore session `ses_e06173f4effeTeH5R0yyz2XTuX`) of `ports/windows/src` and `ports/windows/tests`. No code was changed and no tests were run by that audit. Full checklist is in the session transcript; the high-value gaps are:
+
+| # | Gap | Evidence | Sketch | Effort |
+|---|---|---|---|---|
+| 1 | Tabs are metadata, not isolated web contents — switching reloads one shared WebView, losing scroll/DOM/form/per-tab history/zoom | `browser_window.cpp:134-140`, `tab_strip.cpp:164-171`, `browser_window.cpp:905-912` | One `ServoViewHost` per tab, toggle visibility, store per-tab state | L |
+| 2 | Settings persistence is not production wiring — search engine, home page, download dir, backdrop, font, suggestions, UA saved/parsed but not consistently honored | `settings_dialog.cpp:619-638,674-682`, `browser_window.cpp:675-687,751-766`, `omnibox.h:143-145`, `omnibox.cpp:843-844` | Single settings controller consumed at startup and runtime | M |
+| 3 | DevTools UI cannot reach a server — server disabled at startup, F12 opens a localhost URL or an "initializing" message | `main.cpp:348`, `browser_window.cpp:359-375` | Start server with token support or remove the controls | M |
+| 4 | Print is a native no-op — `PrintDlgW` DC freed immediately, no engine print call | `browser_window.cpp:887-895` | Wire engine printing/PDF or remove the command | M–L |
+| 5 | Download tracking broken — progress always targets id `1`, directory setting ignored, only first completed item openable, no cancel/pause/remove | `browser_window.cpp:390-402`, `download_manager.cpp:85-120,250-255` | `id -> ActiveDownload` map, apply configured dir, add lifecycle commands | M |
+| 6 | Clear browsing data falsely reports success — only clears the settings page `localStorage`, not cookies/cache/history/credentials | `settings_dialog.cpp:498,511,596`, `main.cpp:398-421` | Add IPC clear command for engine + browser stores, report real completion | M |
+| 7 | Find-in-page never shows match counts and discards case sensitivity | `find_bar.cpp:111-118,193-217`, `browser_window.cpp:541-559` | Call `UpdateMatchResult` from find results; add case checkbox | S–M |
+| 8 | Password/autofill security — DPAPI failure falls back to reversible raw hex; autofill is heuristic JS by DOM order | `password_manager.cpp:54-83`, `browser_window.cpp:841-885` | DPAPI-only/Credential Manager; form-aware field mapping | M–L |
+| 9 | HTTP authentication always cancelled — no credential dialog, no saved-credential integration | `servo_view_host.cpp:1680-1696` | Modal auth prompt with host/realm context and callback | M |
+| 10 | Context menu ignores engine target info — callback always dismissed, so link/image/media actions impossible | `servo_view_host.cpp:1528-1592` | Build from `ServoContextMenuParams`, map to `SERVO_CONTEXT_MENU_ACTION_*` | M |
+
+Also confirmed present (code exists, runtime unverified): navigation, bookmark/history internal pages, new-tab page, zoom/fullscreen, alert/confirm, select menu, clipboard, IPC bridge, view-source.
+
+Small gaps fixed locally (same stability/feature commit batch, not pushed): removed the unreachable duplicate `Ctrl+Shift+T` session-restore branch; download progress is mapped by URL to the correct row instead of always id `1`; the `on_find_result` delegate is now wired so find-in-page shows real match counts (stale query results are filtered by identifier).
+
+Still open: Mica backdrop setting not applied, suggestions setting not honored, favicons only accept raw RGBA (encoded ICO/PNG/SVG skipped), find-bar match-case toggle, and all ranked gaps 1–6 and 8–10 above.
+
+Test-quality gaps: tab/find/shortcut/zoom unit tests reimplement logic locally instead of calling production code; `BrowserWindow::ApplySettings`/`PromptSavePassword`/`RequestAutofill` are no-op stubs in the test binary; no delegate/callback tests at all; mock Servo API is inert; persistence tests mutate real browser data; `verify_github.ps1` is a smoke test only.
 
 Acceptance: each implemented feature has a manual test path and, where practical, a unit test in `ports/windows/tests/test_browser_unit.cpp`.
 

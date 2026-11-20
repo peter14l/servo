@@ -11,6 +11,7 @@
 #include <dwmapi.h>
 #include <string>
 #include <memory>
+#include <map>
 #include <servo/servo_capi.h>
 
 #define WM_APP_SERVO_WAKE (WM_APP + 101)
@@ -49,6 +50,7 @@ public:
     int FindInPage(const char* text, bool forward, bool matchCase);
     int FindNext(int identifier, bool forward);
     void ClearFind(int identifier);
+    void OnFindResult(int identifier, int count, int activeOrdinal);
 
     void OnActiveTabSwitched(const std::string& url, const std::wstring& title);
     void OnActiveTabUrlChanged(const char* url);
@@ -102,6 +104,13 @@ private:
     std::unique_ptr<OmniboxToolbar> m_omnibox;
     std::unique_ptr<FindBar> m_findBar;
     std::unique_ptr<class DownloadManager> m_downloadManager;
+
+    // Servo allocates a fresh ServoDownloadItem for every callback, so map by
+    // URL rather than pointer to keep progress on the correct download row.
+    std::map<std::string, uint64_t> m_downloadIds;
+    uint64_t m_nextDownloadId = 1;
+
+    int m_findIdentifier = -1;
 
     uint16_t m_devtoolsPort;
     std::string m_devtoolsToken;

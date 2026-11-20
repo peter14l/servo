@@ -804,6 +804,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
         delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
         delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+        delegate.on_find_result = reinterpret_cast<decltype(delegate.on_find_result)>(OnFindResult);
         // Direct assignment (no reinterpret_cast) makes the compiler enforce
         // the ABI signature, including the int32_t port type.
         delegate.request_authentication = OnRequestAuthentication;
@@ -906,6 +907,7 @@ ServoViewHost::ServoViewHost(
             delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
             delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
             delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+            delegate.on_find_result = reinterpret_cast<decltype(delegate.on_find_result)>(OnFindResult);
             // Direct assignment (no reinterpret_cast) makes the compiler enforce
             // the ABI signature, including the int32_t port type.
             delegate.request_authentication = OnRequestAuthentication;
@@ -1675,6 +1677,23 @@ void ServoViewHost::OnStatusTextChanged(struct WebView* /*webview*/, const char*
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnStatusTextChanged(status);
     }
+}
+
+void ServoViewHost::OnFindResult(
+    struct WebView* /*webview*/,
+    int identifier,
+    int count,
+    const struct ServoFindResult* result,
+    void* userData
+) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self || !self->m_browserWindow) return;
+    int ordinal = 0;
+    if (count > 0 && result) {
+        ordinal = servo_find_result_get_active_match_ordinal(result);
+        if (ordinal <= 0) ordinal = 1;
+    }
+    self->m_browserWindow->OnFindResult(identifier, count, ordinal);
 }
 
 void ServoViewHost::OnRequestAuthentication(

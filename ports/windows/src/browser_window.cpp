@@ -387,8 +387,9 @@ void BrowserWindow::HandleNewDownload(struct ServoDownloadItem* download) {
     std::vector<wchar_t> wname(len);
     MultiByteToWideChar(CP_UTF8, 0, nameBuf, -1, wname.data(), len);
 
-    static uint64_t s_dlId = 1;
-    m_downloadManager->AddDownload(s_dlId++, urlBuf, wname.data());
+    uint64_t downloadId = m_nextDownloadId++;
+    m_downloadIds[std::string(urlBuf)] = downloadId;
+    m_downloadManager->AddDownload(downloadId, urlBuf, wname.data());
 
     // Automatically pop open download manager pane when download starts
     m_downloadManager->Show(true);
@@ -399,7 +400,14 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
     uint64_t recv = servo_download_item_get_received_bytes(download);
     uint64_t total = servo_download_item_get_total_bytes(download);
     int state = servo_download_item_get_state(download);
-    m_downloadManager->UpdateDownload(1, recv, total, state);
+    char urlBuf[1024] = {};
+    servo_download_item_get_url(download, urlBuf, sizeof(urlBuf));
+    auto it = m_downloadIds.find(urlBuf);
+    if (it == m_downloadIds.end()) {
+        LogDebug("[DOWNLOAD] update for unknown download URL '%s'; ignoring.", urlBuf);
+        return;
+    }
+    m_downloadManager->UpdateDownload(it->second, recv, total, state);
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
@@ -540,7 +548,8 @@ void BrowserWindow::NavigateStop() {
 
 int BrowserWindow::FindInPage(const char* text, bool forward, bool matchCase) {
     if (m_viewHost && m_viewHost->GetWebView()) {
-        return servo_webview_find(m_viewHost->GetWebView(), text, forward, matchCase);
+        m_findIdentifier = servo_webview_find(m_viewHost->GetWebView(), text, forward, matchCase);
+        return m_findIdentifier;
     }
     return -1;
 }
@@ -555,6 +564,20 @@ int BrowserWindow::FindNext(int identifier, bool forward) {
 void BrowserWindow::ClearFind(int identifier) {
     if (m_viewHost && m_viewHost->GetWebView()) {
         servo_webview_find_clear(m_viewHost->GetWebView(), identifier);
+    }
+    if (identifier == m_findIdentifier) {
+        m_findIdentifier = -1;
+    }
+}
+
+void BrowserWindow::OnFindResult(int identifier, int count, int activeOrdinal) {
+    if (!m_findBar) return;
+    // Ignore results from a previous search so the status cannot flicker.
+    if (m_findIdentifier >= 0 && identifier != m_findIdentifier) return;
+    if (count <= 0) {
+        m_findBar->UpdateMatchResult(0, 0);
+    } else {
+        m_findBar->UpdateMatchResult(activeOrdinal > 0 ? activeOrdinal : 1, count);
     }
 }
 
@@ -1260,10 +1283,8 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         }
-        if (ctrl && shift && wParam == 'T') {
-            RestorePreviousSession();
-            return 0;
-        }
+        // Ctrl+Shift+T is handled above by ReopenClosedTab. Session restore
+        // remains available from the new-tab page link.
         if (ctrl && wParam == 'T') {
             OpenUrlInNewTab(NewTabPage::EnsureNewTabPageExists());
             return 0;

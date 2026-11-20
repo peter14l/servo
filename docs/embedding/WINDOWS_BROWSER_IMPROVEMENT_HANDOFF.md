@@ -32,8 +32,9 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
 | Local HEAD at handoff | **not yet pushed** — `b6fea8e7c37` (or later; confirm with `git log -1`); remote branch head is `b21390fda22` |
 | Local-only commits | `6003bdcd51d` — handoff doc, select/host hardening, exception-safe event-loop guard; `b6fea8e7c37` — stability audit fixes (popup lifecycle, TLS scoping, request ownership, UTF-8 checks, permissions, ABI, logging) |
 | CI run in flight | `44776900341` — *Native Windows Browser Build*, head `b21390fda22` |
-| Installed browser | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.exe` dated **20 Nov 2026 17:09** — built from remote head `b21390fda22` (contains the dropdown/IPC/TLS-gateway fixes, **not** the later local stability/feature commits). exe SHA256 `C27E0358…B5AB001`, dll SHA256 `8AC4DD20…E216727B` |
-| CI artifact | Downloaded to `C:\Users\LOQ\AppData\Local\Temp\opencode\setup\servo-windows-browser-setup.zip` (284 MB), extracted to `…\setup\extracted`, installed with `install.ps1` on 20 Nov 2026 |
+| Installed browser | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.exe` dated **20 Nov 2026 17:41** — built from head `ffad76cb3de` (all dropdown, IPC, TLS, stability and feature fixes). exe SHA256 `1A1595D5…29DB4` |
+| CI runs | `44776900341` (`b21390fda22`) and `44782040555` (`ffad76cb3de`) — both PASSED; both artifacts downloaded and installed in turn |
+| CI artifacts | `C:\Users\LOQ\AppData\Local\Temp\opencode\setup\…` (first build) and `…\setup2\…` (latest build), each containing `servo-windows-browser-setup.zip` |
 | Log file | `%LOCALAPPDATA%\Programs\Servo Browser\servo_browser.log` |
 | Disk | `E:` ~35 MB free; `C:` ~101 GB free — stage artifacts on `C:` |
 | Toolchain | Rust 1.97.1, `cbindgen`, MinGW `g++`, `gh`, Python 3.12, `node`, `graphify` |
@@ -73,7 +74,9 @@ Improve the native Servo Windows C/C++ browser (`ports/windows`) so it is stable
    - no plaintext password and no 8× duplicate `prompt_save_password` lines.
 5. Push the locally prepared stability + feature work (§5) and start the next CI build. **Now unblocked.**
 
-Installation verification (PASSED, 20 Nov 2026): installer exit clean; exe/dll timestamps changed from 12 Nov to 20 Nov 17:09; exe SHA256 changed `48C5F955…CC19` → `C27E0358…B001`; dll SHA256 changed `0308B544…AFDD` → `8AC4DD20…727B`; browser launched and reached the new-tab page with `BrowserWindow::Create completed successfully` in the log. No plaintext password in the new log section.
+Installation verification (PASSED, 20 Nov 2026): both installers exited clean; exe timestamps changed 12 Nov → 20 Nov 17:09 → 20 Nov 17:41; browser launched and reached the new-tab page with `BrowserWindow::Create completed successfully` in the log. No plaintext password in the new log sections.
+
+**User dropdown verification: STILL PENDING.** The last log from the first installed build showed a popup being created (`CreateForPopup completed successfully`), a navigation to `facultyservices/Login.aspx`, then `WM_CLOSE`/`WM_DESTROY, posting quit message...` — i.e. the popup-quits-app bug, which is fixed in the currently installed build. No `[SELECT]` lines were logged, so the dropdown interaction itself has not yet been observed. Ask the user to retry on the 17:41 build.
 
 ## 5. Work plan
 

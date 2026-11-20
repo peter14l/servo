@@ -78,7 +78,10 @@ Installation verification (PASSED, 20 Nov 2026): both installers exited clean; e
 
 **User dropdown verification: PASSED (20 Nov 2026).** User reported the Semester dropdown works on the 17:41 build. Log confirms three successful interactions: `[SELECT] showing menu (options=9 selected=1 multiple=0 thread=6216)` followed each time by `[SELECT] menu closed (confirmed=1 selection=1)`. No `TrackPopupMenuEx returned 0`. New IPC log lines contain only `[IPC] Received message: prompt_save_password` (no payload); older entries are redacted. No plaintext password anywhere in the log.
 
-Performance signal observed during verification: `[SLOW] msg=0x8065 took 1187 ms` and `took 2343 ms` during attendance page loads (`0x8065` = `WM_APP_SERVO_WAKE`). This is the first concrete Phase 3 measurement — the synchronous `ServoSpinEventLoopOnce` can block the UI thread for >2 s on navigation.
+Performance signals observed during verification (62 `[SLOW]`/`[HANG]` lines in the current log):
+- `msg=0x8065` (`WM_APP_SERVO_WAKE`) took **1187 ms, 1187 ms and 2343 ms** during attendance page loads — the synchronous `ServoSpinEventLoopOnce` can block the UI thread for >2 s.
+- `msg=0x000F` (`WM_PAINT`) repeatedly took **1656–1921 ms** in a burst, and the watchdog logged `[HANG] UI thread recovered after ~1 s`.
+- These are the first concrete Phase 3 measurements. A performance audit (explore session `ses_e05e5f906ffenwmWv8Oyk7fkUj`) is running to locate the causes.
 
 ## 5. Work plan
 

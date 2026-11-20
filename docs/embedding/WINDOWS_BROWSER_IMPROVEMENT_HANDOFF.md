@@ -215,3 +215,111 @@ Ranked findings (from explore session `ses_e05e5f906ffenwmWv8Oyk7fkUj`):
 Existing `[SLOW]`/`[HANG]` instrumentation cannot separate spin/paint/modal time or count wake amplification. Planned counters: wake callbacks/posts/coalesced, spins + spin ms total/max, paints + paint ms total/max, deferred controls + ms total/max, logged every 10 s and at shutdown.
 
 Implementation order in this phase: (1) perf counters + wake coalescing + 100 ms timer, (2) defer modal controls to `WM_APP_RUN_UI_TASK`, (3) frame-driven paint coalescing, (4) CI build + install + re-measure.
+
+**Phase 3 implementation status:** items (1)-(3) landed in `01b900fe011`; local `g++ -fsyntax-only` passes for all changed C++ files. CI run `44790271927` was started; artifact download, install and re-measurement are STILL PENDING.
+
+## 10. Phase 4 - final gap audit (static, 20 Nov 2026)
+
+Method: static source inspection against a mainstream desktop-browser baseline. Build/ctest/installer/runtime verification were NOT_RUN in this audit; `IMPLEMENTED` means a production code path exists in source, not that it was runtime-verified. Full audit from explore session `ses_e05d8583bffefH9TDFPcZTWYjR`.
+
+### 10.1 Navigation / session
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | URL normalization, search fallback | `omnibox.h:132-145`; unit tests `test_browser_unit.cpp:113-140`. |
+| IMPLEMENTED | Omnibox suggestions | `omnibox.cpp:404-539,806-852`. |
+| IMPLEMENTED | Back/forward/reload/stop | `browser_window.cpp:527-549`. |
+| IMPLEMENTED | New tab, bookmarks/history pages, view-source | `browser_window.cpp:415-433,474-479,642-646,923-928`. |
+| IMPLEMENTED | Bookmark/history persistence | `browser_data.cpp:96-143,200-271`. |
+| IMPLEMENTED | Session save/restore | `browser_data.cpp:654-707`; `browser_window.cpp:649-668,1402-1408`. |
+| IMPLEMENTED | Popup lifecycle/ownership | `servo_view_host.cpp:1693-1704`; `browser_window.cpp:181-225,1402-1419`. |
+| IMPLEMENTED | Tab strip add/close/select/reopen/context menu | `tab_strip.cpp:87,102,149-171,712-735`. |
+| IMPLEMENTED | Find-result wiring and download-ID mapping | `servo_view_host.cpp:1730-1745`; `browser_window.cpp:575-584,380-413`. |
+| MISSING | Per-tab WebView isolation | Tabs are metadata over one shared WebView; switching reloads and loses DOM/scroll/form/zoom/history (`browser_window.cpp:134-140,930-938`; `tab_strip.cpp:164-171`). Largest parity gap. |
+| PARTIAL | Home button | Hard-coded URL; saved `homePage` not consistently consumed (`omnibox.cpp:843-844`; `settings_dialog.cpp:622-623,675`). |
+
+### 10.2 UI chrome
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | Per-monitor DPI, custom frame, Mica Alt | `main.cpp:324-329`; `browser_window.cpp:116-125`. |
+| IMPLEMENTED | Dark mode, vertical tabs | `browser_window.cpp:687-699`; `tab_strip.cpp:246-248`. |
+| IMPLEMENTED | Native alert/confirm via UI task pump | `servo_view_host.cpp:1522-1543`. |
+| MISSING | Backdrop setting applied | Loaded/saved but not consumed by `ApplySettings` (`settings_dialog.cpp:636,680`; `browser_window.cpp:687-713`). |
+| PARTIAL | Omnibox security/progress | HTTPS lock icon unconditional (`omnibox.cpp:378-390`). |
+| PARTIAL | Find bar | No match-case toggle; `matchCase` hard-coded false (`find_bar.cpp:111-118,193-216`). |
+| PARTIAL | Downloads pane | Only first completed item openable; no cancel/pause/remove (`download_manager.cpp:85-120,158-204,250-255`). |
+| PARTIAL | Settings UI | Values persisted but inconsistently honored (`settings_dialog.cpp:614-699,1017-1053`; `browser_window.cpp:727-792`). |
+| MISSING | Clear browsing data | HTML path clears only localStorage; native dialog clears only cache/cookie files (`settings_dialog.cpp:496-498,596,988-1013`). |
+| MISSING | Print | `PrintDlgW` opens but DC is freed without engine/PDF printing (`browser_window.cpp:912-921,1356-1359`). |
+| MISSING | DevTools UI | Server disabled at startup; F12 falls back to URL/message (`main.cpp:443`; `browser_window.cpp:361-372`). |
+| MISSING | Engine-aware context menu | Target params ignored, always answers dismiss (`servo_view_host.cpp:1578-1592,1635-1642`). |
+| MISSING | Permission prompt UI | Permissions fail closed safely but no per-origin prompt (`servo_view_host.cpp:1675-1691`). |
+| MISSING | HTTP auth dialog | Auth requests logged then cancelled (`servo_view_host.cpp:1747-1763`). |
+| MISSING | Real JS prompt | Returns default value immediately (`servo_view_host.cpp:1546-1549`). |
+| MISSING | Multi-select file picker parsing | Only one path returned (`servo_view_host.cpp:1551-1576`). |
+| PARTIAL | Favicons | Raw RGBA works; encoded ICO/PNG/SVG skipped (`servo_view_host.cpp:1456-1508`; `tab_strip.cpp:207-215`). |
+
+### 10.3 Web platform
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | Modern web-platform prefs | `main.cpp:440-477`. |
+| IMPLEMENTED | Native `<select>` dropdown | `servo_view_host.cpp:2059-2109`. |
+| IMPLEMENTED | Web IPC bridge and password-prompt routing | `servo_view_host.cpp:1644-1657`; `browser_window.cpp:715-838,794-830,841-864`. |
+| PARTIAL | UA persona wiring | Startup maps saved persona; runtime `ApplySettings` hard-codes Chrome UA (`main.cpp:429-444`; `browser_window.cpp:700-704`). |
+| PARTIAL | Autofill | Heuristic JS picks nearest prior text/email/tel input (`browser_window.cpp:866-910`). |
+| PARTIAL | Compat scripts | Registered and re-evaluated on load, causing repeated injection (`servo_view_host.cpp:603-656,1407-1415,1771-1775`). |
+| MISSING | Bounded compat-script execution | Unguarded 50 ms `setInterval` (`servo_view_host.cpp:265,292`). |
+| PARTIAL | Notification/geolocation/WebRTC/WebGPU toggles | Persisted via prefs only (`settings_dialog.cpp:640-666`; `browser_window.cpp:700-711`). |
+| MISSING | Load-error UI feedback | `notify_load_error` ABI dead because Rust delegate never invokes it (`servo_view_host.cpp:1418-1429`). |
+
+### 10.4 Networking / security
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | WebPKI roots, 30 s timeout | `main.cpp:447-448`. |
+| IMPLEMENTED | Persistent cookie/cache context | `main.cpp:493-521`. |
+| IMPLEMENTED | Localhost-only Schannel bridge, SXUK-only routing | `schannel_gateway.cpp:616-638,657-663`; `main.cpp:541`. |
+| PARTIAL | TLS policy | Strict for other hosts; SXUK-only TLS 1.1 + ignore flags (`schannel_gateway.cpp:301-307,342-355`). |
+| IMPLEMENTED | Fail-closed request parsing; capped responses | `schannel_gateway.cpp:264-290,438-472`. |
+| PARTIAL | Set-Cookie rewriting | `Secure`/`Domain` stripped, `SameSite=None` downgraded (`schannel_gateway.cpp:546-556`). |
+| PARTIAL | Gateway cache | 64 MB cap but no eviction (`schannel_gateway.cpp:157-195`). |
+| IMPLEMENTED | No plaintext password/IPC payload logging | Only truncated command token logged (`browser_window.cpp:715-721`). |
+| PARTIAL | Password storage | DPAPI first, insecure `raw:` hex fallback (`password_manager.cpp:54-84,86-118`). |
+| IMPLEMENTED | Password origin normalization | `password_manager.cpp:31-52`. |
+| IMPLEMENTED | Permission decisions fail closed | `servo_view_host.cpp:1675-1691`. |
+| MISSING | Engine-wide clear browsing data | Same evidence as 10.2. |
+| OUT OF SCOPE | Production code signing / auto-update | Packaging uses self-signed dev cert (`packaging/sign_and_package.ps1:16-35,55-57`). |
+
+### 10.5 Stability / performance
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | Crash diagnostics | `main.cpp:45-130`. |
+| IMPLEMENTED | Thread-safe logging | `main.cpp:132-164`. |
+| IMPLEMENTED | Hang watchdog + perf counters | `main.cpp:181-232,235-270,607-639`. |
+| IMPLEMENTED | Wake coalescing, deferred native controls, 100 ms timer, frame-gated paints | `main.cpp:272-291,293-309,620-630`; `browser_window.cpp:156-159`; `servo_view_host.cpp:1089-1122`. |
+| IMPLEMENTED | Event-loop re-entry guard | `browser_window.cpp:37-57`. |
+| MISSING | Bounded Rust per-spin queue draining | `components/servo/servo.rs:299-330`. |
+| MISSING | Deduped/bounded compat-script execution | Same evidence as 10.3. |
+| MISSING | Bounded gateway worker pool | `schannel_gateway.cpp:582-596`. |
+| PARTIAL | Gateway cache eviction, sync logging, deterministic shutdown | `schannel_gateway.cpp:157-195`; `main.cpp:132-164,645-647`; `servo_view_host.cpp:673`; `browser_window.cpp:221-223`. |
+
+### 10.6 Packaging / verification
+
+| Status | Item | Rationale / evidence |
+|---|---|---|
+| IMPLEMENTED | CMake target, unit test target, CI build/test/package/upload | `ports/windows/CMakeLists.txt:16-31,51,79-99,101-119`; `.github/workflows/windows-browser.yml:3-18,146-201`. |
+| IMPLEMENTED | Installer/uninstaller basics | `packaging/install.ps1:14-80`; `packaging/uninstall.ps1:6-18`. |
+| PARTIAL | Self-signed packaging | Signing failures are warnings (`packaging/sign_and_package.ps1:16-57,59-79`). |
+| PARTIAL | Verification harness and unit-test coverage | Smoke test only (`tests/verify_github.ps1:1-105`); tests stub several production paths (`tests/test_browser_unit.cpp:42-50,52-74,217-285,427-462`). |
+| MISSING | Direct delegate/C API callback tests | No tests for real callbacks, popup ownership, auth ABI, permissions, find results, download mapping, gateway parsing. |
+
+### 10.7 Highest-value remaining gaps
+
+1. **L** - Per-tab WebView isolation (tabs lose live state on switch).
+2. **M-L** - Unified settings wiring + real clear-browsing-data.
+3. **M** - Security/privacy dialogs: permission prompt, HTTP auth, real JS prompt, multi-select picker.
+4. **M-L** - Secure credential storage + form-aware autofill (remove `raw:` fallback).
+5. **M-L** - Remaining performance tail: bounded Rust spins, compat-script dedup, bounded gateway threads, cache eviction.

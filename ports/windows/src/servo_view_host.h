@@ -95,5 +95,8 @@ private:
     BrowserWindow* m_browserWindow;
     bool m_trackingMouse;
     bool m_requestConsumed = false;
+    // Painting calls synchronously into WebRender, so only do it when a frame
+    // is actually ready. Resize/expose set this again to avoid stale pixels.
+    bool m_hasNewFrame = true;
     HCURSOR m_currentCursor;
 };

@@ -153,8 +153,10 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
 
-    // Idle fallback tick timer (wake events drive active processing reactively)
-    SetTimer(hwnd, 1, 33, nullptr);
+    // Idle fallback tick timer at 100 ms (10/s instead of the old 33 ms/30/s).
+    // Servo's waker drives active processing reactively; this is only a safety
+    // net for engine implementations that queue work without waking.
+    SetTimer(hwnd, 1, 100, nullptr);
 
     LogDebug("BrowserWindow::Create completed successfully.");
     return window;
@@ -231,7 +233,7 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
 
-    SetTimer(hwnd, 1, 33, nullptr);
+    SetTimer(hwnd, 1, 100, nullptr);
     LogDebug("BrowserWindow::CreateForPopup completed successfully.");
     return window;
 }

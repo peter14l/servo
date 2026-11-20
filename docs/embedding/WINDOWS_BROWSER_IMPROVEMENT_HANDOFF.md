@@ -194,3 +194,24 @@ Helper scripts live in `C:\Users\LOQ\AppData\Local\Temp\opencode\` (`check_js.py
 - `graphify-out/graph.json` exists: run `graphify query "<question>"` before the first grep/search/source read for a codebase question; use `graphify path`/`graphify explain` for focused context. Include this rule in every subagent prompt that explores code. Dirty `graphify-out/` files are expected.
 - After modifying code, run `graphify update .` (AST-only) if it does not disturb the existing working-tree state described in §7.
 - Evidence-based reporting: state PASSED / FAILED / BLOCKED / NOT_RUN explicitly; never claim a build or test passed without executing it.
+
+## 9. Phase 3 - performance audit (20 Nov 2026)
+
+Baseline from the installed build's log: 62 `[SLOW]`/`[HANG]` lines. `WM_APP_SERVO_WAKE` (`0x8065`) spins took 1187/1187/2343 ms immediately after select interactions; `WM_PAINT` (`0x000F`) repeatedly took 1656-1921 ms in a burst and the watchdog logged `[HANG] UI thread recovered after ~1 s`.
+
+Ranked findings (from explore session `ses_e05e5f906ffenwmWv8Oyk7fkUj`):
+
+1. **HIGH, C++ only** - Modal Win32 UI runs inside the delegate callback, inside `servo_spin_event_loop`, inside the wake handler: `TrackPopupMenuEx` in `servo_view_host.cpp:1896` (select), `MessageBoxW` at `:1489`/`:1499` (alert/confirm), `GetOpenFileNameW` at `:1520`. Log lines 4445-4469 prove the full human interaction time is charged to the wake message. Fix: post a UI task to the main pump and answer the responder there.
+2. **HIGH, C++ + Rust** - `WM_PAINT` calls `servo_webview_paint()` + `servo_webview_present()` synchronously (`servo_view_host.cpp:1086-1096`; `ffi/capi/webview.rs:898-899`; `painter.rs:409-445`). Nine consecutive 1.6-1.9 s paints triggered the hang recovery. Fix: paint only when a new frame is ready; remove synchronous `UpdateWindow` from resize.
+3. **HIGH, Rust/C API** - `ServoInner::spin_event_loop` (`components/servo/servo.rs:299-330`) drains unbounded queues of paint/embedder/net messages and invokes delegates synchronously. Cap per-spin work and expose a "more work" flag; deferred until C++ fixes are measured.
+4. **MED-HIGH, C++ only** - One `PostMessageW` per engine wake, no coalescing (`servo.rs:1293-1300`, `lib.rs:712-719`, `main.cpp:208-214`). Add an interlocked pending flag.
+5. **MEDIUM, C++ only** - 33 ms fallback timer = 30 spins/s forever (`browser_window.cpp:156-157,234,1154-1158`). Raise to ~100 ms because wakes drive active work.
+6. **MEDIUM, C++ only** - Compat scripts injected 3x per page (`servo_view_host.cpp:631-651`, `:1384-1386`, `:1723-1727`); `setInterval(patchSysDomEvent,50)` has no guard. Deferred: behaviour risk on SXUK.
+7. **MED-LOW, C++ only** - Synchronous `vfprintf`+`fflush` under a critical section for every log line (`main.cpp:130-162`), with unbuffered engine stdout/stderr (`:244-264`). Deferred.
+8. **MEDIUM, C++ only** - Schannel gateway spawns an unbounded detached thread per request and opens a new session per asset (`schannel_gateway.cpp:582-596`, `:292-302`). Deferred.
+9. **LOW-MED, C++ only** - Schannel cache grows to 64 MB with no eviction (`schannel_gateway.cpp:159-195`). Deferred.
+10. **LOW, C++ only** - `s_allHosts`/popup `BrowserWindow` objects never freed before `ExitProcess` (`servo_view_host.cpp:671,730,846`, `main.cpp:527`). Deferred.
+
+Existing `[SLOW]`/`[HANG]` instrumentation cannot separate spin/paint/modal time or count wake amplification. Planned counters: wake callbacks/posts/coalesced, spins + spin ms total/max, paints + paint ms total/max, deferred controls + ms total/max, logged every 10 s and at shutdown.
+
+Implementation order in this phase: (1) perf counters + wake coalescing + 100 ms timer, (2) defer modal controls to `WM_APP_RUN_UI_TASK`, (3) frame-driven paint coalescing, (4) CI build + install + re-measure.

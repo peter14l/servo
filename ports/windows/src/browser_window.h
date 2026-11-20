@@ -9,14 +9,27 @@
 #endif
 #include <windows.h>
 #include <dwmapi.h>
+#include <functional>
 #include <string>
 #include <memory>
 #include <map>
 #include <servo/servo_capi.h>
 
 #define WM_APP_SERVO_WAKE (WM_APP + 101)
+// Deferred native controls (select/alert/confirm/file picker) run here instead
+// of inside the Servo event-loop spin, so user interaction time is not charged
+// to WM_APP_SERVO_WAKE and does not block engine message dispatch.
+#define WM_APP_RUN_UI_TASK (WM_APP + 102)
 
 void LogDebug(const char* fmt, ...);
+
+using UiTask = std::function<void()>;
+// Posts a task to the main UI pump. Runs it inline only before the pump exists.
+bool PostUiTask(UiTask task);
+
+// Performance counters owned by the main pump; called from the view host.
+void RecordPaintDuration(unsigned long long milliseconds);
+void RecordDeferredControlDuration(unsigned long long milliseconds);
 
 // Runs one Servo event-loop spin unless one is already running on this thread.
 // Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or

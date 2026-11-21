@@ -444,4 +444,28 @@ Two standalone WinHTTP probes against `https://www.sxuk.org/Style/style.css` con
 | Document-scoped script guards | `ports/windows/src/servo_view_host.cpp` | `s_platformCompatScript` and `s_appEnhancementsScript` now set a `window`-scoped marker on first execution and return immediately on re-entry. The user script (document_start) and the load-status injection (statuses 1 and 2) previously executed the same 16 KB + 6.8 KB shim set up to three times per document. A new navigation gets a fresh `window`, so all shims still run there. |
 | Shorter socket drain | `ports/windows/src/schannel_gateway.cpp` | `CloseGracefully` drain timeout reduced from 20 ms to 4 ms per response. |
 
-Verification to date: `g++ -fsyntax-only -std=c++17 -DUNICODE -D_UNICODE -I ports\\windows\\src ports\\windows\\src\\schannel_gateway.cpp` PASSED (exit 0). Standalone A/B build of the committed and pooled gateway code, both started fresh and driven with 24 sequential cache-miss requests each, gave steady-state averages of 996 ms (old) vs 810 ms (pooled) over the last eight requests — a modest but real ~19% improvement. **CI and browser runtime verification of these three changes are NOT_RUN**; they are staged locally while the `6012369ddde` CI runs finish.
+Verification to date: `g++ -fsyntax-only -std=c++17 -DUNICODE -D_UNICODE -I ports\\windows\\src ports\\windows\\src\\schannel_gateway.cpp` PASSED (exit 0). Standalone A/B build of the committed and pooled gateway code, both started fresh and driven with 24 sequential cache-miss requests each, gave steady-state averages of 996 ms (old) vs 810 ms (pooled) over the last eight requests — a modest but real ~19% improvement.
+
+### 14.2 The actual fix: persistent disk cache (prepared, NOT_RUN in CI)
+
+A curl phase breakdown against `https://www.sxuk.org/Style/style.css` showed where the remaining cold cost sits: DNS ~0.02 s, TCP connect ~0.29 s, TLS handshake ~0.85 s, first byte ~1.5 s, total ~3.9 s (the last ~2.4 s is a slow body transfer). WinHTTP through the gateway is faster, but the legacy IIS 8.5 server still costs roughly 0.8–1.4 s per request. Connection reuse alone therefore cannot deliver a large win; the effective fix is to **avoid the upstream entirely** for static assets after the first fetch.
+
+Changes prepared locally, not yet committed:
+
+| Change | Detail |
+|---|---|
+| Disk-backed cache tier | `CacheGet` falls back to `%LOCALAPPDATA%\\Servo Browser\\gateway-cache\\<fnv1a64>.cache` when the memory tier misses; a valid entry is promoted back into memory. `CachePut` writes the same on-disk format (`SGC1` magic, unix timestamp, key/body lengths, key, full HTTP response). 7-day TTL; key hashes are verified against the stored key to avoid collisions. Disk writes are guarded by `s_diskMutex`. Only dynamic `.aspx` pages still go upstream. |
+| Full parallelism | `kGatewayContexts` raised from 12 to 64 to match `kMaxConcurrentClients`. The earlier value of 12 would have serialised a page's ~30 parallel asset requests into three waves, offsetting the connection-reuse gain on first load. |
+
+Standalone probe result (same URL, gateway process restarted between the first two requests):
+
+| Request | Latency |
+|---|---|
+| Cold, empty cache | 4385 ms |
+| Warm after process restart (disk tier) | 58 ms |
+| Warm, second hit (memory tier) | 46 ms |
+| New URL, cold again | 3739 ms |
+
+This is the large improvement: after the first visit, static assets are served locally in ~50 ms even across browser restarts. Known limitation: the disk tier is bounded by unique cache keys rather than a byte budget; ASP.NET `ScriptResource.axd`/`WebResource.axd` URLs are versioned, so changed assemblies produce new keys naturally, but a manual TTL purge may eventually be needed.
+
+**CI and installed-browser runtime verification of sections 14.1 and 14.2 are NOT_RUN.** The changes are staged locally while CI runs `44873160740` / `44873161238` for `a9ac430d213` finish.

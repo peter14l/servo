@@ -25,6 +25,11 @@
 #include <condition_variable>
 #include <memory>
 #include <vector>
+#include <fstream>
+#include <iterator>
+#include <cstdint>
+#include <cstring>
+#include <ctime>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winhttp.lib")
@@ -61,7 +66,7 @@ struct GatewayContext {
 static std::mutex s_contextMutex;
 static std::condition_variable s_contextCv;
 static std::vector<std::unique_ptr<GatewayContext>> s_freeContexts;
-static const int kGatewayContexts = 12;
+static const int kGatewayContexts = 64;
 
 // Exclusive ownership for one request. A context is never used by two threads
 // at once, so its connect handles are safe to reuse sequentially.
@@ -244,12 +249,16 @@ static size_t ParseContentLength(const std::string& headerBlock) {
     return 0;
 }
 
-// Small in-memory cache for static assets. Servo requests every script twice
-// (preload scanner + parser), so this also halves upstream requests.
+// Cache for static assets. Servo requests every script twice (preload scanner
+// + parser), so this also halves upstream requests. The disk tier means a
+// fresh browser launch does not refetch every asset from the slow legacy
+// server; only dynamic .aspx pages still go upstream.
 static std::mutex s_cacheMutex;
+static std::mutex s_diskMutex;
 static std::map<std::string, std::string> s_cache;
 static size_t s_cacheBytes = 0;
 static const size_t kCacheLimit = 64u * 1024u * 1024u;
+static const uint64_t kCacheTtlSeconds = 7ull * 24ull * 3600ull;
 
 static bool IsCacheableUrl(const std::string& url) {
     static const char* fragments[] = {
@@ -261,33 +270,119 @@ static bool IsCacheableUrl(const std::string& url) {
     return false;
 }
 
+static uint64_t HashUrl(const std::string& url) {
+    uint64_t hash = 1469598103934665603ull; // FNV-1a 64
+    for (unsigned char c : url) {
+        hash ^= c;
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+static std::string GetCacheDir() {
+    wchar_t buf[MAX_PATH] = {};
+    DWORD len = GetEnvironmentVariableW(L"LOCALAPPDATA", buf, MAX_PATH);
+    std::wstring dir = (len > 0 && len < MAX_PATH) ? std::wstring(buf, len) : std::wstring(L".");
+    dir += L"\\Servo Browser\\gateway-cache";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, dir.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string out;
+    if (utf8Len > 0) {
+        out.resize(static_cast<size_t>(utf8Len) - 1);
+        WideCharToMultiByte(CP_UTF8, 0, dir.c_str(), -1, &out[0], utf8Len, nullptr, nullptr);
+    }
+    return out;
+}
+
+static std::string CacheFilePath(const std::string& key) {
+    char name[32] = {};
+    snprintf(name, sizeof(name), "%016llx.cache", static_cast<unsigned long long>(HashUrl(key)));
+    return GetCacheDir() + "\\" + name;
+}
+
+// On-disk format: "SGC1", uint64 unix timestamp, uint32 key length,
+// uint32 body length, key bytes, response bytes.
+static bool LoadFromDisk(const std::string& key, std::string& out) {
+    std::ifstream file(CacheFilePath(key), std::ios::binary);
+    if (!file) return false;
+    char magic[4] = {};
+    file.read(magic, sizeof(magic));
+    if (std::memcmp(magic, "SGC1", 4) != 0) return false;
+    uint64_t written = 0;
+    file.read(reinterpret_cast<char*>(&written), sizeof(written));
+    if (!file) return false;
+    uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+    if (now < written || now - written > kCacheTtlSeconds) return false;
+    uint32_t keyLen = 0;
+    uint32_t bodyLen = 0;
+    file.read(reinterpret_cast<char*>(&keyLen), sizeof(keyLen));
+    file.read(reinterpret_cast<char*>(&bodyLen), sizeof(bodyLen));
+    if (!file || keyLen != key.size() || bodyLen == 0 || bodyLen > kCacheLimit / 4) return false;
+    std::string storedKey(keyLen, '\0');
+    file.read(&storedKey[0], keyLen);
+    if (!file || storedKey != key) return false;
+    std::string body(bodyLen, '\0');
+    file.read(&body[0], bodyLen);
+    if (!file) return false;
+    out = std::move(body);
+    return true;
+}
+
+static void SaveToDisk(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> lock(s_diskMutex);
+    std::ofstream file(CacheFilePath(key), std::ios::binary | std::ios::trunc);
+    if (!file) return;
+    const char magic[4] = { 'S', 'G', 'C', '1' };
+    uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+    uint32_t keyLen = static_cast<uint32_t>(key.size());
+    uint32_t bodyLen = static_cast<uint32_t>(value.size());
+    file.write(magic, sizeof(magic));
+    file.write(reinterpret_cast<const char*>(&now), sizeof(now));
+    file.write(reinterpret_cast<const char*>(&keyLen), sizeof(keyLen));
+    file.write(reinterpret_cast<const char*>(&bodyLen), sizeof(bodyLen));
+    file.write(key.data(), key.size());
+    file.write(value.data(), value.size());
+}
+
+static void CachePut(const std::string& key, const std::string& value);
+
 static bool CacheGet(const std::string& key, std::string& out) {
-    std::lock_guard<std::mutex> lock(s_cacheMutex);
-    auto it = s_cache.find(key);
-    if (it == s_cache.end()) return false;
-    out = it->second;
+    {
+        std::lock_guard<std::mutex> lock(s_cacheMutex);
+        auto it = s_cache.find(key);
+        if (it != s_cache.end()) {
+            out = it->second;
+            return true;
+        }
+    }
+    if (!LoadFromDisk(key, out)) return false;
+    CachePut(key, out); // repopulate the memory tier and refresh the timestamp
     return true;
 }
 
 static void CachePut(const std::string& key, const std::string& value) {
-    if (value.size() > kCacheLimit / 4) return;
-    std::lock_guard<std::mutex> lock(s_cacheMutex);
-    auto it = s_cache.find(key);
-    if (it != s_cache.end()) {
-        s_cacheBytes -= it->second.size();
-        it->second = value;
-        s_cacheBytes += value.size();
-        return;
-    }
-    if (s_cacheBytes + value.size() > kCacheLimit) {
-        // ponytail: map order is not LRU; add an LRU queue only if evictions hurt hit rate.
-        for (auto it = s_cache.begin(); it != s_cache.end() && s_cacheBytes + value.size() > kCacheLimit;) {
+    if (value.empty() || value.size() > kCacheLimit / 4) return;
+    {
+        std::lock_guard<std::mutex> lock(s_cacheMutex);
+        auto it = s_cache.find(key);
+        if (it != s_cache.end()) {
             s_cacheBytes -= it->second.size();
-            it = s_cache.erase(it);
+            it->second = value;
+            s_cacheBytes += value.size();
+        } else {
+            if (s_cacheBytes + value.size() > kCacheLimit) {
+                // ponytail: map order is not LRU; add an LRU queue only if evictions hurt hit rate.
+                for (auto entry = s_cache.begin();
+                     entry != s_cache.end() && s_cacheBytes + value.size() > kCacheLimit;) {
+                    s_cacheBytes -= entry->second.size();
+                    entry = s_cache.erase(entry);
+                }
+            }
+            s_cache.emplace(key, value);
+            s_cacheBytes += value.size();
         }
     }
-    s_cache.emplace(key, value);
-    s_cacheBytes += value.size();
+    SaveToDisk(key, value);
 }
 
 static void HandleClient(SOCKET clientSock) {

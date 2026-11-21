@@ -1061,7 +1061,7 @@ impl Servo {
 
         let (private_storage_threads, public_storage_threads) = new_storage_threads(
             mem_profiler_chan.clone(),
-            config_dir.clone(),
+            config_dir,
             temporary_storage,
         );
 

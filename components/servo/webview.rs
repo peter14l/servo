@@ -970,7 +970,7 @@ impl WebView {
                 };
                 let data = object.get("data").cloned().unwrap_or(JSValue::Null);
                 let data_json = crate::message_router::jsvalue_to_json_string(&data);
-                delegate.notify_script_message(webview.clone(), &name, &data_json);
+                delegate.notify_script_message(webview.clone(), name, &data_json);
                 router.handle_js_message(name.clone(), data_json);
             }
         });

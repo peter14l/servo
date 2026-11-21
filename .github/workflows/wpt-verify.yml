@@ -1,0 +1,25 @@
+name: WPT Verify (temporary)
+# Temporary workflow used to run the full 20-chunk WPT suite on a PR branch
+# without the pre-existing repository-wide rustfmt lint gate. Removed after
+# verification is complete.
+on:
+  workflow_dispatch:
+
+jobs:
+  wpt:
+    name: Linux WPT (20 chunks)
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
+    with:
+      workflow: linux
+      profile: checked-release
+      build-args: ""
+      wpt-args: ""
+      wpt: true
+      number-of-wpt-chunks: 20
+      unit-tests: false
+      devtools-tests: false
+      build-libservo: false
+      bencher: false
+      coverage: false
+      capi: false

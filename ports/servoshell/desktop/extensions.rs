@@ -14,6 +14,7 @@ use serde::Deserialize;
 use url::Url;
 
 /// Parsed `manifest.json` for WebExtensions.
+#[allow(dead_code)] // Fields are part of the manifest schema but not all are consumed yet.
 #[derive(Clone, Debug, Deserialize)]
 pub struct ExtensionManifest {
     pub manifest_version: u32,
@@ -27,6 +28,7 @@ pub struct ExtensionManifest {
 }
 
 /// Content script block declaration in manifest.json.
+#[allow(dead_code)] // Fields are part of the manifest schema but not all are consumed yet.
 #[derive(Clone, Debug, Deserialize)]
 pub struct ContentScriptDeclaration {
     #[serde(default)]

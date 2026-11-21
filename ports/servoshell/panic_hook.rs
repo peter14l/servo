@@ -24,7 +24,7 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
     let name = current_thread.name().unwrap_or("<unnamed>");
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
-    let mut crash_text = String::new();
+    let crash_text;
     if let Some(location) = info.location() {
         let _ = writeln!(
             &mut stderr,

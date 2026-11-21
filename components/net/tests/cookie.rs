@@ -651,27 +651,41 @@ fn test_same_site_cookie_matching() {
 
     // `SameSite=Strict` is never sent on cross-site requests.
     let strict = make("a=1; SameSite=Strict");
-    assert!(strict.appropriate_for_url_with_context(&url, source, same_site));
-    assert!(!strict.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
-    assert!(!strict.appropriate_for_url_with_context(&url, source, cross_site_other));
+    assert!(strict.appropriate_for_url_with_context(&url, source, same_site.clone(),));
+    assert!(!strict.appropriate_for_url_with_context(
+        &url,
+        source,
+        cross_site_safe_navigation.clone(),
+    ));
+    assert!(!strict.appropriate_for_url_with_context(&url, source, cross_site_other.clone(),));
 
     // `SameSite=Lax` is only sent on cross-site top-level safe navigations.
     let lax = make("b=1; SameSite=Lax");
-    assert!(lax.appropriate_for_url_with_context(&url, source, same_site));
-    assert!(lax.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
-    assert!(!lax.appropriate_for_url_with_context(&url, source, cross_site_other));
+    assert!(lax.appropriate_for_url_with_context(&url, source, same_site.clone(),));
+    assert!(
+        lax.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation.clone(),)
+    );
+    assert!(!lax.appropriate_for_url_with_context(&url, source, cross_site_other.clone(),));
 
     // An absent attribute defaults to `Lax`.
     let default = make("c=1");
-    assert!(default.appropriate_for_url_with_context(&url, source, same_site));
-    assert!(default.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
-    assert!(!default.appropriate_for_url_with_context(&url, source, cross_site_other));
+    assert!(default.appropriate_for_url_with_context(&url, source, same_site.clone(),));
+    assert!(default.appropriate_for_url_with_context(
+        &url,
+        source,
+        cross_site_safe_navigation.clone(),
+    ));
+    assert!(!default.appropriate_for_url_with_context(&url, source, cross_site_other.clone(),));
 
     // `SameSite=None` is sent on all requests.
     let none = make("d=1; SameSite=None; Secure");
-    assert!(none.appropriate_for_url_with_context(&url, source, same_site));
-    assert!(none.appropriate_for_url_with_context(&url, source, cross_site_safe_navigation));
-    assert!(none.appropriate_for_url_with_context(&url, source, cross_site_other));
+    assert!(none.appropriate_for_url_with_context(&url, source, same_site.clone(),));
+    assert!(none.appropriate_for_url_with_context(
+        &url,
+        source,
+        cross_site_safe_navigation.clone(),
+    ));
+    assert!(none.appropriate_for_url_with_context(&url, source, cross_site_other.clone(),));
 }
 
 #[test]

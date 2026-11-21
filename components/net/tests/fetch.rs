@@ -1093,7 +1093,10 @@ fn test_mixed_content_document_navigation_blocking() {
         };
         RequestBuilder::new(
             Some(TEST_WEBVIEW_ID),
-            ServoUrl::parse("http://insecure.example.com").unwrap(),
+            UrlWithBlobClaim::new(
+                ServoUrl::parse("http://insecure.example.com").unwrap(),
+                None,
+            ),
             Referrer::NoReferrer,
         )
         .origin(ServoUrl::parse("https://secure.example.com").unwrap().origin())

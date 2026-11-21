@@ -762,7 +762,14 @@ fn test_partitioned_cookie_storage_filtering() {
     let mut storage = CookieStorage::new(10);
 
     add_cookie_to_storage(&mut storage, &url, "unpart=1; Secure");
-    add_cookie_to_storage(&mut storage, &url, "part=1; Partitioned; Secure");
+    let partitioned_cookie =
+        ServoCookie::from_cookie_string("part=1; Partitioned; Secure", &url, source)
+            .expect("partitioned cookie should be valid");
+    assert_eq!(
+        partitioned_cookie.partition_key,
+        Some("example.com".to_string())
+    );
+    storage.push(partitioned_cookie, &url, source);
 
     // Matching partition receives both cookies.
     let matching_context = SameSiteContext {

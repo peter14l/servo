@@ -1843,15 +1843,6 @@ impl Element {
         &self.attrs
     }
 
-    pub(crate) fn dom_attrs(&self, cx: &mut JSContext) -> &AttributeStorage {
-        // Materialize all entries to Dom<Attr> so callers can access full Attr nodes.
-        let len = self.attrs.borrow().len();
-        for i in 0..len {
-            self.attrs.ensure_dom(cx, i, self);
-        }
-        &self.attrs
-    }
-
     /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
     pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
         let namespace_prefix = prefix.as_ref().map(|s| Prefix::from(&*s.str()));

@@ -576,7 +576,7 @@ impl LogicalRect<Au> {
             } else {
                 match containing_block {
                     Some(containing_block) => {
-                        containing_block.size.block - self.max_block_position()
+                        containing_block.size.block.definite_or_min() - self.max_block_position()
                     },
                     None => self.start_corner.block,
                 }
@@ -676,7 +676,7 @@ impl ToLogicalWithContainingBlock<LogicalVec2<Au>> for PhysicalPoint<Au> {
                 block: if writing_mode.is_vertical_lr() {
                     self.x
                 } else {
-                    containing_block.size.block - self.x
+                    containing_block.size.block.definite_or_min() - self.x
                 },
             }
         } else {
@@ -711,7 +711,7 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
             block_start = if writing_mode.is_vertical_lr() {
                 self.origin.x
             } else {
-                containing_block.size.block - (self.origin.x + self.size.width)
+                containing_block.size.block.definite_or_min() - (self.origin.x + self.size.width)
             };
         } else {
             inline = self.size.width;

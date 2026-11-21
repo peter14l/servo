@@ -45,11 +45,15 @@ void ServoSpinEventLoopOnce(struct Servo* servo) {
         return;
     }
     spinning = true;
+    // Always clear the flag, even if a callback unwinds through here.
+    struct SpinGuard {
+        bool* flag;
+        ~SpinGuard() { *flag = false; }
+    } guard{&spinning};
     do {
         pending = false;
         servo_spin_event_loop(servo);
     } while (pending);
-    spinning = false;
 }
 
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
@@ -149,8 +153,10 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
 
-    // Idle fallback tick timer (wake events drive active processing reactively)
-    SetTimer(hwnd, 1, 33, nullptr);
+    // Idle fallback tick timer at 100 ms (10/s instead of the old 33 ms/30/s).
+    // Servo's waker drives active processing reactively; this is only a safety
+    // net for engine implementations that queue work without waking.
+    SetTimer(hwnd, 1, 100, nullptr);
 
     LogDebug("BrowserWindow::Create completed successfully.");
     return window;
@@ -173,12 +179,16 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
         window
     );
     if (!hwnd) {
-        servo_create_new_webview_request_free(request);
+        LogDebug("CreateWindowExW for popup failed with error %lu", GetLastError());
+        // Do not free `request` here: returning nullptr makes
+        // OnRequestCreateNew return false, and the Rust side frees the handle
+        // in that case. Freeing it here as well would be a double free.
         delete window;
         return nullptr;
     }
 
     window->m_hwnd = hwnd;
+    window->m_isPopup = true;
 
     DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
     style &= ~WS_CAPTION;
@@ -201,6 +211,19 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
         request
     );
 
+    // The create request is owned by whichever side consumes it. If the
+    // popup constructor could not hand it to a WebView builder, leave it
+    // untouched so the Rust callback frees it after we return false.
+    if (!window->m_viewHost->WasRequestConsumed()) {
+        LogDebug("Popup WebView request was not consumed; denying popup.");
+        window->m_viewHost.reset();
+        DestroyWindow(hwnd);
+        // Leave the shell object allocated: normal shutdown uses ExitProcess
+        // without running BrowserWindow destructors, so their UI-teardown path
+        // is intentionally not exercised on this failure path either.
+        return nullptr;
+    }
+
     window->SyncDarkMode();
     window->m_tabStrip->AddTab("about:blank");
     window->LayoutChildren();
@@ -210,7 +233,7 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);
 
-    SetTimer(hwnd, 1, 33, nullptr);
+    SetTimer(hwnd, 1, 100, nullptr);
     LogDebug("BrowserWindow::CreateForPopup completed successfully.");
     return window;
 }
@@ -366,8 +389,9 @@ void BrowserWindow::HandleNewDownload(struct ServoDownloadItem* download) {
     std::vector<wchar_t> wname(len);
     MultiByteToWideChar(CP_UTF8, 0, nameBuf, -1, wname.data(), len);
 
-    static uint64_t s_dlId = 1;
-    m_downloadManager->AddDownload(s_dlId++, urlBuf, wname.data());
+    uint64_t downloadId = m_nextDownloadId++;
+    m_downloadIds[std::string(urlBuf)] = downloadId;
+    m_downloadManager->AddDownload(downloadId, urlBuf, wname.data());
 
     // Automatically pop open download manager pane when download starts
     m_downloadManager->Show(true);
@@ -378,7 +402,14 @@ void BrowserWindow::HandleDownloadUpdated(struct ServoDownloadItem* download) {
     uint64_t recv = servo_download_item_get_received_bytes(download);
     uint64_t total = servo_download_item_get_total_bytes(download);
     int state = servo_download_item_get_state(download);
-    m_downloadManager->UpdateDownload(1, recv, total, state);
+    char urlBuf[1024] = {};
+    servo_download_item_get_url(download, urlBuf, sizeof(urlBuf));
+    auto it = m_downloadIds.find(urlBuf);
+    if (it == m_downloadIds.end()) {
+        LogDebug("[DOWNLOAD] update for unknown download URL '%s'; ignoring.", urlBuf);
+        return;
+    }
+    m_downloadManager->UpdateDownload(it->second, recv, total, state);
 }
 
 void BrowserWindow::NavigateUrl(const std::string& url) {
@@ -519,7 +550,8 @@ void BrowserWindow::NavigateStop() {
 
 int BrowserWindow::FindInPage(const char* text, bool forward, bool matchCase) {
     if (m_viewHost && m_viewHost->GetWebView()) {
-        return servo_webview_find(m_viewHost->GetWebView(), text, forward, matchCase);
+        m_findIdentifier = servo_webview_find(m_viewHost->GetWebView(), text, forward, matchCase);
+        return m_findIdentifier;
     }
     return -1;
 }
@@ -534,6 +566,20 @@ int BrowserWindow::FindNext(int identifier, bool forward) {
 void BrowserWindow::ClearFind(int identifier) {
     if (m_viewHost && m_viewHost->GetWebView()) {
         servo_webview_find_clear(m_viewHost->GetWebView(), identifier);
+    }
+    if (identifier == m_findIdentifier) {
+        m_findIdentifier = -1;
+    }
+}
+
+void BrowserWindow::OnFindResult(int identifier, int count, int activeOrdinal) {
+    if (!m_findBar) return;
+    // Ignore results from a previous search so the status cannot flicker.
+    if (m_findIdentifier >= 0 && identifier != m_findIdentifier) return;
+    if (count <= 0) {
+        m_findBar->UpdateMatchResult(0, 0);
+    } else {
+        m_findBar->UpdateMatchResult(activeOrdinal > 0 ? activeOrdinal : 1, count);
     }
 }
 
@@ -1239,10 +1285,8 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         }
-        if (ctrl && shift && wParam == 'T') {
-            RestorePreviousSession();
-            return 0;
-        }
+        // Ctrl+Shift+T is handled above by ReopenClosedTab. Session restore
+        // remains available from the new-tab page link.
         if (ctrl && wParam == 'T') {
             OpenUrlInNewTab(NewTabPage::EnsureNewTabPageExists());
             return 0;
@@ -1356,16 +1400,22 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_CLOSE:
-        LogDebug("BrowserWindow received WM_CLOSE");
-        if (m_tabStrip) {
+        LogDebug("BrowserWindow received WM_CLOSE (popup=%d)", m_isPopup ? 1 : 0);
+        // Only the main window owns the persisted session. Popups start at
+        // about:blank, so saving from one would erase the user's real tabs.
+        if (!m_isPopup && m_tabStrip) {
             BrowserData::SaveSession(m_tabStrip->GetAllTabUrls(), m_tabStrip->GetActiveTabIndex());
         }
         break;
 
     case WM_DESTROY:
-        LogDebug("BrowserWindow received WM_DESTROY, posting quit message...");
+        LogDebug("BrowserWindow received WM_DESTROY (popup=%d)", m_isPopup ? 1 : 0);
         KillTimer(m_hwnd, 1);
-        PostQuitMessage(0);
+        // Closing an auxiliary popup must not terminate the whole browser.
+        if (!m_isPopup) {
+            LogDebug("Main window destroyed, posting quit message...");
+            PostQuitMessage(0);
+        }
         return 0;
     }
 

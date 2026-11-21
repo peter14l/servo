@@ -144,6 +144,7 @@ pub(crate) struct WebViewInner {
 
     /// The request context for this WebView, if set.
     /// This provides profile/cookie isolation, proxy config, cache path, and accept language.
+    #[expect(dead_code)]
     request_context: Option<RequestContext>,
 
     /// The message router for bidirectional native ↔ JavaScript messaging.

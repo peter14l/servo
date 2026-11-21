@@ -17,10 +17,19 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cwctype>
 #include <sstream>
 #include <mutex>
 #include <map>
 #include <regex>
+#include <condition_variable>
+#include <memory>
+#include <vector>
+#include <fstream>
+#include <iterator>
+#include <cstdint>
+#include <cstring>
+#include <ctime>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winhttp.lib")
@@ -28,9 +37,96 @@
 namespace SchannelGateway {
 
 static std::atomic<bool> s_running{false};
+// Bound detached client threads so a pathological page cannot exhaust the
+// process with unbounded concurrent gateway connections.
+static std::atomic<int> s_activeClients{0};
+static const int kMaxConcurrentClients = 64;
 static std::thread s_workerThread;
 static SOCKET s_listenSocket = INVALID_SOCKET;
 static unsigned short s_port = 51820;
+
+// WinHTTP keeps keep-alive connections alive for the lifetime of a session.
+// Reuse a small pool of long-lived sessions instead of opening (and closing) a
+// fresh session per request, which otherwise forces a new TCP + TLS handshake
+// for every script, style and image on a page.
+struct GatewayContext {
+    HINTERNET session = nullptr;
+    std::map<std::wstring, HINTERNET> connects;
+
+    ~GatewayContext() {
+        for (auto& entry : connects) {
+            WinHttpCloseHandle(entry.second);
+        }
+        if (session) {
+            WinHttpCloseHandle(session);
+        }
+    }
+};
+
+static std::mutex s_contextMutex;
+static std::condition_variable s_contextCv;
+static std::vector<std::unique_ptr<GatewayContext>> s_freeContexts;
+static const int kGatewayContexts = 64;
+
+// Exclusive ownership for one request. A context is never used by two threads
+// at once, so its connect handles are safe to reuse sequentially.
+class ScopedGatewayContext {
+public:
+    ScopedGatewayContext() {
+        std::unique_lock<std::mutex> lock(s_contextMutex);
+        s_contextCv.wait(lock, [] { return !s_freeContexts.empty() || !s_running.load(); });
+        if (!s_freeContexts.empty()) {
+            m_context = std::move(s_freeContexts.back());
+            s_freeContexts.pop_back();
+        }
+    }
+    ~ScopedGatewayContext() {
+        if (!m_context) return;
+        std::lock_guard<std::mutex> lock(s_contextMutex);
+        s_freeContexts.push_back(std::move(m_context));
+        s_contextCv.notify_one();
+    }
+    GatewayContext& operator*() const { return *m_context; }
+    explicit operator bool() const { return static_cast<bool>(m_context); }
+
+private:
+    std::unique_ptr<GatewayContext> m_context;
+};
+
+static void EnsureSession(GatewayContext& ctx) {
+    if (ctx.session) return;
+    ctx.session = WinHttpOpen(L"Servo-Schannel-Bridge/1.0",
+                              WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                              WINHTTP_NO_PROXY_NAME,
+                              WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!ctx.session) return;
+    // Bound every phase so a stuck upstream cannot pin a worker thread forever.
+    WinHttpSetTimeouts(ctx.session, 10000, 10000, 30000, 30000);
+    // Default every upstream to modern TLS. Legacy TLS 1.1 is enabled only for
+    // the known SXUK hosts on the request below, never globally.
+    DWORD sessionProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+    WinHttpSetOption(ctx.session, WINHTTP_OPTION_SECURE_PROTOCOLS,
+                     &sessionProtocols, sizeof(sessionProtocols));
+}
+
+static HINTERNET GetConnect(GatewayContext& ctx, const std::wstring& host, INTERNET_PORT port) {
+    if (!ctx.session) return nullptr;
+    std::wstring key = host + L":" + std::to_wstring(port);
+    auto it = ctx.connects.find(key);
+    if (it != ctx.connects.end()) return it->second;
+    HINTERNET connect = WinHttpConnect(ctx.session, host.c_str(), port, 0);
+    if (!connect) return nullptr;
+    ctx.connects.emplace(std::move(key), connect);
+    return connect;
+}
+
+static void DropConnect(GatewayContext& ctx, const std::wstring& host, INTERNET_PORT port) {
+    std::wstring key = host + L":" + std::to_wstring(port);
+    auto it = ctx.connects.find(key);
+    if (it == ctx.connects.end()) return;
+    WinHttpCloseHandle(it->second);
+    ctx.connects.erase(it);
+}
 
 static std::string UrlDecode(const std::string& in) {
     std::string out;
@@ -105,7 +201,7 @@ static void CloseGracefully(SOCKET sock) {
         fd_set readSet;
         FD_ZERO(&readSet);
         FD_SET(sock, &readSet);
-        timeval tv = { 0, 20000 }; // 20ms: never stall a worker waiting for a FIN
+        timeval tv = { 0, 4000 }; // 4ms: enough for a loopback FIN without stalling a worker
         if (select(0, &readSet, nullptr, nullptr, &tv) <= 0) break;
         int r = recv(sock, drain, sizeof(drain), 0);
         if (r <= 0) break;
@@ -153,12 +249,16 @@ static size_t ParseContentLength(const std::string& headerBlock) {
     return 0;
 }
 
-// Small in-memory cache for static assets. Servo requests every script twice
-// (preload scanner + parser), so this also halves upstream requests.
+// Cache for static assets. Servo requests every script twice (preload scanner
+// + parser), so this also halves upstream requests. The disk tier means a
+// fresh browser launch does not refetch every asset from the slow legacy
+// server; only dynamic .aspx pages still go upstream.
 static std::mutex s_cacheMutex;
+static std::mutex s_diskMutex;
 static std::map<std::string, std::string> s_cache;
 static size_t s_cacheBytes = 0;
 static const size_t kCacheLimit = 64u * 1024u * 1024u;
+static const uint64_t kCacheTtlSeconds = 7ull * 24ull * 3600ull;
 
 static bool IsCacheableUrl(const std::string& url) {
     static const char* fragments[] = {
@@ -170,27 +270,119 @@ static bool IsCacheableUrl(const std::string& url) {
     return false;
 }
 
+static uint64_t HashUrl(const std::string& url) {
+    uint64_t hash = 1469598103934665603ull; // FNV-1a 64
+    for (unsigned char c : url) {
+        hash ^= c;
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+static std::string GetCacheDir() {
+    wchar_t buf[MAX_PATH] = {};
+    DWORD len = GetEnvironmentVariableW(L"LOCALAPPDATA", buf, MAX_PATH);
+    std::wstring dir = (len > 0 && len < MAX_PATH) ? std::wstring(buf, len) : std::wstring(L".");
+    dir += L"\\Servo Browser\\gateway-cache";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, dir.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string out;
+    if (utf8Len > 0) {
+        out.resize(static_cast<size_t>(utf8Len) - 1);
+        WideCharToMultiByte(CP_UTF8, 0, dir.c_str(), -1, &out[0], utf8Len, nullptr, nullptr);
+    }
+    return out;
+}
+
+static std::string CacheFilePath(const std::string& key) {
+    char name[32] = {};
+    snprintf(name, sizeof(name), "%016llx.cache", static_cast<unsigned long long>(HashUrl(key)));
+    return GetCacheDir() + "\\" + name;
+}
+
+// On-disk format: "SGC1", uint64 unix timestamp, uint32 key length,
+// uint32 body length, key bytes, response bytes.
+static bool LoadFromDisk(const std::string& key, std::string& out) {
+    std::ifstream file(CacheFilePath(key), std::ios::binary);
+    if (!file) return false;
+    char magic[4] = {};
+    file.read(magic, sizeof(magic));
+    if (std::memcmp(magic, "SGC1", 4) != 0) return false;
+    uint64_t written = 0;
+    file.read(reinterpret_cast<char*>(&written), sizeof(written));
+    if (!file) return false;
+    uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+    if (now < written || now - written > kCacheTtlSeconds) return false;
+    uint32_t keyLen = 0;
+    uint32_t bodyLen = 0;
+    file.read(reinterpret_cast<char*>(&keyLen), sizeof(keyLen));
+    file.read(reinterpret_cast<char*>(&bodyLen), sizeof(bodyLen));
+    if (!file || keyLen != key.size() || bodyLen == 0 || bodyLen > kCacheLimit / 4) return false;
+    std::string storedKey(keyLen, '\0');
+    file.read(&storedKey[0], keyLen);
+    if (!file || storedKey != key) return false;
+    std::string body(bodyLen, '\0');
+    file.read(&body[0], bodyLen);
+    if (!file) return false;
+    out = std::move(body);
+    return true;
+}
+
+static void SaveToDisk(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> lock(s_diskMutex);
+    std::ofstream file(CacheFilePath(key), std::ios::binary | std::ios::trunc);
+    if (!file) return;
+    const char magic[4] = { 'S', 'G', 'C', '1' };
+    uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+    uint32_t keyLen = static_cast<uint32_t>(key.size());
+    uint32_t bodyLen = static_cast<uint32_t>(value.size());
+    file.write(magic, sizeof(magic));
+    file.write(reinterpret_cast<const char*>(&now), sizeof(now));
+    file.write(reinterpret_cast<const char*>(&keyLen), sizeof(keyLen));
+    file.write(reinterpret_cast<const char*>(&bodyLen), sizeof(bodyLen));
+    file.write(key.data(), key.size());
+    file.write(value.data(), value.size());
+}
+
+static void CachePut(const std::string& key, const std::string& value);
+
 static bool CacheGet(const std::string& key, std::string& out) {
-    std::lock_guard<std::mutex> lock(s_cacheMutex);
-    auto it = s_cache.find(key);
-    if (it == s_cache.end()) return false;
-    out = it->second;
+    {
+        std::lock_guard<std::mutex> lock(s_cacheMutex);
+        auto it = s_cache.find(key);
+        if (it != s_cache.end()) {
+            out = it->second;
+            return true;
+        }
+    }
+    if (!LoadFromDisk(key, out)) return false;
+    CachePut(key, out); // repopulate the memory tier and refresh the timestamp
     return true;
 }
 
 static void CachePut(const std::string& key, const std::string& value) {
-    if (value.size() > kCacheLimit / 4) return;
-    std::lock_guard<std::mutex> lock(s_cacheMutex);
-    auto it = s_cache.find(key);
-    if (it != s_cache.end()) {
-        s_cacheBytes -= it->second.size();
-        it->second = value;
-        s_cacheBytes += value.size();
-        return;
+    if (value.empty() || value.size() > kCacheLimit / 4) return;
+    {
+        std::lock_guard<std::mutex> lock(s_cacheMutex);
+        auto it = s_cache.find(key);
+        if (it != s_cache.end()) {
+            s_cacheBytes -= it->second.size();
+            it->second = value;
+            s_cacheBytes += value.size();
+        } else {
+            if (s_cacheBytes + value.size() > kCacheLimit) {
+                // ponytail: map order is not LRU; add an LRU queue only if evictions hurt hit rate.
+                for (auto entry = s_cache.begin();
+                     entry != s_cache.end() && s_cacheBytes + value.size() > kCacheLimit;) {
+                    s_cacheBytes -= entry->second.size();
+                    entry = s_cache.erase(entry);
+                }
+            }
+            s_cache.emplace(key, value);
+            s_cacheBytes += value.size();
+        }
     }
-    if (s_cacheBytes + value.size() > kCacheLimit) return;
-    s_cache.emplace(key, value);
-    s_cacheBytes += value.size();
+    SaveToDisk(key, value);
 }
 
 static void HandleClient(SOCKET clientSock) {
@@ -260,10 +452,19 @@ static void HandleClient(SOCKET clientSock) {
         }
     }
 
-    // Convert target URL to wide characters
+    // Convert target URL to wide characters. Check the size query before
+    // indexing an empty std::wstring: malformed input must fail closed with a
+    // 400 rather than reaching WinHTTP as an empty URL (UB in &wstring[0]).
     int wlen = MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, nullptr, 0);
-    std::wstring wTargetUrl(wlen, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, &wTargetUrl[0], wlen);
+    if (wlen <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid upstream URL encoding.");
+        return;
+    }
+    std::wstring wTargetUrl(static_cast<size_t>(wlen), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, targetUrl.c_str(), -1, &wTargetUrl[0], wlen) <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid upstream URL encoding.");
+        return;
+    }
 
     URL_COMPONENTS urlComp = {};
     urlComp.dwStructSize = sizeof(urlComp);
@@ -279,49 +480,59 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
-    HINTERNET hSession = WinHttpOpen(L"Servo-Schannel-Bridge/1.0",
-                                     WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-                                     WINHTTP_NO_PROXY_NAME,
-                                     WINHTTP_NO_PROXY_BYPASS, 0);
+    ScopedGatewayContext scopedCtx;
+    if (!scopedCtx) {
+        SendErrorResponse(clientSock, "503 Service Unavailable", "Gateway Error: gateway is shutting down.");
+        return;
+    }
+    GatewayContext& ctx = *scopedCtx;
+    EnsureSession(ctx);
+    HINTERNET hSession = ctx.session;
     if (!hSession) {
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP session init failed.");
         return;
     }
 
-    // Bound every phase so a stuck upstream cannot pin a worker thread forever.
-    WinHttpSetTimeouts(hSession, 10000, 10000, 30000, 30000);
-
-    // Enable TLS 1.2
-    DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
-    WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
-
-    HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
+    HINTERNET hConnect = GetConnect(ctx, hostName, urlComp.nPort);
     if (!hConnect) {
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP connect failed.");
         return;
     }
 
     int methodWLen = MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, nullptr, 0);
-    std::wstring wMethod(methodWLen, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], methodWLen);
+    if (methodWLen <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
+        return;
+    }
+    std::wstring wMethod(static_cast<size_t>(methodWLen), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], methodWLen) <= 0) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
+        return;
+    }
 
     DWORD flags = (urlComp.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
     HINTERNET hRequest = WinHttpOpenRequest(hConnect, wMethod.c_str(), urlComp.lpszUrlPath,
                                            nullptr, WINHTTP_NO_REFERER,
                                            WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
     if (!hRequest) {
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP request init failed.");
         return;
     }
 
-    // Defensive option to allow legacy server certificates if needed
-    DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-                     SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
-                     SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
-    WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
+    // Relax TLS validation only for the legacy SXUK portal (IIS 8.5 with
+    // CBC/SHA-1 and a chain the modern stack rejects). Every other upstream
+    // proxied through this gateway keeps full chain, host and date validation.
+    std::wstring hostLower(hostName);
+    std::transform(hostLower.begin(), hostLower.end(), hostLower.begin(), ::towlower);
+    const bool legacyHost = hostLower.find(L"sxuk.org") != std::wstring::npos;
+    if (legacyHost) {
+        DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
+        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
+        DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+                         SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
+                         SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
+        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
+    }
 
     // Do NOT follow redirects automatically in WinHTTP!
     // The browser must receive 302/301 responses with Set-Cookie headers intact,
@@ -432,8 +643,7 @@ static void HandleClient(SOCKET clientSock) {
 
     if (!bResults || tooLarge) {
         WinHttpCloseHandle(hRequest);
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
+        DropConnect(ctx, hostName, urlComp.nPort);
         SendErrorResponse(clientSock, "502 Bad Gateway",
                           tooLarge ? "Gateway Error: upstream response too large."
                                    : "Gateway Error: WinHTTP failed to connect to legacy TLS server.");
@@ -533,8 +743,6 @@ static void HandleClient(SOCKET clientSock) {
     fullResponse += responseBody;
 
     WinHttpCloseHandle(hRequest);
-    WinHttpCloseHandle(hConnect);
-    WinHttpCloseHandle(hSession);
 
     if (cacheable && statusCode == 200 && !responseBody.empty()) {
         CachePut(targetUrl, fullResponse);
@@ -558,7 +766,18 @@ static void ServerLoop() {
         if (sel > 0 && FD_ISSET(s_listenSocket, &readSet)) {
             SOCKET client = accept(s_listenSocket, nullptr, nullptr);
             if (client != INVALID_SOCKET) {
-                std::thread(HandleClient, client).detach();
+                // HandleClient closes `client` on every return path, so the
+                // worker must not close it again. Rejected connections are
+                // closed here so Servo sees an immediate failure and retries.
+                if (s_activeClients.fetch_add(1) < kMaxConcurrentClients) {
+                    std::thread([client]() {
+                        HandleClient(client);
+                        s_activeClients.fetch_sub(1);
+                    }).detach();
+                } else {
+                    s_activeClients.fetch_sub(1);
+                    closesocket(client);
+                }
             }
         }
     }
@@ -601,6 +820,13 @@ bool Start(unsigned short port) {
         return false;
     }
 
+    {
+        std::lock_guard<std::mutex> lock(s_contextMutex);
+        while (s_freeContexts.size() < static_cast<size_t>(kGatewayContexts)) {
+            s_freeContexts.push_back(std::make_unique<GatewayContext>());
+        }
+    }
+
     s_running.store(true);
     s_workerThread = std::thread(ServerLoop);
     return true;
@@ -609,6 +835,7 @@ bool Start(unsigned short port) {
 void Stop() {
     if (!s_running.load()) return;
     s_running.store(false);
+    s_contextCv.notify_all();
     if (s_listenSocket != INVALID_SOCKET) {
         closesocket(s_listenSocket);
         s_listenSocket = INVALID_SOCKET;

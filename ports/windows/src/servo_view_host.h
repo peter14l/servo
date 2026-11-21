@@ -28,6 +28,10 @@ public:
 
     HWND GetHwnd() const { return m_hwnd; }
     struct WebView* GetWebView() const { return m_webview; }
+    // True once the popup create request has been handed to a WebView builder
+    // (and must therefore not be freed by the Rust delegate callback).
+    bool WasRequestConsumed() const { return m_requestConsumed; }
+    bool IsValid() const { return m_hwnd != nullptr && m_webview != nullptr; }
 
     void SetBounds(int x, int y, int width, int height);
     void Show(bool show);
@@ -72,7 +76,9 @@ private:
     static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* callbackUserData, void* userData);
     static void OnNotifyCrashed(struct WebView* webview, const char* reason, const char* backtrace, void* userData);
     static void OnStatusTextChanged(struct WebView* webview, const char* status, void* userData);
-    static void OnRequestAuthentication(struct WebView* webview, const char* host, uint16_t port, const char* realm, void (*callback)(const char*, const char*, void*), void* userData);
+    static void OnFindResult(struct WebView* webview, int identifier, int count, const struct ServoFindResult* result, void* userData);
+    // `port` must be int32_t to match the generated C API delegate signature.
+    static void OnRequestAuthentication(struct WebView* webview, const char* host, int32_t port, const char* realm, void (*callback)(const char*, const char*, void*), void* userData);
 
     static void OnClipboardClear(struct WebView* webview, void* userData);
     static void OnClipboardGetText(struct WebView* webview, struct ServoClipboardStringRequest* request, void* userData);
@@ -88,5 +94,14 @@ private:
     RenderingContext* m_context;
     BrowserWindow* m_browserWindow;
     bool m_trackingMouse;
+    bool m_requestConsumed = false;
+    // Painting calls synchronously into WebRender, so only do it when a frame
+    // is actually ready. Resize/expose set this again to avoid stale pixels.
+    bool m_hasNewFrame = true;
+    // On software-rendered pages a single frame can take >1 s. Dropping frames
+    // keeps the UI thread responsive instead of painting back-to-back forever.
+    ULONGLONG m_lastPaintEndMs = 0;
+    DWORD m_paintThrottleMs = 0;
+    bool m_paintTimerPending = false;
     HCURSOR m_currentCursor;
 };

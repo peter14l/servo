@@ -5,6 +5,7 @@
 //! Methods for layout of node
 
 use atomic_refcell::AtomicRef;
+use html5ever::{local_name, ns};
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
     SVGElementData,
@@ -26,6 +27,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
@@ -281,20 +283,51 @@ impl<'dom> LayoutDom<'dom, Node> {
         Some(RangeAny::new(start, end))
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn text_node_paints_caret(&self) -> bool {
-        self.parent_node_ref().is_some_and(|parent| {
-            parent.is_text_container_of_single_line_input() ||
-                unsafe { parent.unsafe_get().is_editable_or_editing_host() }
-        })
+    /// Layout-safe equivalent of `Node::is_editable_or_editing_host()`.
+    ///
+    /// The script-thread implementation roots ancestors and reads attributes
+    /// through `DomRefCell`, both of which assert `is_script()` and are invalid
+    /// on the layout thread. Walk `LayoutDom` parents instead and read the
+    /// `contenteditable` attribute through `get_attr_val_for_layout`, mirroring
+    /// `make_enumerated_getter!(ContentEditable, "contenteditable", ...)`:
+    /// missing/invalid value means "inherit", an empty value means "true", and
+    /// keywords are matched ASCII case-insensitively.
+    pub(crate) fn is_editable_or_editing_host_for_layout(self) -> bool {
+        let mut current = Some(self);
+        while let Some(node) = current {
+            if let Some(element) = node.downcast::<HTMLElement>() {
+                let state = element
+                    .upcast::<Element>()
+                    .get_attr_val_for_layout(&ns!(), &local_name!("contenteditable"));
+                match state {
+                    Some(value)
+                        if value.eq_ignore_ascii_case("true")
+                            || value.eq_ignore_ascii_case("plaintext-only")
+                            || value.is_empty() =>
+                    {
+                        // Editing host (matches `HTMLElement::is_editing_host`).
+                        return true;
+                    },
+                    Some(value) if value.eq_ignore_ascii_case("false") => {
+                        // An ancestor with `contenteditable="false"` stops the walk.
+                        return false;
+                    },
+                    _ => {},
+                }
+            }
+            current = node.composed_parent_node_ref();
+        }
+        false
     }
 
-    #[expect(unsafe_code)]
+    pub(crate) fn text_node_paints_caret(&self) -> bool {
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+            || (*self).is_editable_or_editing_host_for_layout()
+    }
+
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
-        self.parent_node_ref().is_some_and(|parent| {
-            parent.is_text_container_of_single_line_input() ||
-                unsafe { parent.unsafe_get().is_editable_or_editing_host() }
-        })
+        (*self).is_editable_or_editing_host_for_layout()
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {

@@ -30,6 +30,9 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <memory>
+#include <mutex>
+#include <utility>
 #include <share.h>
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
@@ -128,7 +131,11 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
 
 void LogDebug(const char* fmt, ...) {
     static FILE* f = nullptr;
-    if (!f) {
+    // The watchdog thread can log concurrently with the UI thread. Make the
+    // one-time file open thread-safe independently of g_log_cs (which is not
+    // initialised until main() starts).
+    static std::once_flag initFlag;
+    std::call_once(initFlag, []() {
         wchar_t exePath[MAX_PATH] = {};
         GetModuleFileNameW(nullptr, exePath, MAX_PATH);
         wchar_t* lastSlash = wcsrchr(exePath, L'\\');
@@ -139,7 +146,7 @@ void LogDebug(const char* fmt, ...) {
         } else {
             f = _wfsopen(L"servo_browser.log", L"a", _SH_DENYNO);
         }
-    }
+    });
     if (f) {
         va_list args;
         va_start(args, fmt);
@@ -168,12 +175,80 @@ static volatile LONG g_ui_current_msg = 0;
 static volatile LONG64 g_ui_msg_started = 0;
 static volatile LONG g_ui_watchdog_running = 0;
 
+// Lightweight, allocation-free counters for the Phase 3 performance work.
+// The watchdog reads them atomically for a periodic `[PERF]` summary, so UI
+// stalls can be attributed without attaching a profiler.
+static volatile LONG g_wakePosted = 0;
+static volatile LONG64 g_wakeCallbacks = 0;
+static volatile LONG64 g_wakePosts = 0;
+static volatile LONG64 g_wakeCoalesced = 0;
+static volatile LONG64 g_spinCount = 0;
+static volatile LONG64 g_spinMsTotal = 0;
+static volatile LONG64 g_spinMsMax = 0;
+static volatile LONG64 g_paintCount = 0;
+static volatile LONG64 g_paintMsTotal = 0;
+static volatile LONG64 g_paintMsMax = 0;
+static volatile LONG64 g_controlCount = 0;
+static volatile LONG64 g_controlMsTotal = 0;
+static volatile LONG64 g_controlMsMax = 0;
+static volatile LONG64 g_droppedFrames = 0;
+
+static void RecordMax(volatile LONG64& counter, LONG64 value) {
+    LONG64 current = InterlockedCompareExchange64(&counter, 0, 0);
+    while (value > current) {
+        LONG64 previous = InterlockedCompareExchange64(&counter, value, current);
+        if (previous == current) break;
+        current = previous;
+    }
+}
+
+void RecordPaintDuration(unsigned long long milliseconds) {
+    InterlockedIncrement64(&g_paintCount);
+    InterlockedExchangeAdd64(&g_paintMsTotal, (LONG64)milliseconds);
+    RecordMax(g_paintMsMax, (LONG64)milliseconds);
+}
+
+void RecordDeferredControlDuration(unsigned long long milliseconds) {
+    InterlockedIncrement64(&g_controlCount);
+    InterlockedExchangeAdd64(&g_controlMsTotal, (LONG64)milliseconds);
+    RecordMax(g_controlMsMax, (LONG64)milliseconds);
+}
+
+void RecordDroppedFrame() {
+    InterlockedIncrement64(&g_droppedFrames);
+}
+
+static void LogPerfSummary(const char* when) {
+    LogDebug(
+        "[PERF] %s wake(cb=%lld post=%lld coalesced=%lld) spin(count=%lld ms=%lld max=%lld) "
+        "paint(count=%lld ms=%lld max=%lld) control(count=%lld ms=%lld max=%lld) drop=%lld",
+        when,
+        (long long)InterlockedCompareExchange64(&g_wakeCallbacks, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_wakePosts, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_wakeCoalesced, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_spinCount, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_spinMsTotal, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_spinMsMax, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_paintCount, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_paintMsTotal, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_paintMsMax, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_controlCount, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_controlMsTotal, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_controlMsMax, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_droppedFrames, 0, 0));
+}
+
 static DWORD WINAPI UiWatchdogProc(LPVOID) {
     int stalled_seconds = 0;
+    int summary_ticks = 0;
     while (InterlockedCompareExchange(&g_ui_watchdog_running, 1, 1) != 0) {
         Sleep(1000);
         if (InterlockedCompareExchange(&g_ui_watchdog_running, 1, 1) == 0) {
             break;
+        }
+        if (++summary_ticks >= 10) {
+            summary_ticks = 0;
+            LogPerfSummary("periodic");
         }
         HWND hwnd = g_main_hwnd;
         if (!hwnd) {
@@ -201,11 +276,42 @@ static DWORD WINAPI UiWatchdogProc(LPVOID) {
 }
 
 static void on_servo_wake_callback(void) {
-    if (g_main_hwnd && IsWindow(g_main_hwnd)) {
-        PostMessageW(g_main_hwnd, WM_APP_SERVO_WAKE, 0, 0);
+    InterlockedIncrement64(&g_wakeCallbacks);
+    HWND hwnd = g_main_hwnd;
+    if (hwnd && IsWindow(hwnd)) {
+        // Collapse a burst of channel notifications into one pump iteration.
+        // Clear the flag BEFORE spinning so wakes arriving during a spin are
+        // still observed (a lost wake here would stall the engine).
+        if (InterlockedCompareExchange(&g_wakePosted, 1, 0) == 0) {
+            if (PostMessageW(hwnd, WM_APP_SERVO_WAKE, 0, 0)) {
+                InterlockedIncrement64(&g_wakePosts);
+            } else {
+                InterlockedExchange(&g_wakePosted, 0);
+            }
+        } else {
+            InterlockedIncrement64(&g_wakeCoalesced);
+        }
     } else if (g_main_thread_id != 0) {
         PostThreadMessageW(g_main_thread_id, WM_APP_SERVO_WAKE, 0, 0);
     }
+}
+
+bool PostUiTask(UiTask task) {
+    if (!task) return false;
+    HWND hwnd = g_main_hwnd;
+    if (!hwnd || !IsWindow(hwnd)) {
+        // Only reachable during startup; delegate callbacks run after the
+        // window exists, so this is a defensive fallback, not a hot path.
+        task();
+        return true;
+    }
+    auto* heapTask = new UiTask(std::move(task));
+    if (PostMessageW(hwnd, WM_APP_RUN_UI_TASK, 0, reinterpret_cast<LPARAM>(heapTask))) {
+        return true;
+    }
+    delete heapTask;
+    LogDebug("[PERF] failed to post UI task (error %lu); native control not shown", GetLastError());
+    return false;
 }
 
 static void on_devtools_server_started(struct Servo* servo, uint16_t port, const char* token, void* user_data) {
@@ -484,8 +590,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     g_main_hwnd = browserWindow->GetHwnd();
     LogDebug("Browser window created successfully. HWND: 0x%p", g_main_hwnd);
 
-    // Kickstart the Servo event loop so initial navigation starts immediately
-    PostMessageW(g_main_hwnd, WM_APP_SERVO_WAKE, 0, 0);
+    // Kickstart the Servo event loop so initial navigation starts immediately.
+    // Claim the coalescing slot so a simultaneous engine wake does not queue a
+    // second, redundant spin.
+    InterlockedExchange(&g_wakePosted, 1);
+    if (PostMessageW(g_main_hwnd, WM_APP_SERVO_WAKE, 0, 0)) {
+        InterlockedIncrement64(&g_wakePosts);
+    } else {
+        InterlockedExchange(&g_wakePosted, 0);
+    }
 
     // 5. External Message Pump
     LogDebug("Entering message pump...");
@@ -503,7 +616,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         InterlockedExchange(&g_ui_current_msg, (LONG)msg.message);
         InterlockedExchange64(&g_ui_msg_started, (LONG64)start);
         if (msg.message == WM_APP_SERVO_WAKE) {
+            InterlockedExchange(&g_wakePosted, 0);
+            ULONGLONG spinStart = GetTickCount64();
+            InterlockedIncrement64(&g_spinCount);
             ServoSpinEventLoopOnce(servo);
+            ULONGLONG spinMs = GetTickCount64() - spinStart;
+            InterlockedExchangeAdd64(&g_spinMsTotal, (LONG64)spinMs);
+            RecordMax(g_spinMsMax, (LONG64)spinMs);
+        } else if (msg.message == WM_APP_RUN_UI_TASK) {
+            std::unique_ptr<UiTask> task(reinterpret_cast<UiTask*>(msg.lParam));
+            if (task && *task) {
+                ULONGLONG controlStart = GetTickCount64();
+                (*task)();
+                ULONGLONG controlMs = GetTickCount64() - controlStart;
+                RecordDeferredControlDuration(controlMs);
+                if (controlMs >= 250) {
+                    LogDebug("[PERF] deferred native control took %llu ms", controlMs);
+                }
+            }
         } else {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
@@ -515,6 +645,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         }
     }
     InterlockedExchange(&g_ui_watchdog_running, 0);
+    LogPerfSummary("shutdown");
     LogDebug("Message pump finished with code %d", (int)msg.wParam);
 
     // 6. Cleanup: safely terminate process to avoid background thread teardown races

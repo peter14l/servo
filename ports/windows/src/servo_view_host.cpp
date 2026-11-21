@@ -12,6 +12,8 @@
 #include <windowsx.h>
 #include <commdlg.h>
 #include <algorithm>
+#include <deque>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -20,6 +22,12 @@ static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 // Script 1: Platform Web Standards Compatibility
 static const char* s_platformCompatScript = R"JS(
 (function() {
+    // The document-start user script and the load-status injection can both
+    // run in the same document. Bail out on the second execution.
+    if (typeof window !== 'undefined') {
+        if (window.__servoCompatShieldInstalled) return;
+        window.__servoCompatShieldInstalled = true;
+    }
     try {
         // 1. Cooperative Scheduling (requestIdleCallback)
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'undefined') {
@@ -200,7 +208,8 @@ static const char* s_platformCompatScript = R"JS(
 
                     // Find username input preceding password field
                     var allInputs = Array.from(document.querySelectorAll('input'));
-                    var pwdIdx = allInputs.indexOf(pwdInput);
+                    var pwdIdx = allInputs.indexOf(pwdInput);)JS"
+    R"JS(
                     for (var i = pwdIdx - 1; i >= 0; i--) {
                         var inp = allInputs[i];
                         var t = (inp.type || 'text').toLowerCase();
@@ -367,6 +376,11 @@ static const char* s_platformCompatScript = R"JS(
 // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Video MediaSource, Instagram DM hooks)
 static const char* s_appEnhancementsScript = R"JS(
 (function() {
+    // See the compat shield guard: avoid running the same shims twice.
+    if (typeof window !== 'undefined') {
+        if (window.__servoAppEnhancementsInstalled) return;
+        window.__servoAppEnhancementsInstalled = true;
+    }
     try {
         // Escape hatch: `servo_noshim=1` in the URL disables app-specific shims
         // so page behaviour can be A/B compared against stock web standards.
@@ -701,14 +715,19 @@ ServoViewHost* ServoViewHost::GetActiveHost() {
 }
 
 // Embedder-control callbacks receive an opaque responder handle as `user_data`
-// (see docs/embedding/C_API_GUIDE.md, "Embedder controls"), so the host has to
-// be resolved from the WebView that fired the callback.
+// (see docs/embedding/C_API_GUIDE.md, "Embedder controls"), so the host cannot
+// be taken from that argument.
 ServoViewHost* ServoViewHost::FromWebView(struct WebView* webview) {
     if (!webview) return nullptr;
     for (ServoViewHost* host : s_allHosts) {
         if (host && host->m_webview == webview) return host;
     }
-    return nullptr;
+    // The C API currently passes `&mut webview` from a stack-local WebView
+    // clone (ffi/capi/webview_delegate.rs), so the pointer above is not the
+    // handle returned by servo_webview_builder_build and normally will not
+    // match. Select and context-menu controls are only reachable from trusted
+    // input, so the host under the cursor at callback time is the right one.
+    return GetActiveHost();
 }
 
 ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl)
@@ -738,6 +757,11 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         this
     );
     LogDebug("ServoViewHost child window created: 0x%p", m_hwnd);
+    if (!m_hwnd) {
+        LogDebug("ServoViewHost child window creation failed (error %lu); aborting view construction.",
+                 GetLastError());
+        return;
+    }
 
     // Create windowed rendering context
     RECT rc = {};
@@ -793,7 +817,10 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
         delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
         delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
-        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
+        delegate.on_find_result = reinterpret_cast<decltype(delegate.on_find_result)>(OnFindResult);
+        // Direct assignment (no reinterpret_cast) makes the compiler enforce
+        // the ABI signature, including the int32_t port type.
+        delegate.request_authentication = OnRequestAuthentication;
 
         ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
         LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
@@ -808,6 +835,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 
         m_webview = servo_webview_builder_build(builder);
         LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
+        if (!m_webview) {
+            LogDebug("Servo WebView build failed; the view will be empty until the window is recreated.");
+        }
     }
 }
 
@@ -858,6 +888,9 @@ ServoViewHost::ServoViewHost(
 
         auto* builder = servo_create_new_webview_builder_create(request, m_context);
         if (builder) {
+            // The request handle was consumed by the builder. From here on the
+            // Rust side must not free it, so the create callback returns true.
+            m_requestConsumed = true;
             m_context = nullptr; // Ownership transferred to builder
             servo_webview_builder_set_hidpi_scale_factor(builder, scale);
             ConfigureUserContentManager(m_servo, builder);
@@ -886,8 +919,11 @@ ServoViewHost::ServoViewHost(
             delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
             delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
             delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
-        delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
-        delegate.request_authentication = reinterpret_cast<decltype(delegate.request_authentication)>(OnRequestAuthentication);
+            delegate.notify_status_text_changed = reinterpret_cast<decltype(delegate.notify_status_text_changed)>(OnStatusTextChanged);
+            delegate.on_find_result = reinterpret_cast<decltype(delegate.on_find_result)>(OnFindResult);
+            // Direct assignment (no reinterpret_cast) makes the compiler enforce
+            // the ABI signature, including the int32_t port type.
+            delegate.request_authentication = OnRequestAuthentication;
 
             servo_webview_builder_set_delegate(builder, delegate);
 
@@ -929,6 +965,7 @@ void ServoViewHost::SetBounds(int x, int y, int width, int height) {
         SetWindowPos(m_hwnd, nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
         if (m_webview && width > 0 && height > 0) {
             servo_webview_resize(m_webview, width, height);
+            m_hasNewFrame = true;
             InvalidateRect(m_hwnd, nullptr, FALSE);
         }
     }
@@ -1063,11 +1100,45 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(m_hwnd, &ps);
-        if (m_webview) {
+        // WebRender paint/present is synchronous and can take seconds on a
+        // heavy page. Multiple OnNewFrameReady calls already coalesce into one
+        // WM_PAINT at the Win32 level; this flag additionally skips paints
+        // caused by expose/toolbar repaint when no new frame exists.
+        bool needsPaint = m_hasNewFrame;
+        if (!needsPaint && m_webview) {
+            // Conservative fallback: a large paint region means the window was
+            // exposed or resized; skipping it would leave stale pixels.
+            RECT client = {};
+            GetClientRect(m_hwnd, &client);
+            const RECT& dirty = ps.rcPaint;
+            long long dirtyArea = (long long)(dirty.right - dirty.left) *
+                                  (long long)(dirty.bottom - dirty.top);
+            long long clientArea = (long long)(client.right - client.left) *
+                                   (long long)(client.bottom - client.top);
+            needsPaint = dirtyArea > 0 && clientArea > 0 && dirtyArea >= clientArea / 2;
+        }
+        if (m_webview && needsPaint) {
+            m_hasNewFrame = false;
+            ULONGLONG paintStart = GetTickCount64();
             servo_webview_paint(m_webview);
             servo_webview_present(m_webview);
+            ULONGLONG paintMs = GetTickCount64() - paintStart;
+            m_lastPaintEndMs = GetTickCount64();
+            // Leave the UI thread idle for at least as long as the last paint
+            // took when frames are expensive, so input and dialogs can run.
+            if (paintMs >= 400) {
+                m_paintThrottleMs =
+                  (DWORD)std::min<ULONGLONG>(paintMs * 3, (ULONGLONG)5000);
+            } else if (paintMs >= 100) {
+                m_paintThrottleMs = (DWORD)paintMs;
+            } else {
+                m_paintThrottleMs = 0;
+            }
+            RecordPaintDuration(paintMs);
+            if (paintMs >= 250) {
+                LogDebug("[PERF] paint took %llu ms", paintMs);
+            }
         }
-
         EndPaint(m_hwnd, &ps);
         return 0;
     }
@@ -1081,11 +1152,21 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         uint32_t h = HIWORD(lParam);
         if (m_webview && w > 0 && h > 0) {
             servo_webview_resize(m_webview, w, h);
+            m_hasNewFrame = true;
             InvalidateRect(m_hwnd, nullptr, FALSE);
-            UpdateWindow(m_hwnd);
+            // Do not call UpdateWindow here: it forces a synchronous WebRender
+            // paint inside the resize handler and produces multi-second stalls.
         }
         return 0;
     }
+
+    case WM_TIMER:
+        if (wParam == 2) {  // adaptive paint throttle
+            m_paintTimerPending = false;
+            m_hasNewFrame = true;
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
+        return 0;
 
     case WM_DPICHANGED: {
         UINT dpi = HIWORD(wParam);
@@ -1326,9 +1407,26 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
 void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_hwnd) {
-        InvalidateRect(self->m_hwnd, nullptr, FALSE);
+    if (!self || !self->m_hwnd) return;
+
+    ULONGLONG now = GetTickCount64();
+    if (self->m_paintThrottleMs && self->m_lastPaintEndMs) {
+        ULONGLONG sinceLastPaint = now - self->m_lastPaintEndMs;
+        if (sinceLastPaint < self->m_paintThrottleMs) {
+            // Drop this frame. Schedule one delayed repaint so a rapidly
+            // animating page cannot paint back-to-back and freeze the UI.
+            RecordDroppedFrame();
+            if (!self->m_paintTimerPending) {
+                self->m_paintTimerPending = true;
+                SetTimer(self->m_hwnd, 2,
+                         (UINT)(self->m_paintThrottleMs - sinceLastPaint), nullptr);
+            }
+            return;
+        }
     }
+
+    self->m_hasNewFrame = true;
+    InvalidateRect(self->m_hwnd, nullptr, FALSE);
 }
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {
@@ -1457,24 +1555,38 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
     }
 }
 
+static std::wstring Utf8ToWide(const char* text) {
+    int len = MultiByteToWideChar(CP_UTF8, 0, text ? text : "", -1, nullptr, 0);
+    std::wstring result;
+    if (len <= 0) return result;
+    result.resize(static_cast<size_t>(len));
+    MultiByteToWideChar(CP_UTF8, 0, text ? text : "", -1, &result[0], len);
+    result.resize(static_cast<size_t>(len - 1));
+    return result;
+}
+
 void ServoViewHost::OnAlertDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData) {
     auto self = FromWebView(webview);
-    int len = MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, nullptr, 0);
-    std::vector<wchar_t> wmsg(len);
-    MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, wmsg.data(), len);
-
-    MessageBoxW(self ? self->m_hwnd : nullptr, wmsg.data(), L"Alert", MB_OK | MB_ICONINFORMATION);
-    if (callback) callback(true, userData);
+    HWND owner = self ? self->m_hwnd : nullptr;
+    std::wstring wmsg = Utf8ToWide(message);
+    if (!PostUiTask([owner, wmsg, callback, userData]() {
+            MessageBoxW(owner, wmsg.c_str(), L"Alert", MB_OK | MB_ICONINFORMATION);
+            if (callback) callback(true, userData);
+        })) {
+        if (callback) callback(true, userData);
+    }
 }
 
 void ServoViewHost::OnConfirmDialog(struct WebView* webview, const char* message, void (*callback)(bool, void*), void* userData) {
     auto self = FromWebView(webview);
-    int len = MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, nullptr, 0);
-    std::vector<wchar_t> wmsg(len);
-    MultiByteToWideChar(CP_UTF8, 0, message ? message : "", -1, wmsg.data(), len);
-
-    int res = MessageBoxW(self ? self->m_hwnd : nullptr, wmsg.data(), L"Confirm", MB_YESNO | MB_ICONQUESTION);
-    if (callback) callback(res == IDYES, userData);
+    HWND owner = self ? self->m_hwnd : nullptr;
+    std::wstring wmsg = Utf8ToWide(message);
+    if (!PostUiTask([owner, wmsg, callback, userData]() {
+            int res = MessageBoxW(owner, wmsg.c_str(), L"Confirm", MB_YESNO | MB_ICONQUESTION);
+            if (callback) callback(res == IDYES, userData);
+        })) {
+        if (callback) callback(false, userData);
+    }
 }
 
 void ServoViewHost::OnPromptDialog(struct WebView* webview, const char* message, const char* defaultVal, void (*callback)(const char*, void*), void* userData) {
@@ -1484,22 +1596,27 @@ void ServoViewHost::OnPromptDialog(struct WebView* webview, const char* message,
 
 void ServoViewHost::OnFilePicker(struct WebView* webview, bool allowMultiple, void (*callback)(const char* const*, size_t, void*), void* userData) {
     auto self = FromWebView(webview);
-    wchar_t szFile[MAX_PATH * 4] = { 0 };
+    HWND owner = self ? self->m_hwnd : nullptr;
+    if (!PostUiTask([owner, allowMultiple, callback, userData]() {
+            wchar_t szFile[MAX_PATH * 4] = { 0 };
+            OPENFILENAMEW ofn = {};
+            ofn.lStructSize = sizeof(ofn);
+            ofn.hwndOwner = owner;
+            ofn.lpstrFile = szFile;
+            ofn.nMaxFile = sizeof(szFile) / sizeof(wchar_t);
+            ofn.lpstrFilter = L"All Files (*.*)\0*.*\0HTML Files (*.html;*.htm)\0*.html;*.htm\0\0";
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
+                        (allowMultiple ? OFN_ALLOWMULTISELECT | OFN_EXPLORER : 0);
 
-    OPENFILENAMEW ofn = {};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = self ? self->m_hwnd : nullptr;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile) / sizeof(wchar_t);
-    ofn.lpstrFilter = L"All Files (*.*)\0*.*\0HTML Files (*.html;*.htm)\0*.html;*.htm\0\0";
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | (allowMultiple ? OFN_ALLOWMULTISELECT | OFN_EXPLORER : 0);
-
-    if (GetOpenFileNameW(&ofn)) {
-        char utf8Path[MAX_PATH * 3] = { 0 };
-        WideCharToMultiByte(CP_UTF8, 0, szFile, -1, utf8Path, sizeof(utf8Path), nullptr, nullptr);
-        const char* paths[] = { utf8Path };
-        if (callback) callback(paths, 1, userData);
-    } else {
+            if (GetOpenFileNameW(&ofn)) {
+                char utf8Path[MAX_PATH * 3] = { 0 };
+                WideCharToMultiByte(CP_UTF8, 0, szFile, -1, utf8Path, sizeof(utf8Path), nullptr, nullptr);
+                const char* paths[] = { utf8Path };
+                if (callback) callback(paths, 1, userData);
+            } else {
+                if (callback) callback(nullptr, 0, userData);
+            }
+        })) {
         if (callback) callback(nullptr, 0, userData);
     }
 }
@@ -1609,9 +1726,13 @@ void ServoViewHost::OnRequestPermission(
     void* callbackUserData,
     void* /*userData*/
 ) {
-    LogDebug("Permission requested: type=%d for origin '%s'", permission, origin ? origin : "");
+    // No permission UI exists yet. Granting geolocation, camera, microphone,
+    // notifications, etc. silently is a privacy/security bug, so fail closed.
+    // A real per-origin permission prompt is tracked for the feature phase.
+    LogDebug("[PERMISSION] Denied type=%d for origin '%s' (no permission UI yet)",
+             permission, origin ? origin : "");
     if (callback) {
-        callback(true, callbackUserData);
+        callback(false, callbackUserData);
     }
 }
 
@@ -1652,15 +1773,32 @@ void ServoViewHost::OnStatusTextChanged(struct WebView* /*webview*/, const char*
     }
 }
 
+void ServoViewHost::OnFindResult(
+    struct WebView* /*webview*/,
+    int identifier,
+    int count,
+    const struct ServoFindResult* result,
+    void* userData
+) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self || !self->m_browserWindow) return;
+    int ordinal = 0;
+    if (count > 0 && result) {
+        ordinal = servo_find_result_get_active_match_ordinal(result);
+        if (ordinal <= 0) ordinal = 1;
+    }
+    self->m_browserWindow->OnFindResult(identifier, count, ordinal);
+}
+
 void ServoViewHost::OnRequestAuthentication(
     struct WebView* /*webview*/,
     const char* host,
-    uint16_t port,
+    int32_t port,
     const char* realm,
     void (*callback)(const char*, const char*, void*),
     void* userData
 ) {
-    LogDebug("[AUTH] HTTP authentication requested for %s:%u (realm: %s)",
+    LogDebug("[AUTH] HTTP authentication requested for %s:%d (realm: %s)",
              host ? host : "unknown",
              port,
              realm ? realm : "none");
@@ -1759,6 +1897,65 @@ static std::wstring Utf8ToMenuLabel(const char* text) {
     return escaped;
 }
 
+// Deep copy of a select control's parameters. The C API structs contain raw
+// pointers into Rust-owned memory that is freed as soon as the delegate
+// callback returns, but the deferred UI task runs later in the main pump.
+struct OwnedSelectParams {
+    // deque keeps previously returned c_str()/data() pointers stable while new
+    // strings/groups are appended.
+    std::deque<std::string> strings;
+    std::deque<std::vector<ServoSelectElementOption>> groups;
+    std::vector<ServoSelectElementOptionOrOptgroup> entries;
+    std::vector<size_t> selected;
+    ServoSelectElementParams view{};
+};
+
+static const char* OwnUtf8(std::deque<std::string>& strings, const char* text) {
+    strings.emplace_back(text ? text : "");
+    return strings.back().c_str();
+}
+
+static std::shared_ptr<OwnedSelectParams> CloneSelectParams(const ServoSelectElementParams* src) {
+    auto owned = std::make_shared<OwnedSelectParams>();
+    if (!src) return owned;
+
+    if (src->selected_options && src->selected_options_count) {
+        owned->selected.assign(src->selected_options,
+                               src->selected_options + src->selected_options_count);
+    }
+    if (src->options && src->options_count) {
+        owned->entries.resize(src->options_count);
+        for (size_t i = 0; i < src->options_count; ++i) {
+            const auto& in = src->options[i];
+            auto& out = owned->entries[i];
+            out = in;  // copy ids/flags/tag; replace every pointer below
+            out.option.label = OwnUtf8(owned->strings, in.tag == 0 ? in.option.label : nullptr);
+            out.optgroup_label = OwnUtf8(owned->strings, in.tag == 0 ? nullptr : in.optgroup_label);
+            if (in.tag != 0 && in.optgroup_options && in.optgroup_options_count) {
+                owned->groups.emplace_back();
+                auto& group = owned->groups.back();
+                group.resize(in.optgroup_options_count);
+                for (size_t j = 0; j < group.size(); ++j) {
+                    group[j] = in.optgroup_options[j];
+                    group[j].label = OwnUtf8(owned->strings, in.optgroup_options[j].label);
+                }
+                out.optgroup_options = group.data();
+                out.optgroup_options_count = group.size();
+            } else {
+                out.optgroup_options = nullptr;
+                out.optgroup_options_count = 0;
+            }
+        }
+    }
+
+    owned->view.options = owned->entries.empty() ? nullptr : owned->entries.data();
+    owned->view.options_count = owned->entries.size();
+    owned->view.selected_options = owned->selected.empty() ? nullptr : owned->selected.data();
+    owned->view.selected_options_count = owned->selected.size();
+    owned->view.allow_select_multiple = src->allow_select_multiple;
+    return owned;
+}
+
 // Add one <option> to `hMenu`, recording the menu command id that maps back to
 // the option's `id`. Note that `id` values are not indices into `params.options`
 // (optgroups count as a single entry there), so the mapping has to be explicit.
@@ -1816,8 +2013,14 @@ static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* par
     const UINT kOkCommand = 0xFFFF;
     const bool multiple = params->allow_select_multiple;
 
-    POINT pt;
-    GetCursorPos(&pt);
+    POINT pt = {};
+    if (!GetCursorPos(&pt)) {
+        RECT rc = {};
+        if (GetWindowRect(owner, &rc)) {
+            pt.x = rc.left + (rc.right - rc.left) / 2;
+            pt.y = rc.top + (rc.bottom - rc.top) / 2;
+        }
+    }
 
     // A popup menu only tracks the mouse reliably when its owner is the
     // foreground window, so take the foreground first. Without this the menu
@@ -1889,49 +2092,67 @@ static bool RunSelectMenu(HWND owner, const struct ServoSelectElementParams* par
     return confirmed;
 }
 
+static void AnswerSelect(void (*callback)(const size_t*, size_t, void*), void* userData,
+                         const std::vector<size_t>& selection) {
+    if (!callback) return;
+    if (selection.empty()) {
+        callback(nullptr, 0, userData);
+    } else {
+        callback(selection.data(), selection.size(), userData);
+    }
+}
+
 void ServoViewHost::OnShowSelectElement(struct WebView* webview, const struct ServoSelectElementParams* params, void (*callback)(const size_t*, size_t, void*), void* userData) {
     if (!callback) return;
 
     // `userData` is the opaque responder handle Rust handed us, not this host,
     // so resolve the host from the WebView and pass the handle back untouched.
     auto self = FromWebView(webview);
-    if (!self || !self->m_hwnd || !params || !params->options || params->options_count == 0) {
-        LogDebug("[SELECT] ignoring control (host=0x%p hwnd=0x%p params=0x%p options=%lu)",
-                 (void*)self, self ? (void*)self->m_hwnd : nullptr, (const void*)params,
-                 params ? (unsigned long)params->options_count : 0UL);
-        callback(nullptr, 0, userData);
-        return;
-    }
-
-    LogDebug("[SELECT] showing menu (options=%lu selected=%lu multiple=%d thread=%lu)",
-             (unsigned long)params->options_count,
-             (unsigned long)params->selected_options_count,
-             params->allow_select_multiple ? 1 : 0,
-             (unsigned long)GetCurrentThreadId());
 
     std::vector<size_t> selection;
-    if (params->selected_options && params->selected_options_count > 0) {
+    if (params && params->selected_options && params->selected_options_count > 0) {
         selection.assign(params->selected_options,
                          params->selected_options + params->selected_options_count);
     }
     const std::vector<size_t> initialSelection = selection;
 
-    bool confirmed = RunSelectMenu(self->m_hwnd, params, selection);
-    LogDebug("[SELECT] menu closed (confirmed=%d selection=%lu)",
-             confirmed ? 1 : 0, (unsigned long)selection.size());
-
-    if (!confirmed || selection.empty()) {
-        // Dismissed: answer with the current selection so the page is left
-        // unchanged (answering with an empty list would clear the element).
-        if (!initialSelection.empty()) {
-            callback(initialSelection.data(), initialSelection.size(), userData);
-        } else {
-            callback(nullptr, 0, userData);
-        }
+    if (!self || !self->m_hwnd || !IsWindow(self->m_hwnd) ||
+        !params || !params->options || params->options_count == 0) {
+        LogDebug("[SELECT] ignoring control (host=0x%p hwnd=0x%p params=0x%p options=%lu)",
+                 (void*)self, self ? (void*)self->m_hwnd : nullptr, (const void*)params,
+                 params ? (unsigned long)params->options_count : 0UL);
+        // Even when the menu cannot be shown, answer with the current
+        // selection so the page is left unchanged.
+        AnswerSelect(callback, userData, initialSelection);
         return;
     }
 
-    callback(selection.data(), selection.size(), userData);
+    HWND owner = self->m_hwnd;
+    auto owned = CloneSelectParams(params);
+    if (!PostUiTask([owner, owned, callback, userData, initialSelection]() {
+            if (!owner || !IsWindow(owner)) {
+                AnswerSelect(callback, userData, initialSelection);
+                return;
+            }
+            LogDebug("[SELECT] showing menu (options=%lu selected=%lu multiple=%d thread=%lu)",
+                     (unsigned long)owned->view.options_count,
+                     (unsigned long)owned->view.selected_options_count,
+                     owned->view.allow_select_multiple ? 1 : 0,
+                     (unsigned long)GetCurrentThreadId());
+
+            std::vector<size_t> result = initialSelection;
+            bool confirmed = RunSelectMenu(owner, &owned->view, result);
+            LogDebug("[SELECT] menu closed (confirmed=%d selection=%lu)",
+                     confirmed ? 1 : 0, (unsigned long)result.size());
+
+            // Dismissed: answer with the current selection so the page is left
+            // unchanged (answering with an empty list would clear the element).
+            AnswerSelect(callback, userData,
+                         (!confirmed || result.empty()) ? initialSelection : result);
+        })) {
+        // Posting failed: still answer once so the engine is not left waiting.
+        AnswerSelect(callback, userData, initialSelection);
+    }
 }
 
 

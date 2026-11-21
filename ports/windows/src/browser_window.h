@@ -9,13 +9,28 @@
 #endif
 #include <windows.h>
 #include <dwmapi.h>
+#include <functional>
 #include <string>
 #include <memory>
+#include <map>
 #include <servo/servo_capi.h>
 
 #define WM_APP_SERVO_WAKE (WM_APP + 101)
+// Deferred native controls (select/alert/confirm/file picker) run here instead
+// of inside the Servo event-loop spin, so user interaction time is not charged
+// to WM_APP_SERVO_WAKE and does not block engine message dispatch.
+#define WM_APP_RUN_UI_TASK (WM_APP + 102)
 
 void LogDebug(const char* fmt, ...);
+
+using UiTask = std::function<void()>;
+// Posts a task to the main UI pump. Runs it inline only before the pump exists.
+bool PostUiTask(UiTask task);
+
+// Performance counters owned by the main pump; called from the view host.
+void RecordPaintDuration(unsigned long long milliseconds);
+void RecordDeferredControlDuration(unsigned long long milliseconds);
+void RecordDroppedFrame();
 
 // Runs one Servo event-loop spin unless one is already running on this thread.
 // Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or
@@ -49,6 +64,7 @@ public:
     int FindInPage(const char* text, bool forward, bool matchCase);
     int FindNext(int identifier, bool forward);
     void ClearFind(int identifier);
+    void OnFindResult(int identifier, int count, int activeOrdinal);
 
     void OnActiveTabSwitched(const std::string& url, const std::wstring& title);
     void OnActiveTabUrlChanged(const char* url);
@@ -103,6 +119,13 @@ private:
     std::unique_ptr<FindBar> m_findBar;
     std::unique_ptr<class DownloadManager> m_downloadManager;
 
+    // Servo allocates a fresh ServoDownloadItem for every callback, so map by
+    // URL rather than pointer to keep progress on the correct download row.
+    std::map<std::string, uint64_t> m_downloadIds;
+    uint64_t m_nextDownloadId = 1;
+
+    int m_findIdentifier = -1;
+
     uint16_t m_devtoolsPort;
     std::string m_devtoolsToken;
     std::string m_currentUrl;
@@ -111,6 +134,9 @@ private:
     bool m_isDark;
     bool m_isFullscreen;
     bool m_verticalTabs = false;
+    // Popups created by window.open() must not quit the app or overwrite the
+    // main window's saved session when they are closed.
+    bool m_isPopup = false;
     RECT m_topBarToggleBtnBounds = {};
     RECT m_topBarMinBtnBounds = {};
     RECT m_topBarMaxBtnBounds = {};

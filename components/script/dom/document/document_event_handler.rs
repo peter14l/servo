@@ -932,6 +932,7 @@ impl DocumentEventHandler {
 
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
     /// Handles native mouse down, mouse up, mouse click.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn handle_native_mouse_button_event(
         &self,
         cx: &mut JSContext,
@@ -1236,6 +1237,7 @@ impl DocumentEventHandler {
 
     /// <https://w3c.github.io/pointerevents/#handle-native-mouse-click>
     /// <https://w3c.github.io/pointerevents/#handle-native-mouse-double-click>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn maybe_trigger_click_for_mouse_button_down_event(
         &self,
         cx: &mut JSContext,

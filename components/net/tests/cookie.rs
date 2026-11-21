@@ -781,8 +781,8 @@ fn test_partitioned_cookie_storage_filtering() {
     let sent = storage
         .cookies_for_url_with_context(&url, source, matching_context)
         .unwrap();
-    assert!(sent.contains("unpart=1"));
-    assert!(sent.contains("part=1"));
+    assert!(sent.split("; ").any(|cookie| cookie == "unpart=1"));
+    assert!(sent.split("; ").any(|cookie| cookie == "part=1"));
 
     // Different partition receives only the unpartitioned cookie.
     let different_partition_context = SameSiteContext {
@@ -794,13 +794,13 @@ fn test_partitioned_cookie_storage_filtering() {
     let sent_diff = storage
         .cookies_for_url_with_context(&url, source, different_partition_context)
         .unwrap();
-    assert!(sent_diff.contains("unpart=1"));
-    assert!(!sent_diff.contains("part=1"));
+    assert!(sent_diff.split("; ").any(|cookie| cookie == "unpart=1"));
+    assert!(!sent_diff.split("; ").any(|cookie| cookie == "part=1"));
 
     // Missing partition key receives only the unpartitioned cookie.
     let sent_none = storage
         .cookies_for_url_with_context(&url, source, SameSiteContext::SAME_SITE)
         .unwrap();
-    assert!(sent_none.contains("unpart=1"));
-    assert!(!sent_none.contains("part=1"));
+    assert!(sent_none.split("; ").any(|cookie| cookie == "unpart=1"));
+    assert!(!sent_none.split("; ").any(|cookie| cookie == "part=1"));
 }

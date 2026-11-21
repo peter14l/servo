@@ -41,6 +41,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
+use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mediastream::MediaStream;
@@ -191,7 +192,7 @@ impl RTCPeerConnection {
         window: &Window,
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
-    ) -> DomRoot<RTCPeerConnection> {
+    ) -> Fallible<DomRoot<RTCPeerConnection>> {
         let this = reflect_weak_referenceable_dom_object_with_proto(
             cx,
             Rc::new(RTCPeerConnection::new_inherited()),
@@ -199,7 +200,30 @@ impl RTCPeerConnection {
             proto,
         );
         let signaller = this.make_signaller();
-        *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));
+        let global = window.global();
+        if global
+            .get_csp_list()
+            .should_rtc_connections_be_blocked(cx, global)
+        {
+            // CSP requires that no candidates are gathered and no connectivity
+            // checks are attempted. Use a local-only controller and transition
+            // the connection to "failed" once script has had a chance to
+            // observe the initial "new" state.
+            *this.controller.borrow_mut() = Some(WebRtcController::new_blocked(signaller));
+            let trusted = Trusted::new(&*this);
+            global.task_manager().networking_task_source().queue(task!(
+                csp_blocked_webrtc: move |cx| {
+                    trusted
+                        .root()
+                        .update_ice_connection_state(cx, IceConnectionState::Failed);
+                }
+            ));
+        } else {
+            match ServoMedia::get().create_webrtc(signaller) {
+                Ok(controller) => *this.controller.borrow_mut() = Some(controller),
+                Err(_) => return Err(Error::Type(c"WebRTC initialization failed".to_owned())),
+            }
+        }
         let ice_servers: Vec<IceServer> = config
             .iceServers
             .as_ref()
@@ -249,7 +273,7 @@ impl RTCPeerConnection {
             .as_ref()
             .unwrap()
             .configure(ice_servers, bundle_policy, ice_transport_policy, rtcp_mux_policy);
-        this
+        Ok(this)
     }
 
     pub(crate) fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
@@ -566,7 +590,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(cx, window, proto, config))
+        RTCPeerConnection::new(cx, window, proto, config)
     }
 
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate

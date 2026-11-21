@@ -32,7 +32,8 @@ use servo_media_traits::{ClientContextId, MediaInstance};
 use servo_media_webrtc::{
     BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, IceCandidate, IceServer,
     IceTransportPolicy, RtcpMuxPolicy, SessionDescription, WebRtcBackend, WebRtcController,
-    WebRtcControllerBackend, WebRtcDataChannelResult, WebRtcResult, WebRtcSignaller, thread,
+    WebRtcControllerBackend, WebRtcDataChannelResult, WebRtcError, WebRtcResult, WebRtcSignaller,
+    thread,
 };
 
 pub struct DummyBackend;
@@ -135,7 +136,10 @@ impl Backend for DummyBackend {
         )?)))
     }
 
-    fn create_webrtc(&self, signaller: Box<dyn WebRtcSignaller>) -> WebRtcController {
+    fn create_webrtc(
+        &self,
+        signaller: Box<dyn WebRtcSignaller>,
+    ) -> Result<WebRtcController, WebRtcError> {
         WebRtcController::new::<Self>(signaller)
     }
 
@@ -333,8 +337,8 @@ impl WebRtcBackend for DummyBackend {
     fn construct_webrtc_controller(
         _: Box<dyn WebRtcSignaller>,
         _: WebRtcController,
-    ) -> Self::Controller {
-        DummyWebRtcController
+    ) -> Result<Self::Controller, WebRtcError> {
+        Ok(DummyWebRtcController)
     }
 }
 

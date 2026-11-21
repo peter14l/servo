@@ -45,6 +45,8 @@ pub(crate) trait CspReporting {
         source: &str,
     ) -> bool;
     fn is_wasm_evaluation_allowed(&self, cx: &mut JSContext, global: &GlobalScope) -> bool;
+    /// <https://www.w3.org/TR/CSP3/#should-rtc-connections-be-blocked-for-global>
+    fn should_rtc_connections_be_blocked(&self, cx: &mut JSContext, global: &GlobalScope) -> bool;
     fn should_navigation_request_be_blocked(
         &self,
         cx: &mut JSContext,
@@ -128,6 +130,42 @@ impl CspReporting for Option<CspList> {
         global.report_csp_violations(cx, violations, None, None);
 
         is_wasm_evaluation_allowed == CheckResult::Allowed
+    }
+
+    /// <https://www.w3.org/TR/CSP3/#should-rtc-connections-be-blocked-for-global>
+    fn should_rtc_connections_be_blocked(&self, cx: &mut JSContext, global: &GlobalScope) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+
+        let mut blocked = false;
+        let mut violations = Vec::new();
+        for policy in &csp_list.0 {
+            for directive in &policy.directive_set {
+                if directive.name != "webrtc" {
+                    continue;
+                }
+
+                // The directive is only satisfied by a single `'allow'`
+                // value; `'block'` and unrecognized values block RTC.
+                if directive.value.len() == 1 && directive.value[0].eq_ignore_ascii_case("'allow'")
+                {
+                    continue;
+                }
+
+                violations.push(Violation {
+                    resource: ViolationResource::Inline { sample: None },
+                    directive: directive.clone(),
+                    policy: policy.clone(),
+                });
+                if policy.disposition == PolicyDisposition::Enforce {
+                    blocked = true;
+                }
+            }
+        }
+
+        global.report_csp_violations(cx, violations, None, None);
+        blocked
     }
 
     /// <https://www.w3.org/TR/CSP/#should-block-navigation-request>

@@ -698,9 +698,29 @@ impl GStreamerWebRtcController {
                 None
             });
 
-        self.pipeline.set_state(gstreamer::State::Ready)?;
+        if let Err(error) = self.pipeline.set_state(gstreamer::State::Ready) {
+            return Err(format!(
+                "failed to set WebRTC pipeline to READY: {error} ({})",
+                pipeline_bus_error(&self.pipeline)
+            )
+            .into());
+        }
         Ok(())
     }
+}
+
+/// GStreamer's `set_state` error does not say which element failed. The bus
+/// error message does, so include it when reporting a failed state change.
+fn pipeline_bus_error(pipeline: &gstreamer::Pipeline) -> String {
+    let Some(bus) = pipeline.bus() else {
+        return "no bus message".to_owned();
+    };
+    while let Some(message) = bus.pop() {
+        if let gstreamer::MessageView::Error(error) = message.view() {
+            return format!("{} (debug: {:?})", error.error(), error.debug());
+        }
+    }
+    "no bus message".to_owned()
 }
 
 pub fn construct(
@@ -733,13 +753,7 @@ pub fn construct(
         data_channels: Arc::new(Mutex::new(HashMap::new())),
         next_data_channel_id: Arc::new(AtomicUsize::new(0)),
     };
-    // A pipeline can fail to reach READY on hosts without a usable media sink
-    // (CI runners, for example). Keep the controller alive in that case so a
-    // failed RTCPeerConnection construction reports an error to script instead
-    // of panicking and taking down the whole browser process.
-    if let Err(error) = controller.start_pipeline() {
-        warn!("WebRTC pipeline failed to start: {error:?}");
-    }
+    controller.start_pipeline()?;
     Ok(controller)
 }
 

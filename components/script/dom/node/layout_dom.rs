@@ -5,6 +5,7 @@
 //! Methods for layout of node
 
 use atomic_refcell::AtomicRef;
+use html5ever::{local_name, ns};
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
     SVGElementData,
@@ -20,7 +21,6 @@ use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
-use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::{LayoutDom, ToLayout, ToLayoutOptional};
 use crate::dom::document::Document;
@@ -285,19 +285,34 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     /// Layout-safe equivalent of `Node::is_editable_or_editing_host()`.
     ///
-    /// The script-thread implementation roots ancestors, which is not allowed
-    /// on the layout thread. Walk `LayoutDom` parents instead and replicate the
-    /// editing-host rules using layout-safe attribute access.
+    /// The script-thread implementation roots ancestors and reads attributes
+    /// through `DomRefCell`, both of which assert `is_script()` and are invalid
+    /// on the layout thread. Walk `LayoutDom` parents instead and read the
+    /// `contenteditable` attribute through `get_attr_val_for_layout`, mirroring
+    /// `make_enumerated_getter!(ContentEditable, "contenteditable", ...)`:
+    /// missing/invalid value means "inherit", an empty value means "true", and
+    /// keywords are matched ASCII case-insensitively.
     pub(crate) fn is_editable_or_editing_host_for_layout(self) -> bool {
         let mut current = Some(self);
         while let Some(node) = current {
             if let Some(element) = node.downcast::<HTMLElement>() {
-                let element = element.unsafe_get();
-                if element.is_editing_host() {
-                    return true;
-                }
-                if element.ContentEditable().str() == "false" {
-                    return false;
+                let state = element
+                    .upcast::<Element>()
+                    .get_attr_val_for_layout(&ns!(), &local_name!("contenteditable"));
+                match state {
+                    Some(value)
+                        if value.eq_ignore_ascii_case("true")
+                            || value.eq_ignore_ascii_case("plaintext-only")
+                            || value.is_empty() =>
+                    {
+                        // Editing host (matches `HTMLElement::is_editing_host`).
+                        return true;
+                    },
+                    Some(value) if value.eq_ignore_ascii_case("false") => {
+                        // An ancestor with `contenteditable="false"` stops the walk.
+                        return false;
+                    },
+                    _ => {},
                 }
             }
             current = node.composed_parent_node_ref();

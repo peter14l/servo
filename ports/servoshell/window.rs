@@ -387,13 +387,13 @@ impl ServoShellWindow {
                     }
                 },
                 UserInterfaceCommand::BookmarkCurrentPage => {
-                    if let Some(active_webview) = self.active_webview() {
-                        if let Some(url) = active_webview.url() {
-                            let title = active_webview
-                                .page_title()
-                                .unwrap_or_else(|| url.to_string());
-                            RunningAppState::persist_bookmark(url.as_str(), &title);
-                        }
+                    if let Some(active_webview) = self.active_webview()
+                        && let Some(url) = active_webview.url()
+                    {
+                        let title = active_webview
+                            .page_title()
+                            .unwrap_or_else(|| url.to_string());
+                        RunningAppState::persist_bookmark(url.as_str(), &title);
                     }
                 },
                 UserInterfaceCommand::NewWebView => {

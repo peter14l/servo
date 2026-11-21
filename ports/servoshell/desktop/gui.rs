@@ -669,12 +669,13 @@ impl Gui {
                                     }
 
                                     let ctrl_w = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::W));
-                                    if ctrl_w {
-                                        if let Some(active_id) = window.webview_collection.borrow().active_id() {
-                                            window.queue_user_interface_command(
-                                                UserInterfaceCommand::CloseWebView(active_id),
-                                            );
-                                        }
+                                    if ctrl_w
+                                        && let Some(active_id) =
+                                            window.webview_collection.borrow().active_id()
+                                    {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::CloseWebView(active_id),
+                                        );
                                     }
 
                                     let ctrl_shift_t = ui.input(|i| {

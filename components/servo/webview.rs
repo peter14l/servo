@@ -128,6 +128,8 @@ pub(crate) struct WebViewInner {
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
+    /// Whether the current load status has been forwarded to the delegate at least once.
+    load_status_notified: bool,
     status_text: Option<String>,
     page_title: Option<String>,
     favicon: Option<Image>,
@@ -188,7 +190,8 @@ impl WebView {
             grafted_accesskit_tree_epoch: None,
             accessibility_viewport_changed: Cell::new(false),
             hidpi_scale_factor: builder.hidpi_scale_factor,
-            load_status: LoadStatus::Complete,
+            load_status: LoadStatus::Started,
+            load_status_notified: false,
             status_text: None,
             page_title: None,
             favicon: None,
@@ -346,11 +349,19 @@ impl WebView {
     }
 
     pub(crate) fn set_load_status(self, new_value: LoadStatus) {
-        if self.inner().load_status == new_value {
-            return;
+        let should_notify = {
+            let mut inner = self.inner_mut();
+            if inner.load_status == new_value && inner.load_status_notified {
+                false
+            } else {
+                inner.load_status = new_value;
+                inner.load_status_notified = true;
+                true
+            }
+        };
+        if should_notify {
+            self.delegate().notify_load_status_changed(self, new_value);
         }
-        self.inner_mut().load_status = new_value;
-        self.delegate().notify_load_status_changed(self, new_value);
     }
 
     /// Get the URL of the currently active page in this [`WebView`]'s navigation history.

@@ -216,7 +216,7 @@ Existing `[SLOW]`/`[HANG]` instrumentation cannot separate spin/paint/modal time
 
 Implementation order in this phase: (1) perf counters + wake coalescing + 100 ms timer, (2) defer modal controls to `WM_APP_RUN_UI_TASK`, (3) frame-driven paint coalescing, (4) CI build + install + re-measure.
 
-**Phase 3 implementation status:** items (1)-(3) landed in `01b900fe011`; local `g++ -fsyntax-only` passes for all changed C++ files. CI run `44790271927` was started; artifact download, install and re-measurement are STILL PENDING.
+**Phase 3 implementation status:** items (1)-(3) landed in `01b900fe011`; local `g++ -fsyntax-only` passes for all changed C++ files. CI run `44790271927` PASSED build, unit tests, packaging and artifact upload; the artifact was downloaded, installed and runtime-verified. See section 11 for measurements and remaining work.
 
 ## 10. Phase 4 - final gap audit (static, 20 Nov 2026)
 
@@ -323,3 +323,26 @@ Method: static source inspection against a mainstream desktop-browser baseline. 
 3. **M** - Security/privacy dialogs: permission prompt, HTTP auth, real JS prompt, multi-select picker.
 4. **M-L** - Secure credential storage + form-aware autofill (remove `raw:` fallback).
 5. **M-L** - Remaining performance tail: bounded Rust spins, compat-script dedup, bounded gateway threads, cache eviction.
+
+## 11. Phase 3 runtime verification and adaptive paint throttle (21 Nov 2026)
+
+### 11.1 Verification results from installed `01b900fe011` artifact
+
+| Check | State | Evidence |
+|---|---|---|
+| CI build/test/package/upload | PASSED | Run `44790271927` for commit `01b900fe011`; artifact downloaded and installed from the extracted inner setup package. |
+| Native `<select>` dropdown | PASSED | User reported "Done"; three successful `[SELECT]` pairs in an earlier session and two in the retest; no `TrackPopupMenuEx returned 0`. |
+| Responder deferral | PASSED | No post-fix `[SLOW] msg=0x8065` (`WM_APP_SERVO_WAKE`); human interaction appears only as `[SLOW] msg=0x8066` (`WM_APP_RUN_UI_TASK`) plus `[PERF] deferred native control took 1985 ms` and `922 ms`. |
+| Wake coalescing / spin bound | PASSED | `[PERF] periodic wake(cb=3826 post=1911 coalesced=1913) spin(count=1913 ms=373 max=16)`. |
+| Password logging / IPC payload safety | PASSED | No plaintext password or `__servo_ipc__` payload in `LogDebug`; only benign `prompt_save_password` message name appears. |
+| Popup close does not quit browser | PASSED | Verified with the installed artifact during SXUK popup testing. |
+
+Measured paint tail from the same runtime session: `[PERF] paint(count=517 ms=610436 max=2218)` with many 1640-2141 ms paints and 79 `[HANG]` lines. The SXUK attendance page continuously produces new frames, so frame-driven paint coalescing alone cannot keep the UI thread responsive on this software-rendered machine.
+
+### 11.2 Adaptive paint throttle (local, uncommitted at time of writing)
+
+Files: `ports/windows/src/servo_view_host.h`, `ports/windows/src/servo_view_host.cpp`, `ports/windows/src/browser_window.h`, `ports/windows/src/main.cpp`.
+
+Design: after each paint, set `m_paintThrottleMs` to 3x the last paint duration (capped at 5000 ms) for paints >= 400 ms, to the last duration for 100-399 ms paints, and to 0 for fast paints. `OnNewFrameReady` drops frames arriving inside the throttle window and schedules at most one delayed repaint with `SetTimer(hwnd, 2, ...)`; `WM_TIMER` clears the pending flag, marks a frame ready and invalidates the client area. Resize/large-expose paths still set `m_hasNewFrame` directly so user-visible geometry changes are not throttled. A `drop=N` field was added to the 10-second `[PERF]` summary so the next runtime test can prove frames were actually dropped.
+
+Verification state: `g++ -fsyntax-only -DUNICODE -D_UNICODE` PASSED for `servo_view_host.cpp`, `browser_window.cpp` and `main.cpp` using the generated C API header at `C:\Users\LOQ\AppData\Local\Temp\opencode\capi`. CI build, artifact install and runtime re-measurement are NOT_RUN for this throttle change. Next step is to commit code plus these docs, run CI, install the new artifact, and confirm the dropdown/deferral/password checks still pass while `[HANG]` and total paint time improve.

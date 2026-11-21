@@ -191,6 +191,7 @@ static volatile LONG64 g_paintMsMax = 0;
 static volatile LONG64 g_controlCount = 0;
 static volatile LONG64 g_controlMsTotal = 0;
 static volatile LONG64 g_controlMsMax = 0;
+static volatile LONG64 g_droppedFrames = 0;
 
 static void RecordMax(volatile LONG64& counter, LONG64 value) {
     LONG64 current = InterlockedCompareExchange64(&counter, 0, 0);
@@ -213,10 +214,14 @@ void RecordDeferredControlDuration(unsigned long long milliseconds) {
     RecordMax(g_controlMsMax, (LONG64)milliseconds);
 }
 
+void RecordDroppedFrame() {
+    InterlockedIncrement64(&g_droppedFrames);
+}
+
 static void LogPerfSummary(const char* when) {
     LogDebug(
         "[PERF] %s wake(cb=%lld post=%lld coalesced=%lld) spin(count=%lld ms=%lld max=%lld) "
-        "paint(count=%lld ms=%lld max=%lld) control(count=%lld ms=%lld max=%lld)",
+        "paint(count=%lld ms=%lld max=%lld) control(count=%lld ms=%lld max=%lld) drop=%lld",
         when,
         (long long)InterlockedCompareExchange64(&g_wakeCallbacks, 0, 0),
         (long long)InterlockedCompareExchange64(&g_wakePosts, 0, 0),
@@ -229,7 +234,8 @@ static void LogPerfSummary(const char* when) {
         (long long)InterlockedCompareExchange64(&g_paintMsMax, 0, 0),
         (long long)InterlockedCompareExchange64(&g_controlCount, 0, 0),
         (long long)InterlockedCompareExchange64(&g_controlMsTotal, 0, 0),
-        (long long)InterlockedCompareExchange64(&g_controlMsMax, 0, 0));
+        (long long)InterlockedCompareExchange64(&g_controlMsMax, 0, 0),
+        (long long)InterlockedCompareExchange64(&g_droppedFrames, 0, 0));
 }
 
 static DWORD WINAPI UiWatchdogProc(LPVOID) {

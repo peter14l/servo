@@ -30,6 +30,7 @@ bool PostUiTask(UiTask task);
 // Performance counters owned by the main pump; called from the view host.
 void RecordPaintDuration(unsigned long long milliseconds);
 void RecordDeferredControlDuration(unsigned long long milliseconds);
+void RecordDroppedFrame();
 
 // Runs one Servo event-loop spin unless one is already running on this thread.
 // Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or

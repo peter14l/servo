@@ -98,5 +98,10 @@ private:
     // Painting calls synchronously into WebRender, so only do it when a frame
     // is actually ready. Resize/expose set this again to avoid stale pixels.
     bool m_hasNewFrame = true;
+    // On software-rendered pages a single frame can take >1 s. Dropping frames
+    // keeps the UI thread responsive instead of painting back-to-back forever.
+    ULONGLONG m_lastPaintEndMs = 0;
+    DWORD m_paintThrottleMs = 0;
+    bool m_paintTimerPending = false;
     HCURSOR m_currentCursor;
 };

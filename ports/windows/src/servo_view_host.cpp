@@ -1112,6 +1112,17 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             servo_webview_paint(m_webview);
             servo_webview_present(m_webview);
             ULONGLONG paintMs = GetTickCount64() - paintStart;
+            m_lastPaintEndMs = GetTickCount64();
+            // Leave the UI thread idle for at least as long as the last paint
+            // took when frames are expensive, so input and dialogs can run.
+            if (paintMs >= 400) {
+                m_paintThrottleMs =
+                  (DWORD)std::min<ULONGLONG>(paintMs * 3, (ULONGLONG)5000);
+            } else if (paintMs >= 100) {
+                m_paintThrottleMs = (DWORD)paintMs;
+            } else {
+                m_paintThrottleMs = 0;
+            }
             RecordPaintDuration(paintMs);
             if (paintMs >= 250) {
                 LogDebug("[PERF] paint took %llu ms", paintMs);
@@ -1137,6 +1148,14 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
     }
+
+    case WM_TIMER:
+        if (wParam == 2) {  // adaptive paint throttle
+            m_paintTimerPending = false;
+            m_hasNewFrame = true;
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
+        return 0;
 
     case WM_DPICHANGED: {
         UINT dpi = HIWORD(wParam);
@@ -1377,10 +1396,26 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
 void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_hwnd) {
-        self->m_hasNewFrame = true;
-        InvalidateRect(self->m_hwnd, nullptr, FALSE);
+    if (!self || !self->m_hwnd) return;
+
+    ULONGLONG now = GetTickCount64();
+    if (self->m_paintThrottleMs && self->m_lastPaintEndMs) {
+        ULONGLONG sinceLastPaint = now - self->m_lastPaintEndMs;
+        if (sinceLastPaint < self->m_paintThrottleMs) {
+            // Drop this frame. Schedule one delayed repaint so a rapidly
+            // animating page cannot paint back-to-back and freeze the UI.
+            RecordDroppedFrame();
+            if (!self->m_paintTimerPending) {
+                self->m_paintTimerPending = true;
+                SetTimer(self->m_hwnd, 2,
+                         (UINT)(self->m_paintThrottleMs - sinceLastPaint), nullptr);
+            }
+            return;
+        }
     }
+
+    self->m_hasNewFrame = true;
+    InvalidateRect(self->m_hwnd, nullptr, FALSE);
 }
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {

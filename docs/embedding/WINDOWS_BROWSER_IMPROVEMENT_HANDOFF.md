@@ -366,6 +366,23 @@ User retested login -> attendance page -> semester dropdown with the installed `
 
 The max paint duration dropped from 2218 ms to 766 ms, total paint time from 610436 ms to 2851 ms, and `[HANG]` from 79 to 0. The only remaining non-zero slow messages are the intentionally deferred native controls (`msg=0x8066`), which no longer block engine spin/wake dispatch. Remaining gaps are unchanged from section 10.7; performance tail work can now focus on the next tier (bounded Rust spins, compat-script dedup, bounded gateway threads, cache eviction) rather than emergency UI-thread stalls.
 
+### 11.4 Runtime verification of the C API fix build (`58f1ab5f231`)
+
+Artifact `14693532299` from CI run `44868241752` was downloaded, SHA256-verified against GitHub's digest (`3a26ccb93f6a0306c1fc2edddd8f802977a77499dace2949ea7064509af6d75d`), double-expanded and installed to `%LOCALAPPDATA%\Programs\Servo Browser`. The installed `servo_browser.exe` SHA256 matches the artifact copy. The user repeated the SXUK login -> attendance page -> semester dropdown interaction.
+
+| Check | State | Evidence (current session only) |
+|---|---|---|
+| Dropdown shows/closes | PASSED | 2 `[SELECT] showing menu (options=9 selected=1 multiple=0)` and 2 `[SELECT] menu closed (confirmed=1 selection=1)` pairs. |
+| Native popup health | PASSED | `popup_failure=0` (no `TrackPopupMenuEx returned 0`). |
+| Deferred controls | PASSED | `slow_wake_8065=0`; 2 `msg=0x8066` deferred controls. |
+| Password/IPC payload safety | PASSED | `plaintext_password=0`, `servo_ipc_payload=0`. |
+| UI responsiveness | PASSED | `hang=0`; no `[HANG]` lines in the session. |
+| JS injection | PASSED | No `[JS EVAL ERR]` lines. |
+
+Final session counters: `[PERF] periodic wake(cb=2448 post=861 coalesced=1585) spin(count=863 ms=172 max=31) paint(count=661 ms=23522 max=766) control(count=2 ms=3110 max=2078) drop=61`.
+
+Paint-time observation (not a blocker): the previous verified build had `paint(count=6002 ms=4325 max=766)`; this session shows 42 paints >=250 ms (17.4 s of the 23.5 s total) beginning on `newtab.html` before any SXUK navigation. Max paint is unchanged at 766 ms and `hang=0`, so the adaptive throttle cap still holds. The cause was not isolated; system load from other desktop processes was high during the session. No code changes were made in response.
+
 ## 12. Embedding C API cross-platform failures (21 Nov 2026)
 
 Failing CI: run `44861051245` (Embedding API C API) failed all three `Build and test servo-capi-tests` jobs, while the Windows browser build for the same commit passed. Failure log saved locally at `C:\Users\LOQ\AppData\Local\Temp\opencode\capi-failed.log`.
@@ -388,5 +405,19 @@ Existing C tests are the regression tests: `test_rendering_context_create_window
 - `graphify update .`: PASSED after the Rust edits.
 - Independent review of the first C API commit caught a missing `HTMLElementMethods` import (would have failed to compile) and a shadow-root edge case where a text node directly under a `ShadowRoot` could miss its editing host. Both were corrected in follow-up commit `a8eb3cd8e61` before re-running CI.
 - CI run `44865679150` at `c63a01806fa`: FAILED on all platforms with `E0599: no method named ContentEditable` (the missing trait import).
-- CI run `44866327739` at `a8eb3cd8e61`: FAILED on Linux/macOS/Windows. Backtrace showed the remaining runtime defect: `LayoutDom::is_editable_or_editing_host_for_layout` -> `HTMLElement::is_editing_host` -> `HTMLElementMethods::ContentEditable` -> `Element::get_attribute_string_value` -> `DomRefCell::borrow` -> `assert_in_script()`. Adding the import fixed compilation but not the thread assertion. Linux integration process ended with `signal: 11, SIGSEGV`. The helper has been rewritten to use `get_attr_val_for_layout` (see 12.2); this fix is local and NOT_RUN in CI yet.
+- CI run `44866327739` at `a8eb3cd8e61`: FAILED on Linux/macOS/Windows. Backtrace showed the remaining runtime defect: `LayoutDom::is_editable_or_editing_host_for_layout` -> `HTMLElement::is_editing_host` -> `HTMLElementMethods::ContentEditable` -> `Element::get_attribute_string_value` -> `DomRefCell::borrow` -> `assert_in_script()`. Adding the import fixed compilation but not the thread assertion. Linux integration process ended with `signal: 11, SIGSEGV`.
+- The layout-safe rewrite (section 12.2) was committed and pushed as `58f1ab5f231`. Both CI runs for that head PASSED:
+  - `44868241728` — Embedding API (C API): **PASSED** on Linux, macOS and Windows. `Build and test servo-capi-tests`, cbindgen header generation, exported-symbol check and deprecation-path check all succeeded. This closes the C API cross-platform failure investigated in section 12.
+  - `44868241752` — Native Windows Browser Build: **PASSED**, including `Build servo-capi (release)`, CMake/MSVC browser build, browser unit tests, packaging, self-signing and artifact upload.
 - CI run `44866327733` (Native Windows Browser Build) at `a8eb3cd8e61`: PASSED, including `Build servo-capi (release)`, the CMake/MSVC browser build, browser unit tests, packaging, self-signing and artifact upload.
+
+## 13. Performance-tail prep (21 Nov 2026)
+
+All items below were prepared but left UNCOMMITTED while the `58f1ab5f231` CI runs were in flight (a push would have cancelled/restarted them). Both runs have now PASSED; these changes are still uncommitted and are not part of the verified browser artifact yet.
+
+| Item | State | Notes |
+|---|---|---|
+| Cache eviction in `schannel_gateway.cpp::CachePut` | Prepared, syntax-checked, scratch-tested | Replace silent "drop new entry when full" with evicting oldest map-order entries until `s_cacheBytes + value.size() <= kCacheLimit`. Scratch test confirmed `s_cacheBytes == kCacheLimit` and newest key retained. |
+| Bounded gateway client threads | Prepared, syntax-checked | `ServerLoop` now gates detached `HandleClient` threads at `kMaxConcurrentClients = 64` using `s_activeClients`. `HandleClient` closes its own socket on every path, so the worker does not close it again; rejected connections are closed in the accept loop. Verified with `g++ -fsyntax-only -std=c++17` (exit 0). |
+| Compat-script dedup/guard | Investigated, no change needed | `s_platformCompatScript` already uses per-feature idempotency markers (`__servo_dialog_limiter_installed`, `__servo_instagram_hooks_installed`, `__servo_diag_installed`, `__shadycss_trap_installed`) and feature detection. A single top-level marker risks skipping hooks that must be reinstalled on a new document, so no change was made. |
+| Bounded Rust spins in `components/servo/servo.rs` | Deferred | File already contains ~100 lines of unrelated local changes; touching it would mix work with user changes. Not needed for the SXUK fix. |

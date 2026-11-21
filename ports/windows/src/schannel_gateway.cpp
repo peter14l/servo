@@ -29,6 +29,10 @@
 namespace SchannelGateway {
 
 static std::atomic<bool> s_running{false};
+// Bound detached client threads so a pathological page cannot exhaust the
+// process with unbounded concurrent gateway connections.
+static std::atomic<int> s_activeClients{0};
+static const int kMaxConcurrentClients = 64;
 static std::thread s_workerThread;
 static SOCKET s_listenSocket = INVALID_SOCKET;
 static unsigned short s_port = 51820;
@@ -189,7 +193,13 @@ static void CachePut(const std::string& key, const std::string& value) {
         s_cacheBytes += value.size();
         return;
     }
-    if (s_cacheBytes + value.size() > kCacheLimit) return;
+    if (s_cacheBytes + value.size() > kCacheLimit) {
+        // ponytail: map order is not LRU; add an LRU queue only if evictions hurt hit rate.
+        for (auto it = s_cache.begin(); it != s_cache.end() && s_cacheBytes + value.size() > kCacheLimit;) {
+            s_cacheBytes -= it->second.size();
+            it = s_cache.erase(it);
+        }
+    }
     s_cache.emplace(key, value);
     s_cacheBytes += value.size();
 }
@@ -589,7 +599,18 @@ static void ServerLoop() {
         if (sel > 0 && FD_ISSET(s_listenSocket, &readSet)) {
             SOCKET client = accept(s_listenSocket, nullptr, nullptr);
             if (client != INVALID_SOCKET) {
-                std::thread(HandleClient, client).detach();
+                // HandleClient closes `client` on every return path, so the
+                // worker must not close it again. Rejected connections are
+                // closed here so Servo sees an immediate failure and retries.
+                if (s_activeClients.fetch_add(1) < kMaxConcurrentClients) {
+                    std::thread([client]() {
+                        HandleClient(client);
+                        s_activeClients.fetch_sub(1);
+                    }).detach();
+                } else {
+                    s_activeClients.fetch_sub(1);
+                    closesocket(client);
+                }
             }
         }
     }

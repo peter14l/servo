@@ -45,7 +45,6 @@ use euclid::{Length, Point2D, Rect, Scale, Size2D};
     target_os = "macos"
 ))]
 use log::info;
-use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
     RenderingContext, WebView, WebViewId,
@@ -463,7 +462,7 @@ impl Gui {
                                                 window.queue_user_interface_command(
                                                     UserInterfaceCommand::Traverse(-(steps as isize)),
                                                 );
-                                                ui.close_menu();
+                                                ui.close();
                                             }
                                         }
                                     }
@@ -495,7 +494,7 @@ impl Gui {
                                                 window.queue_user_interface_command(
                                                     UserInterfaceCommand::Traverse(steps as isize),
                                                 );
-                                                ui.close_menu();
+                                                ui.close();
                                             }
                                         }
                                     }
@@ -726,7 +725,7 @@ impl Gui {
                 *toolbar_height = Length::default();
             }
 
-            let scale =
+            let _scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
 
             headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx));

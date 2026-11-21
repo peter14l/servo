@@ -203,7 +203,7 @@ impl RTCPeerConnection {
         let global = window.global();
         if global
             .get_csp_list()
-            .should_rtc_connections_be_blocked(cx, global)
+            .should_rtc_connections_be_blocked(cx, &global)
         {
             // CSP requires that no candidates are gathered and no connectivity
             // checks are attempted. Use a local-only controller and transition

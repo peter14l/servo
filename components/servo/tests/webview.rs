@@ -91,6 +91,10 @@ fn test_create_webview() {
 struct ConnectionlessRenderingContext(Rc<dyn RenderingContext>);
 
 impl RenderingContext for ConnectionlessRenderingContext {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn prepare_for_rendering(&self) {
         self.0.prepare_for_rendering();
     }

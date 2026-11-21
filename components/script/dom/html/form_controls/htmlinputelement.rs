@@ -1925,14 +1925,16 @@ impl HTMLInputElement {
         let submit_button: Option<DomRoot<Node>> = node
             .traverse_preorder(ShadowIncluding::No)
             .find_map(|child| {
-                if let Some(input) = child.downcast::<HTMLInputElement>() {
-                    if matches!(*input.input_type(), InputType::Submit(_)) && input.form_owner() == owner {
-                        return Some(child);
-                    }
-                } else if let Some(button) = child.downcast::<HTMLButtonElement>() {
-                    if button.Type() == "submit" && button.form_owner() == owner {
-                        return Some(child);
-                    }
+                if let Some(input) = child.downcast::<HTMLInputElement>()
+                    && matches!(*input.input_type(), InputType::Submit(_))
+                    && input.form_owner() == owner
+                {
+                    return Some(child);
+                } else if let Some(button) = child.downcast::<HTMLButtonElement>()
+                    && button.Type() == "submit"
+                    && button.form_owner() == owner
+                {
+                    return Some(child);
                 }
                 None
             });

@@ -105,22 +105,22 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let media = ServoMedia::get();
         let stream = MediaStream::new(cx, &global);
 
-        if camera_granted && needs_camera {
-            if let Some(c) = convert_constraints(&constraints.video) &&
-                let Some(video) = media.create_videoinput_stream(c)
-            {
-                let track = MediaStreamTrack::new(cx, &global, video, MediaStreamType::Video);
-                stream.add_track(&track);
-            }
+        if camera_granted
+            && needs_camera
+            && let Some(c) = convert_constraints(&constraints.video)
+            && let Some(video) = media.create_videoinput_stream(c)
+        {
+            let track = MediaStreamTrack::new(cx, &global, video, MediaStreamType::Video);
+            stream.add_track(&track);
         }
 
-        if microphone_granted && needs_microphone {
-            if let Some(c) = convert_constraints(&constraints.audio) &&
-                let Some(audio) = media.create_audioinput_stream(c)
-            {
-                let track = MediaStreamTrack::new(cx, &global, audio, MediaStreamType::Audio);
-                stream.add_track(&track);
-            }
+        if microphone_granted
+            && needs_microphone
+            && let Some(c) = convert_constraints(&constraints.audio)
+            && let Some(audio) = media.create_audioinput_stream(c)
+        {
+            let track = MediaStreamTrack::new(cx, &global, audio, MediaStreamType::Audio);
+            stream.add_track(&track);
         }
 
         p.resolve_native(cx, &stream);

@@ -882,10 +882,10 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         }
 
         for sender in self.senders.borrow().iter() {
-            if let Some(existing_track) = sender.GetTrack() {
-                if existing_track.id() == track.id() {
-                    return Err(Error::InvalidAccess(None));
-                }
+            if let Some(existing_track) = sender.GetTrack()
+                && existing_track.id() == track.id()
+            {
+                return Err(Error::InvalidAccess(None));
             }
         }
 
@@ -905,7 +905,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
 
         if let Some(ref controller) = *self.controller.borrow() {
-            let _ = controller.add_stream(&track.id());
+            controller.add_stream(&track.id());
         }
 
         Ok(sender)
@@ -934,7 +934,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let (track, kind) = match track_or_kind {
             MediaStreamTrackOrString::MediaStreamTrack(ref t) => (Some(&**t), t.ty()),
             MediaStreamTrackOrString::String(ref s) => {
-                let ty = if s.to_string() == "video" {
+                let ty = if s == "video" {
                     MediaStreamType::Video
                 } else {
                     MediaStreamType::Audio

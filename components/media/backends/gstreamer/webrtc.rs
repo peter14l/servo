@@ -733,7 +733,13 @@ pub fn construct(
         data_channels: Arc::new(Mutex::new(HashMap::new())),
         next_data_channel_id: Arc::new(AtomicUsize::new(0)),
     };
-    controller.start_pipeline()?;
+    // A pipeline can fail to reach READY on hosts without a usable media sink
+    // (CI runners, for example). Keep the controller alive in that case so a
+    // failed RTCPeerConnection construction reports an error to script instead
+    // of panicking and taking down the whole browser process.
+    if let Err(error) = controller.start_pipeline() {
+        warn!("WebRTC pipeline failed to start: {error:?}");
+    }
     Ok(controller)
 }
 

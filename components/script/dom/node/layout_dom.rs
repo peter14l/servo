@@ -25,6 +25,7 @@ use crate::dom::bindings::root::{LayoutDom, ToLayout, ToLayoutOptional};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
@@ -281,17 +282,38 @@ impl<'dom> LayoutDom<'dom, Node> {
         Some(RangeAny::new(start, end))
     }
 
+    /// Layout-safe equivalent of `Node::is_editable_or_editing_host()`.
+    ///
+    /// The script-thread implementation roots ancestors, which is not allowed
+    /// on the layout thread. Walk `LayoutDom` parents instead and replicate the
+    /// editing-host rules using layout-safe attribute access.
+    pub(crate) fn is_editable_or_editing_host_for_layout(self) -> bool {
+        let mut current = Some(self);
+        while let Some(node) = current {
+            if let Some(element) = node.downcast::<HTMLElement>() {
+                let element = element.unsafe_get();
+                if element.is_editing_host() {
+                    return true;
+                }
+                if element.ContentEditable().str() == "false" {
+                    return false;
+                }
+            }
+            current = node.composed_parent_node_ref();
+        }
+        false
+    }
+
     pub(crate) fn text_node_paints_caret(&self) -> bool {
         self.parent_node_ref().is_some_and(|parent| {
             parent.is_text_container_of_single_line_input() ||
-                parent.unsafe_get().is_editable_or_editing_host()
+                parent.is_editable_or_editing_host_for_layout()
         })
     }
 
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
-        self.parent_node_ref().is_some_and(|parent| {
-            parent.unsafe_get().is_editable_or_editing_host()
-        })
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_editable_or_editing_host_for_layout())
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {

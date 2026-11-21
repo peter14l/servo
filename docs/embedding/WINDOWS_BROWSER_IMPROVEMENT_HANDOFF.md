@@ -365,3 +365,25 @@ User retested login -> attendance page -> semester dropdown with the installed `
 | Paint storm fixed | PASSED | Final summary: `[PERF] periodic wake(cb=3791 post=2247 coalesced=1542) spin(count=2249 ms=295 max=47) paint(count=3510 ms=2851 max=766) control(count=2 ms=2093 max=1078) drop=66`. Compare old build: `paint(count=517 ms=610436 max=2218)` and 79 `[HANG]` lines. New run: `hang=0`. |
 
 The max paint duration dropped from 2218 ms to 766 ms, total paint time from 610436 ms to 2851 ms, and `[HANG]` from 79 to 0. The only remaining non-zero slow messages are the intentionally deferred native controls (`msg=0x8066`), which no longer block engine spin/wake dispatch. Remaining gaps are unchanged from section 10.7; performance tail work can now focus on the next tier (bounded Rust spins, compat-script dedup, bounded gateway threads, cache eviction) rather than emergency UI-thread stalls.
+
+## 12. Embedding C API cross-platform failures (21 Nov 2026)
+
+Failing CI: run `44861051245` (Embedding API C API) failed all three `Build and test servo-capi-tests` jobs, while the Windows browser build for the same commit passed. Failure log saved locally at `C:\Users\LOQ\AppData\Local\Temp\opencode\capi-failed.log`.
+
+### 12.1 Root causes
+
+1. **All platforms — `test_rendering_context_create_window_returns_null_in_headless` panics.** The C test passes fake native handles and expects `NULL`. `WindowRenderingContext::new_with_optional_refresh_driver` and `set_window` called `.expect("Failed to create native widget")` on `create_native_widget_from_window_handle`. On macOS/Windows this surfman error is `IncompatibleNativeWidget`, so the process panicked inside the FFI call instead of returning an error. Linux happened to return `Err` for the fake handles but still had the same panic hazard.
+2. **Linux — `test_webview_custom_scheme` crashes the style/layout pipeline.** Backtrace: layout thread -> `ServoLayoutNode::text_node_needs_caret_placeholder` -> `LayoutDom<Node>::text_node_needs_caret_placeholder` -> `Node::is_editable_or_editing_host` -> `Node::inclusive_ancestors` -> `DomRoot::from_ref`, which asserts `thread_state::get().is_script()`. The layout thread was calling a script-thread-only ancestor-rooting API just to check editability of a plain text node.
+
+### 12.2 Fixes
+
+- `components/shared/paint/rendering_context.rs`: replaced both native-widget `.expect(...)` calls with `?`, so invalid/unsupported handles propagate as `Error` and the C API returns `NULL` as documented.
+- `components/script/dom/node/layout_dom.rs`: added `LayoutDom::is_editable_or_editing_host_for_layout()`, which walks `composed_parent_node_ref()` and reads `ContentEditable`/editing-host state through layout-safe accessors. `text_node_paints_caret` and `text_node_needs_caret_placeholder` now use that helper instead of `Node::is_editable_or_editing_host`.
+
+Existing C tests are the regression tests: `test_rendering_context_create_window_returns_null_in_headless` and `test_webview_custom_scheme`.
+
+### 12.3 Verification state
+
+- Local `cargo check -p servo-script -p servo-paint-api`: BLOCKED by local environment, not by source errors. `aws-lc-sys` initially lacked NASM on PATH; after adding it, `mozjs_sys` required MozTools/MozillaBuild, a separate unrelated WebIDL file `MediaKeys.webidl` had a syntax error, and the E: drive filled during compilation. Regenerable `target/debug/build`, `target/debug/incremental` and `target/debug/deps` caches were removed to recover disk space; no source files were removed.
+- `graphify update .`: PASSED after the Rust edits.
+- CI for these C API fixes: NOT_RUN at time of writing. Next step is to commit code plus docs, push, and re-run the Embedding API C API workflow on Linux/macOS/Windows plus the Windows browser workflow.

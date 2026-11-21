@@ -41,6 +41,7 @@ impl RTCTrackEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
         window: &Window,
@@ -54,6 +55,7 @@ impl RTCTrackEvent {
         Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track, receiver, transceiver)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut js::context::JSContext,
         window: &Window,

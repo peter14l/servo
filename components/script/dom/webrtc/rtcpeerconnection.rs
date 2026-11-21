@@ -967,10 +967,10 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             &receiver,
         );
 
-        if let Some(t) = track {
-            if let Some(ref controller) = *self.controller.borrow() {
-                let _ = controller.add_stream(&t.id());
-            }
+        if let Some(t) = track
+            && let Some(ref controller) = *self.controller.borrow()
+        {
+            controller.add_stream(&t.id());
         }
 
         self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));

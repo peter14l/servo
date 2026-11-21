@@ -22,6 +22,9 @@
 #include <mutex>
 #include <map>
 #include <regex>
+#include <condition_variable>
+#include <memory>
+#include <vector>
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "winhttp.lib")
@@ -36,6 +39,89 @@ static const int kMaxConcurrentClients = 64;
 static std::thread s_workerThread;
 static SOCKET s_listenSocket = INVALID_SOCKET;
 static unsigned short s_port = 51820;
+
+// WinHTTP keeps keep-alive connections alive for the lifetime of a session.
+// Reuse a small pool of long-lived sessions instead of opening (and closing) a
+// fresh session per request, which otherwise forces a new TCP + TLS handshake
+// for every script, style and image on a page.
+struct GatewayContext {
+    HINTERNET session = nullptr;
+    std::map<std::wstring, HINTERNET> connects;
+
+    ~GatewayContext() {
+        for (auto& entry : connects) {
+            WinHttpCloseHandle(entry.second);
+        }
+        if (session) {
+            WinHttpCloseHandle(session);
+        }
+    }
+};
+
+static std::mutex s_contextMutex;
+static std::condition_variable s_contextCv;
+static std::vector<std::unique_ptr<GatewayContext>> s_freeContexts;
+static const int kGatewayContexts = 12;
+
+// Exclusive ownership for one request. A context is never used by two threads
+// at once, so its connect handles are safe to reuse sequentially.
+class ScopedGatewayContext {
+public:
+    ScopedGatewayContext() {
+        std::unique_lock<std::mutex> lock(s_contextMutex);
+        s_contextCv.wait(lock, [] { return !s_freeContexts.empty() || !s_running.load(); });
+        if (!s_freeContexts.empty()) {
+            m_context = std::move(s_freeContexts.back());
+            s_freeContexts.pop_back();
+        }
+    }
+    ~ScopedGatewayContext() {
+        if (!m_context) return;
+        std::lock_guard<std::mutex> lock(s_contextMutex);
+        s_freeContexts.push_back(std::move(m_context));
+        s_contextCv.notify_one();
+    }
+    GatewayContext& operator*() const { return *m_context; }
+    explicit operator bool() const { return static_cast<bool>(m_context); }
+
+private:
+    std::unique_ptr<GatewayContext> m_context;
+};
+
+static void EnsureSession(GatewayContext& ctx) {
+    if (ctx.session) return;
+    ctx.session = WinHttpOpen(L"Servo-Schannel-Bridge/1.0",
+                              WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                              WINHTTP_NO_PROXY_NAME,
+                              WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!ctx.session) return;
+    // Bound every phase so a stuck upstream cannot pin a worker thread forever.
+    WinHttpSetTimeouts(ctx.session, 10000, 10000, 30000, 30000);
+    // Default every upstream to modern TLS. Legacy TLS 1.1 is enabled only for
+    // the known SXUK hosts on the request below, never globally.
+    DWORD sessionProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+    WinHttpSetOption(ctx.session, WINHTTP_OPTION_SECURE_PROTOCOLS,
+                     &sessionProtocols, sizeof(sessionProtocols));
+}
+
+static HINTERNET GetConnect(GatewayContext& ctx, const std::wstring& host, INTERNET_PORT port) {
+    if (!ctx.session) return nullptr;
+    std::wstring key = host + L":" + std::to_wstring(port);
+    auto it = ctx.connects.find(key);
+    if (it != ctx.connects.end()) return it->second;
+    HINTERNET connect = WinHttpConnect(ctx.session, host.c_str(), port, 0);
+    if (!connect) return nullptr;
+    ctx.connects.emplace(std::move(key), connect);
+    return connect;
+}
+
+static void DropConnect(GatewayContext& ctx, const std::wstring& host, INTERNET_PORT port) {
+    std::wstring key = host + L":" + std::to_wstring(port);
+    auto it = ctx.connects.find(key);
+    if (it == ctx.connects.end()) return;
+    WinHttpCloseHandle(it->second);
+    ctx.connects.erase(it);
+}
 
 static std::string UrlDecode(const std::string& in) {
     std::string out;
@@ -110,7 +196,7 @@ static void CloseGracefully(SOCKET sock) {
         fd_set readSet;
         FD_ZERO(&readSet);
         FD_SET(sock, &readSet);
-        timeval tv = { 0, 20000 }; // 20ms: never stall a worker waiting for a FIN
+        timeval tv = { 0, 4000 }; // 4ms: enough for a loopback FIN without stalling a worker
         if (select(0, &readSet, nullptr, nullptr, &tv) <= 0) break;
         int r = recv(sock, drain, sizeof(drain), 0);
         if (r <= 0) break;
@@ -299,41 +385,32 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
-    HINTERNET hSession = WinHttpOpen(L"Servo-Schannel-Bridge/1.0",
-                                     WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-                                     WINHTTP_NO_PROXY_NAME,
-                                     WINHTTP_NO_PROXY_BYPASS, 0);
+    ScopedGatewayContext scopedCtx;
+    if (!scopedCtx) {
+        SendErrorResponse(clientSock, "503 Service Unavailable", "Gateway Error: gateway is shutting down.");
+        return;
+    }
+    GatewayContext& ctx = *scopedCtx;
+    EnsureSession(ctx);
+    HINTERNET hSession = ctx.session;
     if (!hSession) {
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP session init failed.");
         return;
     }
 
-    // Bound every phase so a stuck upstream cannot pin a worker thread forever.
-    WinHttpSetTimeouts(hSession, 10000, 10000, 30000, 30000);
-
-    // Default every upstream to modern TLS. Legacy TLS 1.1 is enabled only for
-    // the known SXUK hosts on the request below, never globally.
-    DWORD sessionProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
-    WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &sessionProtocols, sizeof(sessionProtocols));
-
-    HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
+    HINTERNET hConnect = GetConnect(ctx, hostName, urlComp.nPort);
     if (!hConnect) {
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP connect failed.");
         return;
     }
 
     int methodWLen = MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, nullptr, 0);
     if (methodWLen <= 0) {
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
         return;
     }
     std::wstring wMethod(static_cast<size_t>(methodWLen), L'\0');
     if (MultiByteToWideChar(CP_UTF8, 0, method.c_str(), -1, &wMethod[0], methodWLen) <= 0) {
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: invalid request method encoding.");
         return;
     }
@@ -343,8 +420,6 @@ static void HandleClient(SOCKET clientSock) {
                                            nullptr, WINHTTP_NO_REFERER,
                                            WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
     if (!hRequest) {
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
         SendErrorResponse(clientSock, "502 Bad Gateway", "Gateway Error: WinHTTP request init failed.");
         return;
     }
@@ -473,8 +548,7 @@ static void HandleClient(SOCKET clientSock) {
 
     if (!bResults || tooLarge) {
         WinHttpCloseHandle(hRequest);
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
+        DropConnect(ctx, hostName, urlComp.nPort);
         SendErrorResponse(clientSock, "502 Bad Gateway",
                           tooLarge ? "Gateway Error: upstream response too large."
                                    : "Gateway Error: WinHTTP failed to connect to legacy TLS server.");
@@ -574,8 +648,6 @@ static void HandleClient(SOCKET clientSock) {
     fullResponse += responseBody;
 
     WinHttpCloseHandle(hRequest);
-    WinHttpCloseHandle(hConnect);
-    WinHttpCloseHandle(hSession);
 
     if (cacheable && statusCode == 200 && !responseBody.empty()) {
         CachePut(targetUrl, fullResponse);
@@ -653,6 +725,13 @@ bool Start(unsigned short port) {
         return false;
     }
 
+    {
+        std::lock_guard<std::mutex> lock(s_contextMutex);
+        while (s_freeContexts.size() < static_cast<size_t>(kGatewayContexts)) {
+            s_freeContexts.push_back(std::make_unique<GatewayContext>());
+        }
+    }
+
     s_running.store(true);
     s_workerThread = std::thread(ServerLoop);
     return true;
@@ -661,6 +740,7 @@ bool Start(unsigned short port) {
 void Stop() {
     if (!s_running.load()) return;
     s_running.store(false);
+    s_contextCv.notify_all();
     if (s_listenSocket != INVALID_SOCKET) {
         closesocket(s_listenSocket);
         s_listenSocket = INVALID_SOCKET;

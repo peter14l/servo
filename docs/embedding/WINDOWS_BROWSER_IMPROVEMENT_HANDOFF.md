@@ -413,11 +413,35 @@ Existing C tests are the regression tests: `test_rendering_context_create_window
 
 ## 13. Performance-tail prep (21 Nov 2026)
 
-All items below were prepared but left UNCOMMITTED while the `58f1ab5f231` CI runs were in flight (a push would have cancelled/restarted them). Both runs have now PASSED; these changes are still uncommitted and are not part of the verified browser artifact yet.
+The gateway items below were prepared while the `58f1ab5f231` CI runs were in flight (a push would have cancelled/restarted them), then committed as `6012369ddde` after those runs PASSED. Both CI runs for `6012369ddde` subsequently PASSED: `44871419006` (Embedding API C API) and `44871419141` (Native Windows Browser Build). The other items remain deferred.
 
 | Item | State | Notes |
 |---|---|---|
 | Cache eviction in `schannel_gateway.cpp::CachePut` | Prepared, syntax-checked, scratch-tested | Replace silent "drop new entry when full" with evicting oldest map-order entries until `s_cacheBytes + value.size() <= kCacheLimit`. Scratch test confirmed `s_cacheBytes == kCacheLimit` and newest key retained. |
 | Bounded gateway client threads | Prepared, syntax-checked | `ServerLoop` now gates detached `HandleClient` threads at `kMaxConcurrentClients = 64` using `s_activeClients`. `HandleClient` closes its own socket on every path, so the worker does not close it again; rejected connections are closed in the accept loop. Verified with `g++ -fsyntax-only -std=c++17` (exit 0). |
-| Compat-script dedup/guard | Investigated, no change needed | `s_platformCompatScript` already uses per-feature idempotency markers (`__servo_dialog_limiter_installed`, `__servo_instagram_hooks_installed`, `__servo_diag_installed`, `__shadycss_trap_installed`) and feature detection. A single top-level marker risks skipping hooks that must be reinstalled on a new document, so no change was made. |
+| Compat-script dedup/guard | Superseded by section 14 | Previously left unchanged because of per-feature idempotency markers; section 14 adds a document-scoped top-level guard, which is safe because a new navigation gets a fresh `window`. |
 | Bounded Rust spins in `components/servo/servo.rs` | Deferred | File already contains ~100 lines of unrelated local changes; touching it would mix work with user changes. Not needed for the SXUK fix. |
+
+## 14. Page-load latency investigation (21 Nov 2026)
+
+The user reported that websites load a little slowly. Measurements against the running browser's gateway (`127.0.0.1:51820`) isolated the cause:
+
+| Probe | Result |
+|---|---|
+| Cached asset hit (`/Style/style.css`) | 2–9 ms |
+| Cache miss (unique query string) | 1414 / 1657 / 2021 / 4278 ms |
+| Cache miss, tiny 404 response (`/favicon.ico?probe=…`) | 335–1325 ms |
+
+The tiny 404 proving that connection setup, not body transfer, dominates. Root cause: `HandleClient()` opened a fresh `WinHttpOpen()` session and `WinHttpConnect()` for every request and closed all WinHTTP handles at the end of the request, so no TLS connection was ever reused.
+
+Two standalone WinHTTP probes against `https://www.sxuk.org/Style/style.css` confirmed the upper bound: ten requests on one reused session/connect took 5937, 1969, 1422, 1406, 1125, 1125, 1109, 1125, 1110 and 828 ms. The legacy IIS 8.5 server itself therefore costs roughly 0.8–1.4 s per request once warm; connection reuse cannot remove that floor, but it removes the multi-second cold handshake.
+
+### 14.1 Changes prepared (not yet committed at time of writing)
+
+| Change | File | Detail |
+|---|---|---|
+| Pooled WinHTTP sessions/connects | `ports/windows/src/schannel_gateway.cpp` | A pool of 12 long-lived `GatewayContext` objects (session + per-host `HINTERNET` connect map). `ScopedGatewayContext` grants exclusive ownership for one request, so handles are never used concurrently. `EnsureSession` sets timeouts/TLS defaults once; `GetConnect` reuses per-host connect handles; `DropConnect` discards a stale handle on upstream failure. Only the per-request handle is closed. TLS 1.1 relaxation remains per-request and scoped to `sxuk.org`. |
+| Document-scoped script guards | `ports/windows/src/servo_view_host.cpp` | `s_platformCompatScript` and `s_appEnhancementsScript` now set a `window`-scoped marker on first execution and return immediately on re-entry. The user script (document_start) and the load-status injection (statuses 1 and 2) previously executed the same 16 KB + 6.8 KB shim set up to three times per document. A new navigation gets a fresh `window`, so all shims still run there. |
+| Shorter socket drain | `ports/windows/src/schannel_gateway.cpp` | `CloseGracefully` drain timeout reduced from 20 ms to 4 ms per response. |
+
+Verification to date: `g++ -fsyntax-only -std=c++17 -DUNICODE -D_UNICODE -I ports\\windows\\src ports\\windows\\src\\schannel_gateway.cpp` PASSED (exit 0). Standalone A/B build of the committed and pooled gateway code, both started fresh and driven with 24 sequential cache-miss requests each, gave steady-state averages of 996 ms (old) vs 810 ms (pooled) over the last eight requests — a modest but real ~19% improvement. **CI and browser runtime verification of these three changes are NOT_RUN**; they are staged locally while the `6012369ddde` CI runs finish.

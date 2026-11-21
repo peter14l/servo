@@ -22,6 +22,12 @@ static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 // Script 1: Platform Web Standards Compatibility
 static const char* s_platformCompatScript = R"JS(
 (function() {
+    // The document-start user script and the load-status injection can both
+    // run in the same document. Bail out on the second execution.
+    if (typeof window !== 'undefined') {
+        if (window.__servoCompatShieldInstalled) return;
+        window.__servoCompatShieldInstalled = true;
+    }
     try {
         // 1. Cooperative Scheduling (requestIdleCallback)
         if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'undefined') {
@@ -370,6 +376,11 @@ static const char* s_platformCompatScript = R"JS(
 // Script 2: Specific Web Application Enhancements (YouTube ShadyCSS, Video MediaSource, Instagram DM hooks)
 static const char* s_appEnhancementsScript = R"JS(
 (function() {
+    // See the compat shield guard: avoid running the same shims twice.
+    if (typeof window !== 'undefined') {
+        if (window.__servoAppEnhancementsInstalled) return;
+        window.__servoAppEnhancementsInstalled = true;
+    }
     try {
         // Escape hatch: `servo_noshim=1` in the URL disables app-specific shims
         // so page behaviour can be A/B compared against stock web standards.

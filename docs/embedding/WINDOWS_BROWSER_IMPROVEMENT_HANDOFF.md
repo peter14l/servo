@@ -378,7 +378,7 @@ Failing CI: run `44861051245` (Embedding API C API) failed all three `Build and 
 ### 12.2 Fixes
 
 - `components/shared/paint/rendering_context.rs`: replaced both native-widget `.expect(...)` calls with `?`, so invalid/unsupported handles propagate as `Error` and the C API returns `NULL` as documented.
-- `components/script/dom/node/layout_dom.rs`: added `LayoutDom::is_editable_or_editing_host_for_layout()`, which walks `composed_parent_node_ref()` and reads `ContentEditable`/editing-host state through layout-safe accessors. `text_node_paints_caret` and `text_node_needs_caret_placeholder` now use that helper instead of `Node::is_editable_or_editing_host`.
+- `components/script/dom/node/layout_dom.rs`: added `LayoutDom::is_editable_or_editing_host_for_layout()`, which walks `composed_parent_node_ref()` and reads `ContentEditable`/editing-host state through layout-safe accessors. `text_node_paints_caret` and `text_node_needs_caret_placeholder` now use that helper instead of `Node::is_editable_or_editing_host`. The helper is invoked on the text node itself (not only its parent), so a text node directly under a `ShadowRoot` still reaches the editing host. `HTMLElementMethods` is imported so the generated `ContentEditable()` getter resolves.
 
 Existing C tests are the regression tests: `test_rendering_context_create_window_returns_null_in_headless` and `test_webview_custom_scheme`.
 
@@ -386,4 +386,5 @@ Existing C tests are the regression tests: `test_rendering_context_create_window
 
 - Local `cargo check -p servo-script -p servo-paint-api`: BLOCKED by local environment, not by source errors. `aws-lc-sys` initially lacked NASM on PATH; after adding it, `mozjs_sys` required MozTools/MozillaBuild, a separate unrelated WebIDL file `MediaKeys.webidl` had a syntax error, and the E: drive filled during compilation. Regenerable `target/debug/build`, `target/debug/incremental` and `target/debug/deps` caches were removed to recover disk space; no source files were removed.
 - `graphify update .`: PASSED after the Rust edits.
-- CI for these C API fixes: NOT_RUN at time of writing. Next step is to commit code plus docs, push, and re-run the Embedding API C API workflow on Linux/macOS/Windows plus the Windows browser workflow.
+- Independent review of the first C API commit caught a missing `HTMLElementMethods` import (would have failed to compile) and a shadow-root edge case where a text node directly under a `ShadowRoot` could miss its editing host. Both were corrected in a follow-up commit before re-running CI.
+- CI for these C API fixes: NOT_RUN at time of writing. Next step is to push the corrected code and re-run the Embedding API C API workflow on Linux/macOS/Windows plus the Windows browser workflow.

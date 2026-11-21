@@ -20,13 +20,14 @@ use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::{LayoutDom, ToLayout, ToLayoutOptional};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
-use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
@@ -305,15 +306,13 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {
-        self.parent_node_ref().is_some_and(|parent| {
-            parent.is_text_container_of_single_line_input() ||
-                parent.is_editable_or_editing_host_for_layout()
-        })
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+            || (*self).is_editable_or_editing_host_for_layout()
     }
 
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
-        self.parent_node_ref()
-            .is_some_and(|parent| parent.is_editable_or_editing_host_for_layout())
+        (*self).is_editable_or_editing_host_for_layout()
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {

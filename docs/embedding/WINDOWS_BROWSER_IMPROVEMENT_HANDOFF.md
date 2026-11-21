@@ -345,4 +345,23 @@ Files: `ports/windows/src/servo_view_host.h`, `ports/windows/src/servo_view_host
 
 Design: after each paint, set `m_paintThrottleMs` to 3x the last paint duration (capped at 5000 ms) for paints >= 400 ms, to the last duration for 100-399 ms paints, and to 0 for fast paints. `OnNewFrameReady` drops frames arriving inside the throttle window and schedules at most one delayed repaint with `SetTimer(hwnd, 2, ...)`; `WM_TIMER` clears the pending flag, marks a frame ready and invalidates the client area. Resize/large-expose paths still set `m_hasNewFrame` directly so user-visible geometry changes are not throttled. A `drop=N` field was added to the 10-second `[PERF]` summary so the next runtime test can prove frames were actually dropped.
 
-Verification state: `g++ -fsyntax-only -DUNICODE -D_UNICODE` PASSED for `servo_view_host.cpp`, `browser_window.cpp` and `main.cpp` using the generated C API header at `C:\Users\LOQ\AppData\Local\Temp\opencode\capi`. CI build, artifact install and runtime re-measurement are NOT_RUN for this throttle change. Next step is to commit code plus these docs, run CI, install the new artifact, and confirm the dropdown/deferral/password checks still pass while `[HANG]` and total paint time improve.
+Verification state:
+
+- Local `g++ -fsyntax-only -DUNICODE -D_UNICODE`: PASSED for `servo_view_host.cpp`, `browser_window.cpp` and `main.cpp` using the generated C API header at `C:\Users\LOQ\AppData\Local\Temp\opencode\capi`.
+- CI: PASSED. Run `44861051417` for commit `b4616899599` completed build, unit tests, packaging, self-signing and artifact upload in 20m40s.
+- Artifact: PASSED. Artifact `14690537585` (`servo-windows-browser-setup`) downloaded via the GitHub API, double-expanded, and `install.ps1` installed it to `%LOCALAPPDATA%\Programs\Servo Browser`. Installed `servo_browser.exe` SHA256: `8C5A2BB6FE1769BFAAB0AD60835CE8D76C3559DBABEB84DF953D4D1C40BC5E8D`.
+- Runtime re-measurement on the SXUK attendance page: PASSED. See section 11.3.
+
+### 11.3 Final runtime verification of adaptive throttle (21 Nov 2026)
+
+User retested login -> attendance page -> semester dropdown with the installed `b4616899599` artifact.
+
+| Check | State | Evidence |
+|---|---|---|
+| Dropdown still works | PASSED | 2 `[SELECT] showing menu` and 2 `[SELECT] menu closed (confirmed=1 selection=1)` pairs; `popup_failure=0`. |
+| Deferral still works | PASSED | `slow_wake_8065=0`; 2 `[SLOW] msg=0x8066` plus `[PERF] deferred native control took 1015 ms` and `1078 ms`. |
+| Password/IPC payload safety | PASSED | `plaintext_password=0`, `servo_ipc_payload=0`; only benign `[IPC] Received message: prompt_save_password` lines. |
+| Browser survives interaction | PASSED | Process still alive with title `View Attendance - Servo` after the retest. |
+| Paint storm fixed | PASSED | Final summary: `[PERF] periodic wake(cb=3791 post=2247 coalesced=1542) spin(count=2249 ms=295 max=47) paint(count=3510 ms=2851 max=766) control(count=2 ms=2093 max=1078) drop=66`. Compare old build: `paint(count=517 ms=610436 max=2218)` and 79 `[HANG]` lines. New run: `hang=0`. |
+
+The max paint duration dropped from 2218 ms to 766 ms, total paint time from 610436 ms to 2851 ms, and `[HANG]` from 79 to 0. The only remaining non-zero slow messages are the intentionally deferred native controls (`msg=0x8066`), which no longer block engine spin/wake dispatch. Remaining gaps are unchanged from section 10.7; performance tail work can now focus on the next tier (bounded Rust spins, compat-script dedup, bounded gateway threads, cache eviction) rather than emergency UI-thread stalls.

@@ -40,3 +40,11 @@
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/Microsoft.UI.Xaml.Navigation.h>
 #include <Microsoft.UI.Xaml.Window.h>
+
+// XamlTypeInfo.g.cpp builds a type-info table that instantiates
+// winrt::ServoUI::implementation::MainWindow. That generated translation unit
+// does not necessarily include MainWindow.xaml.h itself, so make the
+// implementation type complete here. This is what the generated code's own
+// diagnostic asks for. It must come after the WinRT headers above because
+// MainWindow.xaml.h includes the generated MainWindow.g.h.
+#include "MainWindow.xaml.h"

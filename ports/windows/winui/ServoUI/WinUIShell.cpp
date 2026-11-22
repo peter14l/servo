@@ -410,4 +410,11 @@ namespace winrt::ServoUI::implementation
         if (!request) return false;
         return m_owner.OpenPopupTab(request);
     }
+
+    bool WinUIShell::UsesCompositionHosting() const
+    {
+        // WinUI 3 paints XAML through a composition surface that covers
+        // ordinary child HWNDs. Layered child windows are composited above it.
+        return true;
+    }
 }

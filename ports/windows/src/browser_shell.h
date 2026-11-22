@@ -50,4 +50,8 @@ public:
     // does not need to know how the chrome is built.
     virtual std::string GetSettingsPageUrl() = 0;
     virtual bool CreatePopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request) = 0;
+
+    // Shells that render chrome through DirectComposition need their native
+    // child windows layered; otherwise the composition surface covers them.
+    virtual bool UsesCompositionHosting() const { return false; }
 };

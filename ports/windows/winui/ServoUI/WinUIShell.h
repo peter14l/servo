@@ -62,6 +62,7 @@ namespace winrt::ServoUI::implementation
 
         std::string GetSettingsPageUrl() override;
         bool CreatePopup(Servo* servo, ServoCreateNewWebViewRequest* request) override;
+        bool UsesCompositionHosting() const override;
 
     private:
         size_t IndexFor(ServoViewHost* host) const;

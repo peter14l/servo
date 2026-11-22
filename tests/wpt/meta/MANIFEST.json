@@ -590917,6 +590917,10 @@
     }
    },
    "tools": {
+    ".coveragerc": [
+     "3da14ad3b73c34a1f92e7f650add3770c455aa1b",
+     []
+    ],
     ".gitattributes": [
      "06a2c87a5e2c570243776a1c5a2feb82ebc42300",
      []
@@ -594797,6 +594801,10 @@
        "984e2b7fa5e6e98360d21a2323db16ae41eab63e",
        []
       ],
+      ".coveragerc": [
+       "6facf35239fa5bd187e698b1ff3de06b545deb06",
+       []
+      ],
       ".gitignore": [
        "ecd62df31b911e3ea08c0989d1f99a92918a0e32",
        []
@@ -595819,6 +595827,10 @@
       ]
      },
      "packaging": {
+      ".coveragerc": [
+       "da205e5a149545cb4acadab0e6332722a63e1b46",
+       []
+      ],
       ".flake8": [
        "b5a35be92af25523637c1402e42a59d97b02a35a",
        []
@@ -596243,6 +596255,10 @@
       ]
      },
      "pluggy": {
+      ".coveragerc": [
+       "6801ce8b1f9c0786ba1a1a681767d8bfe606c0ed",
+       []
+      ],
       ".github": {
        "FUNDING.yml": [
         "b4d3edff1f6a6d4ee43d56565cf5983ef519c1ba",
@@ -596519,6 +596535,10 @@
       ]
      },
      "pytest": {
+      ".coveragerc": [
+       "a335557d4f146f002a998e9fb17cf80288c72aa3",
+       []
+      ],
       ".git-blame-ignore-revs": [
        "bce64a374beeee32b447aa7d33d16a78e3a6da3d",
        []
@@ -602828,6 +602848,10 @@
      ]
     },
     "wptserve": {
+     ".coveragerc": [
+      "0e00c079f64cbd9e32e018d01a120a0827b79026",
+      []
+     ],
      ".gitignore": [
       "8e87d388488bbc21c664209fecd2f3e030411b0e",
       []
@@ -603190,7 +603214,7 @@
        []
       ],
       "response.py": [
-       "5662ceaa06010065ee28b9d943b4bc107155bd9b",
+       "abf94d837fe7d99f7afcd7229db0f56305024b46",
        []
       ],
       "router.py": [

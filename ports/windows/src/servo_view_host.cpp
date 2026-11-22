@@ -742,11 +742,13 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell
 {
     s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
+    const DWORD exStyle = (m_browserShell && m_browserShell->UsesCompositionHosting())
+                        ? WS_EX_LAYERED : 0;
 
     LogDebug("ServoViewHost creating child window...");
     // Create child window
     m_hwnd = CreateWindowExW(
-        0,
+        exStyle,
         SERVO_VIEW_CLASS_NAME,
         L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
@@ -761,6 +763,11 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell
         LogDebug("ServoViewHost child window creation failed (error %lu); aborting view construction.",
                  GetLastError());
         return;
+    }
+    if ((exStyle & WS_EX_LAYERED) &&
+        !SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA)) {
+        LogDebug("SetLayeredWindowAttributes failed (error %lu); content may be hidden by XAML.",
+                 GetLastError());
     }
 
     // Create windowed rendering context
@@ -858,8 +865,10 @@ ServoViewHost::ServoViewHost(
 {
     s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
+    const DWORD exStyle = (m_browserShell && m_browserShell->UsesCompositionHosting())
+                        ? WS_EX_LAYERED : 0;
     m_hwnd = CreateWindowExW(
-        0,
+        exStyle,
         SERVO_VIEW_CLASS_NAME,
         L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
@@ -871,6 +880,11 @@ ServoViewHost::ServoViewHost(
     );
 
     if (m_hwnd) {
+        if ((exStyle & WS_EX_LAYERED) &&
+            !SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA)) {
+            LogDebug("Popup SetLayeredWindowAttributes failed (error %lu); content may be hidden by XAML.",
+                     GetLastError());
+        }
         UINT dpi = GetDpiForWindow(m_hwnd);
         float scale = dpi / 96.0f;
         uint32_t width = static_cast<uint32_t>(800 * scale);

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -22,7 +23,7 @@ import os
 import sys
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 def analyze_meta_directory(meta_dir: str) -> Dict[str, Any]:
@@ -137,46 +138,52 @@ def generate_markdown_report(data: Dict[str, Any]) -> str:
     ]
 
     if data.get("source") == "run_logs":
-        lines.extend([
-            "## Summary",
-            "",
-            f"- **Total Tests Evaluated:** {data.get('total_results', 0):,}",
-            f"- **Passing (PASS/OK):** {data.get('pass_count', 0):,}",
-            f"- **Honest Pass Rate:** **{data.get('pass_rate_percent', 0.0)}%**",
-            "",
-            "### Detailed Outcomes",
-            "",
-            "| Status | Count | Percentage |",
-            "|---|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "## Summary",
+                "",
+                f"- **Total Tests Evaluated:** {data.get('total_results', 0):,}",
+                f"- **Passing (PASS/OK):** {data.get('pass_count', 0):,}",
+                f"- **Honest Pass Rate:** **{data.get('pass_rate_percent', 0.0)}%**",
+                "",
+                "### Detailed Outcomes",
+                "",
+                "| Status | Count | Percentage |",
+                "|---|---:|---:|",
+            ]
+        )
         total = data.get("total_results", 1) or 1
         for status, count in data.get("counts", {}).items():
             pct = count / total * 100.0
             lines.append(f"| `{status}` | {count:,} | {pct:.2f}% |")
     else:
         total = data.get("total_expectation_entries", 0)
-        lines.extend([
-            "## Expectations Baseline (Static tree analysis)",
-            "",
-            f"- **Total Expectation Files:** {data.get('total_meta_files', 0):,}",
-            f"- **Total Non-Default Entries:** {total:,}",
-            "",
-            "### Outcome Breakdown in `tests/wpt/meta`",
-            "",
-            "| Status | Entry Count | Share of Failures |",
-            "|---|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "## Expectations Baseline (Static tree analysis)",
+                "",
+                f"- **Total Expectation Files:** {data.get('total_meta_files', 0):,}",
+                f"- **Total Non-Default Entries:** {total:,}",
+                "",
+                "### Outcome Breakdown in `tests/wpt/meta`",
+                "",
+                "| Status | Entry Count | Share of Failures |",
+                "|---|---:|---:|",
+            ]
+        )
         for status, count in data.get("counts", {}).items():
             pct = count / total * 100.0 if total > 0 else 0.0
             lines.append(f"| `{status}` | {count:,} | {pct:.2f}% |")
 
-        lines.extend([
-            "",
-            "### Top Test Suites with Non-Pass Entries",
-            "",
-            "| Test Suite | Top Outcomes |",
-            "|---|---|",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Top Test Suites with Non-Pass Entries",
+                "",
+                "| Test Suite | Top Outcomes |",
+                "|---|---|",
+            ]
+        )
         for suite, counts in data.get("top_suites", {}).items():
             summary = ", ".join(f"{k}: {v:,}" for k, v in counts.items())
             lines.append(f"| `{suite}` | {summary} |")

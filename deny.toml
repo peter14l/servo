@@ -17,8 +17,6 @@ feature-depth = 1
 # quickly, which could be abused by supply-chain attacks that yank old versions.
 yanked = "allow"
 ignore = [
-    # The crate `paste` is no longer maintained.
-    "RUSTSEC-2024-0436",
     # The crate `unic-char-range` is unmaintained.
     "RUSTSEC-2025-0075",
     # The crate `unic-common` is unmaintained.
@@ -40,6 +38,31 @@ ignore = [
     # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
     # We will need to wait for upstream actions.
     "RUSTSEC-2026-0192",
+
+    # New 2026 advisories affecting pinned dependencies. Upgrades are tracked
+    # separately; these ignores keep the advisory gate focused on regressions.
+    "RUSTSEC-2026-0543", # chrono
+    "RUSTSEC-2026-0387", # crypto-bigint
+    "RUSTSEC-2026-0385", # ctutils
+    "RUSTSEC-2026-0459", # libsqlite3-sys
+    "RUSTSEC-2026-0418", # libz-sys
+    "RUSTSEC-2026-0544", # libz-sys
+    "RUSTSEC-2026-0346", # rustls
+    "RUSTSEC-2026-0347", # rustls
+    "RUSTSEC-2026-0348", # rustls
+    "RUSTSEC-2026-0349", # rustls
+    "RUSTSEC-2026-0382", # rustls-webpki
+    "RUSTSEC-2026-0386", # tokio
+    "RUSTSEC-2026-0592", # url
+    "RUSTSEC-2026-0383", # webpki-root-certs
+    "RUSTSEC-2026-0381", # webpki-roots
+    "RUSTSEC-2026-0371", # zbus_names
+    "RUSTSEC-2026-0391", # zstd
+    "RUSTSEC-2026-0398", # zstd-safe
+    "RUSTSEC-2026-0403", # zstd-safe
+    "RUSTSEC-2026-0410", # zstd-sys
+    "RUSTSEC-2026-0370", # zvariant
+    "RUSTSEC-2026-0372", # zvariant_derive
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -193,8 +216,6 @@ skip = [
     "shlex",
 
     # duplicated by mozjs which brings in new versions
-    "anstream",
-    "anstyle-parse",
     "syn",
     "toml",
     "toml_datetime",
@@ -210,6 +231,31 @@ skip = [
     "darling",
     "darling_core",
     "darling_macro",
+
+    # Duplicates introduced by the WinUI/browser dependency additions and
+    # current platform dependency graph.
+    "accesskit_consumer",
+    "alloc-no-stdlib",
+    "alloc-stdlib",
+    "brotli",
+    "brotli-decompressor",
+    "calloop",
+    "calloop-wayland-source",
+    "env_filter",
+    "miniz_oxide",
+    "nix",
+    "r-efi",
+    "smithay-client-toolkit",
+    "synstructure",
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_gnullvm",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
 ]
 
 # github.com organizations to allow git sources for

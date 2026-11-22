@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -22,10 +23,17 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 
 
-DEFAULT_TARGET_SITES = [
+class TargetSite(TypedDict):
+    name: str
+    url: str
+    category: str
+    expected_features: List[str]
+
+
+DEFAULT_TARGET_SITES: List[TargetSite] = [
     {
         "name": "Example Domain",
         "url": "https://example.com",
@@ -122,7 +130,7 @@ def run_site_test(
                 root_cause = f"Non-zero exit code ({exit_code})"
                 error_summary = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
 
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         elapsed = time.monotonic() - start_time
         status = "TIMEOUT"
         root_cause = f"Timed out after {timeout_seconds}s (potential hang or slow resource)"
@@ -201,7 +209,7 @@ def main() -> int:
                 break
 
     if not binary or not os.path.exists(binary):
-        print(f"Note: Servoshell binary not found at candidate paths. Smoke harness created and ready.", file=sys.stderr)
+        print("Note: Servoshell binary not found at candidate paths. Smoke harness created and ready.", file=sys.stderr)
         # Produce document of curated test suite
         mock_results = [
             SiteTestResult(

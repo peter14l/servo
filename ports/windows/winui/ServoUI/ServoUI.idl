@@ -6,5 +6,6 @@ namespace ServoUI
         MainWindow();
 
         void ActivateAsInitial(String url);
+        void ShutdownEngine();
     }
 }

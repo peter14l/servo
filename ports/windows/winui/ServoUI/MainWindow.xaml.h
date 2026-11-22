@@ -24,6 +24,7 @@ namespace winrt::ServoUI::implementation
 
         // Public surface declared in ServoUI.idl.
         void ActivateAsInitial(hstring const& url);
+        void ShutdownEngine();
 
         // Native-only entry points used by the WinUI shell. These are not part
         // of the IDL surface because they carry raw engine popup handles.
@@ -31,7 +32,6 @@ namespace winrt::ServoUI::implementation
         void OpenUrlInNewTabFromShell(std::string const& url);
         void OpenSettingsFromShell();
         bool OpenPopupTab(ServoCreateNewWebViewRequest* request);
-        void ShutdownEngine();
 
         // XAML event handlers.
         void RootLoaded(Windows::Foundation::IInspectable const& sender,

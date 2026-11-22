@@ -8,7 +8,7 @@ use std::iter;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::{DomRefCell, Ref};
@@ -300,8 +300,8 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(no_gc, true);
-        } else if self.display_size() == 1 &&
-            let Some(first_enabled) = first_enabled
+        } else if self.display_size() == 1
+            && let Some(first_enabled) = first_enabled
         {
             first_enabled.set_selectedness(no_gc, true);
         }
@@ -496,8 +496,8 @@ impl HTMLSelectElement {
 
             if let Some(first_selected) = first_selected {
                 first_selected.set_selectedness(cx.no_gc(), true);
-            } else if self.display_size() == 1 &&
-                let Some(first_enabled) = first_enabled
+            } else if self.display_size() == 1
+                && let Some(first_enabled) = first_enabled
             {
                 first_enabled.set_selectedness(cx.no_gc(), true);
             }
@@ -701,8 +701,10 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         // Root all options up front so they cannot be collected by the GC while
         // we mutate selectedness below (see issue #48538-style reachability bugs).
         let no_gc = cx.no_gc();
-        let options: Vec<DomRoot<HTMLOptionElement>> =
-            self.list_of_options(no_gc).map(|opt| opt.as_rooted()).collect();
+        let options: Vec<DomRoot<HTMLOptionElement>> = self
+            .list_of_options(no_gc)
+            .map(|opt| opt.as_rooted())
+            .collect();
         let mut opt_iter = options.into_iter();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
@@ -893,8 +895,8 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         self.super_type().unwrap().handle_event(cx, event);
-        if let Some(event) = event.downcast::<FocusEvent>() &&
-            *event.upcast::<Event>().type_() != *"blur"
+        if let Some(event) = event.downcast::<FocusEvent>()
+            && *event.upcast::<Event>().type_() != *"blur"
         {
             self.owner_document()
                 .embedder_controls()
@@ -930,8 +932,8 @@ impl Validatable for HTMLSelectElement {
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state() &&
-            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
+        !self.upcast::<Element>().disabled_state()
+            && !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(
@@ -946,8 +948,8 @@ impl Validatable for HTMLSelectElement {
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
             let placeholder = self.get_placeholder_label_option(cx.no_gc());
             let is_value_missing = !self.list_of_options(cx.no_gc()).any(|e| {
-                e.Selected() &&
-                    placeholder
+                e.Selected()
+                    && placeholder
                         .as_ref()
                         .map(|placeholder| **placeholder != **e)
                         .unwrap_or(true)

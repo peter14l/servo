@@ -278,7 +278,7 @@ pub unsafe extern "C" fn servo_rendering_context_create_windows_hwnd(
             None => {
                 log::error!("hwnd must be non-zero");
                 return std::ptr::null_mut();
-            }
+            },
         };
 
         let mut win32_handle = raw_window_handle::Win32WindowHandle::new(non_zero_hwnd);

@@ -364,4 +364,3 @@ fn test_hang_monitoring_signal_component_exit() {
         .join()
         .expect("Failed to join on the BHM worker thread");
 }
-

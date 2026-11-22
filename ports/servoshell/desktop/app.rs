@@ -126,7 +126,11 @@ impl App {
         if let Some(ref ext_dir) = self.servoshell_preferences.load_extension {
             match crate::desktop::extensions::load_extension(ext_dir) {
                 Ok(ext) => {
-                    log::info!("Loaded WebExtension: {} v{}", ext.manifest.name, ext.manifest.version);
+                    log::info!(
+                        "Loaded WebExtension: {} v{}",
+                        ext.manifest.name,
+                        ext.manifest.version
+                    );
                     for script in ext.scripts {
                         user_content_manager.add_script(script);
                     }
@@ -224,8 +228,8 @@ impl ApplicationHandler<AppEvent> for App {
             return;
         };
 
-        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id))) &&
-            let Some(headed_window) = window.platform_window().as_headed_window()
+        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id)))
+            && let Some(headed_window) = window.platform_window().as_headed_window()
         {
             headed_window.handle_winit_window_event(state.clone(), window, window_event);
         }
@@ -246,8 +250,8 @@ impl ApplicationHandler<AppEvent> for App {
             AppEvent::Waker => (),
             AppEvent::Accessibility(ref event) => {
                 if let Some(window) =
-                    state.window(ServoShellWindowId::from(u64::from(event.window_id))) &&
-                    let Some(headed_window) = window.platform_window().as_headed_window()
+                    state.window(ServoShellWindowId::from(u64::from(event.window_id)))
+                    && let Some(headed_window) = window.platform_window().as_headed_window()
                 {
                     headed_window.handle_winit_app_event(state.clone(), app_event);
                 }

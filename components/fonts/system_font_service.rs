@@ -226,8 +226,10 @@ impl SystemFontService {
     fn remove_painter(&mut self, painter_id: PainterId) {
         self.free_font_keys.remove(&painter_id);
         self.free_font_instance_keys.remove(&painter_id);
-        self.webrender_fonts.retain(|(_, key), _| *key != painter_id);
-        self.font_instances.retain(|key, _| key.painter_id != painter_id);
+        self.webrender_fonts
+            .retain(|(_, key), _| *key != painter_id);
+        self.font_instances
+            .retain(|key, _| key.painter_id != painter_id);
     }
 
     #[servo_tracing::instrument(skip_all)]

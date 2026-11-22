@@ -502,10 +502,12 @@ impl WindowRenderingContext {
         let device = self.surfman_context.device.borrow_mut();
         let mut context = self.surfman_context.context.borrow_mut();
 
-        let native_widget = device.connection().create_native_widget_from_window_handle(
-            window_handle,
-            Size2D::new(size.width as i32, size.height as i32),
-        )?;
+        let native_widget = device
+            .connection()
+            .create_native_widget_from_window_handle(
+                window_handle,
+                Size2D::new(size.width as i32, size.height as i32),
+            )?;
 
         let surface_access = SurfaceAccess::GPUOnly;
         let surface_type = SurfaceType::Widget { native_widget };

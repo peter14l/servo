@@ -34,7 +34,13 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
             location.file(),
             location.line()
         );
-        crash_text = format!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
+        crash_text = format!(
+            "{} (thread {}, at {}:{})",
+            msg,
+            name,
+            location.file(),
+            location.line()
+        );
     } else {
         let _ = writeln!(&mut stderr, "{} (thread {})", msg, name);
         crash_text = format!("{} (thread {})", msg, name);

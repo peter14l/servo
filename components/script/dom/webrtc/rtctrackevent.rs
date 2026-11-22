@@ -52,7 +52,17 @@ impl RTCTrackEvent {
         receiver: &RTCRtpReceiver,
         transceiver: &RTCRtpTransceiver,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track, receiver, transceiver)
+        Self::new_with_proto(
+            cx,
+            window,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            track,
+            receiver,
+            transceiver,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

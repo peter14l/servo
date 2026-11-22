@@ -383,7 +383,9 @@ impl AttributeStorage {
             entries.reserve_exact(additional);
         } else {
             unsafe {
-                self.0.borrow_for_script_deallocation().reserve_exact(additional);
+                self.0
+                    .borrow_for_script_deallocation()
+                    .reserve_exact(additional);
             }
         }
     }
@@ -395,7 +397,9 @@ impl AttributeStorage {
             entries.push(AttributeEntry::Raw(data));
         } else {
             unsafe {
-                self.0.borrow_for_script_deallocation().push(AttributeEntry::Raw(data));
+                self.0
+                    .borrow_for_script_deallocation()
+                    .push(AttributeEntry::Raw(data));
             }
         }
     }
@@ -420,9 +424,7 @@ impl AttributeStorage {
         if let Ok(mut entries) = self.0.try_borrow_mut() {
             entries.remove(index)
         } else {
-            unsafe {
-                self.0.borrow_for_script_deallocation().remove(index)
-            }
+            unsafe { self.0.borrow_for_script_deallocation().remove(index) }
         }
     }
 

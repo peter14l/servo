@@ -84,8 +84,8 @@ pub(crate) fn collect_webvtt_timestamp(position: &mut Peekable<Chars<'_>>) -> Op
     // or if position is not beyond the end of input and the character
     // at position is a U+003A COLON character (:), run these substeps:
     let value_3: f64;
-    if most_significant_units == MostSignificantUnits::Hours ||
-        position.peek().is_some_and(|c| *c == '\u{003A}')
+    if most_significant_units == MostSignificantUnits::Hours
+        || position.peek().is_some_and(|c| *c == '\u{003A}')
     {
         // Step 12.1. If position is beyond the end of input or if
         // the character at position is not a U+003A COLON character (:),
@@ -281,8 +281,8 @@ fn parse_the_webvtt_cue_settings(mut cue: WebVttCue, input: String) -> WebVttCue
                                 // and the character before or the character after is not an ASCII digit,
                                 // or if the U+002E DOT character (.) is the first or the last character,
                                 // then jump to the step labeled next setting.
-                                if last_char.is_none_or(|c| !c.is_ascii_digit()) ||
-                                    chars.peek().is_none_or(|c| !c.is_ascii_digit())
+                                if last_char.is_none_or(|c| !c.is_ascii_digit())
+                                    || chars.peek().is_none_or(|c| !c.is_ascii_digit())
                                 {
                                     continue 'next_setting;
                                 }

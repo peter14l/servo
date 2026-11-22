@@ -105,9 +105,9 @@ use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectReq
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
+use crate::request_context::RequestContext;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
-use crate::request_context::RequestContext;
 use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
@@ -512,13 +512,13 @@ impl ServoInner {
                         error_text,
                         certificate_der,
                     );
-                    let certificate_error_request = CertificateErrorRequest::new(
-                        response_sender,
-                        self.servo_errors.sender(),
+                    let certificate_error_request =
+                        CertificateErrorRequest::new(response_sender, self.servo_errors.sender());
+                    webview.delegate().certificate_error(
+                        webview,
+                        certificate_error,
+                        certificate_error_request,
                     );
-                    webview
-                        .delegate()
-                        .certificate_error(webview, certificate_error, certificate_error_request);
                 } else {
                     // No webview found, deny by default
                     let _ = response_sender.send(CertificateErrorResponse::Deny);
@@ -963,7 +963,10 @@ impl Servo {
 
         // Use request context if provided, otherwise fall back to global opts.
         let request_context = builder.request_context.unwrap_or_default();
-        let config_dir = request_context.config_dir.clone().or(opts.config_dir.clone());
+        let config_dir = request_context
+            .config_dir
+            .clone()
+            .or(opts.config_dir.clone());
         let temporary_storage = request_context.temporary_storage || opts.temporary_storage;
 
         // Set the preferences globally.
@@ -1059,11 +1062,8 @@ impl Servo {
                 protocols.clone(),
             );
 
-        let (private_storage_threads, public_storage_threads) = new_storage_threads(
-            mem_profiler_chan.clone(),
-            config_dir,
-            temporary_storage,
-        );
+        let (private_storage_threads, public_storage_threads) =
+            new_storage_threads(mem_profiler_chan.clone(), config_dir, temporary_storage);
 
         create_constellation(
             embedder_to_constellation_receiver,
@@ -1494,8 +1494,8 @@ pub fn run_content_process(token: String) {
 
 #[cfg(all(feature = "multiprocess", target_os = "windows"))]
 mod windows_sandbox {
-    use std::ffi::c_void;
     use log::{info, warn};
+    use std::ffi::c_void;
 
     #[repr(C)]
     struct ProcessMitigationDepPolicy {
@@ -1589,7 +1589,8 @@ mod windows_sandbox {
                 PROCESS_DEP_POLICY,
                 &dep as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationDepPolicy>(),
-            ) == 0 {
+            ) == 0
+            {
                 warn!("Windows sandbox: Failed to apply DEP policy");
             }
         }
@@ -1603,35 +1604,34 @@ mod windows_sandbox {
                 PROCESS_ASLR_POLICY,
                 &aslr as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationAslrPolicy>(),
-            ) == 0 {
+            ) == 0
+            {
                 warn!("Windows sandbox: Failed to apply ASLR policy");
             }
         }
 
         // 3. Strict Handle Checking Policy: raise exception on invalid handle reference
-        let strict_handle = ProcessMitigationStrictHandleCheckPolicy {
-            flags: 0x01,
-        };
+        let strict_handle = ProcessMitigationStrictHandleCheckPolicy { flags: 0x01 };
         unsafe {
             if SetProcessMitigationPolicy(
                 PROCESS_STRICT_HANDLE_CHECK_POLICY,
                 &strict_handle as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationStrictHandleCheckPolicy>(),
-            ) == 0 {
+            ) == 0
+            {
                 warn!("Windows sandbox: Failed to apply Strict Handle Check policy");
             }
         }
 
         // 4. Extension Point Disable Policy: block legacy Windows hooks and AppInit DLL injection
-        let ext_point = ProcessMitigationExtensionPointDisablePolicy {
-            flags: 0x01,
-        };
+        let ext_point = ProcessMitigationExtensionPointDisablePolicy { flags: 0x01 };
         unsafe {
             if SetProcessMitigationPolicy(
                 PROCESS_EXTENSION_POINT_DISABLE_POLICY,
                 &ext_point as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationExtensionPointDisablePolicy>(),
-            ) == 0 {
+            ) == 0
+            {
                 warn!("Windows sandbox: Failed to apply Extension Point Disable policy");
             }
         }
@@ -1649,9 +1649,12 @@ mod windows_sandbox {
                     JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
                     &info as *const _ as *const c_void,
                     std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
-                ) != 0 {
+                ) != 0
+                {
                     if AssignProcessToJobObject(job, GetCurrentProcess()) != 0 {
-                        info!("Windows sandbox: Bound process to Job Object with active process limit = 1");
+                        info!(
+                            "Windows sandbox: Bound process to Job Object with active process limit = 1"
+                        );
                         // Keep handle open to preserve Job Object containment for process lifetime
                         let _ = job;
                     } else {
@@ -1727,11 +1730,7 @@ pub fn create_sandbox() {
     not(feature = "multiprocess"),
     all(
         feature = "multiprocess",
-        any(
-            target_arch = "riscv32",
-            target_arch = "riscv64",
-            target_env = "ohos"
-        )
+        any(target_arch = "riscv32", target_arch = "riscv64", target_env = "ohos")
     )
 ))]
 pub fn create_sandbox() {

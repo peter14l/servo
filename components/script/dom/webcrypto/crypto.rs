@@ -58,15 +58,15 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         // TypeMismatchError and terminate the algorithm.
         if !matches!(
             array.get_array_type(),
-            Type::Int8 |
-                Type::Uint8 |
-                Type::Uint8Clamped |
-                Type::Int16 |
-                Type::Uint16 |
-                Type::Int32 |
-                Type::Uint32 |
-                Type::BigInt64 |
-                Type::BigUint64
+            Type::Int8
+                | Type::Uint8
+                | Type::Uint8Clamped
+                | Type::Int16
+                | Type::Uint16
+                | Type::Int32
+                | Type::Uint32
+                | Type::BigInt64
+                | Type::BigUint64
         ) {
             return Err(Error::TypeMismatch(Some(
                 "The array must be an integer-based TypedArray".into(),

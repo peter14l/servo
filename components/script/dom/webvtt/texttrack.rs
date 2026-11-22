@@ -285,8 +285,8 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
             // Step 3. If list's associated rules for updating the text track rendering are not
             // the same rules for updating the text track rendering as appropriate for cue,
             // then throw an "InvalidStateError" DOMException.
-            if rules_for_updating_the_text_track_rendering !=
-                cue.rules_for_updating_the_text_track_rendering()
+            if rules_for_updating_the_text_track_rendering
+                != cue.rules_for_updating_the_text_track_rendering()
             {
                 return Err(Error::InvalidState(Some(
                     "Text cue rules of rendering do not match text track rules of rendering".into(),

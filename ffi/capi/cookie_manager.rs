@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{c_char, CString};
+use std::ffi::{CString, c_char};
 use std::os::raw::c_void;
 
 use crate::{
@@ -126,10 +126,14 @@ impl CookieStringStorage {
 
     fn store(&mut self, cookie: &Cookie<'static>) -> ServoCookie {
         // Store all strings as null-terminated CStrings and get their stable pointers
-        self.names.push(CString::new(cookie.name()).unwrap_or_default());
-        self.values.push(CString::new(cookie.value()).unwrap_or_default());
-        self.domains.push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
-        self.paths.push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
+        self.names
+            .push(CString::new(cookie.name()).unwrap_or_default());
+        self.values
+            .push(CString::new(cookie.value()).unwrap_or_default());
+        self.domains
+            .push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
+        self.paths
+            .push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
 
         let idx = self.names.len() - 1;
 
@@ -231,10 +235,13 @@ pub unsafe extern "C" fn servo_site_data_visit_all_cookies(
 
         // Get all cookies from SiteDataManager
         let (tx, rx) = std::sync::mpsc::channel();
-        manager.servo.site_data_manager().visit_all_cookies(move |c| {
-            let _ = tx.send(c.clone());
-            true
-        });
+        manager
+            .servo
+            .site_data_manager()
+            .visit_all_cookies(move |c| {
+                let _ = tx.send(c.clone());
+                true
+            });
         let cookies: Vec<_> = rx.into_iter().collect();
 
         // Call visitor for each cookie
@@ -290,13 +297,14 @@ pub unsafe extern "C" fn servo_site_data_visit_cookies_for_url(
 
         // Get cookies for URL from SiteDataManager
         let (tx, rx) = std::sync::mpsc::channel();
-        manager
-            .servo
-            .site_data_manager()
-            .visit_cookies_for_url(url, servo_api::CookieSource::HTTP, move |c| {
+        manager.servo.site_data_manager().visit_cookies_for_url(
+            url,
+            servo_api::CookieSource::HTTP,
+            move |c| {
                 let _ = tx.send(c.clone());
                 true
-            });
+            },
+        );
         let cookies: Vec<_> = rx.into_iter().collect();
 
         // Call visitor for each cookie
@@ -368,7 +376,8 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             let name = if filter.name.is_null() || (filter.flags & 0) != 0 {
                 None
             } else {
-                let Ok(name_str) = (unsafe { std::ffi::CStr::from_ptr(filter.name) }).to_str() else {
+                let Ok(name_str) = (unsafe { std::ffi::CStr::from_ptr(filter.name) }).to_str()
+                else {
                     return crate::ServoError::InvalidUtf8;
                 };
                 Some(name_str.to_string())
@@ -376,7 +385,8 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             let domain = if filter.domain.is_null() {
                 None
             } else {
-                let Ok(domain_str) = (unsafe { std::ffi::CStr::from_ptr(filter.domain) }).to_str() else {
+                let Ok(domain_str) = (unsafe { std::ffi::CStr::from_ptr(filter.domain) }).to_str()
+                else {
                     return crate::ServoError::InvalidUtf8;
                 };
                 Some(domain_str.to_string())
@@ -384,7 +394,8 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             let path = if filter.path.is_null() {
                 None
             } else {
-                let Ok(path_str) = (unsafe { std::ffi::CStr::from_ptr(filter.path) }).to_str() else {
+                let Ok(path_str) = (unsafe { std::ffi::CStr::from_ptr(filter.path) }).to_str()
+                else {
                     return crate::ServoError::InvalidUtf8;
                 };
                 Some(path_str.to_string())
@@ -412,9 +423,10 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             session_opt,
             callback.map(|cb| {
                 let user_data = user_data as usize;
-                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data as *mut c_void) };
-                });
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> =
+                    Box::new(move |count: usize| {
+                        unsafe { cb(count, user_data as *mut c_void) };
+                    });
                 boxed
             }),
         );
@@ -469,9 +481,10 @@ pub unsafe extern "C" fn servo_site_data_delete_cookies_for_url(
             url,
             callback.map(|cb| {
                 let user_data = user_data as usize;
-                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data as *mut c_void) };
-                });
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> =
+                    Box::new(move |count: usize| {
+                        unsafe { cb(count, user_data as *mut c_void) };
+                    });
                 boxed
             }),
         );
@@ -536,9 +549,10 @@ pub unsafe extern "C" fn servo_site_data_delete_cookie(
             name_str.to_string(),
             callback.map(|cb| {
                 let user_data = user_data as usize;
-                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data as *mut c_void) };
-                });
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> =
+                    Box::new(move |count: usize| {
+                        unsafe { cb(count, user_data as *mut c_void) };
+                    });
                 boxed
             }),
         );

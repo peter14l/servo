@@ -126,8 +126,9 @@ mod font_context {
                                 .collect(),
                         );
                     },
-                    SystemFontServiceMessage::GetFontInstanceKey(_, result_sender) |
-                    SystemFontServiceMessage::GetFontInstance(_, _, _, _, _, _, result_sender) => {
+                    SystemFontServiceMessage::GetFontInstanceKey(_, result_sender)
+                    | SystemFontServiceMessage::GetFontInstance(_, _, _, _, _, _, result_sender) =>
+                    {
                         let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
                     },
                     SystemFontServiceMessage::GetFontKey(_, result_sender) => {

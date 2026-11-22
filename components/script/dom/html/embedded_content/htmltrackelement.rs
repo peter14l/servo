@@ -342,8 +342,8 @@ impl VirtualMethods for HTMLTrackElement {
                     *self.track_url.borrow_mut() = None;
                 }
 
-                if mutation.old_value(attr) !=
-                    mutation.new_value(attr).map(|value| value.to_string())
+                if mutation.old_value(attr)
+                    != mutation.new_value(attr).map(|value| value.to_string())
                 {
                     // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
                     // > Whenever a track element has its src attribute set, changed, or removed,
@@ -375,8 +375,8 @@ impl VirtualMethods for HTMLTrackElement {
                         // at the same time as the text track mode is set to hidden or showing.
                         //
                         // These conditions have been checked above by the if-statements
-                        if self.has_started_tracking_processing_model.get() &&
-                            !self.is_running_processing_model_algorithm.get()
+                        if self.has_started_tracking_processing_model.get()
+                            && !self.is_running_processing_model_algorithm.get()
                         {
                             // Step 13. Jump to the step labeled top.
                             let task = TrackElementMicrotask::ProcessingModel {
@@ -391,10 +391,10 @@ impl VirtualMethods for HTMLTrackElement {
                     }
                 }
             },
-            local_name!("kind") |
-            local_name!("label") |
-            local_name!("srclang") |
-            local_name!("id") => {
+            local_name!("kind")
+            | local_name!("label")
+            | local_name!("srclang")
+            | local_name!("id") => {
                 // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
                 // > As the kind, label, srclang, and id attributes are set, changed,
                 // > or removed, the text track must update accordingly, as per the definitions above.
@@ -469,8 +469,8 @@ impl MicrotaskRunnable for TrackElementMicrotask {
             TrackElementMicrotask::ProcessingModel { element } => {
                 // Not specced, but required for browser compatibility:
                 // https://github.com/whatwg/html/issues/12796
-                if element.readiness_state.get() == TextTrackReadinessState::Loaded &&
-                    *element.track_url.borrow() == *element.last_successful_load.borrow()
+                if element.readiness_state.get() == TextTrackReadinessState::Loaded
+                    && *element.track_url.borrow() == *element.last_successful_load.borrow()
                 {
                     element.is_running_processing_model_algorithm.set(false);
                     return;

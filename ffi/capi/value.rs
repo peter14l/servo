@@ -314,9 +314,7 @@ impl ServoDictionaryValue {
 
 impl ServoListValue {
     fn new() -> Self {
-        Self {
-            list: Vec::new(),
-        }
+        Self { list: Vec::new() }
     }
 
     fn get_list(&self) -> &Vec<ServoValue> {

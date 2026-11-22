@@ -125,9 +125,9 @@ impl BoxTree {
         writing_mode_source_style: &ServoArc<ComputedValues>,
     ) -> ServoArc<ComputedValues> {
         let source_inherited_box = writing_mode_source_style.get_inherited_box();
-        if base_style.writing_mode == writing_mode_source_style.writing_mode &&
-            base_style.get_direction() == writing_mode_source_style.get_direction() &&
-            base_style.get_text_orientation() == writing_mode_source_style.get_text_orientation()
+        if base_style.writing_mode == writing_mode_source_style.writing_mode
+            && base_style.get_direction() == writing_mode_source_style.get_direction()
+            && base_style.get_text_orientation() == writing_mode_source_style.get_text_orientation()
         {
             return base_style;
         }
@@ -186,9 +186,9 @@ impl BoxTree {
 
         root_box.borrow_mut().with_base_mut(|base| {
             let root_overflow = AxesOverflow::from(&*base.style);
-            if root_overflow.x == Overflow::Visible &&
-                root_overflow.y == Overflow::Visible &&
-                let Some(body_overflow) = propagate_from_body()
+            if root_overflow.x == Overflow::Visible
+                && root_overflow.y == Overflow::Visible
+                && let Some(body_overflow) = propagate_from_body()
             {
                 return body_overflow;
             }

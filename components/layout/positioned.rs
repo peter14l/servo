@@ -534,8 +534,8 @@ impl HoistedAbsolutelyPositionedBox {
         // For all other containers, the containing block is just the padding box.
         let fully_adjusted_static_position_rect = {
             let mut static_position_rect = self.static_position_rect().translate(
-                PhysicalVec::new(containing_block_padding.left, containing_block_padding.top) -
-                    containing_block_origin,
+                PhysicalVec::new(containing_block_padding.left, containing_block_padding.top)
+                    - containing_block_origin,
             );
             static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
             static_position_rect.to_logical(&(&containing_block).into())
@@ -653,8 +653,8 @@ impl IndependentFormattingContext {
             box_offsets: inline_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(Direction::Inline),
             alignment: inline_alignment,
-            flip_anchor: original_parent_writing_mode.is_bidi_ltr() !=
-                containing_block_writing_mode.is_bidi_ltr(),
+            flip_anchor: original_parent_writing_mode.is_bidi_ltr()
+                != containing_block_writing_mode.is_bidi_ltr(),
             is_table_or_replaced,
         };
 
@@ -803,12 +803,12 @@ impl IndependentFormattingContext {
         .as_physical(Some(containing_block))
         .translate(containing_block_origin);
 
-        if is_cached &&
-            let Some(old_fragment) = self.base.fragments().first() &&
-            let Some(old_box_fragment) = old_fragment
+        if is_cached
+            && let Some(old_fragment) = self.base.fragments().first()
+            && let Some(old_box_fragment) = old_fragment
                 .retrieve_box_fragment()
-                .map(|fragment| fragment.clone()) &&
-            content_rect == old_box_fragment.content_rect()
+                .map(|fragment| fragment.clone())
+            && content_rect == old_box_fragment.content_rect()
         {
             // Drain the nested absolutes for which we are a containing block.
             // However, we are reusing the fragment, so no need to lay them out again.
@@ -883,9 +883,9 @@ impl AbsoluteAxisSolver {
         ) {
             (None, None) => {
                 if self.flip_anchor {
-                    self.containing_size -
-                        self.static_position_rect_axis.origin -
-                        self.static_position_rect_axis.length
+                    self.containing_size
+                        - self.static_position_rect_axis.origin
+                        - self.static_position_rect_axis.length
                 } else {
                     self.static_position_rect_axis.origin
                 }
@@ -916,10 +916,10 @@ impl AbsoluteAxisSolver {
     #[inline]
     fn stretch_size(&self) -> Au {
         Au::zero().max(
-            self.available_space() -
-                self.padding_border_sum -
-                self.computed_margin_start.auto_is(Au::zero) -
-                self.computed_margin_end.auto_is(Au::zero),
+            self.available_space()
+                - self.padding_border_sum
+                - self.computed_margin_start.auto_is(Au::zero)
+                - self.computed_margin_end.auto_is(Au::zero),
         )
     }
 
@@ -1002,8 +1002,8 @@ impl AbsoluteAxisSolver {
             "Mixed horizontal and vertical writing modes are not supported yet"
         );
         let self_value_matches_container = || {
-            self.axis == Direction::Block ||
-                self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
+            self.axis == Direction::Block
+                || self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
         };
 
         // Here we resolve the alignment to either start, center, or end.
@@ -1059,8 +1059,8 @@ impl AbsoluteAxisSolver {
             AlignFlags::END => alignment_container.origin + free_space,
             _ => unreachable!(),
         };
-        if matches!(flags, AlignFlags::SAFE | AlignFlags::UNSAFE) ||
-            matches!(
+        if matches!(flags, AlignFlags::SAFE | AlignFlags::UNSAFE)
+            || matches!(
                 self.alignment,
                 AlignFlags::NORMAL | AlignFlags::AUTO | AlignFlags::STRETCH
             )

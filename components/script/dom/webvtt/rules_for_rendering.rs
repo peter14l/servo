@@ -70,8 +70,8 @@ impl RulesForUpdatingTheTextTrackRendering {
             .filter(|text_track| {
                 let is_showing = text_track.Mode() == TextTrackMode::Showing;
                 debug_assert!(
-                    !is_showing ||
-                        text_track
+                    !is_showing
+                        || text_track
                             .rules_for_updating_the_text_track_rendering()
                             .is_some_and(
                                 |rules| rules == RulesForUpdatingTheTextTrackRendering::WebVTT

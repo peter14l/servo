@@ -40,9 +40,7 @@ pub struct ServoNetworkManager {
 ///   returned by `servo_builder_build` and has not yet been freed.
 /// - The call is made from the same thread that created the `Servo` instance.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_get_network_manager(
-    servo: *mut Servo,
-) -> *mut ServoNetworkManager {
+pub unsafe extern "C" fn servo_get_network_manager(servo: *mut Servo) -> *mut ServoNetworkManager {
     ServoError::catch_ffi_ptr(|| {
         if servo.is_null() {
             return std::ptr::null_mut();

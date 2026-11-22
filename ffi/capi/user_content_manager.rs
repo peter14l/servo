@@ -281,7 +281,9 @@ pub unsafe extern "C" fn servo_user_content_manager_remove_script(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let script = unsafe { &*script };
-        user_content_manager.inner.remove_script(script.inner.clone());
+        user_content_manager
+            .inner
+            .remove_script(script.inner.clone());
         ServoError::Ok
     })
 }
@@ -318,7 +320,9 @@ pub unsafe extern "C" fn servo_user_content_manager_add_style_sheet(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let stylesheet = unsafe { &*stylesheet };
-        user_content_manager.inner.add_stylesheet(stylesheet.inner.clone());
+        user_content_manager
+            .inner
+            .add_stylesheet(stylesheet.inner.clone());
         ServoError::Ok
     })
 }
@@ -352,7 +356,9 @@ pub unsafe extern "C" fn servo_user_content_manager_remove_style_sheet(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let stylesheet = unsafe { &*stylesheet };
-        user_content_manager.inner.remove_stylesheet(stylesheet.inner.clone());
+        user_content_manager
+            .inner
+            .remove_stylesheet(stylesheet.inner.clone());
         ServoError::Ok
     })
 }

@@ -28,8 +28,8 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 use winapi::um::wingdi::FW_SEMIBOLD;
 
 use crate::{
-    CBDT, COLR, SBIX, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
-    FractionalPixel, GlyphId, PlatformFontMethods,
+    CBDT, COLR, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
+    FractionalPixel, GlyphId, PlatformFontMethods, SBIX,
 };
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -334,9 +334,9 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        let mut flags = if self.table_for_tag(COLR).is_some() ||
-            self.table_for_tag(CBDT).is_some() ||
-            self.table_for_tag(SBIX).is_some()
+        let mut flags = if self.table_for_tag(COLR).is_some()
+            || self.table_for_tag(CBDT).is_some()
+            || self.table_for_tag(SBIX).is_some()
         {
             FontInstanceFlags::EMBEDDED_BITMAPS
         } else {

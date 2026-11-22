@@ -429,8 +429,8 @@ pub(crate) fn cross_origin_has_own<D: DomTypes>(
         return false;
     }
 
-    if is_none &&
-        !cross_origin_property_fallback::<D>(
+    if is_none
+        && !cross_origin_property_fallback::<D>(
             cx,
             proxy,
             id,
@@ -628,15 +628,15 @@ fn ensure_cross_origin_property_holder(
     out_holder
         .set(unsafe { JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null()) });
 
-    if out_holder.get().is_null() ||
-        !unsafe {
+    if out_holder.get().is_null()
+        || !unsafe {
             JS_DefineProperties(
                 cx,
                 out_holder.handle(),
                 cross_origin_properties.attributes.as_ptr(),
             )
-        } ||
-        !unsafe {
+        }
+        || !unsafe {
             JS_DefineFunctions(
                 cx,
                 out_holder.handle(),
@@ -1059,8 +1059,8 @@ where
         rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
         get_expando_object(proxy, expando.handle_mut());
 
-        if !expando.is_null() &&
-            !GetPropertyKeys(
+        if !expando.is_null()
+            && !GetPropertyKeys(
                 &mut cx,
                 expando.handle(),
                 JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
@@ -1124,8 +1124,8 @@ where
 
         rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
         get_expando_object(proxy, expando.handle_mut());
-        if !expando.is_null() &&
-            !GetPropertyKeys(
+        if !expando.is_null()
+            && !GetPropertyKeys(
                 &mut cx,
                 expando.handle(),
                 JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,

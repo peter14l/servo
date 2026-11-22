@@ -87,7 +87,8 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         };
 
         let microphone_granted = if needs_microphone {
-            request_permission_to_use(PermissionName::Microphone, &global) == PermissionState::Granted
+            request_permission_to_use(PermissionName::Microphone, &global)
+                == PermissionState::Granted
         } else {
             true
         };

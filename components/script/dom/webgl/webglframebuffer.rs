@@ -337,8 +337,8 @@ impl WebGLFramebuffer {
             }
         }
 
-        if let Some(format) = format &&
-            constraints.all(|c| *c != format)
+        if let Some(format) = format
+            && constraints.all(|c| *c != format)
         {
             return Err(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
         }
@@ -577,8 +577,8 @@ impl WebGLFramebuffer {
             // Collect every bit before marking: in WebGL 2 one image can fill two slots.
             let mut clear_bits = 0;
             for (attachment, bits) in attachments.into_iter().chain(colors.clone()) {
-                if let Some(ref att) = *attachment.borrow() &&
-                    att.needs_initialization()
+                if let Some(ref att) = *attachment.borrow()
+                    && att.needs_initialization()
                 {
                     clear_bits |= bits;
                 }
@@ -715,8 +715,8 @@ impl WebGLFramebuffer {
         &self,
         attachment: u32,
     ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>> {
-        (self.webgl_version == WebGLVersion::WebGL2 &&
-            attachment == constants::DEPTH_STENCIL_ATTACHMENT)
+        (self.webgl_version == WebGLVersion::WebGL2
+            && attachment == constants::DEPTH_STENCIL_ATTACHMENT)
             .then_some(&self.stencil)
     }
 

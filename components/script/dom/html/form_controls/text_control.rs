@@ -141,8 +141,8 @@ pub(crate) trait TextControlElement {
         // do a layout reflow.
         window.layout_reflow(QueryMsg::StyleQuery);
         let node = self.as_element().upcast::<Node>();
-        flags.intersects(EventFlags::Canceled) ||
-            !node.is_being_rendered_or_delegates_rendering(None)
+        flags.intersects(EventFlags::Canceled)
+            || !node.is_being_rendered_or_delegates_rendering(None)
     }
 
     /// <https://w3c.github.io/uievents/#event-type-input>

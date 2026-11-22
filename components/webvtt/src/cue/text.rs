@@ -112,10 +112,10 @@ impl WebVTTNodeObject {
 impl PartialEq for WebVTTNodeObject {
     fn eq(&self, other: &Self) -> bool {
         // We compare all fields except parent
-        self.children.eq(&other.children) &&
-            self.applicable_classes.eq(&other.applicable_classes) &&
-            self.applicable_language.eq(&other.applicable_language) &&
-            self.kind.eq(&other.kind)
+        self.children.eq(&other.children)
+            && self.applicable_classes.eq(&other.applicable_classes)
+            && self.applicable_language.eq(&other.applicable_language)
+            && self.kind.eq(&other.kind)
     }
 }
 
@@ -364,8 +364,8 @@ pub fn webvtt_cue_text_parsing_rules(
                 // then create a WebVTT Timestamp Object whose value is the collected time,
                 // then append it to current.
                 // Otherwise, ignore the token.
-                if let Some(timestamp) = collect_webvtt_timestamp(position.by_ref()) &&
-                    position.peek().is_none()
+                if let Some(timestamp) = collect_webvtt_timestamp(position.by_ref())
+                    && position.peek().is_none()
                 {
                     let mut children = current.children.borrow_mut();
                     let new = WebVTTNodeObject {

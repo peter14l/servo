@@ -190,9 +190,9 @@ impl VTTCue {
                         WebVTTNodeObjectKind::Underline => "u",
                         WebVTTNodeObjectKind::Ruby => "ruby",
                         WebVTTNodeObjectKind::RubyText => "rt",
-                        WebVTTNodeObjectKind::Class |
-                        WebVTTNodeObjectKind::Voice(_) |
-                        WebVTTNodeObjectKind::Language => "span",
+                        WebVTTNodeObjectKind::Class
+                        | WebVTTNodeObjectKind::Voice(_)
+                        | WebVTTNodeObjectKind::Language => "span",
                         WebVTTNodeObjectKind::Text(text) => {
                             // > Text node whose data is the value of the WebVTT Text Object.
                             let text = document.CreateTextNode(cx, DOMString::from(text.as_ref()));
@@ -390,8 +390,8 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-position>
     fn SetPosition(&self, value: VTTCueBinding::LineAndPositionSetting) -> ErrorResult {
-        if let VTTCueBinding::LineAndPositionSetting::Double(x) = value &&
-            (*x < 0_f64 || *x > 100_f64)
+        if let VTTCueBinding::LineAndPositionSetting::Double(x) = value
+            && (*x < 0_f64 || *x > 100_f64)
         {
             return Err(Error::IndexSize(None));
         }

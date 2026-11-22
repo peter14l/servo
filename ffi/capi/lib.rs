@@ -14,6 +14,7 @@ mod multiprocess;
 mod network_manager;
 mod options;
 mod preferences;
+mod printing;
 mod protocol_handler;
 mod rendering_context;
 mod request_context;
@@ -22,7 +23,6 @@ mod servo_delegate;
 mod site_data;
 mod user_content_manager;
 mod value;
-mod printing;
 mod webview;
 mod webview_delegate;
 
@@ -69,7 +69,15 @@ pub(crate) unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len
 // Re-export cursor and console constants from webview_delegate
 pub use webview_delegate::{
     SERVO_CONSOLE_LOG_LEVEL_DEBUG, SERVO_CONSOLE_LOG_LEVEL_ERROR, SERVO_CONSOLE_LOG_LEVEL_INFO,
-    SERVO_CONSOLE_LOG_LEVEL_LOG, SERVO_CONSOLE_LOG_LEVEL_WARN, SERVO_CURSOR_ALIAS,
+    SERVO_CONSOLE_LOG_LEVEL_LOG, SERVO_CONSOLE_LOG_LEVEL_WARN, SERVO_CONTEXT_MENU_ACTION_COPY,
+    SERVO_CONTEXT_MENU_ACTION_COPY_IMAGE_LINK, SERVO_CONTEXT_MENU_ACTION_COPY_LINK,
+    SERVO_CONTEXT_MENU_ACTION_CUT, SERVO_CONTEXT_MENU_ACTION_DISMISS,
+    SERVO_CONTEXT_MENU_ACTION_GO_BACK, SERVO_CONTEXT_MENU_ACTION_GO_FORWARD,
+    SERVO_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_VIEW,
+    SERVO_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WEBVIEW, SERVO_CONTEXT_MENU_ACTION_PASTE,
+    SERVO_CONTEXT_MENU_ACTION_RELOAD, SERVO_CONTEXT_MENU_ACTION_SELECT_ALL,
+    SERVO_CONTEXT_MENU_FLAG_EDITABLE_TEXT, SERVO_CONTEXT_MENU_FLAG_IMAGE,
+    SERVO_CONTEXT_MENU_FLAG_LINK, SERVO_CONTEXT_MENU_FLAG_SELECTION, SERVO_CURSOR_ALIAS,
     SERVO_CURSOR_AUTO, SERVO_CURSOR_CELL, SERVO_CURSOR_COLUMN_RESIZE, SERVO_CURSOR_CONTEXT_MENU,
     SERVO_CURSOR_COPY, SERVO_CURSOR_CROSSHAIR, SERVO_CURSOR_CUSTOM, SERVO_CURSOR_EAST_PANNING,
     SERVO_CURSOR_EAST_RESIZE, SERVO_CURSOR_EAST_WEST_RESIZE, SERVO_CURSOR_GRAB,
@@ -83,18 +91,8 @@ pub use webview_delegate::{
     SERVO_CURSOR_SOUTH_EAST_PANNING, SERVO_CURSOR_SOUTH_EAST_RESIZE, SERVO_CURSOR_SOUTH_PANNING,
     SERVO_CURSOR_SOUTH_RESIZE, SERVO_CURSOR_SOUTH_WEST_PANNING, SERVO_CURSOR_SOUTH_WEST_RESIZE,
     SERVO_CURSOR_VERTICAL_TEXT, SERVO_CURSOR_WAIT, SERVO_CURSOR_WEST_PANNING,
-    SERVO_CURSOR_WEST_RESIZE, ServoFilePickerCallback,
-    ServoContextMenuAction, ServoContextMenuCallback, ServoContextMenuItem,
-    ServoContextMenuParams, SERVO_CONTEXT_MENU_ACTION_DISMISS,
-    SERVO_CONTEXT_MENU_ACTION_GO_BACK, SERVO_CONTEXT_MENU_ACTION_GO_FORWARD,
-    SERVO_CONTEXT_MENU_ACTION_RELOAD, SERVO_CONTEXT_MENU_ACTION_COPY_LINK,
-    SERVO_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WEBVIEW,
-    SERVO_CONTEXT_MENU_ACTION_COPY_IMAGE_LINK,
-    SERVO_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_VIEW, SERVO_CONTEXT_MENU_ACTION_CUT,
-    SERVO_CONTEXT_MENU_ACTION_COPY, SERVO_CONTEXT_MENU_ACTION_PASTE,
-    SERVO_CONTEXT_MENU_ACTION_SELECT_ALL, SERVO_CONTEXT_MENU_FLAG_LINK,
-    SERVO_CONTEXT_MENU_FLAG_IMAGE, SERVO_CONTEXT_MENU_FLAG_EDITABLE_TEXT,
-    SERVO_CONTEXT_MENU_FLAG_SELECTION,
+    SERVO_CURSOR_WEST_RESIZE, ServoContextMenuAction, ServoContextMenuCallback,
+    ServoContextMenuItem, ServoContextMenuParams, ServoFilePickerCallback,
 };
 
 // Re-export media session constants from webview
@@ -161,15 +159,14 @@ pub use request_context::{
 
 // Re-export value types and constants
 pub use value::{
-    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType,
-    servo_dictionary_create, servo_dictionary_free, servo_dictionary_get_key,
-    servo_dictionary_get_keys, servo_dictionary_get_size, servo_dictionary_has_key,
-    servo_dictionary_set_key, servo_list_create, servo_list_free, servo_list_get_size,
-    servo_list_get_value, servo_list_set_value, servo_value_create, servo_value_free,
-    servo_value_from_json, servo_value_get_binary, servo_value_get_bool, servo_value_get_double,
-    servo_value_get_int, servo_value_get_string, servo_value_get_type, servo_value_set_binary,
-    servo_value_set_bool, servo_value_set_double, servo_value_set_int, servo_value_set_string,
-    servo_value_to_json,
+    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType, servo_dictionary_create,
+    servo_dictionary_free, servo_dictionary_get_key, servo_dictionary_get_keys,
+    servo_dictionary_get_size, servo_dictionary_has_key, servo_dictionary_set_key,
+    servo_list_create, servo_list_free, servo_list_get_size, servo_list_get_value,
+    servo_list_set_value, servo_value_create, servo_value_free, servo_value_from_json,
+    servo_value_get_binary, servo_value_get_bool, servo_value_get_double, servo_value_get_int,
+    servo_value_get_string, servo_value_get_type, servo_value_set_binary, servo_value_set_bool,
+    servo_value_set_double, servo_value_set_int, servo_value_set_string, servo_value_to_json,
 };
 
 // Re-export JavaScript evaluation types
@@ -225,18 +222,15 @@ pub use network_manager::{
 
 // Re-export preferences types and helpers
 pub use preferences::{
-    servo_preferences_create, servo_preferences_free,
-    servo_preferences_get_bool, servo_preferences_get_devtools_server_enabled,
-    servo_preferences_get_devtools_server_port, servo_preferences_get_i64,
-    servo_preferences_get_string, servo_preferences_get_u64, servo_preferences_set_bool,
-    servo_preferences_set_devtools_server, servo_preferences_set_i64,
+    servo_preferences_create, servo_preferences_free, servo_preferences_get_bool,
+    servo_preferences_get_devtools_server_enabled, servo_preferences_get_devtools_server_port,
+    servo_preferences_get_i64, servo_preferences_get_string, servo_preferences_get_u64,
+    servo_preferences_set_bool, servo_preferences_set_devtools_server, servo_preferences_set_i64,
     servo_preferences_set_string, servo_preferences_set_u64,
 };
 
 // Re-export printing types and helpers
-pub use printing::{
-    ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf,
-};
+pub use printing::{ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf};
 
 /// Error codes returned by the Servo C API.
 ///

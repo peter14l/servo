@@ -152,7 +152,12 @@ pub struct CertificateError {
 }
 
 impl CertificateError {
-    pub(crate) fn new(url: Url, error_code: i32, error_text: String, certificate_der: Vec<u8>) -> Self {
+    pub(crate) fn new(
+        url: Url,
+        error_code: i32,
+        error_text: String,
+        certificate_der: Vec<u8>,
+    ) -> Self {
         Self {
             url,
             error_code,
@@ -177,7 +182,10 @@ impl CertificateErrorRequest {
         error_sender: ServoErrorSender,
     ) -> Self {
         Self(
-            AutomaticResponder::new_same_process(Box::new(OneshotSender::from(response_sender)), CertificateErrorResponse::Deny),
+            AutomaticResponder::new_same_process(
+                Box::new(OneshotSender::from(response_sender)),
+                CertificateErrorResponse::Deny,
+            ),
             error_sender,
         )
     }
@@ -385,8 +393,8 @@ impl InterceptedWebResourceLoad {
 
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
-        if !self.finished &&
-            let Err(error) = self
+        if !self.finished
+            && let Err(error) = self
                 .response_sender
                 .send(WebResourceResponseMsg::FinishLoad)
         {
@@ -1237,12 +1245,7 @@ pub trait WebViewDelegate {
 
     /// A message was received from JavaScript via `window.servo.postMessage`.
     /// `handler_name` is the message identifier, and `message_json` is the JSON payload.
-    fn notify_script_message(
-        &self,
-        _webview: WebView,
-        _handler_name: &str,
-        _message_json: &str,
-    ) {}
+    fn notify_script_message(&self, _webview: WebView, _handler_name: &str, _message_json: &str) {}
 }
 
 /// A download item representing an in-progress or completed download.

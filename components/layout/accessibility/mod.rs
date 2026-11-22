@@ -473,9 +473,9 @@ impl AccessibilityTree {
         update: &mut AccessibilityUpdate,
     ) {
         let mut focused_node_id = None;
-        if let Some(focused_element) = focused_element &&
-            let Some(node_id) = self.existing_id_for_opaque(focused_element) &&
-            let Some(focused_node) = self.node_for_id(node_id)
+        if let Some(focused_element) = focused_element
+            && let Some(node_id) = self.existing_id_for_opaque(focused_element)
+            && let Some(focused_node) = self.node_for_id(node_id)
         {
             let focused_node = focused_node.borrow();
             if focused_node.role() == Role::GenericContainer {
@@ -963,8 +963,8 @@ impl AccessibilityNode {
         // Iterate over existing children and DOM children while they match. No action is necessary
         // for these nodes.
         let mut unchanged_count = 0usize;
-        while let Some(&old_id) = old_child_ids.peek() &&
-            let Some(dom_child) = remaining_dom_children.peek()
+        while let Some(&old_id) = old_child_ids.peek()
+            && let Some(dom_child) = remaining_dom_children.peek()
         {
             if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
                 update.insert_dom_node(*old_id, *dom_child);
@@ -1058,8 +1058,8 @@ impl AccessibilityNode {
             return local_damage;
         }
 
-        if let Some(dom_element) = dom_node.as_element() &&
-            dom_element.style_data().is_some()
+        if let Some(dom_element) = dom_node.as_element()
+            && dom_element.style_data().is_some()
         {
             let data = dom_element.element_data();
             let style = data.styles.primary();
@@ -1126,8 +1126,8 @@ impl AccessibilityNode {
         }
         update.counters.nodes_updated_from_tree += 1;
 
-        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
-            local_damage.contains(LocalAccessibilityDamage::RoleChanged)
+        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged)
+            || local_damage.contains(LocalAccessibilityDamage::RoleChanged)
         {
             if let Some(text) = self.label_from_descendants() {
                 new_damage.insert(self.set_label(text.as_str()));
@@ -1467,9 +1467,9 @@ impl<'update> AccessibilityUpdate<'update> {
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut tree_update = None;
         let mut counters = std::mem::take(&mut self.counters);
-        if !self.changed_nodes.is_empty() ||
-            self.accesskit_tree.is_some() ||
-            self.focused_node_changed
+        if !self.changed_nodes.is_empty()
+            || self.accesskit_tree.is_some()
+            || self.focused_node_changed
         {
             let changed_nodes = std::mem::take(&mut self.changed_nodes);
             let accesskit_tree = std::mem::take(&mut self.accesskit_tree);

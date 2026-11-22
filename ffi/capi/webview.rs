@@ -7,15 +7,17 @@ use std::os::raw::{c_char, c_int};
 use std::rc::Rc;
 use std::str::FromStr;
 
-use keyboard_types::{Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey};
+use keyboard_types::{
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
+};
 use servo_api::{Servo, WebView, WebViewBuilder};
 
-use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
 use embedder_traits::input_events::{
     ImeEvent, InputEvent, KeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseMoveEvent, TouchEvent, TouchEventType, TouchId, TouchPointerType, WheelDelta, WheelEvent,
     WheelMode,
 };
+use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
 
 use crate::{ServoError, write_c_string};
 
@@ -403,7 +405,9 @@ pub unsafe extern "C" fn servo_webview_builder_set_hidpi_scale_factor(
         if scale <= 0.0 || !scale.is_finite() {
             return ServoError::InvalidState;
         }
-        unsafe { (*builder).hidpi_scale_factor = Some(scale); }
+        unsafe {
+            (*builder).hidpi_scale_factor = Some(scale);
+        }
         ServoError::Ok
     })
 }
@@ -1676,7 +1680,9 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
 
         let modifiers = Modifiers::from_bits_truncate(modifiers);
 
-        let key = if key_str.chars().count() == 1 && key_str.chars().next().is_some_and(|c| !c.is_control()) {
+        let key = if key_str.chars().count() == 1
+            && key_str.chars().next().is_some_and(|c| !c.is_control())
+        {
             Key::Character(key_str.to_string())
         } else {
             Key::Named(NamedKey::from_str(key_str).unwrap_or(NamedKey::Unidentified))
@@ -1795,11 +1801,10 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_leave_event(
             return 0;
         }
 
-        let event = InputEvent::MouseLeftViewport(
-            embedder_traits::input_events::MouseLeftViewportEvent {
+        let event =
+            InputEvent::MouseLeftViewport(embedder_traits::input_events::MouseLeftViewportEvent {
                 focus_moving_to_another_iframe,
-            },
-        );
+            });
         let event_id = unsafe { &*webview }.notify_input_event(event);
         event_id.0 as u64
     }))
@@ -2309,7 +2314,9 @@ pub unsafe extern "C" fn servo_webview_get_hidpi_scale_factor(
         if webview.is_null() || out_scale.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_scale = (&*webview).hidpi_scale_factor().get(); }
+        unsafe {
+            *out_scale = (&*webview).hidpi_scale_factor().get();
+        }
         ServoError::Ok
     })
 }
@@ -2328,7 +2335,9 @@ pub unsafe extern "C" fn servo_webview_is_animating(
         if webview.is_null() || out_animating.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_animating = (&*webview).animating(); }
+        unsafe {
+            *out_animating = (&*webview).animating();
+        }
         ServoError::Ok
     })
 }
@@ -2345,7 +2354,9 @@ pub unsafe extern "C" fn servo_webview_get_pinch_zoom(
         if webview.is_null() || out_zoom.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_zoom = (&*webview).pinch_zoom(); }
+        unsafe {
+            *out_zoom = (&*webview).pinch_zoom();
+        }
         ServoError::Ok
     })
 }
@@ -2487,9 +2498,7 @@ pub unsafe extern "C" fn servo_webview_scroll_by(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_scroll_to_start(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_scroll_to_start(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2514,9 +2523,7 @@ pub unsafe extern "C" fn servo_webview_scroll_to_start(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_scroll_to_end(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_scroll_to_end(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2549,12 +2556,10 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_start(
             return ServoError::NullArgument;
         }
 
-        let event = InputEvent::Ime(ImeEvent::Composition(
-            CompositionEvent {
-                state: CompositionState::Start,
-                data: String::new(),
-            },
-        ));
+        let event = InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Start,
+            data: String::new(),
+        }));
         unsafe { &*webview }.notify_input_event(event);
 
         ServoError::Ok
@@ -2587,12 +2592,10 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_update(
             Err(_) => return ServoError::InvalidUtf8,
         };
 
-        let event = InputEvent::Ime(ImeEvent::Composition(
-            CompositionEvent {
-                state: CompositionState::Update,
-                data: text_str,
-            },
-        ));
+        let event = InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Update,
+            data: text_str,
+        }));
         unsafe { &*webview }.notify_input_event(event);
 
         ServoError::Ok
@@ -2626,22 +2629,14 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_end(
         };
 
         let wv = unsafe { &*webview };
-        wv.notify_input_event(InputEvent::Ime(
-            ImeEvent::Composition(
-                CompositionEvent {
-                    state: CompositionState::Update,
-                    data: text_str.clone(),
-                },
-            ),
-        ));
-        wv.notify_input_event(InputEvent::Ime(
-            ImeEvent::Composition(
-                CompositionEvent {
-                    state: CompositionState::End,
-                    data: text_str,
-                },
-            ),
-        ));
+        wv.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Update,
+            data: text_str.clone(),
+        })));
+        wv.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::End,
+            data: text_str,
+        })));
 
         ServoError::Ok
     })
@@ -2657,9 +2652,7 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_end(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_notify_ime_dismissed(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_notify_ime_dismissed(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2697,18 +2690,10 @@ pub unsafe extern "C" fn servo_webview_notify_media_session_action(
         let action_type = match action {
             SERVO_MEDIA_SESSION_ACTION_PLAY => MediaSessionActionType::Play,
             SERVO_MEDIA_SESSION_ACTION_PAUSE => MediaSessionActionType::Pause,
-            SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD => {
-                MediaSessionActionType::SeekBackward
-            },
-            SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD => {
-                MediaSessionActionType::SeekForward
-            },
-            SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK => {
-                MediaSessionActionType::PreviousTrack
-            },
-            SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK => {
-                MediaSessionActionType::NextTrack
-            },
+            SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD => MediaSessionActionType::SeekBackward,
+            SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD => MediaSessionActionType::SeekForward,
+            SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK => MediaSessionActionType::PreviousTrack,
+            SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK => MediaSessionActionType::NextTrack,
             SERVO_MEDIA_SESSION_ACTION_SKIP_AD => MediaSessionActionType::SkipAd,
             SERVO_MEDIA_SESSION_ACTION_STOP => MediaSessionActionType::Stop,
             _ => return ServoError::InvalidArgument,

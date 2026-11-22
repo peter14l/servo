@@ -750,9 +750,17 @@ fn test_partitioned_cookie_matching() {
     // Matching partition sends the partitioned cookie.
     assert!(partitioned_cookie.appropriate_for_url_with_context(&url, source, matching_context));
     // Mismatching partition does NOT send the cookie.
-    assert!(!partitioned_cookie.appropriate_for_url_with_context(&url, source, other_partition_context));
+    assert!(!partitioned_cookie.appropriate_for_url_with_context(
+        &url,
+        source,
+        other_partition_context
+    ));
     // Missing partition key degrades to fail-closed (not sent).
-    assert!(!partitioned_cookie.appropriate_for_url_with_context(&url, source, unpartitioned_context));
+    assert!(!partitioned_cookie.appropriate_for_url_with_context(
+        &url,
+        source,
+        unpartitioned_context
+    ));
 }
 
 #[test]

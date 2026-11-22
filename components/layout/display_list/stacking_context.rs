@@ -319,8 +319,8 @@ impl StackingContextTree {
             .cumulative_content_box_rect(
                 ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
             )
-            .origin -
-            reference_frame_origin.cast_unit();
+            .origin
+            - reference_frame_origin.cast_unit();
 
         // Use that to find the offset from the fragment origin.
         Some(transformed_point - fragment_origin)
@@ -524,8 +524,8 @@ impl Fragment {
         let fragment_clone = self.clone();
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                if mode == StackingContextBuildMode::SkipHoisted &&
-                    fragment
+                if mode == StackingContextBuildMode::SkipHoisted
+                    && fragment
                         .style()
                         .get_box()
                         .position
@@ -950,8 +950,9 @@ impl BoxFragmentWithStyle<'_> {
         // > Note that text decorations are not propagated to floating and absolutely
         // > positioned descendants, nor to the contents of atomic inline-level descendants
         // > such as inline blocks and inline tables.
-        let text_decorations = match self.is_atomic_inline_level() ||
-            self.base
+        let text_decorations = match self.is_atomic_inline_level()
+            || self
+                .base
                 .flags
                 .contains(FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER)
         {
@@ -1078,7 +1079,11 @@ impl BoxFragmentWithStyle<'_> {
                     },
                     OverflowClipMarginBox::BorderBox => {},
                 };
-                radii = offset_radii(builder.border_radius(), offsets_from_border, &overflow_clip_rect);
+                radii = offset_radii(
+                    builder.border_radius(),
+                    offsets_from_border,
+                    &overflow_clip_rect,
+                );
             } else if overflow.x != ComputedOverflow::Clip {
                 let max = LayoutRect::max_rect();
                 overflow_clip_rect.min.x = max.min.x;
@@ -1160,7 +1165,8 @@ impl BoxFragmentWithStyle<'_> {
         if is_flex {
             match style.get_position().flex_direction {
                 FlexDirection::ColumnReverse => {
-                    let max_scroll_y = (content_rect.height() - scroll_frame_rect.height()).max(0.0);
+                    let max_scroll_y =
+                        (content_rect.height() - scroll_frame_rect.height()).max(0.0);
                     initial_offset.y = max_scroll_y;
                 },
                 FlexDirection::RowReverse => {
@@ -1234,10 +1240,10 @@ impl BoxFragment {
             return None;
         }
 
-        if offsets.top.is_auto() &&
-            offsets.right.is_auto() &&
-            offsets.bottom.is_auto() &&
-            offsets.left.is_auto()
+        if offsets.top.is_auto()
+            && offsets.right.is_auto()
+            && offsets.bottom.is_auto()
+            && offsets.left.is_auto()
         {
             return None;
         }

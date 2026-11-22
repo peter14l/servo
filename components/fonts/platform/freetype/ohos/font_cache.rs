@@ -96,10 +96,10 @@ fn remove_redundant_cache_files() {
             let filename = entry.file_name().into_encoded_bytes();
 
             // A (tmp) cache file that doesn't match the expected name is obsolete.
-            if (filename.ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) ||
-                filename.ends_with(TMP_FILE_SUFFIX.as_bytes())) &&
-                !filename.starts_with(expected_cache_filename.as_bytes()) &&
-                let Err(e) = fs::remove_file(entry.path())
+            if (filename.ends_with(CACHE_FILENAME_SUFFIX.as_bytes())
+                || filename.ends_with(TMP_FILE_SUFFIX.as_bytes()))
+                && !filename.starts_with(expected_cache_filename.as_bytes())
+                && let Err(e) = fs::remove_file(entry.path())
             {
                 error!(
                     "Obsolete font cache file found; but failed to remove it: {:?}",

@@ -399,7 +399,8 @@ impl SiteDataManager {
         mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
     ) {
         let (sender, receiver) = generic_channel::channel().unwrap();
-        self.public_resource_threads.visit_all_cookies_async(id, sender);
+        self.public_resource_threads
+            .visit_all_cookies_async(id, sender);
         // For async, we'd need to handle the response differently
         // This is a simplified implementation
         let _ = receiver.recv().map(|cookies| {
@@ -416,7 +417,9 @@ impl SiteDataManager {
         source: CookieSource,
         mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
     ) {
-        let cookies = self.public_resource_threads.visit_cookies_for_url(url.into(), source);
+        let cookies = self
+            .public_resource_threads
+            .visit_cookies_for_url(url.into(), source);
         for cookie in &cookies {
             if !visitor(cookie) {
                 break;
@@ -433,7 +436,8 @@ impl SiteDataManager {
         mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
     ) {
         let (sender, receiver) = generic_channel::channel().unwrap();
-        self.public_resource_threads.visit_cookies_for_url_async(id, url.into(), source, sender);
+        self.public_resource_threads
+            .visit_cookies_for_url_async(id, url.into(), source, sender);
         let _ = receiver.recv().map(|cookies| {
             for cookie in cookies {
                 visitor(&cookie.into_inner());
@@ -460,11 +464,15 @@ impl SiteDataManager {
         match callback {
             None => {
                 self.public_resource_threads.delete_all_cookies(
-                    servo_url.clone(), name.clone(), domain.clone(), path.clone(), secure, session,
+                    servo_url.clone(),
+                    name.clone(),
+                    domain.clone(),
+                    path.clone(),
+                    secure,
+                    session,
                 );
-                self.private_resource_threads.delete_all_cookies(
-                    servo_url, name, domain, path, secure, session,
-                );
+                self.private_resource_threads
+                    .delete_all_cookies(servo_url, name, domain, path, secure, session);
             },
             Some(callback) => {
                 let id1 = self.next_operation_id();
@@ -473,7 +481,14 @@ impl SiteDataManager {
                 let (sender2, receiver2) = generic_channel::channel().unwrap();
 
                 self.public_resource_threads.delete_all_cookies_async(
-                    id1, servo_url.clone(), name.clone(), domain.clone(), path.clone(), secure, session, sender1,
+                    id1,
+                    servo_url.clone(),
+                    name.clone(),
+                    domain.clone(),
+                    path.clone(),
+                    secure,
+                    session,
+                    sender1,
                 );
                 self.private_resource_threads.delete_all_cookies_async(
                     id2, servo_url, name, domain, path, secure, session, sender2,
@@ -497,8 +512,10 @@ impl SiteDataManager {
         let servo_url: ServoUrl = url.into();
         match callback {
             None => {
-                self.public_resource_threads.delete_cookies_for_url(servo_url.clone());
-                self.private_resource_threads.delete_cookies_for_url(servo_url);
+                self.public_resource_threads
+                    .delete_cookies_for_url(servo_url.clone());
+                self.private_resource_threads
+                    .delete_cookies_for_url(servo_url);
             },
             Some(callback) => {
                 let id1 = self.next_operation_id();
@@ -506,8 +523,13 @@ impl SiteDataManager {
                 let (sender1, receiver1) = generic_channel::channel().unwrap();
                 let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                self.public_resource_threads.delete_cookies_for_url_async(id1, servo_url.clone(), sender1);
-                self.private_resource_threads.delete_cookies_for_url_async(id2, servo_url, sender2);
+                self.public_resource_threads.delete_cookies_for_url_async(
+                    id1,
+                    servo_url.clone(),
+                    sender1,
+                );
+                self.private_resource_threads
+                    .delete_cookies_for_url_async(id2, servo_url, sender2);
 
                 std::thread::spawn(move || {
                     let count1 = receiver1.recv().unwrap_or(0);
@@ -528,8 +550,10 @@ impl SiteDataManager {
         let servo_url: ServoUrl = url.into();
         match callback {
             None => {
-                self.public_resource_threads.embedder_delete_cookie(servo_url.clone(), name.clone());
-                self.private_resource_threads.embedder_delete_cookie(servo_url, name);
+                self.public_resource_threads
+                    .embedder_delete_cookie(servo_url.clone(), name.clone());
+                self.private_resource_threads
+                    .embedder_delete_cookie(servo_url, name);
             },
             Some(callback) => {
                 let id1 = self.next_operation_id();
@@ -537,8 +561,14 @@ impl SiteDataManager {
                 let (sender1, receiver1) = generic_channel::channel().unwrap();
                 let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                self.public_resource_threads.embedder_delete_cookie_async(id1, servo_url.clone(), name.clone(), sender1);
-                self.private_resource_threads.embedder_delete_cookie_async(id2, servo_url, name, sender2);
+                self.public_resource_threads.embedder_delete_cookie_async(
+                    id1,
+                    servo_url.clone(),
+                    name.clone(),
+                    sender1,
+                );
+                self.private_resource_threads
+                    .embedder_delete_cookie_async(id2, servo_url, name, sender2);
 
                 std::thread::spawn(move || {
                     let count1 = receiver1.recv().unwrap_or(0);
@@ -562,8 +592,10 @@ impl SiteDataManager {
                 let (sender1, receiver1) = generic_channel::channel().unwrap();
                 let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                self.public_resource_threads.flush_cookie_store_async(id1, sender1);
-                self.private_resource_threads.flush_cookie_store_async(id2, sender2);
+                self.public_resource_threads
+                    .flush_cookie_store_async(id1, sender1);
+                self.private_resource_threads
+                    .flush_cookie_store_async(id2, sender2);
 
                 std::thread::spawn(move || {
                     let _ = receiver1.recv();

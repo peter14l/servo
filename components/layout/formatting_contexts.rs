@@ -194,9 +194,9 @@ impl IndependentFormattingContext {
 
                 // Some replaced elements can have inner widgets, e.g. `<video controls>`.
                 let node = node_and_style_info.node;
-                let should_make_widget = node.pseudo_element_chain().is_empty() &&
-                    node.is_root_of_user_agent_widget() &&
-                    !contents.is_content_replacement;
+                let should_make_widget = node.pseudo_element_chain().is_empty()
+                    && node.is_root_of_user_agent_widget()
+                    && !contents.is_content_replacement;
                 let widget = should_make_widget.then(|| {
                     let widget_info = node_and_style_info
                         .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
@@ -403,8 +403,8 @@ impl IndependentFormattingContext {
                     widget.borrow_mut().repair_style(context, &node, new_style);
                 }
             },
-            IndependentFormattingContextContents::Flow(block_formatting_context) |
-            IndependentFormattingContextContents::MultiColumn(block_formatting_context) => {
+            IndependentFormattingContextContents::Flow(block_formatting_context)
+            | IndependentFormattingContextContents::MultiColumn(block_formatting_context) => {
                 block_formatting_context.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
@@ -423,8 +423,8 @@ impl IndependentFormattingContext {
     pub(crate) fn is_block_container(&self) -> bool {
         matches!(
             self.contents,
-            IndependentFormattingContextContents::Flow(_) |
-                IndependentFormattingContextContents::MultiColumn(_)
+            IndependentFormattingContextContents::Flow(_)
+                | IndependentFormattingContextContents::MultiColumn(_)
         )
     }
 
@@ -499,8 +499,8 @@ impl IndependentFormattingContext {
                 }
                 replaced_layout
             },
-            IndependentFormattingContextContents::Flow(bfc) |
-            IndependentFormattingContextContents::MultiColumn(bfc) => bfc.layout(
+            IndependentFormattingContextContents::Flow(bfc)
+            | IndependentFormattingContextContents::MultiColumn(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
@@ -596,8 +596,8 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.layout_style(&self.base)
             },
-            IndependentFormattingContextContents::Flow(fc) |
-            IndependentFormattingContextContents::MultiColumn(fc) => fc.layout_style(&self.base),
+            IndependentFormattingContextContents::Flow(fc)
+            | IndependentFormattingContextContents::MultiColumn(fc) => fc.layout_style(&self.base),
             IndependentFormattingContextContents::Flex(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Grid(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Table(fc) => fc.layout_style(None),
@@ -625,8 +625,8 @@ impl IndependentFormattingContext {
                     widget.borrow_mut().base.parent_box.replace(layout_box);
                 }
             },
-            IndependentFormattingContextContents::Flow(contents) |
-            IndependentFormattingContextContents::MultiColumn(contents) => {
+            IndependentFormattingContextContents::Flow(contents)
+            | IndependentFormattingContextContents::MultiColumn(contents) => {
                 contents.attached_to_tree(layout_box)
             },
             IndependentFormattingContextContents::Flex(contents) => {

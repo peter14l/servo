@@ -78,10 +78,7 @@ pub fn create_handshake_request(
     };
 
     let mut headers = HeaderMap::new();
-    headers.insert(
-        "Origin",
-        HeaderValue::from_str(&origin_str)?,
-    );
+    headers.insert("Origin", HeaderValue::from_str(&origin_str)?);
 
     let host = format!(
         "{}",
@@ -168,8 +165,8 @@ fn process_ws_response(
         if !ServoCookie::is_valid_name_or_value(cookie_bytes) {
             continue;
         }
-        if let Ok(s) = std::str::from_utf8(cookie_bytes) &&
-            let Some(cookie) =
+        if let Ok(s) = std::str::from_utf8(cookie_bytes)
+            && let Some(cookie) =
                 ServoCookie::from_cookie_string(s, resource_url, CookieSource::HTTP)
         {
             jar.push(cookie, resource_url, CookieSource::HTTP);

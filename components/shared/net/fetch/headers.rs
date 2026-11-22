@@ -39,9 +39,9 @@ pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<Vec
 
 /// <https://fetch.spec.whatwg.org/#forbidden-method>
 pub fn is_forbidden_method(method: &[u8]) -> bool {
-    method.eq_ignore_ascii_case(b"connect") ||
-        method.eq_ignore_ascii_case(b"trace") ||
-        method.eq_ignore_ascii_case(b"track")
+    method.eq_ignore_ascii_case(b"connect")
+        || method.eq_ignore_ascii_case(b"trace")
+        || method.eq_ignore_ascii_case(b"track")
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-header-list-get-decode-split>
@@ -79,8 +79,8 @@ pub fn get_decode_and_split_header_value(value: Vec<u8>) -> Vec<String> {
 
         // Step 5.2. If position is not past the end of input and the code point
         // at position within input is U+0022 ("):
-        if let Some(&ch) = position.peek() &&
-            ch == '\u{0022}'
+        if let Some(&ch) = position.peek()
+            && ch == '\u{0022}'
         {
             // Step 5.2.1. Append the result of collecting an HTTP quoted string from input,
             // given position, to temporaryValue.

@@ -372,14 +372,17 @@ bool BrowserRuntime::Initialize() {
         servo_preferences_set_bool(prefs, "layout_css_ellipse_corners_enabled", true);
         servo_preferences_set_bool(prefs, "media_glvideo_enabled", true);
         servo_preferences_set_bool(prefs, "perf_thread_boost_enabled", true);
-        servo_preferences_set_i64(prefs, "js_mem_max", 1024);
+        // Keep the JS heap well below 1 GB. Heavy sites such as Reddit otherwise
+        // grow the single embedded Servo process until the old 1024 MB cap forces
+        // collection, which made even one tab consume well over a gigabyte.
+        servo_preferences_set_i64(prefs, "js_mem_max", 384);
         servo_preferences_set_bool(prefs, "js_mem_gc_incremental_enabled", false);
         servo_preferences_set_bool(prefs, "js_mem_gc_per_zone_enabled", false);
         servo_preferences_set_bool(prefs, "js_mem_gc_compacting_enabled", false);
-        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_high_limit_mb", 512);
-        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 128);
-        servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 64);
-        servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 32);
+        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_high_limit_mb", 256);
+        servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 96);
+        servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 48);
+        servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 24);
         servo_preferences_set_i64(prefs, "session_history_max_length", 5);
         servo_builder_set_preferences(builder, prefs);
     }

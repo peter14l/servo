@@ -95,9 +95,7 @@ impl ProtocolHandler for ServoProtocolHandler {
             },
 
             "downloads" => {
-                let body = format!(
-                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Downloads</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Downloads</h1><p>Active and completed downloads will appear here.</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:bookmarks\">Bookmarks</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>"
-                );
+                let body = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Downloads</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Downloads</h1><p>Active and completed downloads will appear here.</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:bookmarks\">Bookmarks</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>".to_string();
                 html_response(request, body)
             },
 

@@ -242,6 +242,7 @@ impl StackingContextTree {
         )
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn define_scroll_frame(
         &mut self,
         parent_scroll_node_id: ScrollTreeNodeId,

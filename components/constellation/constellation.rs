@@ -1227,13 +1227,13 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
         warn!("Component hang alert: {:?}", message);
-        if let HangAlert::Permanent(ref component_id, _, _) = message {
-            if opts::get().hang_monitor_kill_script {
-                warn!("Terminating permanently hung component {component_id:?}");
-                self.send_message_to_all_background_hang_monitors(
-                    BackgroundHangMonitorControlMsg::SignalComponentExit(component_id.clone()),
-                );
-            }
+        if let HangAlert::Permanent(ref component_id, _, _) = message
+            && opts::get().hang_monitor_kill_script
+        {
+            warn!("Terminating permanently hung component {component_id:?}");
+            self.send_message_to_all_background_hang_monitors(
+                BackgroundHangMonitorControlMsg::SignalComponentExit(component_id.clone()),
+            );
         }
     }
 
@@ -3258,7 +3258,7 @@ where
             number_of_matches: 0,
             selection_rect: None,
         };
-        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+        self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
             webview_id,
             result,
         ));
@@ -3273,7 +3273,7 @@ where
             number_of_matches: 0,
             selection_rect: None,
         };
-        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+        self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
             webview_id,
             result,
         ));

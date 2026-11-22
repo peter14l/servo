@@ -445,6 +445,7 @@ impl SiteDataManager {
     ///
     /// The filter can specify URL, name, domain, path, secure, and session flags.
     /// An optional callback is invoked when the operation completes.
+    #[expect(clippy::too_many_arguments)]
     pub fn delete_all_cookies(
         &self,
         url: Option<Url>,

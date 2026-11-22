@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
 
@@ -10,8 +11,9 @@ use servo_media_streams::MediaStreamType;
 
 use crate::datachannel::{DataChannelEvent, DataChannelId, DataChannelInit, DataChannelMessage};
 use crate::{
-    BundlePolicy, DescriptionType, IceCandidate, IceServer, IceTransportPolicy, MediaStreamId, RtcpMuxPolicy,
-    SdpType, SessionDescription, WebRtcBackend, WebRtcControllerBackend, WebRtcSignaller,
+    BundlePolicy, DescriptionType, IceCandidate, IceServer, IceTransportPolicy, MediaStreamId,
+    RtcpMuxPolicy, SdpType, SessionDescription, WebRtcBackend, WebRtcControllerBackend,
+    WebRtcDataChannelResult, WebRtcError, WebRtcResult, WebRtcSignaller,
 };
 
 #[derive(Clone)]
@@ -21,12 +23,37 @@ pub struct WebRtcController {
 }
 
 impl WebRtcController {
-    pub fn new<T: WebRtcBackend>(signaller: Box<dyn WebRtcSignaller>) -> Self {
+    pub fn new<T: WebRtcBackend>(signaller: Box<dyn WebRtcSignaller>) -> Result<Self, WebRtcError> {
         let (sender, receiver) = channel();
 
         let t = WebRtcController { sender };
 
-        let mut controller = T::construct_webrtc_controller(signaller, t.clone());
+        let mut controller = T::construct_webrtc_controller(signaller, t.clone())?;
+
+        thread::spawn(move || {
+            while let Ok(event) = receiver.recv() {
+                if !handle_rtc_event(&mut controller, event) {
+                    // shut down event loop
+                    break;
+                }
+            }
+        });
+
+        Ok(t)
+    }
+
+    /// Creates a controller for a peer connection that Content Security Policy
+    /// has blocked. It completes the signalling dance locally, without creating
+    /// an ICE agent or starting a GStreamer pipeline, so no candidates are
+    /// gathered and no connectivity checks are attempted.
+    pub fn new_blocked(_signaller: Box<dyn WebRtcSignaller>) -> Self {
+        let (sender, receiver) = channel();
+
+        let t = WebRtcController { sender };
+
+        let mut controller = BlockedWebRtcController {
+            next_data_channel_id: AtomicUsize::new(0),
+        };
 
         thread::spawn(move || {
             while let Ok(event) = receiver.recv() {
@@ -109,6 +136,114 @@ impl WebRtcController {
     pub fn quit(&self) {
         let _ = self.sender.send(RtcThreadEvent::Quit);
     }
+}
+
+/// A WebRTC backend used when Content Security Policy blocks RTC connections.
+///
+/// It keeps the JavaScript-facing state machine usable (so that pages can
+/// complete the signalling dance) while making sure that no ICE agent is
+/// created, no candidates are surfaced and no connectivity checks are sent.
+struct BlockedWebRtcController {
+    next_data_channel_id: AtomicUsize,
+}
+
+impl BlockedWebRtcController {
+    fn description(ty: SdpType) -> SessionDescription {
+        // A minimal SDP description is sufficient for script: descriptions are
+        // only passed back through the signalling channel by the tests and by
+        // applications, and no media or ICE candidates are ever negotiated.
+        SessionDescription {
+            type_: ty,
+            sdp: concat!(
+                "v=0\r\n",
+                "o=- 0 0 IN IP4 127.0.0.1\r\n",
+                "s=Servo CSP-blocked WebRTC connection\r\n",
+                "t=0 0\r\n",
+                "a=group:BUNDLE 0\r\n",
+                "m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n",
+                "c=IN IP4 0.0.0.0\r\n",
+                "a=mid:0\r\n",
+                "a=sctp-port:5000\r\n"
+            )
+            .to_owned(),
+        }
+    }
+}
+
+impl WebRtcControllerBackend for BlockedWebRtcController {
+    fn configure(
+        &mut self,
+        _: &[IceServer],
+        _: BundlePolicy,
+        _: IceTransportPolicy,
+        _: RtcpMuxPolicy,
+    ) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn set_remote_description(
+        &mut self,
+        _: SessionDescription,
+        cb: Box<dyn FnOnce() + Send + 'static>,
+    ) -> WebRtcResult {
+        cb();
+        Ok(())
+    }
+
+    fn set_local_description(
+        &mut self,
+        _: SessionDescription,
+        cb: Box<dyn FnOnce() + Send + 'static>,
+    ) -> WebRtcResult {
+        cb();
+        Ok(())
+    }
+
+    fn add_ice_candidate(&mut self, _: IceCandidate) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn create_offer(
+        &mut self,
+        cb: Box<dyn FnOnce(SessionDescription) + Send + 'static>,
+    ) -> WebRtcResult {
+        cb(Self::description(SdpType::Offer));
+        Ok(())
+    }
+
+    fn create_answer(
+        &mut self,
+        cb: Box<dyn FnOnce(SessionDescription) + Send + 'static>,
+    ) -> WebRtcResult {
+        cb(Self::description(SdpType::Answer));
+        Ok(())
+    }
+
+    fn add_stream(&mut self, _: &MediaStreamId) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn create_data_channel(&mut self, _: &DataChannelInit) -> WebRtcDataChannelResult {
+        Ok(self.next_data_channel_id.fetch_add(1, Ordering::Relaxed))
+    }
+
+    fn close_data_channel(&mut self, _: &DataChannelId) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn send_data_channel_message(
+        &mut self,
+        _: &DataChannelId,
+        _: &DataChannelMessage,
+    ) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn internal_event(&mut self, _: InternalEvent) -> WebRtcResult {
+        Ok(())
+    }
+
+    fn quit(&mut self) {}
 }
 
 pub enum RtcThreadEvent {

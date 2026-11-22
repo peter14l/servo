@@ -94,7 +94,7 @@ pub fn load_extension(extension_dir: &Path) -> Result<LoadedExtension, Box<dyn s
     );
     scripts.push(Rc::new(UserScript::new(
         runtime_api_bridge,
-        Some(manifest_path.clone()),
+        Some(manifest_path),
     )));
 
     // Load content scripts and stylesheets

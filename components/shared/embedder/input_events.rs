@@ -23,6 +23,12 @@ impl InputEventId {
     }
 }
 
+impl Default for InputEventId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 bitflags! {
     /// Flags representing the state of an [`InputEvent`] after Servo has handled it.
     #[derive(Clone, Copy, Default, Deserialize, PartialEq, Serialize)]

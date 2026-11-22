@@ -766,6 +766,7 @@ impl ResourceThreads {
         let _ = receiver.recv();
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn delete_all_cookies_async(
         &self,
         id: CookieOperationId,

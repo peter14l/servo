@@ -19,6 +19,8 @@ import re
 import subprocess
 import argparse
 import textwrap
+import urllib.error
+import urllib.request
 import xml.etree.ElementTree as ElementTree
 
 from typing import List, Optional
@@ -235,23 +237,24 @@ def create_github_reports(body: str, tag: str = ""):
         "actions": [],
     }
 
-    subprocess.Popen(
-        [
-            "curl",
-            "-L",
-            "-X",
-            "POST",
-            "-H",
-            "Accept: application/vnd.github+json",
-            "-H",
-            f"Authorization: Bearer {github_token}",
-            "-H",
-            "X-GitHub-Api-Version: 2022-11-28",
-            f"https://api.github.com/repos/{repo}/check-runs",
-            "-d",
-            json.dumps(data),
-        ]
-    ).wait()
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/check-runs",
+        data=json.dumps(data).encode("utf-8"),
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {github_token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            response.read()
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
+        # The check run is supplementary to the job summary, so an API
+        # rejection (for example because the report is too large) or a
+        # transient network error must not fail the results-processing job.
+        print(f"Unable to create GitHub check run: {e}")
 
 
 def main():

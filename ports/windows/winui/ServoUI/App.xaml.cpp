@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "App.xaml.h"
 #include "MainWindow.xaml.h"
+#if __has_include("MainWindow.xaml.g.hpp")
+#include "MainWindow.xaml.g.hpp"
+#endif
 #include "../../src/browser_runtime.h"
 #include "../../src/servo_view_host.h"
 
@@ -95,4 +98,13 @@ namespace winrt::ServoUI::implementation
         window = mainWindow;
         runtime.PostInitialWake();
     }
+}
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+{
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
+    Microsoft::UI::Xaml::Application::Start([](auto&&) {
+        winrt::make<winrt::ServoUI::implementation::App>();
+    });
+    return 0;
 }

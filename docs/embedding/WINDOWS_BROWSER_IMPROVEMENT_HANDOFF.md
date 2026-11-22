@@ -1,6 +1,6 @@
 # Windows Browser Improvement — Handoff Document
 
-Last updated: 2026-11-20 (session handoff). Keep this document current as work lands.
+Last updated: 2026-11-22 (PR #12 merged; final CI, WPT and runtime status recorded). Keep this document current as work lands.
 
 ## 1. Objective and constraints
 
@@ -469,3 +469,86 @@ Standalone probe result (same URL, gateway process restarted between the first t
 This is the large improvement: after the first visit, static assets are served locally in ~50 ms even across browser restarts. Known limitation: the disk tier is bounded by unique cache keys rather than a byte budget; ASP.NET `ScriptResource.axd`/`WebResource.axd` URLs are versioned, so changed assemblies produce new keys naturally, but a manual TTL purge may eventually be needed.
 
 **CI and installed-browser runtime verification of sections 14.1 and 14.2 are NOT_RUN.** The changes are staged locally while CI runs `44873160740` / `44873161238` for `a9ac430d213` finish.
+
+## 15. WebRTC/CSP engine fixes and WPT masking revert (21 Nov 2026)
+
+### 15.1 Why the previous WPT approach was rejected
+
+PRs #10 and #11 (`a6df7d4300813a7c99dd9f4a06832d0ad3d37862`, `c5028701a8a4c327f08a758e950919c6a01173bb`) hid failures with `[webrtc] skip: true`, `css-multicol`/`css-writing-modes` skips and 15 expectation files. The user rejected that masking. Those changes are reverted in commit `f237d85cefb` and PR #12:
+
+- `tests/wpt/include.ini`: removed `[webrtc] skip: true`; `css-multicol` and `css-writing-modes` remain enabled (`skip: false`).
+- 15 expectation files removed; the 6 pre-existing meta files were restored untouched.
+- `repro.html` remains untracked and was not committed.
+
+### 15.2 Root cause and engine changes
+
+Failed WPT run `44904189878` had 20/20 Linux WPT chunks FAILED: 1,446 unique unexpected results, of which 1,193 came from prematurely enabled CSS suites and the remainder cascaded from a WebRTC panic. The panic was:
+
+```text
+WebRTC creation failed: Backend("Element failed to change its state")
+(thread Script#45, at components/media/backends/gstreamer/lib.rs:357)
+```
+
+Root cause: `GStreamerWebRtcController::start_pipeline()` could not transition the pipeline to `READY` because the GStreamer ICE plugin (`nice`) was missing from the Linux bootstrap package set, and the error was turned into a panic that killed the browser process.
+
+Fixes in `f237d85cefb`:
+
+- `python/servo/platform/linux_packages/apt/apt_common.txt`: added `gstreamer1.0-nice`.
+- GStreamer `pipeline_bus_error()` now includes the bus error/debug message when `set_state(READY)` fails.
+- `WebRtcBackend::construct_webrtc_controller`, `WebRtcController::new` and `Backend::create_webrtc` now return `Result<…, WebRtcError>` end-to-end; no `.expect("WebRTC creation failed")` remains.
+- `RTCPeerConnection` constructor now throws `TypeError("WebRTC initialization failed")` on real construction failure instead of panicking.
+- CSP `webrtc` directive implemented as network blocking: no candidates/connectivity checks; blocked connections use a local-only controller and transition `iceConnectionState` from `new` to `failed`. Only a single `webrtc 'allow'` permits real connections.
+
+### 15.3 Verification state
+
+| Check | State | Evidence |
+|---|---|---|
+| Targeted commit | PASSED | `f237d85cefb` staged only the 11 modified files and 15 expectation deletions; `git diff --cached --check` clean. Follow-ups `934c4636d03` (CSP global borrow + `InputEventId` Default), `6c77de4ba99` (intentional `delete_all_cookies_async` arity allow), `01d7c680c24` (cookie-filter clippy cleanup), `1642248076e` (constellation clippy cleanup), `14913935d6f` (script clippy cleanup) and `008a1c95185` (WebRTC script clippy cleanup) stage only their targeted files. |
+| `graphify update .` | PASSED | Rebuilt 66,198 nodes / 151,222 edges after `01d7c680c24`; rerun after `008a1c95185` rebuilt 4,691 communities. |
+| Local `rustfmt --edition 2024 --check` on changed Rust files | PARTIAL / BLOCKED | All newly added lines are formatted; remaining diffs are pre-existing formatting drift in the touched files, left untouched deliberately. |
+| Local `cargo check` / `clippy -D warnings` | PARTIAL / BLOCKED | PASSED for `servo-media-webrtc`, `servo-embedder-traits` and `servo-net-traits` with `CARGO_TARGET_DIR` on `C:`. Full workspace still BLOCKED because `pkg-config` is unavailable locally for `glib-sys`/`gobject-sys`/`gstreamer-sys`; CI remains the verification path. |
+| PR #12 CI for `f237d85cefb` | FAILED | Lint (`136890541734`) failed on clippy `new_without_default` for `InputEventId` in `components/shared/embedder/input_events.rs`. Linux Build (`136890618961`), Windows Browser and all C API jobs failed on `E0308` at `rtcpeerconnection.rs:206`: `should_rtc_connections_be_blocked(cx, global)` passed `Root<Dom<GlobalScope>>` where `&GlobalScope` was expected. WPT chunks were SKIPPED because the build failed. |
+| PR #12 CI for `934c4636d03` | FAILED | Lint (`136897029013`) failed on clippy `too_many_arguments` for `delete_all_cookies_async` in `components/shared/net/lib.rs:769`. C API and Windows browser builds PASSED; Linux Build was still pending when the lint failure was reported. |
+| PR #12 CI for `6c77de4ba99` | FAILED | Lint (`136908724787`) failed on clippy `collapsible_if` / `needless_option_as_deref` in the `matches_filter` helper at `components/net/resource_thread.rs:1141-1167`. All C API jobs, both Windows browser builds, Linux Build and Media Examples PASSED; `Result` failed and Linux WPT was SKIPPED. |
+| PR #12 CI for `01d7c680c24` | FAILED | Lint (`136932754685`) failed on clippy `collapsible_if` at `components/constellation/constellation.rs:1230` and `let_unit_value` at lines 3261/3276. All C API jobs, both Windows browser builds, Linux Build and Media Examples PASSED; `Result` failed and Linux WPT was SKIPPED. |
+| PR #12 CI for `1642248076e` | FAILED | Lint (`136942176960`) failed on 10 clippy findings in `components/script`: `collapsible_if`, `collapsible_match`, `let_unit_value` and `cmp_owned` across `rtcpeerconnection.rs`, `mediadevices.rs`, `htmlinputelement.rs` and `element/attributes/storage.rs`. C API jobs PASSED; Linux Build and Windows browser builds were still running when lint failed. |
+| PR #12 CI for `14913935d6f` | FAILED | Lint (`136949864360`) failed on four clippy findings: `collapsible_if` / `let_unit_value` in `rtcpeerconnection.rs:970-972` and `too_many_arguments` for `RTCTrackEvent::new` / `new_with_proto`. C API jobs, Linux Build and Media Examples PASSED; Windows browser builds were still pending when lint failed. |
+| PR #12 CI for `008a1c95185` | PENDING | Rerun started after collapsing the controller guard, calling `add_stream` directly and allowing the intentional generated-constructor arities; no merge until all required jobs pass. |
+| Linux WPT | NOT_RUN for this PR | WPT chunks were skipped because `Result` failed. `css-multicol` and `css-writing-modes` remain enabled by user choice, so WPT cannot be all-green until that separate engine work lands. Report FAILED if any of the 20 chunks fails. |
+| Windows browser artifact | NOT_RUN for this PR | Passing Windows browser builds exist for earlier PR heads, but no new artifact has been downloaded or runtime-verified; the currently installed browser is still `58f1ab5f231` from section 12.4. |
+
+Old run `44913172366` (`a6df7d43008`) completed **FAILED** with all 20 Linux WPT chunks failing (watch finished at 20:59 on 21 Nov); it is non-authoritative because PR #12 reverts its masking approach. Old run `44913509252` (`c5028701a8a`) also completed **FAILED** with all 20 Linux WPT chunks failing (watch finished at 21:32 on 21 Nov); it is likewise non-authoritative.
+
+## 16. Final status — PR #12 merged (22 Nov 2026)
+
+### 16.1 Merge and CI
+
+PR #12 was merged into `main` as squash commit `81406547d9bf330acb3b91e432892d06b6a35125` at 02:03 UTC. The two temporary CI-only verification commits (`f812cea7e29` adding `.github/workflows/wpt-verify.yml`, `33aa40827eb` switching `main.yml` dispatch to `wpt`) were reverted in `c89be7c2e6a` before the merge, so only the intended engine/test changes landed.
+
+Final PR CI for engine head `f3dceecd3e2`:
+
+| Job | State | Evidence |
+|---|---|---|
+| Windows Browser Build (x86_64) | PASSED | run `44948620900`, job `136981436534` |
+| C API Linux / macOS / Windows | PASSED | runs `44948616523`, `44948620890` (and Windows job in the same matrix) |
+| Linux Build | PASSED | PR run `44948621090` |
+| devcontainer builds (amd64 + arm64) | PASSED | run `44948620900` matrix |
+| Lint | FAILED (pre-existing) | Repo-wide rustfmt drift; base `main` lint job `136875065324` in run `44913509252` also FAILED. Branch-protection check returned `404 Branch not protected`. User explicitly approved merging despite this. |
+
+Post-merge `main` CI run `44974289302` was IN_PROGRESS at the time of writing; no conclusion yet.
+
+### 16.2 WPT verdict — FAILED
+
+The normal WPT dispatch (`44952158855`) produced zero WPT chunks because lint failed first and cancelled the builds. A temporary `workflow_dispatch` config forced the full 20-chunk Linux suite in run `44954046262`.
+
+**WPT = FAILED**: all 20 WPT chunk jobs completed `failure`.
+
+Triage: the failures are concentrated in the suites un-skipped at the user's explicit instruction — `[css-writing-modes]`, `[css-multicol]` and `[webrtc]` in `tests/wpt/include.ini` — plus harness-level errors such as `javascript error (500): window.__wptrunner_process_next_event is not a function` and a location/iframe CRASH. PR #12 did not change CSS layout behaviour: its only file under `components/layout/` is `display_list/stacking_context.rs`, where the sole addition is `#[expect(clippy::too_many_arguments)]` on `define_scroll_frame`. No location/iframe or WPT-harness code was touched. These are therefore pre-existing failures surfaced by removing the masks, **not regressions from this PR**. A base-main comparison with the same skips removed was NOT_RUN, so the negative cannot be proven absolutely. Per the user's requirement WPT is still reported FAILED; the user chose to accept the un-masked state rather than restore skips/expectations.
+
+### 16.3 Installed artifact and runtime verification
+
+Artifact `14725598304` (`servo-windows-browser-setup`) from run `44948620900`: 282,419,214 bytes, zip SHA256 `32864bc259449760fcac4ff7e42ebeaba0a21602a415a40dc63c9db1a61800ec`. Installed `servo_browser.exe` SHA256 `ab439f0d1b241befab89c6de0a961709f1002afa42b4c68895ffa92e7f0f2301`.
+
+**Synthetic runtime verification of the freshly built artifact: PASSED.** At `file:///C:/Users/LOQ/AppData/Local/Temp/opencode/sxuk_synthetic.html`: `select_show=2`, `select_close=2` (one confirmed selection `confirmed=1 selection=1`, one benign Escape dismissal with `error=0`), `slow_wake_8065=0`, `deferred_8066=2`, `plaintext_password=0`, `servo_ipc_payload=0`, `hang=0`, no `[JS EVAL ERR]`.
+
+**Authenticated SXUK runtime verification: BLOCKED** pending the user's interactive sign-in. Browser (PID 10120) is open at `http://127.0.0.1:51820/services/Login.aspx` with saved-credential autofill firing (`[IPC] Received message: request_autofill`); a 30-minute local gateway (`gateway_probe_long.exe`) is running. At the time of writing `auth_cache.json` is empty and the cookie jar has no `sxuk.org`/`xavier` domains, so no authenticated session has been captured yet. The user selected "I'll sign in now".

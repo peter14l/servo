@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-struct ServoViewHost;
+class ServoViewHost;
 struct Servo;
 struct ServoCreateNewWebViewRequest;
 

@@ -101,3 +101,10 @@ namespace winrt::ServoUI::implementation
         std::vector<std::wstring> m_tabTitles;
     };
 }
+
+namespace winrt::ServoUI::factory_implementation
+{
+    struct MainWindow : MainWindowT<MainWindow, implementation::MainWindow>
+    {
+    };
+}

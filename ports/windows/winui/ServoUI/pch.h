@@ -4,6 +4,12 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+// windows.h otherwise defines min/max as macros, which break std::min,
+// std::max and std::numeric_limits<T>::max() in the shell sources.
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <windows.h>
 #include <unknwn.h>
 #include <restrictederrorinfo.h>

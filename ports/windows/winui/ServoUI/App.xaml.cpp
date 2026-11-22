@@ -4,6 +4,7 @@
 #include "../../src/browser_runtime.h"
 #include "../../src/servo_view_host.h"
 
+#include <shellapi.h>
 #include <string_view>
 
 using namespace winrt;

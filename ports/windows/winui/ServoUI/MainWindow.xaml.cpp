@@ -29,6 +29,11 @@ namespace winrt::ServoUI::implementation
     {
         namespace muxc = Microsoft::UI::Xaml::Controls;
 
+        bool KeyDown(int virtualKey)
+        {
+            return (GetKeyState(virtualKey) & 0x8000) != 0;
+        }
+
         std::wstring Wide(std::string const& value)
         {
             if (value.empty()) return {};
@@ -136,7 +141,7 @@ namespace winrt::ServoUI::implementation
     {
         if (!m_xamlHwnd) return;
         try {
-            auto windowId = GetWindowIdFromWindow(m_xamlHwnd);
+            auto windowId = Microsoft::UI::GetWindowIdFromWindow(m_xamlHwnd);
             auto appWindow = Microsoft::UI::Windowing::AppWindow::GetFromWindowId(windowId);
             auto titleBar = appWindow.TitleBar();
             if (!Microsoft::UI::Windowing::AppWindowTitleBar::IsCustomizationSupported()) return;
@@ -157,7 +162,7 @@ namespace winrt::ServoUI::implementation
     {
         if (!m_xamlHwnd || !m_loaded) return;
         try {
-            auto windowId = GetWindowIdFromWindow(m_xamlHwnd);
+            auto windowId = Microsoft::UI::GetWindowIdFromWindow(m_xamlHwnd);
             auto appWindow = Microsoft::UI::Windowing::AppWindow::GetFromWindowId(windowId);
             auto titleBar = appWindow.TitleBar();
             if (!Microsoft::UI::Windowing::AppWindowTitleBar::IsCustomizationSupported() ||
@@ -415,13 +420,11 @@ namespace winrt::ServoUI::implementation
     void MainWindow::RootKeyDown(IInspectable const&, KeyRoutedEventArgs const& args)
     {
         using Windows::System::VirtualKey;
-        using Windows::System::VirtualKeyModifiers;
 
         auto key = args.Key();
-        auto modifiers = Keyboard::Modifiers();
-        bool ctrl = (modifiers & VirtualKeyModifiers::Control) != VirtualKeyModifiers::None;
-        bool alt = (modifiers & VirtualKeyModifiers::Menu) != VirtualKeyModifiers::None;
-        bool shift = (modifiers & VirtualKeyModifiers::Shift) != VirtualKeyModifiers::None;
+        bool ctrl = KeyDown(VK_CONTROL);
+        bool alt = KeyDown(VK_MENU);
+        bool shift = KeyDown(VK_SHIFT);
 
         if (key == VirtualKey::Escape) {
             bool consumed = false;
@@ -458,10 +461,10 @@ namespace winrt::ServoUI::implementation
         } else if (key == VirtualKey::F5) {
             if (m_shell) m_shell->NavigateReload();
             args.Handled(true);
-        } else if (ctrl && (key == VirtualKey::Add || key == VirtualKey::OemPlus)) {
+        } else if (ctrl && (key == VirtualKey::Add || KeyDown(VK_OEM_PLUS))) {
             if (m_shell) m_shell->ZoomIn();
             args.Handled(true);
-        } else if (ctrl && (key == VirtualKey::Subtract || key == VirtualKey::OemMinus)) {
+        } else if (ctrl && (key == VirtualKey::Subtract || KeyDown(VK_OEM_MINUS))) {
             if (m_shell) m_shell->ZoomOut();
             args.Handled(true);
         } else if (ctrl && key == VirtualKey::Number0) {
@@ -565,9 +568,7 @@ namespace winrt::ServoUI::implementation
     void MainWindow::FindBoxKeyDown(IInspectable const&, KeyRoutedEventArgs const& args)
     {
         if (args.Key() == Windows::System::VirtualKey::Enter && m_shell) {
-            auto modifiers = Keyboard::Modifiers();
-            bool shift = (modifiers & Windows::System::VirtualKeyModifiers::Shift) !=
-                Windows::System::VirtualKeyModifiers::None;
+            bool shift = KeyDown(VK_SHIFT);
             m_shell->Find(to_string(FindBox().Text()), !shift, false);
             args.Handled(true);
         } else if (args.Key() == Windows::System::VirtualKey::Escape) {

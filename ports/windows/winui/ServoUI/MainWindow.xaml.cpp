@@ -333,7 +333,7 @@ namespace winrt::ServoUI::implementation
         m_activeTab = index;
         Omnibox().Text(hstring(Wide(m_tabUrls[index])));
         std::wstring title = m_tabTitles[index];
-        Title(title.empty() ? L"Servo" : title + L" - Servo");
+        Title(hstring(title.empty() ? L"Servo" : title + L" - Servo"));
         UpdateStatus(L"");
     }
 
@@ -603,7 +603,7 @@ namespace winrt::ServoUI::implementation
         m_tabTitles[index] = wide;
         SetTabHeader(index, wide);
         if (index == m_activeTab) {
-            Title(wide.empty() ? L"Servo" : wide + L" - Servo");
+            Title(hstring(wide.empty() ? L"Servo" : wide + L" - Servo"));
             if (!m_tabUrls[index].empty()) BrowserData::AddHistory(m_tabUrls[index], title);
         }
     }

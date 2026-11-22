@@ -182,8 +182,8 @@ impl Param {
                         // > That is, if the SetTarget event has not started, T0 is the start time of the event,
                         // > and V0 is the value just before the SetTarget event starts.
                         // > In this case, the LinearRampToValue event effectively replaces the SetTarget event.
-                        if current_event.is_set_target()
-                            && maybe_next_event
+                        if current_event.is_set_target() &&
+                            maybe_next_event
                                 .map(|next_event| next_event.is_ramp())
                                 .unwrap_or_default()
                         {
@@ -204,8 +204,8 @@ impl Param {
                 }
             }
             // Continue to the next event if the next event is active.
-            if let Some(next_event) = maybe_next_event
-                && next_event.is_active(
+            if let Some(next_event) = maybe_next_event &&
+                next_event.is_active(
                     current_tick,
                     Some(current_event),
                     self.events.get(self.current_event + 2),
@@ -286,15 +286,15 @@ impl Param {
                 //
                 // If we have a hold, set the cancel hold tick for the event.
                 // When updating the param, once we reach the hold tick, we will hold the current value.
-                if let Some(overlap_event) = self.events.get_mut(idx)
-                    && overlap_event.is_ramp()
+                if let Some(overlap_event) = self.events.get_mut(idx) &&
+                    overlap_event.is_ramp()
                 {
                     overlap_event.set_cancel_tick(event.time());
                     // Keep the RampToValueAtTime event.
                     events_to_keep = idx + 1;
                 } else {
-                    if let Some(overlap_event) = self.get_previous_event_mut(idx)
-                        && (overlap_event.is_set_target() ||
+                    if let Some(overlap_event) = self.get_previous_event_mut(idx) &&
+                        (overlap_event.is_set_target() ||
                             // SetValueCurve always has done time
                             (overlap_event.is_set_value_curve() &&
                                 overlap_event
@@ -313,9 +313,9 @@ impl Param {
                 // > than cancelTime are also cancelled.
                 // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
                 let mut overlap_start_time = None;
-                if let Some(overlap_event) = self.get_previous_event(idx)
-                    && (overlap_event.is_set_target()
-                        || (overlap_event.is_set_value_curve() &&
+                if let Some(overlap_event) = self.get_previous_event(idx) &&
+                    (overlap_event.is_set_target() ||
+                        (overlap_event.is_set_value_curve() &&
                             // SetValueCurve always has done time
                             overlap_event
                                 .done_time()
@@ -330,8 +330,8 @@ impl Param {
                 // then we need to reset the value to before the active event started.
                 // > cancellations may cause discontinuities because
                 // > the original value (from before such automation) is restored immediately.
-                if let Some(overlap_start_time) = overlap_start_time
-                    && self.time > overlap_start_time
+                if let Some(overlap_start_time) = overlap_start_time &&
+                    self.time > overlap_start_time
                 {
                     self.val = self.event_start_value;
                     self.time = self.event_start_time;
@@ -621,9 +621,9 @@ impl AutomationEvent {
 
     fn set_cancel_tick(&mut self, cancel_tick: Tick) {
         match self {
-            AutomationEvent::RampToValueAtTime(_, _, _, maybe_tick)
-            | AutomationEvent::SetTargetAtTime(_, _, _, maybe_tick)
-            | AutomationEvent::SetValueCurveAtTime(_, _, _, maybe_tick) => {
+            AutomationEvent::RampToValueAtTime(_, _, _, maybe_tick) |
+            AutomationEvent::SetTargetAtTime(_, _, _, maybe_tick) |
+            AutomationEvent::SetValueCurveAtTime(_, _, _, maybe_tick) => {
                 maybe_tick.replace(cancel_tick);
             },
             _ => {},
@@ -661,8 +661,8 @@ impl AutomationEvent {
                 if time == event_start_time {
                     *value = val;
                 } else {
-                    let progress = (current_tick - event_start_time).0 as f32
-                        / (time - event_start_time).0 as f32;
+                    let progress = (current_tick - event_start_time).0 as f32 /
+                        (time - event_start_time).0 as f32;
                     match kind {
                         RampKind::Linear => {
                             *value = event_start_value + (val - event_start_value) * progress;

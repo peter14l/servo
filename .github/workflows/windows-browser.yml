@@ -178,7 +178,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $Dist
           
           # Copy the WinUI 3 application and its XAML/resources.
-          $WinUIOut = "ports\windows\winui\ServoUI\x64\Release"
+          $WinUIOut = "ports\windows\winui\ServoUI\x64\Release\ServoUI"
           if (-not (Test-Path (Join-Path $WinUIOut "ServoUI.exe"))) {
             throw "WinUI build did not produce ServoUI.exe"
           }

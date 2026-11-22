@@ -153,8 +153,8 @@ impl AudioNodeEngine for OscillatorNode {
                     oscillator_frequency = self.compute_oscillator_frequency(sample_rate);
                     step = two_pi * oscillator_frequency / sample_rate;
                 }
-                let value = vol
-                    * self.periodic_wave.calculate_waveform(
+                let value = vol *
+                    self.periodic_wave.calculate_waveform(
                         oscillator_frequency,
                         sample_rate,
                         self.phase,

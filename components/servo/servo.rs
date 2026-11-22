@@ -1494,8 +1494,9 @@ pub fn run_content_process(token: String) {
 
 #[cfg(all(feature = "multiprocess", target_os = "windows"))]
 mod windows_sandbox {
-    use log::{info, warn};
     use std::ffi::c_void;
+
+    use log::{info, warn};
 
     #[repr(C)]
     struct ProcessMitigationDepPolicy {

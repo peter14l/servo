@@ -149,13 +149,13 @@ impl Backend for DummyBackend {
 
     fn can_play_type(&self, media_type: &str) -> SupportsMediaType {
         let media_type = media_type.to_ascii_lowercase();
-        if media_type.contains("mp4")
-            || media_type.contains("webm")
-            || media_type.contains("ogg")
-            || media_type.contains("audio")
-            || media_type.contains("video")
-            || media_type.contains("hls")
-            || media_type.contains("mpegurl")
+        if media_type.contains("mp4") ||
+            media_type.contains("webm") ||
+            media_type.contains("ogg") ||
+            media_type.contains("audio") ||
+            media_type.contains("video") ||
+            media_type.contains("hls") ||
+            media_type.contains("mpegurl")
         {
             SupportsMediaType::Maybe
         } else {

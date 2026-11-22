@@ -6,6 +6,7 @@ use atomic_refcell::AtomicRefCell;
 use base64::Engine as _;
 use cssparser::Parser;
 use dom_struct::dom_struct;
+use embedder_traits::Theme;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
@@ -33,7 +34,6 @@ use crate::dom::node::{
     ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
-use embedder_traits::Theme;
 
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
@@ -112,8 +112,8 @@ impl SVGSVGElement {
         let is_dark = document
             .theme_override()
             .or(document.theme())
-            .unwrap_or_else(|| self.owner_window().webview_theme())
-            == Theme::Dark;
+            .unwrap_or_else(|| self.owner_window().webview_theme()) ==
+            Theme::Dark;
 
         let icon_color = if is_dark { "#f5f5f5" } else { "#121212" };
         let style_injection = format!(
@@ -134,8 +134,8 @@ impl SVGSVGElement {
 
     fn process_use_elements(&self, cx: &mut JSContext, root_node: &Node) {
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
-            if let Some(element) = node.downcast::<Element>()
-                && element.local_name() == &local_name!("use")
+            if let Some(element) = node.downcast::<Element>() &&
+                element.local_name() == &local_name!("use")
             {
                 self.process_single_use_element(cx, element, root_node)
             }

@@ -5,12 +5,13 @@
 use std::ffi::{CString, c_char};
 use std::os::raw::c_void;
 
+use cookie::Cookie;
+use url::Url;
+
 use crate::{
     SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
     ServoCookie, ServoSiteDataManager,
 };
-use cookie::Cookie;
-use url::Url;
 
 /// Cookie visitor callback.
 ///

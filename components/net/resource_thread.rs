@@ -882,9 +882,9 @@ impl ResourceChannelManager {
                 return false;
             },
             // Ignore these messages as they are only sent on very specific channels.
-            CoreResourceMsg::CollectMemoryReport(_)
-            | CoreResourceMsg::RevokeTokenForFile(..)
-            | CoreResourceMsg::RefreshTokenForFile(..) => {},
+            CoreResourceMsg::CollectMemoryReport(_) |
+            CoreResourceMsg::RevokeTokenForFile(..) |
+            CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
@@ -1178,28 +1178,28 @@ fn matches_filter(
     secure_opt: Option<bool>,
     session_opt: Option<bool>,
 ) -> bool {
-    if let Some(name) = name_opt
-        && cookie.cookie.name() != name
+    if let Some(name) = name_opt &&
+        cookie.cookie.name() != name
     {
         return false;
     }
-    if let Some(domain) = domain_opt
-        && cookie.cookie.domain() != Some(domain.as_str())
+    if let Some(domain) = domain_opt &&
+        cookie.cookie.domain() != Some(domain.as_str())
     {
         return false;
     }
-    if let Some(path) = path_opt
-        && cookie.cookie.path() != Some(path.as_str())
+    if let Some(path) = path_opt &&
+        cookie.cookie.path() != Some(path.as_str())
     {
         return false;
     }
-    if let Some(secure) = secure_opt
-        && cookie.cookie.secure().unwrap_or(false) != secure
+    if let Some(secure) = secure_opt &&
+        cookie.cookie.secure().unwrap_or(false) != secure
     {
         return false;
     }
-    if let Some(session) = session_opt
-        && cookie.persistent == session
+    if let Some(session) = session_opt &&
+        cookie.persistent == session
     {
         // session=true means session cookie (non-persistent)
         // session=false means persistent cookie

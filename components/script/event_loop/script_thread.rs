@@ -1276,10 +1276,10 @@ impl ScriptThread {
             .iter()
             .any(|(_, document)| document.needs_rendering_update(no_gc));
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active()
-                && !document.window().throttled()
-                && (document.animation_manager().running_animation_count() != 0
-                    || document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active() &&
+                !document.window().throttled() &&
+                (document.animation_manager().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
         });
 
         // If we are not running animations and no rendering update is
@@ -1703,9 +1703,9 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id
-                && pipeline_id == doc_id
-                && task_duration.as_nanos() > MAX_TASK_NS
+            if let Some(pipeline_id) = pipeline_id &&
+                pipeline_id == doc_id &&
+                task_duration.as_nanos() > MAX_TASK_NS
             {
                 if opts::get()
                     .debug
@@ -1877,9 +1877,9 @@ impl ScriptThread {
                     document.handle_no_longer_waiting_on_asynchronous_image_updates();
                 }
             },
-            msg @ ScriptThreadMessage::SpawnPipeline(..)
-            | msg @ ScriptThreadMessage::ExitFullScreen(..)
-            | msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::SpawnPipeline(..) |
+            msg @ ScriptThreadMessage::ExitFullScreen(..) |
+            msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
@@ -3663,8 +3663,8 @@ impl ScriptThread {
         // hence we filter it out here.
         let iframe_in_this_script_thread = iframe.is_some();
         let parent_info = incomplete.parent_info.filter(|parent_id| {
-            iframe_in_this_script_thread
-                || self.documents.borrow().find_document(*parent_id).is_none()
+            iframe_in_this_script_thread ||
+                self.documents.borrow().find_document(*parent_id).is_none()
         });
 
         // Initialize the browsing context for the window.
@@ -4184,8 +4184,8 @@ impl ScriptThread {
             // we need to register an iframe entry to the performance timeline if present
             if let Some(window_proxy) = context
                 .get_document()
-                .and_then(|document| document.browsing_context())
-                && let Some(frame_element) = window_proxy.frame_element()
+                .and_then(|document| document.browsing_context()) &&
+                let Some(frame_element) = window_proxy.frame_element()
             {
                 let iframe_ctx = IframeContext::new(
                     frame_element
@@ -4384,8 +4384,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id)
-            && window.live_devtools_updates()
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) &&
+            window.live_devtools_updates()
         {
             let css_error = CSSError {
                 filename,

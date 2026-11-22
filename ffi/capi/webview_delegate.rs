@@ -9,6 +9,11 @@ use embedder_traits::{
     ConsoleLogLevel, ContextMenuAction, ContextMenuItem, Cursor, PermissionFeature, RgbColor,
     SelectElementOptionOrOptgroup,
 };
+pub use servo_api::LoadStatus;
+use servo_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
+};
+use url::Url;
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
@@ -17,11 +22,6 @@ use crate::protocol_handler::{
 };
 use crate::value::ServoValue;
 use crate::webview::ServoCreateNewWebViewRequest;
-pub use servo_api::LoadStatus;
-use servo_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
-};
-use url::Url;
 
 /// Cursor types matching `embedder_traits::Cursor`.
 #[repr(i32)]

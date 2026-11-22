@@ -65,8 +65,8 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     pub(crate) fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         let parent = self.parent_node_ref();
-        if let Some(parent) = parent
-            && let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        if let Some(parent) = parent &&
+            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
         {
             return Some(shadow_root.get_host_for_layout().upcast());
         }
@@ -231,9 +231,8 @@ impl<'dom> LayoutDom<'dom, Node> {
         );
         // Currently `::placeholder` is only implemented for single line text input element.
         debug_assert!(
-            !is_single_line_text_inner_placeholder
-                || self
-                    .containing_shadow_root_for_layout()
+            !is_single_line_text_inner_placeholder ||
+                self.containing_shadow_root_for_layout()
                     .map(|root| root.get_host_for_layout())
                     .map(|host| host.downcast::<HTMLInputElement>())
                     .is_some()
@@ -262,8 +261,8 @@ impl<'dom> LayoutDom<'dom, Node> {
         }
 
         let unsafe_self = self.unsafe_get();
-        if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
-            || unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
+        if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) ||
+            unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
         {
             return None;
         }
@@ -302,9 +301,9 @@ impl<'dom> LayoutDom<'dom, Node> {
                     .get_attr_val_for_layout(&ns!(), &local_name!("contenteditable"));
                 match state {
                     Some(value)
-                        if value.eq_ignore_ascii_case("true")
-                            || value.eq_ignore_ascii_case("plaintext-only")
-                            || value.is_empty() =>
+                        if value.eq_ignore_ascii_case("true") ||
+                            value.eq_ignore_ascii_case("plaintext-only") ||
+                            value.is_empty() =>
                     {
                         // Editing host (matches `HTMLElement::is_editing_host`).
                         return true;
@@ -323,8 +322,8 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {
         self.parent_node_ref()
-            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
-            || (*self).is_editable_or_editing_host_for_layout()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input()) ||
+            (*self).is_editable_or_editing_host_for_layout()
     }
 
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
@@ -333,8 +332,8 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     pub(crate) fn replaced_is_selected(&self) -> bool {
         let unsafe_self = self.unsafe_get();
-        unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
-            && !unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
+        unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) &&
+            !unsafe_self.get_flag(NodeFlags::SELECTION_INHIBITED)
     }
 
     pub(crate) fn image_url(self) -> Option<ServoUrl> {

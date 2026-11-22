@@ -76,8 +76,8 @@ pub(crate) fn adjust_anchor_for_user_select(
     let mut cache = Default::default();
     if anchor_candidate
         .container
-        .used_user_select(no_gc, &mut cache)
-        == UsedUserSelect::None
+        .used_user_select(no_gc, &mut cache) ==
+        UsedUserSelect::None
     {
         return None;
     }
@@ -173,9 +173,9 @@ pub(crate) fn adjust_focus_for_user_select(
                 }
             },
         }
-        if !each_so_far_has_user_select_all
-            && !each_so_far_has_user_select_none
-            && user_select_contain_node_for_anchor_is_inclusive_ancestor
+        if !each_so_far_has_user_select_all &&
+            !each_so_far_has_user_select_none &&
+            user_select_contain_node_for_anchor_is_inclusive_ancestor
         {
             // Nothing else to find in ancestors
             break;
@@ -186,8 +186,8 @@ pub(crate) fn adjust_focus_for_user_select(
             anchor.compare_dom_positions(no_gc, &focus_candidate) == Some(Ordering::Greater)
         })
     };
-    if let Some(contain_for_anchor) = user_select_contain_node_for_anchor
-        && !user_select_contain_node_for_anchor_is_inclusive_ancestor
+    if let Some(contain_for_anchor) = user_select_contain_node_for_anchor &&
+        !user_select_contain_node_for_anchor_is_inclusive_ancestor
     {
         // `focus_container` is outside of `contain_for_anchor`:
         // find the closest position within `contain_for_anchor`: either its start or end

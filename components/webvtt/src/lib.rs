@@ -272,8 +272,8 @@ where
                             if self.current_line_in_block.contains("-->") {
                                 // Step 11.4.1. If in header is not set and at least
                                 // one of the following conditions are true:
-                                if !self.in_header
-                                    && (
+                                if !self.in_header &&
+                                    (
                                         // line count is 1
                                         self.line_count == 1
                                     // line count is 2 and seen arrow is false

@@ -1478,9 +1478,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = (self.is_top_level() && history_length == 1)
-                || is_auxiliary
-                || pref!(dom_allow_scripts_to_close_windows);
+            let is_script_closable = (self.is_top_level() && history_length == 1) ||
+                is_auxiliary ||
+                pref!(dom_allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?
@@ -1930,8 +1930,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 iframe
                     .browsing_context_id()
                     .as_ref()
-                    .map(BrowsingContextId::to_string)
-                    == Some(browsing_context_id.to_string())
+                    .map(BrowsingContextId::to_string) ==
+                    Some(browsing_context_id.to_string())
             })
             .and_then(|iframe| iframe.GetContentWindow())
     }
@@ -2375,10 +2375,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                     return true;
                 }
                 match type_ {
-                    HTMLElementTypeId::HTMLEmbedElement
-                    | HTMLElementTypeId::HTMLFormElement
-                    | HTMLElementTypeId::HTMLImageElement
-                    | HTMLElementTypeId::HTMLObjectElement => {
+                    HTMLElementTypeId::HTMLEmbedElement |
+                    HTMLElementTypeId::HTMLFormElement |
+                    HTMLElementTypeId::HTMLImageElement |
+                    HTMLElementTypeId::HTMLObjectElement => {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
                     _ => false,
@@ -2683,8 +2683,8 @@ impl Window {
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script expects the layout to be up-to-date after they run.
         let pipeline_id = self.pipeline_id();
-        if reflow_goal == ReflowGoal::UpdateTheRendering
-            && self.layout_blocker.get().layout_blocked()
+        if reflow_goal == ReflowGoal::UpdateTheRendering &&
+            self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return Default::default();
@@ -2713,8 +2713,8 @@ impl Window {
             // If the viewport changed and viewport units were used, all nodes need
             // to be restyled, because we currently do not track which ones rely on
             // viewport units.
-            if restyle_reason.contains(RestyleReason::ViewportChanged)
-                && self.layout().device().used_viewport_size()
+            if restyle_reason.contains(RestyleReason::ViewportChanged) &&
+                self.layout().device().used_viewport_size()
             {
                 document.dirty_all_nodes(cx.no_gc());
             }
@@ -2779,10 +2779,10 @@ impl Window {
             animations: document.animation_manager().sets(),
             animating_images: document.animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
-            frame_focused: self.webview_state().has_system_focus.get()
-                && document.focus_handler().has_focus(),
-            halt_lcp: self.has_dispatched_scroll_event.get()
-                || self.has_dispatched_input_event.get(),
+            frame_focused: self.webview_state().has_system_focus.get() &&
+                document.focus_handler().has_focus(),
+            halt_lcp: self.has_dispatched_scroll_event.get() ||
+                self.has_dispatched_input_event.get(),
             paint_timing_eligible: document.paint_timing_eligible(),
             paint_timing_info: document.paint_timing_info(),
             document_context,
@@ -2858,8 +2858,8 @@ impl Window {
         // See http://testthewebforward.org/docs/reftests.html
         // and https://web-platform-tests.org/writing-tests/crashtest.html
         if document.GetDocumentElement().is_some_and(|elem| {
-            elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
-                || elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
+            elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
+                elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
         }) {
             return;
         }
@@ -2872,8 +2872,8 @@ impl Window {
             return;
         }
 
-        if !self.pending_layout_images.borrow().is_empty()
-            || !self.pending_images_for_rasterization.borrow().is_empty()
+        if !self.pending_layout_images.borrow().is_empty() ||
+            !self.pending_images_for_rasterization.borrow().is_empty()
         {
             return;
         }
@@ -3437,8 +3437,8 @@ impl Window {
     ) {
         // We doesn't need to do anything if the following condition is fulfilled. Since there are no JS listener
         // to fire and we could reconstruct visual viewport from layout viewport in case JS access it.
-        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size)
-            && self.visual_viewport.get().is_none()
+        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size) &&
+            self.visual_viewport.get().is_none()
         {
             return;
         }
@@ -3776,8 +3776,8 @@ impl Window {
             fonts.notify_font_face_rules_removed(&changed_web_fonts.removed_font_faces);
         }
 
-        if !changed_web_fonts.removed_font_faces.is_empty()
-            || changed_web_fonts.cascade_index_of_any_rule_changed
+        if !changed_web_fonts.removed_font_faces.is_empty() ||
+            changed_web_fonts.cascade_index_of_any_rule_changed
         {
             // TODO: This should only dirty nodes that are rendered using any of the removed
             // web fonts!
@@ -3942,8 +3942,8 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
     pub(crate) fn has_sticky_activation(&self) -> bool {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
-        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now())
-            >= self.last_activation_timestamp.get()
+        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now()) >=
+            self.last_activation_timestamp.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#transient-activation>
@@ -3951,9 +3951,10 @@ impl Window {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
         // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
         let current_time = CrossProcessInstant::now();
-        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get()
-            && UserActivationTimestamp::TimeStamp(current_time)
-                < self.last_activation_timestamp.get() + pref!(dom_transient_activation_duration_ms)
+        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get() &&
+            UserActivationTimestamp::TimeStamp(current_time) <
+                self.last_activation_timestamp.get() +
+                    pref!(dom_transient_activation_duration_ms)
     }
 
     pub(crate) fn consume_last_activation_timestamp(&self) {
@@ -4314,10 +4315,10 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
     };
     matches!(
         type_,
-        HTMLElementTypeId::HTMLEmbedElement
-            | HTMLElementTypeId::HTMLFormElement
-            | HTMLElementTypeId::HTMLImageElement
-            | HTMLElementTypeId::HTMLObjectElement
+        HTMLElementTypeId::HTMLEmbedElement |
+            HTMLElementTypeId::HTMLFormElement |
+            HTMLElementTypeId::HTMLImageElement |
+            HTMLElementTypeId::HTMLObjectElement
     )
 }
 

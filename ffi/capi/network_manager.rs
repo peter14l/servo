@@ -6,7 +6,8 @@ use std::ffi::c_char;
 
 use servo_api::Servo;
 
-use crate::{ServoError, value::write_json_string, write_c_string};
+use crate::value::write_json_string;
+use crate::{ServoError, write_c_string};
 
 /// Opaque handle for the NetworkManager.
 ///
@@ -86,7 +87,7 @@ pub unsafe extern "C" fn servo_network_manager_free(
 /// Gets the cache entry keys (URLs) as a JSON array string using the
 /// buffer-query pattern.
 ///
-/// Writes a JSON array of strings, e.g. `["https://example.com/","https://servo.org/"]`,
+/// Writes a JSON array of strings, e.g. `["<https://example.com/>","<https://servo.org/>"]`,
 /// into `buffer`. Returns the number of bytes required (including the NUL
 /// terminator). If `buffer` is `NULL` or `buffer_len` is too small, nothing is
 /// written and the required length is returned.

@@ -63,10 +63,10 @@ impl RangeInputType {
     ) -> ValueChangeEvents {
         // Only the primary pointer pressing the primary button drags the thumb, and only
         // one drag can be in flight at a time.
-        if !event.IsPrimary()
-            || event.upcast::<MouseEvent>().button() != MouseButton::Primary
-            || self.dragging_pointer_id.get().is_some()
-            || input.upcast::<Element>().disabled_state()
+        if !event.IsPrimary() ||
+            event.upcast::<MouseEvent>().button() != MouseButton::Primary ||
+            self.dragging_pointer_id.get().is_some() ||
+            input.upcast::<Element>().disabled_state()
         {
             return ValueChangeEvents::empty();
         }
@@ -191,13 +191,13 @@ impl SpecificInputType for RangeInputType {
             let mut fval = *fval;
             // comparing max first, because if they contradict
             // the spec wants min to be the one that applies
-            if let Some(max) = input.maximum()
-                && fval > max
+            if let Some(max) = input.maximum() &&
+                fval > max
             {
                 fval = max;
             }
-            if let Some(min) = input.minimum()
-                && fval < min
+            if let Some(min) = input.minimum() &&
+                fval < min
             {
                 fval = min;
             }
@@ -218,13 +218,13 @@ impl SpecificInputType for RangeInputType {
                     // but if after snapping we're now outside min..max
                     // we have to adjust! (adjusting to min last because
                     // that "wins" over max in the spec)
-                    if let Some(stepped_maximum) = input.stepped_maximum()
-                        && fval > stepped_maximum
+                    if let Some(stepped_maximum) = input.stepped_maximum() &&
+                        fval > stepped_maximum
                     {
                         fval = stepped_maximum;
                     }
-                    if let Some(stepped_minimum) = input.stepped_minimum()
-                        && fval < stepped_minimum
+                    if let Some(stepped_minimum) = input.stepped_minimum() &&
+                        fval < stepped_minimum
                     {
                         fval = stepped_minimum;
                     }

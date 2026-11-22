@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::WebResourceRequest;
-use embedder_traits::WebResourceResponse;
+use std::ffi::{c_char, c_void};
+use std::future::Future;
+use std::pin::Pin;
+
+use embedder_traits::{WebResourceRequest, WebResourceResponse};
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 use servo_api::ServoUrl;
 use servo_api::protocol_handler::{
     DoneChannel, FetchContext, HttpStatus, NetworkError, ProtocolHandler, ProtocolRegistry,
     Request, ResourceFetchTiming, ResourceTimingType, Response, ResponseBody,
 };
-use std::ffi::{c_char, c_void};
-use std::future::Future;
-use std::pin::Pin;
 use url::Url;
 
 use crate::ServoError;

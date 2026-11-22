@@ -384,8 +384,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             },
         }
         // B: Step 4
-        if script_url.path().to_ascii_lowercase().contains("%2f")
-            || script_url.path().to_ascii_lowercase().contains("%5c")
+        if script_url.path().to_ascii_lowercase().contains("%2f") ||
+            script_url.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
                 realm,
@@ -406,8 +406,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             },
         }
         // B: Step 7
-        if scope.path().to_ascii_lowercase().contains("%2f")
-            || scope.path().to_ascii_lowercase().contains("%5c")
+        if scope.path().to_ascii_lowercase().contains("%2f") ||
+            scope.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
                 realm,

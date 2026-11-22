@@ -115,9 +115,9 @@ impl WGPU {
                     noop: wgpu_types::NoopBackendOptions::default(),
                 },
 
-                flags: wgpu_types::InstanceFlags::from_build_config()
-                    | wgpu_types::InstanceFlags::AUTOMATIC_TIMESTAMP_NORMALIZATION
-                    | wgpu_types::InstanceFlags::STRICT_WEBGPU_COMPLIANCE,
+                flags: wgpu_types::InstanceFlags::from_build_config() |
+                    wgpu_types::InstanceFlags::AUTOMATIC_TIMESTAMP_NORMALIZATION |
+                    wgpu_types::InstanceFlags::STRICT_WEBGPU_COMPLIANCE,
                 // TODO(sagudev): firefox actually sets this, but it can cause OOM for us
                 // meaning that we are likely leaking something
                 memory_budget_thresholds: wgpu_types::MemoryBudgetThresholds {
@@ -740,8 +740,8 @@ impl WGPU {
                         buffer_update,
                     } => {
                         let global = &self.global;
-                        if let BufferUpdate::Write(data, range) = &buffer_update
-                            && let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
+                        if let BufferUpdate::Write(data, range) = &buffer_update &&
+                            let Ok((slice_pointer, range_size)) = global.buffer_get_mapped_range(
                                 buffer_id,
                                 range.start,
                                 Some(range.end - range.start),

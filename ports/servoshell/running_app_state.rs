@@ -348,9 +348,9 @@ impl RunningAppState {
 
         // If another window had focus before and this new window is gaining it, then
         // ensure that the old window is explicitly unfocused.
-        if let Some(previously_focused_window) = &*focused_window
-            && !Rc::ptr_eq(previously_focused_window, &window)
-            && has_focus
+        if let Some(previously_focused_window) = &*focused_window &&
+            !Rc::ptr_eq(previously_focused_window, &window) &&
+            has_focus
         {
             previously_focused_window
                 .webview_collection
@@ -363,9 +363,9 @@ impl RunningAppState {
             .borrow_mut()
             .set_focused(has_focus);
 
-        if let Some(previously_focused_window) = &*focused_window
-            && Rc::ptr_eq(previously_focused_window, &window)
-            && !has_focus
+        if let Some(previously_focused_window) = &*focused_window &&
+            Rc::ptr_eq(previously_focused_window, &window) &&
+            !has_focus
         {
             *focused_window = None;
         } else if has_focus {
@@ -486,8 +486,8 @@ impl RunningAppState {
                 return true;
             }
 
-            if let Some(focused_window) = self.focused_window()
-                && Rc::ptr_eq(window, &focused_window)
+            if let Some(focused_window) = self.focused_window() &&
+                Rc::ptr_eq(window, &focused_window)
             {
                 *self.focused_window.borrow_mut() = None;
                 move_focus = !focused_window.platform_window().platform_manages_focus();
@@ -497,8 +497,8 @@ impl RunningAppState {
 
         // If the platform doesn't manage focus, then focus the most recently opened
         // window.
-        if move_focus
-            && let Some(newly_focused_window) = self
+        if move_focus &&
+            let Some(newly_focused_window) = self
                 .windows()
                 .iter()
                 .rev()
@@ -542,8 +542,8 @@ impl RunningAppState {
 
         // When no more windows are open, exit the application. Do not do this when
         // running WebDriver, which expects to keep running with no WebView open.
-        if self.servoshell_preferences.webdriver_port.get().is_none()
-            && self.windows.borrow().is_empty()
+        if self.servoshell_preferences.webdriver_port.get().is_none() &&
+            self.windows.borrow().is_empty()
         {
             self.schedule_exit()
         }

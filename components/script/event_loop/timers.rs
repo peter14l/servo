@@ -1022,8 +1022,8 @@ fn invoke_js_timer(
     //
     // Since we choose proactively prevent execution (see 4.1 above), we must only
     // reschedule repeating timers when they were not canceled as part of step 4.2.
-    if data.is_interval == IsInterval::Interval
-        && timers.active_timers.borrow().contains_key(&data.handle)
+    if data.is_interval == IsInterval::Interval &&
+        timers.active_timers.borrow().contains_key(&data.handle)
     {
         timers.initialize_and_schedule(global, callback, data);
     }

@@ -616,9 +616,9 @@ impl<T: ClipboardProvider> TextInput<T> {
                     KeyReaction::Nothing
                 }
             },
-            EditingAction::SelectAll
-            | EditingAction::Clipboard(..)
-            | EditingAction::StartComposition => KeyReaction::Nothing,
+            EditingAction::SelectAll |
+            EditingAction::Clipboard(..) |
+            EditingAction::StartComposition => KeyReaction::Nothing,
         }
     }
 

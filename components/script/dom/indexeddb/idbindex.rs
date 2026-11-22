@@ -83,8 +83,8 @@ impl IDBIndex {
     pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let stored_name = self.name.borrow().clone();
         let transaction = self.object_store.transaction();
-        if !self.object_store.has_index(&stored_name)
-            || !transaction
+        if !self.object_store.has_index(&stored_name) ||
+            !transaction
                 .get_db()
                 .object_store_exists(&self.object_store.get_name())
         {
@@ -200,8 +200,8 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
 
         // Step 6: If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
         let mut stored_name = self.name.borrow_mut();
-        if !self.object_store.has_index(&stored_name)
-            || !transaction
+        if !self.object_store.has_index(&stored_name) ||
+            !transaction
                 .get_db()
                 .object_store_exists(&self.object_store.get_name())
         {

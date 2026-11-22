@@ -100,8 +100,8 @@ impl PubDomainRules {
         match domain.find('.') {
             None => !domain.is_empty(),
             Some(index) => {
-                !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..])
-                    || self.rules.contains(domain)
+                !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..]) ||
+                    self.rules.contains(domain)
             },
         }
     }
@@ -113,10 +113,10 @@ impl PubDomainRules {
         match domain.find('.') {
             None => false,
             Some(index) => {
-                self.exceptions.contains(domain)
-                    || !self.wildcards.contains(&domain[index + 1..])
-                        && !self.rules.contains(domain)
-                        && self.is_public_suffix(&domain[index + 1..])
+                self.exceptions.contains(domain) ||
+                    !self.wildcards.contains(&domain[index + 1..]) &&
+                        !self.rules.contains(domain) &&
+                        self.is_public_suffix(&domain[index + 1..])
             },
         }
     }

@@ -71,9 +71,9 @@ pub fn get_default_url(
 /// interpret the string as a search term.
 pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Option<ServoUrl> {
     let request = request.trim();
-    if let Some(rest) = request.strip_prefix("about:")
-        && rest != "blank"
-        && let Ok(mapped) = ServoUrl::parse(&format!("servo:{rest}"))
+    if let Some(rest) = request.strip_prefix("about:") &&
+        rest != "blank" &&
+        let Ok(mapped) = ServoUrl::parse(&format!("servo:{rest}"))
     {
         return Some(mapped);
     }
@@ -114,8 +114,8 @@ fn try_as_search_page(request: &str, searchpage: &str) -> Option<ServoUrl> {
 }
 
 fn is_domain_like(s: &str) -> bool {
-    !s.starts_with('/') && s.contains('/')
-        || (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
+    !s.starts_with('/') && s.contains('/') ||
+        (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
 }
 
 fn is_localhost(s: &str) -> bool {

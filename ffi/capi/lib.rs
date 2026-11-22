@@ -67,6 +67,126 @@ pub(crate) unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len
 }
 
 // Re-export cursor and console constants from webview_delegate
+// Re-export certificate error types and constants
+pub use cert_error::{
+    SERVO_CERT_ERROR_COMMON_NAME_INVALID, SERVO_CERT_ERROR_EXPIRED,
+    SERVO_CERT_ERROR_INCOMPLETE_CHAIN, SERVO_CERT_ERROR_INVALID, SERVO_CERT_ERROR_INVALID_USAGE,
+    SERVO_CERT_ERROR_NONE, SERVO_CERT_ERROR_NOT_YET_VALID, SERVO_CERT_ERROR_OTHER,
+    SERVO_CERT_ERROR_REVOKED, SERVO_CERT_ERROR_SELF_SIGNED, SERVO_CERT_ERROR_SYMANTEC_LEGACY,
+    SERVO_CERT_ERROR_TRANSPARENCY_REQUIRED, SERVO_CERT_ERROR_UNKNOWN_CA, SERVO_CERT_ERROR_WEAK_KEY,
+    SERVO_CERT_ERROR_WEAK_SIGNATURE_ALGORITHM, ServoCertErrorCallback, ServoCertErrorCode,
+    ServoCertificateError, servo_certificate_error_continue,
+};
+// Re-export clipboard types
+pub use clipboard::{
+    ServoClipboardClearCallback, ServoClipboardDelegate, ServoClipboardGetTextCallback,
+    ServoClipboardSetTextCallback, ServoClipboardStringRequest,
+    servo_webview_clipboard_request_failure, servo_webview_clipboard_request_success,
+};
+// Re-export download constants
+pub use download::{
+    SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE, SERVO_DOWNLOAD_IN_PROGRESS,
+    SERVO_DOWNLOAD_INTERRUPTED,
+};
+// Re-export find types
+pub use find::{ServoFindResult, ServoFindResultCallback};
+// Re-export gamepad types
+pub use gamepad::{
+    SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP,
+    ServoGamepadDelegate, ServoGamepadHapticEffectCallback, ServoGamepadHapticEffectInfo,
+    ServoGamepadHapticEffectRequest, servo_webview_gamepad_haptic_effect_request_failed,
+    servo_webview_gamepad_haptic_effect_request_info,
+    servo_webview_gamepad_haptic_effect_request_succeeded,
+};
+// Re-export JavaScript evaluation types
+// `servo_webview_evaluate_javascript` is deprecated (see its docs); it is still
+// re-exported so cbindgen keeps emitting the symbol for ABI compatibility.
+#[allow(deprecated)]
+pub use javascript::{
+    ServoJavaScriptCallback, ServoJavaScriptCallbackV2, servo_webview_evaluate_javascript,
+    servo_webview_evaluate_javascript_v2,
+};
+// Re-export message router types
+pub use message_router::{
+    ServoMessageCallback, ServoScriptMessageCallback, servo_webview_add_message_handler,
+    servo_webview_add_script_message_handler, servo_webview_poll_js_messages,
+    servo_webview_post_message, servo_webview_remove_message_handler,
+    servo_webview_remove_script_message_handler,
+};
+// Re-export multiprocess functions
+pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
+// Re-export network manager types and helpers
+pub use network_manager::{
+    ServoNetworkManager, servo_get_network_manager, servo_network_manager_clear_cache,
+    servo_network_manager_free, servo_network_manager_get_cache_entries,
+};
+// Re-export preferences types and helpers
+pub use preferences::{
+    servo_preferences_create, servo_preferences_free, servo_preferences_get_bool,
+    servo_preferences_get_devtools_server_enabled, servo_preferences_get_devtools_server_port,
+    servo_preferences_get_i64, servo_preferences_get_string, servo_preferences_get_u64,
+    servo_preferences_set_bool, servo_preferences_set_devtools_server, servo_preferences_set_i64,
+    servo_preferences_set_string, servo_preferences_set_u64,
+};
+// Re-export printing types and helpers
+pub use printing::{ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf};
+// Re-export protocol handler types
+pub use protocol_handler::{
+    ServoProtocolHandler, ServoProtocolHandlerCallback, ServoWebResourceLoad,
+    ServoWebResourceRequest, ServoWebResourceResponse, servo_builder_register_protocol_handler,
+    servo_web_resource_load_cancel, servo_web_resource_load_finish, servo_web_resource_load_free,
+    servo_web_resource_load_get_request, servo_web_resource_load_intercept,
+    servo_web_resource_load_send_body_data, servo_web_resource_request_free,
+    servo_web_resource_request_get_body, servo_web_resource_request_get_header,
+    servo_web_resource_request_get_method, servo_web_resource_request_get_url,
+    servo_web_resource_response_free, servo_web_resource_response_set_body,
+    servo_web_resource_response_set_header, servo_web_resource_response_set_status,
+    servo_web_resource_response_set_url,
+};
+// Re-export request context types and constants
+pub use request_context::{
+    SERVO_PROXY_AUTO_DETECT, SERVO_PROXY_DIRECT, SERVO_PROXY_FIXED_SERVERS, SERVO_PROXY_PAC_SCRIPT,
+    SERVO_PROXY_SYSTEM, ServoProxyConfig, ServoRequestContext, servo_builder_set_request_context,
+    servo_request_context_create, servo_request_context_free,
+    servo_request_context_set_accept_language, servo_request_context_set_cache_path,
+    servo_request_context_set_cookie_path, servo_request_context_set_proxy_config,
+    servo_webview_builder_set_request_context,
+};
+// Re-export site data types
+pub use site_data::{
+    SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
+    ServoCookie, ServoCookieFilter, ServoCookieFilterFlags, ServoCookieVisitor,
+    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteData, ServoSiteDataManager,
+    ServoSiteDataVisitor, ServoSitesVisitor, ServoStorageType,
+};
+// Re-export user content manager types
+pub use user_content_manager::{
+    ServoUserContentManager, ServoUserScript, ServoUserStyleSheet,
+    servo_user_content_manager_add_script, servo_user_content_manager_add_style_sheet,
+    servo_user_content_manager_create, servo_user_content_manager_enable_message_router,
+    servo_user_content_manager_free, servo_user_content_manager_remove_script,
+    servo_user_content_manager_remove_style_sheet, servo_user_script_create,
+    servo_user_script_free, servo_user_style_sheet_create, servo_user_style_sheet_free,
+    servo_webview_builder_set_user_content_manager,
+};
+// Re-export value types and constants
+pub use value::{
+    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType, servo_dictionary_create,
+    servo_dictionary_free, servo_dictionary_get_key, servo_dictionary_get_keys,
+    servo_dictionary_get_size, servo_dictionary_has_key, servo_dictionary_set_key,
+    servo_list_create, servo_list_free, servo_list_get_size, servo_list_get_value,
+    servo_list_set_value, servo_value_create, servo_value_free, servo_value_from_json,
+    servo_value_get_binary, servo_value_get_bool, servo_value_get_double, servo_value_get_int,
+    servo_value_get_string, servo_value_get_type, servo_value_set_binary, servo_value_set_bool,
+    servo_value_set_double, servo_value_set_int, servo_value_set_string, servo_value_to_json,
+};
+// Re-export media session constants from webview
+pub use webview::{
+    SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE,
+    SERVO_MEDIA_SESSION_ACTION_PLAY, SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK,
+    SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD, SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD,
+    SERVO_MEDIA_SESSION_ACTION_SKIP_AD, SERVO_MEDIA_SESSION_ACTION_STOP,
+};
 pub use webview_delegate::{
     SERVO_CONSOLE_LOG_LEVEL_DEBUG, SERVO_CONSOLE_LOG_LEVEL_ERROR, SERVO_CONSOLE_LOG_LEVEL_INFO,
     SERVO_CONSOLE_LOG_LEVEL_LOG, SERVO_CONSOLE_LOG_LEVEL_WARN, SERVO_CONTEXT_MENU_ACTION_COPY,
@@ -94,143 +214,6 @@ pub use webview_delegate::{
     SERVO_CURSOR_WEST_RESIZE, ServoContextMenuAction, ServoContextMenuCallback,
     ServoContextMenuItem, ServoContextMenuParams, ServoFilePickerCallback,
 };
-
-// Re-export media session constants from webview
-pub use webview::{
-    SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE,
-    SERVO_MEDIA_SESSION_ACTION_PLAY, SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK,
-    SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD, SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD,
-    SERVO_MEDIA_SESSION_ACTION_SKIP_AD, SERVO_MEDIA_SESSION_ACTION_STOP,
-};
-
-// Re-export certificate error types and constants
-pub use cert_error::{
-    SERVO_CERT_ERROR_COMMON_NAME_INVALID, SERVO_CERT_ERROR_EXPIRED,
-    SERVO_CERT_ERROR_INCOMPLETE_CHAIN, SERVO_CERT_ERROR_INVALID, SERVO_CERT_ERROR_INVALID_USAGE,
-    SERVO_CERT_ERROR_NONE, SERVO_CERT_ERROR_NOT_YET_VALID, SERVO_CERT_ERROR_OTHER,
-    SERVO_CERT_ERROR_REVOKED, SERVO_CERT_ERROR_SELF_SIGNED, SERVO_CERT_ERROR_SYMANTEC_LEGACY,
-    SERVO_CERT_ERROR_TRANSPARENCY_REQUIRED, SERVO_CERT_ERROR_UNKNOWN_CA, SERVO_CERT_ERROR_WEAK_KEY,
-    SERVO_CERT_ERROR_WEAK_SIGNATURE_ALGORITHM, ServoCertErrorCallback, ServoCertErrorCode,
-    ServoCertificateError, servo_certificate_error_continue,
-};
-
-// Re-export clipboard types
-pub use clipboard::{
-    ServoClipboardClearCallback, ServoClipboardDelegate, ServoClipboardGetTextCallback,
-    ServoClipboardSetTextCallback, ServoClipboardStringRequest,
-    servo_webview_clipboard_request_failure, servo_webview_clipboard_request_success,
-};
-
-// Re-export gamepad types
-pub use gamepad::{
-    SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP,
-    ServoGamepadDelegate, ServoGamepadHapticEffectCallback, ServoGamepadHapticEffectInfo,
-    ServoGamepadHapticEffectRequest, servo_webview_gamepad_haptic_effect_request_failed,
-    servo_webview_gamepad_haptic_effect_request_info,
-    servo_webview_gamepad_haptic_effect_request_succeeded,
-};
-
-// Re-export download constants
-pub use download::{
-    SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE, SERVO_DOWNLOAD_IN_PROGRESS,
-    SERVO_DOWNLOAD_INTERRUPTED,
-};
-
-// Re-export find types
-pub use find::{ServoFindResult, ServoFindResultCallback};
-
-// Re-export site data types
-pub use site_data::{
-    SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
-    ServoCookie, ServoCookieFilter, ServoCookieFilterFlags, ServoCookieVisitor,
-    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteData, ServoSiteDataManager,
-    ServoSiteDataVisitor, ServoSitesVisitor, ServoStorageType,
-};
-
-// Re-export request context types and constants
-pub use request_context::{
-    SERVO_PROXY_AUTO_DETECT, SERVO_PROXY_DIRECT, SERVO_PROXY_FIXED_SERVERS, SERVO_PROXY_PAC_SCRIPT,
-    SERVO_PROXY_SYSTEM, ServoProxyConfig, ServoRequestContext, servo_builder_set_request_context,
-    servo_request_context_create, servo_request_context_free,
-    servo_request_context_set_accept_language, servo_request_context_set_cache_path,
-    servo_request_context_set_cookie_path, servo_request_context_set_proxy_config,
-    servo_webview_builder_set_request_context,
-};
-
-// Re-export value types and constants
-pub use value::{
-    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType, servo_dictionary_create,
-    servo_dictionary_free, servo_dictionary_get_key, servo_dictionary_get_keys,
-    servo_dictionary_get_size, servo_dictionary_has_key, servo_dictionary_set_key,
-    servo_list_create, servo_list_free, servo_list_get_size, servo_list_get_value,
-    servo_list_set_value, servo_value_create, servo_value_free, servo_value_from_json,
-    servo_value_get_binary, servo_value_get_bool, servo_value_get_double, servo_value_get_int,
-    servo_value_get_string, servo_value_get_type, servo_value_set_binary, servo_value_set_bool,
-    servo_value_set_double, servo_value_set_int, servo_value_set_string, servo_value_to_json,
-};
-
-// Re-export JavaScript evaluation types
-// `servo_webview_evaluate_javascript` is deprecated (see its docs); it is still
-// re-exported so cbindgen keeps emitting the symbol for ABI compatibility.
-#[allow(deprecated)]
-pub use javascript::{
-    ServoJavaScriptCallback, ServoJavaScriptCallbackV2, servo_webview_evaluate_javascript,
-    servo_webview_evaluate_javascript_v2,
-};
-
-// Re-export user content manager types
-pub use user_content_manager::{
-    ServoUserContentManager, ServoUserScript, ServoUserStyleSheet,
-    servo_user_content_manager_add_script, servo_user_content_manager_add_style_sheet,
-    servo_user_content_manager_create, servo_user_content_manager_enable_message_router,
-    servo_user_content_manager_free, servo_user_content_manager_remove_script,
-    servo_user_content_manager_remove_style_sheet, servo_user_script_create,
-    servo_user_script_free, servo_user_style_sheet_create, servo_user_style_sheet_free,
-    servo_webview_builder_set_user_content_manager,
-};
-
-// Re-export message router types
-pub use message_router::{
-    ServoMessageCallback, ServoScriptMessageCallback, servo_webview_add_message_handler,
-    servo_webview_add_script_message_handler, servo_webview_poll_js_messages,
-    servo_webview_post_message, servo_webview_remove_message_handler,
-    servo_webview_remove_script_message_handler,
-};
-
-// Re-export protocol handler types
-pub use protocol_handler::{
-    ServoProtocolHandler, ServoProtocolHandlerCallback, ServoWebResourceLoad,
-    ServoWebResourceRequest, ServoWebResourceResponse, servo_builder_register_protocol_handler,
-    servo_web_resource_load_cancel, servo_web_resource_load_finish, servo_web_resource_load_free,
-    servo_web_resource_load_get_request, servo_web_resource_load_intercept,
-    servo_web_resource_load_send_body_data, servo_web_resource_request_free,
-    servo_web_resource_request_get_body, servo_web_resource_request_get_header,
-    servo_web_resource_request_get_method, servo_web_resource_request_get_url,
-    servo_web_resource_response_free, servo_web_resource_response_set_body,
-    servo_web_resource_response_set_header, servo_web_resource_response_set_status,
-    servo_web_resource_response_set_url,
-};
-
-// Re-export multiprocess functions
-pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
-
-// Re-export network manager types and helpers
-pub use network_manager::{
-    ServoNetworkManager, servo_get_network_manager, servo_network_manager_clear_cache,
-    servo_network_manager_free, servo_network_manager_get_cache_entries,
-};
-
-// Re-export preferences types and helpers
-pub use preferences::{
-    servo_preferences_create, servo_preferences_free, servo_preferences_get_bool,
-    servo_preferences_get_devtools_server_enabled, servo_preferences_get_devtools_server_port,
-    servo_preferences_get_i64, servo_preferences_get_string, servo_preferences_get_u64,
-    servo_preferences_set_bool, servo_preferences_set_devtools_server, servo_preferences_set_i64,
-    servo_preferences_set_string, servo_preferences_set_u64,
-};
-
-// Re-export printing types and helpers
-pub use printing::{ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf};
 
 /// Error codes returned by the Servo C API.
 ///
@@ -604,8 +587,8 @@ pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
 /// This predicate mirrors the platforms where a true sandbox profile is activated.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_is_sandboxing_supported() -> bool {
-    cfg!(feature = "multiprocess")
-        && cfg!(not(any(
+    cfg!(feature = "multiprocess") &&
+        cfg!(not(any(
             target_os = "windows",
             target_os = "ios",
             target_os = "android",

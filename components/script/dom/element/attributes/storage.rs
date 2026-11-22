@@ -459,8 +459,8 @@ impl AttributeStorage {
         element: &Element,
     ) -> DomRoot<Attr> {
         // Fast path: already materialized.
-        if let Ok(entries) = self.0.try_borrow()
-            && let Some(AttributeEntry::Dom(attr)) = entries.get(index)
+        if let Ok(entries) = self.0.try_borrow() &&
+            let Some(AttributeEntry::Dom(attr)) = entries.get(index)
         {
             return DomRoot::from_ref(&**attr);
         }
@@ -496,8 +496,8 @@ impl AttributeStorage {
         // Store materialized Dom<Attr> back into storage.
         // If storage is currently borrowed by layout or script, skip caching in this cycle;
         // it will be safely materialized or cached on subsequent access.
-        if let Ok(mut entries) = self.0.try_borrow_mut()
-            && index < entries.len()
+        if let Ok(mut entries) = self.0.try_borrow_mut() &&
+            index < entries.len()
         {
             entries[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
         }

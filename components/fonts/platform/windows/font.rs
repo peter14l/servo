@@ -334,9 +334,9 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        let mut flags = if self.table_for_tag(COLR).is_some()
-            || self.table_for_tag(CBDT).is_some()
-            || self.table_for_tag(SBIX).is_some()
+        let mut flags = if self.table_for_tag(COLR).is_some() ||
+            self.table_for_tag(CBDT).is_some() ||
+            self.table_for_tag(SBIX).is_some()
         {
             FontInstanceFlags::EMBEDDED_BITMAPS
         } else {

@@ -160,8 +160,8 @@ impl Document {
                     event.mark_as_handled();
                 },
                 ClipboardEventType::Cut => {
-                    if let Some(selection) = editing_context.selection_content(cx)
-                        && editing_context.cutting_enabled()
+                    if let Some(selection) = editing_context.selection_content(cx) &&
+                        editing_context.cutting_enabled()
                     {
                         let canceled = editing_context.fire_cut_beforeinput_event(cx);
                         if canceled {
@@ -195,9 +195,9 @@ impl Document {
                     }
                 },
                 ClipboardEventType::Paste => {
-                    if editing_context.has_selection_or_cursor()
-                        && editing_context.pasting_enabled()
-                        && let Some(text_content) = clipboard_event.text_content()
+                    if editing_context.has_selection_or_cursor() &&
+                        editing_context.pasting_enabled() &&
+                        let Some(text_content) = clipboard_event.text_content()
                     {
                         let canceled =
                             editing_context.fire_paste_beforeinput_event(cx, &text_content);
@@ -398,9 +398,9 @@ impl Document {
         // editing host, since those checks are performed by exec_command_for_command_id either way.
         let (command, argument) = match editing_action {
             // TODO: composition should be supported once editing hosts have selection support
-            EditingAction::MoveCursor(..)
-            | EditingAction::StartComposition
-            | EditingAction::EndComposition(..) => return false,
+            EditingAction::MoveCursor(..) |
+            EditingAction::StartComposition |
+            EditingAction::EndComposition(..) => return false,
             EditingAction::SelectAll | EditingAction::Clipboard(_) => {
                 unreachable!("Should have been handled before this point.")
             },
@@ -534,8 +534,8 @@ impl TryFrom<&Node> for EditingContext {
                 TextControlElementEditingContext::TextArea(DomRoot::from_ref(text_area)),
             ));
         }
-        if let Some(input) = node.downcast::<HTMLInputElement>()
-            && input.is_textual_or_password()
+        if let Some(input) = node.downcast::<HTMLInputElement>() &&
+            input.is_textual_or_password()
         {
             return Ok(EditingContext::TextControl(
                 TextControlElementEditingContext::Input(DomRoot::from_ref(input)),

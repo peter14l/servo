@@ -881,14 +881,18 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _streams: &[&MediaStream],
     ) -> Fallible<DomRoot<RTCRtpSender>> {
         if self.closed.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot add a track to a closed peer connection.".into(),
+            )));
         }
 
         for sender in self.senders.borrow().iter() {
-            if let Some(existing_track) = sender.GetTrack()
-                && existing_track.id() == track.id()
+            if let Some(existing_track) = sender.GetTrack() &&
+                existing_track.id() == track.id()
             {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "A track with the same ID is already attached to this peer connection.".into(),
+                )));
             }
         }
 
@@ -919,7 +923,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-removetrack>
     fn RemoveTrack(&self, sender: &RTCRtpSender) -> Fallible<()> {
         if self.closed.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot remove a track from a closed peer connection.".into(),
+            )));
         }
         let found = self
             .senders
@@ -927,7 +933,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .iter()
             .any(|s| std::ptr::eq(&**s, sender));
         if !found {
-            return Err(Error::InvalidAccess(None));
+            return Err(Error::InvalidAccess(Some(
+                "The given sender does not belong to this peer connection.".into(),
+            )));
         }
         sender.set_track(None);
         Ok(())
@@ -971,8 +979,8 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let transceiver =
             RTCRtpTransceiver::new(cx, &self.global(), init.direction, &sender, &receiver);
 
-        if let Some(t) = track
-            && let Some(ref controller) = *self.controller.borrow()
+        if let Some(t) = track &&
+            let Some(ref controller) = *self.controller.borrow()
         {
             controller.add_stream(&t.id());
         }

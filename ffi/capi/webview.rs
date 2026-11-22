@@ -7,17 +7,16 @@ use std::os::raw::{c_char, c_int};
 use std::rc::Rc;
 use std::str::FromStr;
 
-use keyboard_types::{
-    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
-};
-use servo_api::{Servo, WebView, WebViewBuilder};
-
 use embedder_traits::input_events::{
     ImeEvent, InputEvent, KeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseMoveEvent, TouchEvent, TouchEventType, TouchId, TouchPointerType, WheelDelta, WheelEvent,
     WheelMode,
 };
 use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
+use keyboard_types::{
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
+};
+use servo_api::{Servo, WebView, WebViewBuilder};
 
 use crate::{ServoError, write_c_string};
 
@@ -1680,8 +1679,8 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
 
         let modifiers = Modifiers::from_bits_truncate(modifiers);
 
-        let key = if key_str.chars().count() == 1
-            && key_str.chars().next().is_some_and(|c| !c.is_control())
+        let key = if key_str.chars().count() == 1 &&
+            key_str.chars().next().is_some_and(|c| !c.is_control())
         {
             Key::Character(key_str.to_string())
         } else {

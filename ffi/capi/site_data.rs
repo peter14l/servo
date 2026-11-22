@@ -324,10 +324,10 @@ pub unsafe extern "C" fn servo_site_data_set_cookie(
 
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let cookie_ref = unsafe { &*cookie };
-        if cookie_ref.name.is_null()
-            || cookie_ref.value.is_null()
-            || cookie_ref.domain.is_null()
-            || cookie_ref.path.is_null()
+        if cookie_ref.name.is_null() ||
+            cookie_ref.value.is_null() ||
+            cookie_ref.domain.is_null() ||
+            cookie_ref.path.is_null()
         {
             return -1;
         }

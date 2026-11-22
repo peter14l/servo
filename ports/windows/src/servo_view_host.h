@@ -51,6 +51,8 @@ public:
     void EvaluateJavaScript(const std::string& script);
 
 private:
+    void RaiseForCompositionHosting();
+
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 

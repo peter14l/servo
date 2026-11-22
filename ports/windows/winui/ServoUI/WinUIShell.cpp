@@ -53,6 +53,15 @@ namespace winrt::ServoUI::implementation
             }
             return out.str();
         }
+
+        bool IsBareHost(std::string const& value) {
+            if (value.find('\\') != std::string::npos || value.find(' ') != std::string::npos ||
+                value.find("://") != std::string::npos) {
+                return false;
+            }
+            size_t dot = value.find('.');
+            return dot != std::string::npos && dot > 0 && dot + 1 < value.size();
+        }
     }
 
     WinUIShell::WinUIShell(MainWindow& owner, HWND rootHwnd, Servo* servo)
@@ -82,6 +91,23 @@ namespace winrt::ServoUI::implementation
         return kNoTab;
     }
 
+    void WinUIShell::ApplyViewVisibility()
+    {
+        for (size_t i = 0; i < m_tabs.size(); ++i) {
+            m_tabs[i]->Show(m_nativeViewsVisible && i == m_active);
+        }
+    }
+
+    void WinUIShell::SetNativeViewsVisible(bool visible)
+    {
+        if (m_nativeViewsVisible == visible) return;
+        m_nativeViewsVisible = visible;
+        ApplyViewVisibility();
+        if (visible) {
+            ApplyViewportToActive();
+        }
+    }
+
     bool WinUIShell::OpenTab(const std::string& url, ServoCreateNewWebViewRequest* request)
     {
         if (!m_rootHwnd || !m_servo) return false;
@@ -97,9 +123,7 @@ namespace winrt::ServoUI::implementation
 
         m_tabs.push_back(std::move(host));
         m_active = static_cast<uint32_t>(m_tabs.size() - 1);
-        for (size_t i = 0; i < m_tabs.size(); ++i) {
-            m_tabs[i]->Show(i == m_active);
-        }
+        ApplyViewVisibility();
         ApplyViewportToActive();
         return true;
     }
@@ -115,9 +139,7 @@ namespace winrt::ServoUI::implementation
         if (m_active >= m_tabs.size()) {
             m_active = static_cast<uint32_t>(m_tabs.size() - 1);
         }
-        for (size_t i = 0; i < m_tabs.size(); ++i) {
-            m_tabs[i]->Show(i == m_active);
-        }
+        ApplyViewVisibility();
         ApplyViewportToActive();
     }
 
@@ -125,9 +147,7 @@ namespace winrt::ServoUI::implementation
     {
         if (index >= m_tabs.size() || index == m_active) return;
         m_active = index;
-        for (size_t i = 0; i < m_tabs.size(); ++i) {
-            m_tabs[i]->Show(i == m_active);
-        }
+        ApplyViewVisibility();
         ApplyViewportToActive();
         if (ServoViewHost* view = ActiveView()) {
             view->SetFocus();
@@ -298,14 +318,17 @@ namespace winrt::ServoUI::implementation
             return;
         }
 
-        bool looksLikeUrl = clean.find("://") != std::string::npos ||
+        bool hasScheme = clean.find("://") != std::string::npos ||
             lower.rfind("about:", 0) == 0 || lower.rfind("data:", 0) == 0 ||
             lower.rfind("file:", 0) == 0 || lower.rfind("servo:", 0) == 0 ||
             lower.rfind("view-source:", 0) == 0;
-        if (!looksLikeUrl && clean.find(' ') == std::string::npos && clean.find('.') != std::string::npos) {
-            looksLikeUrl = true;
+        if (!hasScheme && IsBareHost(clean)) {
+            LoadInActiveTab("https://" + clean);
+        } else if (hasScheme) {
+            LoadInActiveTab(clean);
+        } else {
+            LoadInActiveTab(SearchUrl(clean));
         }
-        LoadInActiveTab(looksLikeUrl ? clean : SearchUrl(clean));
     }
 
     void WinUIShell::NavigateBack()

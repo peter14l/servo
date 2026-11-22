@@ -34,6 +34,7 @@ namespace winrt::ServoUI::implementation
         ServoViewHost* ActiveView() const;
 
         void SetViewportBounds(int x, int y, int width, int height);
+        void SetNativeViewsVisible(bool visible);
         void Find(const std::string& text, bool forward, bool matchCase);
         void ClearFind();
 
@@ -66,6 +67,7 @@ namespace winrt::ServoUI::implementation
 
     private:
         size_t IndexFor(ServoViewHost* host) const;
+        void ApplyViewVisibility();
         void ApplyViewportToActive();
         void LoadInActiveTab(const std::string& url);
         static std::string Trim(const std::string& value);
@@ -76,6 +78,7 @@ namespace winrt::ServoUI::implementation
         Servo* m_servo = nullptr;
         std::vector<std::unique_ptr<ServoViewHost>> m_tabs;
         uint32_t m_active = 0;
+        bool m_nativeViewsVisible = true;
         RECT m_viewport{};
         float m_zoom = 1.0f;
         int m_findIdentifier = -1;

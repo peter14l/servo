@@ -109,6 +109,13 @@ namespace winrt::ServoUI::implementation
 
     MainWindow::~MainWindow()
     {
+        try {
+            if (m_rootLayoutUpdatedToken.value != 0) {
+                RootGrid().LayoutUpdated(m_rootLayoutUpdatedToken);
+                m_rootLayoutUpdatedToken = {};
+            }
+        } catch (...) {
+        }
         m_shell.reset();
     }
 
@@ -375,6 +382,8 @@ namespace winrt::ServoUI::implementation
     void MainWindow::OpenSettingsPane()
     {
         PopulateSettingsPane();
+        // XAML overlays cannot draw above the native Servo child HWND.
+        if (m_shell) m_shell->SetNativeViewsVisible(false);
         SettingsPanel().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
     }
 
@@ -419,6 +428,23 @@ namespace winrt::ServoUI::implementation
             AddTab(m_initialUrl);
         }
         LayoutViewport();
+
+        // XAML reports the final viewport geometry one layout pass after Loaded.
+        // Reapply it once so the native child HWND does not stay blank until a
+        // resize forces a repaint.
+        if (m_rootLayoutUpdatedToken.value == 0) {
+            m_rootLayoutUpdatedToken = RootGrid().LayoutUpdated(
+                [this](IInspectable const&, IInspectable const&) {
+                    LayoutViewport();
+                    if (m_rootLayoutUpdatedToken.value != 0) {
+                        try {
+                            RootGrid().LayoutUpdated(m_rootLayoutUpdatedToken);
+                        } catch (...) {
+                        }
+                        m_rootLayoutUpdatedToken = {};
+                    }
+                });
+        }
     }
 
     void MainWindow::RootKeyDown(IInspectable const&, KeyRoutedEventArgs const& args)
@@ -434,11 +460,13 @@ namespace winrt::ServoUI::implementation
             bool consumed = false;
             if (FindPanel().Visibility() == Microsoft::UI::Xaml::Visibility::Visible) {
                 FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+                LayoutViewport();
                 if (m_shell) m_shell->ClearFind();
                 consumed = true;
             }
             if (SettingsPanel().Visibility() == Microsoft::UI::Xaml::Visibility::Visible) {
                 SettingsPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+                if (m_shell) m_shell->SetNativeViewsVisible(true);
                 ApplySettingsFromPane();
                 consumed = true;
             }
@@ -565,6 +593,7 @@ namespace winrt::ServoUI::implementation
     void MainWindow::FindOpenClicked(IInspectable const&, RoutedEventArgs const&)
     {
         FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+        LayoutViewport();
         FindBox().Focus(Microsoft::UI::Xaml::FocusState::Programmatic);
         FindBox().SelectAll();
     }
@@ -577,6 +606,7 @@ namespace winrt::ServoUI::implementation
             args.Handled(true);
         } else if (args.Key() == Windows::System::VirtualKey::Escape) {
             FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            LayoutViewport();
             if (m_shell) m_shell->ClearFind();
             args.Handled(true);
         }
@@ -585,12 +615,14 @@ namespace winrt::ServoUI::implementation
     void MainWindow::FindCloseClicked(IInspectable const&, RoutedEventArgs const&)
     {
         FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+        LayoutViewport();
         if (m_shell) m_shell->ClearFind();
     }
 
     void MainWindow::SettingsCloseClicked(IInspectable const&, RoutedEventArgs const&)
     {
         SettingsPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+        if (m_shell) m_shell->SetNativeViewsVisible(true);
         ApplySettingsFromPane();
     }
 

@@ -974,9 +974,18 @@ ServoViewHost::~ServoViewHost() {
     }
 }
 
+void ServoViewHost::RaiseForCompositionHosting() {
+    if (!m_hwnd || !m_browserShell || !m_browserShell->UsesCompositionHosting()) return;
+    SetWindowPos(m_hwnd, HWND_TOP, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+}
+
 void ServoViewHost::SetBounds(int x, int y, int width, int height) {
     if (m_hwnd) {
-        SetWindowPos(m_hwnd, nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+        bool compositionHosted = m_browserShell && m_browserShell->UsesCompositionHosting();
+        SetWindowPos(m_hwnd, compositionHosted ? HWND_TOP : nullptr, x, y, width, height,
+                     SWP_NOACTIVATE | SWP_NOOWNERZORDER |
+                         (compositionHosted ? 0 : SWP_NOZORDER));
         if (m_webview && width > 0 && height > 0) {
             servo_webview_resize(m_webview, width, height);
             m_hasNewFrame = true;
@@ -988,6 +997,9 @@ void ServoViewHost::SetBounds(int x, int y, int width, int height) {
 void ServoViewHost::Show(bool show) {
     if (m_hwnd) {
         ShowWindow(m_hwnd, show ? SW_SHOW : SW_HIDE);
+        if (show) {
+            RaiseForCompositionHosting();
+        }
         if (show && m_webview) {
             servo_webview_show(m_webview);
         } else if (!show && m_webview) {

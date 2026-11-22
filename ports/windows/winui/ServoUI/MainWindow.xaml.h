@@ -94,6 +94,7 @@ namespace winrt::ServoUI::implementation
         void LoadInActiveTab(std::string const& url);
         void SetTabHeader(uint32_t index, std::wstring const& header);
 
+        winrt::event_token m_rootLayoutUpdatedToken{};
         std::unique_ptr<WinUIShell> m_shell;
         std::string m_initialUrl;
         ServoCreateNewWebViewRequest* m_pendingRequest = nullptr;

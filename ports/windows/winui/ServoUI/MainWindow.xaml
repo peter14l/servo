@@ -15,6 +15,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -89,11 +90,8 @@
             </Button>
         </Grid>
 
-        <!-- Servo's HWND is a native child of the XAML window placed over this region. -->
-        <Border x:Name="ViewportArea" Grid.Row="2" Background="Transparent"
-                SizeChanged="ViewportSizeChanged"/>
-
-        <!-- Find on page -->
+        <!-- Find on page. It lives in its own row because XAML overlays cannot
+             paint above the native Servo child HWND. -->
         <Grid x:Name="FindPanel" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top"
               Margin="0,8,16,0" Padding="10,6,6,6" Visibility="Collapsed"
               Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
@@ -111,8 +109,12 @@
             </Button>
         </Grid>
 
+        <!-- Servo's HWND is a native child of the XAML window placed over this region. -->
+        <Border x:Name="ViewportArea" Grid.Row="3" Background="Transparent"
+                SizeChanged="ViewportSizeChanged"/>
+
         <!-- Native XAML settings pane (no HTML settings page). -->
-        <Grid x:Name="SettingsPanel" Grid.RowSpan="3" Visibility="Collapsed" Padding="28"
+        <Grid x:Name="SettingsPanel" Grid.RowSpan="4" Visibility="Collapsed" Padding="28"
               Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

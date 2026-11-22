@@ -108,6 +108,7 @@ private:
 
     void LayoutChildren();
     void ApplyMicaAltTheme();
+    void RefreshDwmFrame();
     void SyncDarkMode();
 
     HWND m_hwnd;

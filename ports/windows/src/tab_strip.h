@@ -72,6 +72,7 @@ private:
     LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
     void LayoutTabs();
+    void UpdateRegion();
     void Paint(HDC hdc);
 
     enum CaptionButtonType {

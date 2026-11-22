@@ -113,11 +113,18 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
         SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(hIcon));
     }
 
-    // Retain WS_OVERLAPPEDWINDOW (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU).
-    // Do NOT strip WS_CAPTION: Stripping WS_CAPTION causes User32 to fall back to legacy sizing borders
-    // on WM_NCACTIVATE (the thick grey border artifact when switching apps).
-    // WM_NCCALCSIZE returning 0 already completely removes the OS title bar and caption buttons
-    // while preserving modern DWM Mica Alt framing, rounded corners, and drop shadows.
+    // Custom-drawn title bar: DWM paints the native system icon and the
+    // minimize/maximize/close buttons from these three style bits. Leaving
+    // them set is what makes a second set of controls appear on top of ours.
+    // Clear ONLY those bits. Keep WS_CAPTION / WS_BORDER / WS_DLGFRAME and
+    // WS_THICKFRAME: clearing WS_CAPTION makes User32 fall back to a legacy
+    // sizing border that flashes in when switching apps, and it disrupts the
+    // Mica Alt / rounded-corner / shadow composition. WM_NCCALCSIZE returns 0
+    // so the whole window is still client area. Alt+F4 is handled explicitly
+    // in WM_SYSKEYDOWN now that WS_SYSMENU is gone.
+    DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+    style &= ~(WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+    SetWindowLongW(hwnd, GWL_STYLE, style);
     SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
@@ -190,8 +197,12 @@ BrowserWindow* BrowserWindow::CreateForPopup(struct Servo* servo, struct ServoCr
     window->m_hwnd = hwnd;
     window->m_isPopup = true;
 
+    // Same custom-chrome style fix as the main window: clear only the bits
+    // that make DWM paint native caption buttons, while keeping WS_CAPTION so
+    // Mica composition and rounded corners survive activation changes.
+    // Alt+F4 is restored explicitly in WM_SYSKEYDOWN.
     DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
-    style &= ~WS_CAPTION;
+    style &= ~(WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
     SetWindowLongW(hwnd, GWL_STYLE, style);
     SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
@@ -250,6 +261,16 @@ BrowserWindow::BrowserWindow(struct Servo* servo)
 
 BrowserWindow::~BrowserWindow() = default;
 
+void BrowserWindow::RefreshDwmFrame() {
+    if (!m_hwnd) return;
+    int backdrop = DWMSBT_TABBEDWINDOW;
+    DwmSetWindowAttribute(m_hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
+    BOOL darkMode = m_isDark ? TRUE : FALSE;
+    DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+    MARGINS margins = { -1 };
+    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+}
+
 void BrowserWindow::ApplyMicaAltTheme() {
     if (!m_hwnd) return;
     LogDebug("Applying Mica Alt theme...");
@@ -297,6 +318,9 @@ void BrowserWindow::LayoutChildren() {
     int height = rc.bottom;
 
     const int VERTICAL_TAB_WIDTH = 220;
+    // The vertical tab strip is a floating card: keep a small gap so the
+    // Mica Alt backdrop is visible around its rounded edges.
+    const int FLOAT_GAP = 8;
 
     int contentX = 0;
     int contentY = TOP_CHROME_HEIGHT;
@@ -312,7 +336,9 @@ void BrowserWindow::LayoutChildren() {
     if (m_verticalTabs) {
         if (m_tabStrip) {
             m_tabStrip->SetVertical(true);
-            m_tabStrip->SetBounds(0, TAB_STRIP_HEIGHT, VERTICAL_TAB_WIDTH, std::max(0, height - TAB_STRIP_HEIGHT));
+            m_tabStrip->SetBounds(FLOAT_GAP, TAB_STRIP_HEIGHT + FLOAT_GAP,
+                                  VERTICAL_TAB_WIDTH - FLOAT_GAP * 2,
+                                  std::max(0, height - TAB_STRIP_HEIGHT - FLOAT_GAP * 2));
         }
         if (m_omnibox) {
             m_omnibox->SetBounds(VERTICAL_TAB_WIDTH, TAB_STRIP_HEIGHT, std::max(0, width - VERTICAL_TAB_WIDTH), OMNIBOX_HEIGHT);
@@ -1083,15 +1109,23 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_NCACTIVATE:
-        // Instruct Windows not to repaint the classic non-client area on focus switch,
-        // preventing the thick grey border artifact from appearing when switching apps.
-        return DefWindowProcW(m_hwnd, msg, wParam, -1);
+        // We paint all chrome ourselves. Returning TRUE tells User32 the
+        // non-client area needs no repaint, which is what actually prevents
+        // the grey legacy border from flashing in on Alt+Tab. Calling
+        // DefWindowProc here (even with lParam = -1) still lets User32 paint
+        // the inactive frame on some Windows builds.
+        return TRUE;
 
     case WM_NCPAINT:
         // Suppress default non-client window painting
         return 0;
 
     case WM_ACTIVATE:
+        // DWM can drop the extended frame/backdrop across focus switches.
+        // Re-assert it so Mica, rounded corners and the shadow survive Alt+Tab.
+        if (LOWORD(wParam) != WA_INACTIVE) {
+            RefreshDwmFrame();
+        }
         InvalidateRect(m_hwnd, nullptr, FALSE);
         return 0;
 
@@ -1169,66 +1203,92 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         RECT rc;
         GetClientRect(m_hwnd, &rc);
         int width = rc.right;
-        int height = rc.bottom;
 
         auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
 
-        // Render top titlebar chrome when vertical tabs are active
-        if (m_verticalTabs) {
-            RECT topRc = { 0, 0, width, TAB_STRIP_HEIGHT };
-            HBRUSH topBrush = CreateSolidBrush(colors.LayerBackground);
-            FillRect(hdc, &topRc, topBrush);
-            DeleteObject(topBrush);
+        // Render the custom title bar when vertical tabs are active. This is
+        // the only place caption controls are drawn now (the native caption
+        // style bits are cleared at creation, so DWM no longer draws a second
+        // set on top of ours). Draw into an offscreen DC to avoid the flicker
+        // the old direct-to-window rendering produced on activation and hover.
+        if (m_verticalTabs && width > 0) {
+            HDC memDC = CreateCompatibleDC(hdc);
+            HBITMAP memBM = CreateCompatibleBitmap(hdc, width, TAB_STRIP_HEIGHT);
+            HGDIOBJ oldBM = SelectObject(memDC, memBM);
 
-            HFONT iconFont = CreateFontW(-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe Fluent Icons");
-            HFONT oldF = (HFONT)SelectObject(hdc, iconFont);
-            SetBkMode(hdc, TRANSPARENT);
+            RECT bar = { 0, 0, width, TAB_STRIP_HEIGHT };
+            HBRUSH bg = CreateSolidBrush(colors.LayerBackground);
+            FillRect(memDC, &bar, bg);
+            DeleteObject(bg);
+            SetBkMode(memDC, TRANSPARENT);
 
-            // Toggle button on left
-            SetTextColor(hdc, colors.Accent);
-            DrawTextW(hdc, fluent::icons::SidePanel, -1, &m_topBarToggleBtnBounds, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            HFONT textFont = fluent::CreateFluentFont(13, FW_SEMIBOLD);
+            HFONT iconFont = fluent::CreateFluentIconFont(13);
+            HFONT captionFont = fluent::CreateCaptionIconFont(10);
+            HGDIOBJ oldFont = SelectObject(memDC, textFont);
 
-            // Title
-            HFONT titleFont = CreateFontW(-13, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
-                                          DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                          CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI Variable Text");
-            SelectObject(hdc, titleFont);
-            SetTextColor(hdc, colors.TextPrimary);
-            RECT titleRc = { m_topBarToggleBtnBounds.right + 8, 0, width - 150, TAB_STRIP_HEIGHT };
-            DrawTextW(hdc, L"Servo Browser", -1, &titleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+            auto drawHover = [&](const RECT& r, COLORREF color) {
+                HBRUSH hBr = CreateSolidBrush(color);
+                HGDIOBJ oldBr = SelectObject(memDC, hBr);
+                RoundRect(memDC, r.left, r.top, r.right, r.bottom, 4, 4);
+                SelectObject(memDC, oldBr);
+                DeleteObject(hBr);
+            };
 
-            // Caption buttons (Min, Max, Close)
+            // Toggle button (left) - matches the sidebar toggle glyph.
+            if (m_hoveredTopBarBtn == 4) {
+                drawHover(m_topBarToggleBtnBounds, colors.ControlBackgroundHover);
+            }
+            SelectObject(memDC, iconFont);
+            SetTextColor(memDC, (m_hoveredTopBarBtn == 4) ? colors.TextPrimary : colors.Accent);
+            RECT toggleRc = m_topBarToggleBtnBounds;
+            DrawTextW(memDC, fluent::icons::DockLeft, -1, &toggleRc,
+                      DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+            // Title - stop short of the caption buttons instead of using a
+            // hard-coded width that overlapped them on narrow windows.
+            SelectObject(memDC, textFont);
+            SetTextColor(memDC, colors.TextPrimary);
+            RECT titleRc = { m_topBarToggleBtnBounds.right + 4, 0,
+                             m_topBarMinBtnBounds.left - 4, TAB_STRIP_HEIGHT };
+            DrawTextW(memDC, L"Servo Browser", -1, &titleRc,
+                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+            // Caption buttons (Min, Max, Close) with Fluent hover treatment.
             bool isMaximized = (IsZoomed(m_hwnd) != FALSE);
             auto drawBtn = [&](const RECT& r, const wchar_t* glyph, int id) {
                 bool hovered = (m_hoveredTopBarBtn == id);
                 if (hovered) {
-                    COLORREF bgCol = (id == 3) ? RGB(196, 43, 28) : (m_isDark ? RGB(55, 55, 55) : RGB(229, 229, 229));
-                    HBRUSH hBr = CreateSolidBrush(bgCol);
-                    FillRect(hdc, &r, hBr);
-                    DeleteObject(hBr);
+                    COLORREF bgCol = (id == 3) ? RGB(196, 43, 28)
+                                               : colors.ControlBackgroundHover;
+                    drawHover(r, bgCol);
                 }
-                SelectObject(hdc, iconFont);
-                SetTextColor(hdc, (hovered && id == 3) ? RGB(255, 255, 255) : colors.TextPrimary);
+                SelectObject(memDC, captionFont);
+                SetTextColor(memDC, (hovered && id == 3) ? RGB(255, 255, 255) : colors.TextPrimary);
                 RECT br = r;
-                DrawTextW(hdc, glyph, -1, &br, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                DrawTextW(memDC, glyph, -1, &br, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
             };
 
             drawBtn(m_topBarMinBtnBounds, fluent::icons::ChromeMinimize, 1);
             drawBtn(m_topBarMaxBtnBounds, isMaximized ? fluent::icons::ChromeRestore : fluent::icons::ChromeMaximize, 2);
             drawBtn(m_topBarCloseBtnBounds, fluent::icons::ChromeClose, 3);
 
-            SelectObject(hdc, oldF);
+            SelectObject(memDC, oldFont);
+            DeleteObject(textFont);
             DeleteObject(iconFont);
-            DeleteObject(titleFont);
+            DeleteObject(captionFont);
 
             HPEN sepPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
-            HGDIOBJ oldP = SelectObject(hdc, sepPen);
-            MoveToEx(hdc, 0, TAB_STRIP_HEIGHT - 1, nullptr);
-            LineTo(hdc, width, TAB_STRIP_HEIGHT - 1);
-            SelectObject(hdc, oldP);
+            HGDIOBJ oldP = SelectObject(memDC, sepPen);
+            MoveToEx(memDC, 0, TAB_STRIP_HEIGHT - 1, nullptr);
+            LineTo(memDC, width, TAB_STRIP_HEIGHT - 1);
+            SelectObject(memDC, oldP);
             DeleteObject(sepPen);
+
+            BitBlt(hdc, 0, 0, width, TAB_STRIP_HEIGHT, memDC, 0, 0, SRCCOPY);
+            SelectObject(memDC, oldBM);
+            DeleteObject(memBM);
+            DeleteDC(memDC);
         }
 
         EndPaint(m_hwnd, &ps);
@@ -1246,6 +1306,15 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         LayoutChildren();
         return 0;
     }
+
+    case WM_SYSKEYDOWN:
+        // Clearing WS_SYSMENU removes the default Alt+F4 handling, so restore
+        // it here. Bit 29 of lParam is the context code (1 when ALT is down).
+        if (wParam == VK_F4 && (lParam & (1 << 29))) {
+            PostMessageW(m_hwnd, WM_CLOSE, 0, 0);
+            return 0;
+        }
+        break;
 
     case WM_KEYDOWN: {
         bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;

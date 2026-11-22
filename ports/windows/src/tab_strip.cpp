@@ -79,8 +79,24 @@ TabStrip::~TabStrip() {
 void TabStrip::SetBounds(int x, int y, int width, int height) {
     if (m_hwnd) {
         SetWindowPos(m_hwnd, nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+        UpdateRegion();
         LayoutTabs();
         InvalidateRect(m_hwnd, nullptr, FALSE);
+    }
+}
+
+void TabStrip::UpdateRegion() {
+    if (!m_hwnd) return;
+    RECT rc;
+    GetClientRect(m_hwnd, &rc);
+    if (m_isVertical && rc.right > 16 && rc.bottom > 16) {
+        // Rounded region turns the sidebar into a floating card and lets the
+        // parent's Mica backdrop show through the corners. SetWindowRgn takes
+        // ownership of the region, so do not delete it here.
+        HRGN rgn = CreateRoundRectRgn(0, 0, rc.right + 1, rc.bottom + 1, 16, 16);
+        SetWindowRgn(m_hwnd, rgn, TRUE);
+    } else {
+        SetWindowRgn(m_hwnd, nullptr, TRUE);
     }
 }
 
@@ -246,6 +262,7 @@ void TabStrip::DuplicateTab(int index) {
 void TabStrip::SetVertical(bool vertical) {
     if (m_isVertical != vertical) {
         m_isVertical = vertical;
+        UpdateRegion();
         LayoutTabs();
         if (m_hwnd) {
             InvalidateRect(m_hwnd, nullptr, TRUE);
@@ -325,8 +342,10 @@ void TabStrip::Paint(HDC hdc) {
 
     auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
 
-    // Fill background with Mica-blend color
-    HBRUSH bgBrush = CreateSolidBrush(colors.LayerBackground);
+    // In vertical mode the strip is a floating card, so use the elevated
+    // surface colour; in horizontal mode it blends into the Mica title bar.
+    HBRUSH bgBrush = CreateSolidBrush(m_isVertical ? colors.CardBackground
+                                                   : colors.LayerBackground);
     FillRect(memDC, &rc, bgBrush);
     DeleteObject(bgBrush);
 
@@ -447,13 +466,20 @@ void TabStrip::Paint(HDC hdc) {
         drawCaptionBtn(m_maxButtonBounds, isMaximized ? fluent::icons::ChromeRestore : fluent::icons::ChromeMaximize, CAPTION_MAXIMIZE);
         drawCaptionBtn(m_closeButtonBounds, fluent::icons::ChromeClose, CAPTION_CLOSE);
     } else {
-        // Vertical Tabs Sidebar Rendering
-        HPEN rightPen = CreatePen(PS_SOLID, 1, colors.TabBorder);
-        HPEN oldRP = (HPEN)SelectObject(memDC, rightPen);
-        MoveToEx(memDC, rc.right - 1, 0, nullptr);
-        LineTo(memDC, rc.right - 1, rc.bottom);
-        SelectObject(memDC, oldRP);
-        DeleteObject(rightPen);
+        // Vertical Tabs Sidebar Rendering - floating card edge. The window
+        // region already clips this to a rounded rectangle; a light top/left
+        // rim plus a darker bottom/right rim gives the soft elevated look.
+        HGDIOBJ oldBrush = SelectObject(memDC, GetStockObject(NULL_BRUSH));
+        HPEN shadePen = CreatePen(PS_SOLID, 2, m_isDark ? RGB(22, 22, 22) : RGB(203, 203, 203));
+        HPEN oldPen = (HPEN)SelectObject(memDC, shadePen);
+        RoundRect(memDC, 1, 1, rc.right, rc.bottom, 16, 16);
+        HPEN lightPen = CreatePen(PS_SOLID, 1, colors.CardBorder);
+        SelectObject(memDC, lightPen);
+        RoundRect(memDC, 0, 0, rc.right - 1, rc.bottom - 1, 16, 16);
+        SelectObject(memDC, oldPen);
+        SelectObject(memDC, oldBrush);
+        DeleteObject(lightPen);
+        DeleteObject(shadePen);
 
         // Toggle vertical tabs button
         SelectObject(memDC, m_iconFont);

@@ -652,17 +652,19 @@ impl Service<Destination> for ProxyConnector {
 pub type ServoClient = Client<InstrumentedConnector<ProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
-    // Force HTTP/1.1 to avoid HTTP/2 framing reset errors (RFC 7540 PROTOCOL_ERROR)
-    // on Google / YouTube / Instagram / Cloudflare edge proxies.
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
+        .enable_http2()
         .wrap_connector(ProxyConnector::new());
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
         .http2_adaptive_window(true)
+        // Some large sites send header lists bigger than hyper's 16 KiB default,
+        // which made them fail with HTTP/2 PROTOCOL_ERROR. See servo#49981.
+        .http2_max_header_list_size(64 * 1024)
         // This is necessary to allow hyper to perform various background tasks for HTTP/2.
         .timer(TokioTimer::new())
         // This is necessary for hyper to reap unused idle keep-alive connections.

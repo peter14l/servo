@@ -9,6 +9,9 @@ use layout_api::{AxesOverflow, LayoutElement, LayoutNode};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::AxesScrollSensitivity;
 use script::layout_dom::ServoLayoutNode;
+use servo_arc::Arc as ServoArc;
+use style::context::SharedStyleContext;
+use style::properties::ComputedValues;
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 
@@ -33,15 +36,31 @@ pub struct BoxTree {
 
     /// Whether or not the viewport should be sensitive to scrolling input events in two axes
     pub(crate) viewport_overflow: AxesOverflow,
+
+    /// The style to use for the initial containing block. Its writing mode is the principal
+    /// writing mode of the document, propagated from the root element (or `<body>` for HTML).
+    pub(crate) initial_containing_block_style: ServoArc<ComputedValues>,
 }
 
 impl BoxTree {
     #[servo_tracing::instrument(name = "Box Tree Construction", skip_all)]
     pub(crate) fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
-        let boxes = construct_for_root_element(context, root_element);
+        let style_for_writing_mode =
+            Self::writing_mode_source_style(&context.style_context, root_element);
+        let boxes = construct_for_root_element(context, root_element, &style_for_writing_mode);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
+
+        let default_style = context
+            .style_context
+            .stylist
+            .device()
+            .default_computed_values_arc();
+        let initial_containing_block_style = Self::style_with_writing_mode_source_style(
+            default_style.clone(),
+            &style_for_writing_mode,
+        );
 
         let viewport_overflow = Self::viewport_overflow(root_element, boxes.first());
         let contents = BlockContainer::BlockLevelBoxes(boxes);
@@ -55,7 +74,71 @@ impl BoxTree {
             // > If visible is applied to the viewport, it must be interpreted as auto.
             // > If clip is applied to the viewport, it must be interpreted as hidden.
             viewport_overflow: viewport_overflow.to_scrollable(),
+            initial_containing_block_style,
         }
+    }
+
+    /// From <https://drafts.csswg.org/css-writing-modes/#principal-flow>:
+    ///
+    /// > The principal writing mode of the document is determined by the used
+    /// > writing-mode, direction, and text-orientation values of the root element.
+    /// >
+    /// > As a special case for handling HTML documents, if the root element has a body
+    /// > child element whose display value is not none, the used value of the
+    /// > writing-mode and direction properties on the root element are taken from the
+    /// > computed writing-mode and direction of the first such child element instead of
+    /// > from the root element’s own values.
+    pub(crate) fn writing_mode_source_style(
+        context: &SharedStyleContext,
+        root_element: ServoLayoutNode<'_>,
+    ) -> ServoArc<ComputedValues> {
+        let root_element_style = root_element.style(context);
+        if Display::from(*root_element_style.get_box().get_display()) == Display::None {
+            return root_element_style;
+        }
+
+        // Match other browsers by stopping at the first `<body>`, even if it does not
+        // generate a box. See <https://github.com/w3c/csswg-drafts/issues/12644>.
+        let Some(body) = root_element.flat_tree_children().find(|child| {
+            child
+                .as_element()
+                .is_some_and(|element| element.is_body_element_of_html_element_root())
+        }) else {
+            return root_element_style;
+        };
+
+        // Blink and WebKit do not propagate from a `<body>` with `display: contents`.
+        // See <https://github.com/w3c/csswg-drafts/issues/12643>.
+        let body_style = body.style(context);
+        let body_display = Display::from(*body_style.get_box().get_display());
+        if body_display == Display::Contents || body_display == Display::None {
+            return root_element_style;
+        }
+        body_style
+    }
+
+    /// Returns `base_style` with the writing-mode-related properties of
+    /// `writing_mode_source_style`, so that the initial containing block uses the principal
+    /// writing mode of the document.
+    pub(crate) fn style_with_writing_mode_source_style(
+        base_style: ServoArc<ComputedValues>,
+        writing_mode_source_style: &ServoArc<ComputedValues>,
+    ) -> ServoArc<ComputedValues> {
+        let source_inherited_box = writing_mode_source_style.get_inherited_box();
+        if base_style.writing_mode == writing_mode_source_style.writing_mode &&
+            base_style.get_direction() == writing_mode_source_style.get_direction() &&
+            base_style.get_text_orientation() == writing_mode_source_style.get_text_orientation()
+        {
+            return base_style;
+        }
+
+        let mut new_style = (*base_style).clone();
+        let inherited_box = new_style.mutate_inherited_box();
+        inherited_box.writing_mode = source_inherited_box.writing_mode;
+        inherited_box.direction = source_inherited_box.direction;
+        inherited_box.text_orientation = source_inherited_box.text_orientation;
+        new_style.writing_mode = writing_mode_source_style.writing_mode;
+        ServoArc::new(new_style)
     }
 
     fn viewport_overflow(
@@ -120,8 +203,13 @@ impl BoxTree {
 fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoLayoutNode<'_>,
+    style_for_writing_mode: &ServoArc<ComputedValues>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(root_element, root_element.style(&context.style_context));
+    let root_style = BoxTree::style_with_writing_mode_source_style(
+        root_element.style(&context.style_context),
+        style_for_writing_mode,
+    );
+    let info = NodeAndStyleInfo::new(root_element, root_style);
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
@@ -175,22 +263,15 @@ impl BoxTree {
         layout_context: &LayoutContext,
         viewport: UntypedSize2D<Au>,
     ) -> FragmentTree {
-        let style = layout_context
-            .style_context
-            .stylist
-            .device()
-            .default_computed_values_arc();
-
-        // FIXME: use the document’s mode:
-        // https://drafts.csswg.org/css-writing-modes/#principal-flow
         let physical_containing_block: Rect<Au, CSSPixel> =
             PhysicalSize::from_untyped(viewport).into();
+        let initial_containing_block_size = LogicalVec2::from_physical_size(
+            &physical_containing_block.size,
+            self.initial_containing_block_style.writing_mode,
+        );
         let initial_containing_block = DefiniteContainingBlock {
-            size: LogicalVec2 {
-                inline: physical_containing_block.size.width,
-                block: physical_containing_block.size.height,
-            },
-            style,
+            size: initial_containing_block_size,
+            style: &self.initial_containing_block_style,
         };
 
         let mut positioning_context = PositioningContext::default();

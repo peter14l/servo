@@ -48,6 +48,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "layout_columns_enabled",
     "layout_container_queries_enabled",
     "layout_variable_fonts_enabled",
+    "layout_writing_mode_enabled",
 ];
 
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]

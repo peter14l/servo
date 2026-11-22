@@ -1,11 +1,13 @@
 # mypy: allow-untyped-defs
 
 import json
+import time
 import uuid
 import traceback
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
+from h2.exceptions import NoSuchStreamError, ProtocolError
 from hpack.struct import HeaderTuple
 from http.cookies import BaseCookie, Morsel
 from hyperframe.frame import HeadersFrame, DataFrame, ContinuationFrame
@@ -520,14 +522,36 @@ class H2ResponseWriter:
         data_len = data.tell()
         data.seek(0)
 
-        # If the data is longer than max payload size, need to write it in chunks
-        payload_size = self.get_max_payload_size()
-        while data_len > payload_size:
-            self.write_data_frame(data.read(payload_size), False, stream_id)
-            data_len -= payload_size
-            payload_size = self.get_max_payload_size()
+        # Write the body in frames that fit both the peer's max frame size and
+        # the currently available flow-control window. When the window is
+        # exhausted we must wait for WINDOW_UPDATE rather than trying to send
+        # the remainder: h2 rejects that with FlowControlError, which used to
+        # leave the response silently truncated.
+        while data_len > 0:
+            payload_size = self.wait_for_flow_control_window(stream_id)
+            chunk = data.read(min(payload_size, data_len))
+            if not chunk:
+                break
+            self.write_data_frame(chunk, last and len(chunk) == data_len, stream_id)
+            data_len -= len(chunk)
 
-        self.write_data_frame(data.read(), last, stream_id)
+        if last and not self.stream_ended:
+            self.write_data_frame(b"", True, stream_id)
+
+    def wait_for_flow_control_window(self, stream_id=None):
+        """Return a usable payload size, waiting for WINDOW_UPDATE if needed."""
+        stream_id = stream_id if stream_id is not None else self.request.h2_stream_id
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                payload_size = self.get_max_payload_size(stream_id)
+            except NoSuchStreamError as e:
+                raise ProtocolError(f"Stream {stream_id} closed while sending data") from e
+            if payload_size > 0:
+                return payload_size
+            if time.monotonic() >= deadline:
+                raise ProtocolError(f"Timed out waiting for flow control on stream {stream_id}")
+            time.sleep(0.01)
 
     def write_data_frame(self, data, last, stream_id=None):
         with self.h2conn as connection:
@@ -648,10 +672,15 @@ class H2ResponseWriter:
 
 
     def get_max_payload_size(self, stream_id=None):
-        """Returns the maximum size of a payload for the given stream."""
+        """Returns the maximum size of a payload for the given stream.
+
+        HTTP/2 flow control is accounting for the DATA frame payload only; the
+        nine-byte frame header is not part of the flow-control window.
+        """
         stream_id = stream_id if stream_id is not None else self.request.h2_stream_id
         with self.h2conn as connection:
-            return min(connection.remote_settings.max_frame_size, connection.local_flow_control_window(stream_id)) - 9
+            return min(connection.remote_settings.max_frame_size,
+                       connection.local_flow_control_window(stream_id))
 
     def write(self, connection):
         self.content_written = True

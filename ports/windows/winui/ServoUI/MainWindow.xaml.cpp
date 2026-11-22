@@ -4,9 +4,6 @@
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
 #endif
-#if __has_include("MainWindow.xaml.g.hpp")
-#include "MainWindow.xaml.g.hpp"
-#endif
 
 #include "WinUIShell.h"
 

@@ -1,9 +1,6 @@
 #include "pch.h"
 #include "App.xaml.h"
 #include "MainWindow.xaml.h"
-#if __has_include("MainWindow.xaml.g.hpp")
-#include "MainWindow.xaml.g.hpp"
-#endif
 #include "../../src/browser_runtime.h"
 #include "../../src/servo_view_host.h"
 

@@ -4,6 +4,7 @@
 
 #include "new_tab_page.h"
 #include "servo_logo.h"
+#include "app_logo.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -103,6 +104,12 @@ static const char* NEW_TAB_HEAD = R"HTML(<!DOCTYPE html>
   .logo-wrapper {
     filter: drop-shadow(0 8px 24px rgba(0, 102, 224, 0.3));
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .app-logo {
+    display: block;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
   }
   .logo-wrapper:hover {
     transform: scale(1.05) rotate(4deg);
@@ -296,26 +303,7 @@ static const char* NEW_TAB_BODY = R"HTML(
 <div class="container">
   <div class="brand-header">
     <div class="logo-wrapper">
-      <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
-        <defs>
-          <linearGradient id="servo_core" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#00D2FF"/>
-            <stop offset="50%" stop-color="#0066E0"/>
-            <stop offset="100%" stop-color="#0A1E5A"/>
-          </linearGradient>
-          <linearGradient id="servo_sw" x1="12" y1="20" x2="52" y2="44" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
-            <stop offset="100%" stop-color="#60CDFF" stop-opacity="0.6"/>
-          </linearGradient>
-        </defs>
-        <circle cx="32" cy="32" r="28" fill="none" stroke="#0078D4" stroke-width="1.5" stroke-opacity="0.35"/>
-        <circle cx="32" cy="32" r="25" fill="url(#servo_core)"/>
-        <path d="M14 34C15 22 24 14 36 14C45 14 51 20 51 29" stroke="url(#servo_sw)" stroke-width="3" stroke-linecap="round"/>
-        <path d="M18 42C23 48 33 50 42 46C47 43 50 38 50 34" stroke="#00D2FF" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.8"/>
-        <circle cx="37" cy="25" r="4.8" fill="#FFFFFF"/>
-        <circle cx="27" cy="39" r="3.8" fill="#D2F5FF"/>
-        <path d="M34 27L25 36L29 41L39 30Z" fill="#FFFFFF" fill-opacity="0.9"/>
-      </svg>
+      <img class="app-logo" src="__APP_LOGO_DATA_URI__" alt="Servo" width="56" height="56">
     </div>
     <h1 class="greeting" id="greeting">Welcome</h1>
     <div class="date-chip">
@@ -485,8 +473,16 @@ std::string NewTabPage::EnsureNewTabPageExists() {
     // Overwrite with fresh modern Fluent 2 Start Page
     std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
     if (out.is_open()) {
+        // Inject the app logo as an inline data URI so the page stays offline.
+        std::string body = NEW_TAB_BODY;
+        const std::string placeholder = "__APP_LOGO_DATA_URI__";
+        const std::string logo = GetAppLogoDataUri();
+        size_t pos = body.find(placeholder);
+        if (pos != std::string::npos) {
+            body.replace(pos, placeholder.length(), logo);
+        }
         out.write(NEW_TAB_HEAD, strlen(NEW_TAB_HEAD));
-        out.write(NEW_TAB_BODY, strlen(NEW_TAB_BODY));
+        out.write(body.data(), static_cast<std::streamsize>(body.size()));
         out.write(NEW_TAB_SCRIPT, strlen(NEW_TAB_SCRIPT));
         out.close();
     }

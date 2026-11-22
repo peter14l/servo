@@ -46,6 +46,7 @@ set(HEADERS
     src/password_manager.h
     src/fluent_theme.h
     src/servo_logo.h
+    src/app_logo.h
 )
 
 add_executable(servo_browser WIN32 ${SOURCES} ${HEADERS})

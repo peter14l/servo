@@ -119,6 +119,10 @@
   <ItemGroup>
     <Manifest Include="app.manifest" />
     <PRIResource Include="Resources.resw" />
+    <ResourceCompile Include="ServoUI.rc" />
+    <Content Include="app_logo.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

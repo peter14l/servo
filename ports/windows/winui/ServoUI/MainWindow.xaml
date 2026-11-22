@@ -95,7 +95,7 @@
         <Grid x:Name="FindPanel" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top"
               Margin="0,8,16,0" Padding="10,6,6,6" Visibility="Collapsed"
               Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6"
+              BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1" CornerRadius="6"
               ColumnSpacing="6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220"/>
@@ -120,28 +120,134 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Margin="0,0,0,16">
+
+            <Grid Grid.Row="0" Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Settings" FontSize="24" FontWeight="SemiBold"/>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold"/>
+                    <TextBlock Text="Manage how Servo Browser looks, searches, and protects your data."
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
                 <Button Grid.Column="1" Width="34" Click="SettingsCloseClicked" Background="Transparent"
                         BorderThickness="0" ToolTipService.ToolTip="Close">
                     <FontIcon Glyph="&#xE711;" FontSize="12"/>
                 </Button>
             </Grid>
-            <ScrollViewer Grid.Row="1">
-                <StackPanel Spacing="14" MaxWidth="560" HorizontalAlignment="Left">
-                    <muxc:ToggleSwitch x:Name="SettingWebGL2" Header="WebGL 2"/>
-                    <muxc:ToggleSwitch x:Name="SettingWebGPU" Header="WebGPU (experimental)"/>
-                    <muxc:ToggleSwitch x:Name="SettingIndexedDB" Header="IndexedDB"/>
-                    <muxc:ToggleSwitch x:Name="SettingWebRTC" Header="WebRTC"/>
-                    <muxc:ToggleSwitch x:Name="SettingNotifications" Header="Notifications"/>
-                    <muxc:ToggleSwitch x:Name="SettingGeolocation" Header="Geolocation"/>
-                    <muxc:ToggleSwitch x:Name="SettingVariableFonts" Header="Variable fonts"/>
-                    <TextBlock Text="Changes are saved when you close this pane."
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+
+            <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled">
+                <StackPanel Spacing="12" MaxWidth="760" HorizontalAlignment="Left" Margin="0,0,24,24">
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Start, home, and new tabs" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Default search engine" FontSize="13"/>
+                            <ComboBox x:Name="SettingSearchEngine" Width="280" SelectedIndex="0">
+                                <ComboBoxItem Content="DuckDuckGo"/>
+                                <ComboBoxItem Content="Google"/>
+                                <ComboBoxItem Content="Bing"/>
+                                <ComboBoxItem Content="Brave"/>
+                            </ComboBox>
+                            <TextBlock Text="Home page" FontSize="13" Margin="0,6,0,0"/>
+                            <TextBox x:Name="SettingHomePage" Width="520"
+                                     PlaceholderText="https://servo.org"/>
+                            <TextBlock Text="Download folder" FontSize="13" Margin="0,6,0,0"/>
+                            <TextBox x:Name="SettingDownloadDir" Width="520"
+                                     PlaceholderText="Downloads"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Appearance" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Theme" FontSize="13"/>
+                            <ComboBox x:Name="SettingTheme" Width="280" SelectedIndex="2">
+                                <ComboBoxItem Content="Light"/>
+                                <ComboBoxItem Content="Dark"/>
+                                <ComboBoxItem Content="System default"/>
+                            </ComboBox>
+                            <TextBlock Text="Window backdrop (applies after restart)" FontSize="13" Margin="0,6,0,0"/>
+                            <ComboBox x:Name="SettingBackdrop" Width="280" SelectedIndex="0">
+                                <ComboBoxItem Content="Mica Alt"/>
+                                <ComboBoxItem Content="Mica"/>
+                                <ComboBoxItem Content="Solid"/>
+                            </ComboBox>
+                            <muxc:ToggleSwitch x:Name="SettingVerticalTabs" Header="Vertical tabs"
+                                               OnContent="On" OffContent="Off" Margin="0,6,0,0"/>
+                            <muxc:ToggleSwitch x:Name="SettingSuggestions" Header="Search suggestions in the address bar"
+                                               OnContent="On" OffContent="Off"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Privacy and services" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="User agent (applies after restart)" FontSize="13"/>
+                            <ComboBox x:Name="SettingUserAgent" Width="420" SelectedIndex="0">
+                                <ComboBoxItem Content="Firefox 132 (Desktop) [Recommended]"/>
+                                <ComboBoxItem Content="Chrome 131 (Desktop)"/>
+                                <ComboBoxItem Content="Safari 18 (macOS)"/>
+                            </ComboBox>
+                            <muxc:ToggleSwitch x:Name="SettingNotifications" Header="Notifications"
+                                               OnContent="Allowed" OffContent="Blocked" Margin="0,6,0,0"/>
+                            <muxc:ToggleSwitch x:Name="SettingGeolocation" Header="Geolocation"
+                                               OnContent="Allowed" OffContent="Blocked"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Web experiments" FontSize="17" FontWeight="SemiBold"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebGL2" Header="WebGL 2"
+                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebGPU" Header="WebGPU (experimental)"
+                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingIndexedDB" Header="IndexedDB"
+                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebRTC" Header="WebRTC"
+                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingVariableFonts" Header="Variable fonts"
+                                               OnContent="On" OffContent="Off"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Data and reset" FontSize="17" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button x:Name="SettingClearHistory" Content="Clear browsing history"
+                                        Click="ClearHistoryClicked"/>
+                                <Button x:Name="SettingReset" Content="Restore default settings"
+                                        Click="ResetSettingsClicked"/>
+                            </StackPanel>
+                            <TextBlock Text="History is stored locally on this device only."
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="About Servo Browser" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Native Windows shell powered by the Servo engine."
+                                       FontSize="13"/>
+                            <TextBlock Text="Changes are saved automatically when you close this pane."
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

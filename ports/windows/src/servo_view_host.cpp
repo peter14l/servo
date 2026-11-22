@@ -65,7 +65,67 @@ static const char* s_platformCompatScript = R"JS(
             };
         }
 
-        // 5. BroadcastChannel safe fallback
+        // 5a. Web Animations API safe fallback. Reddit's post menu calls
+        // Element.getAnimations() before it opens; without it the click handler
+        // throws ("e.getAnimations is not a function") and the menu never appears.
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            function noopEffect() {
+                return {
+                    target: null,
+                    pseudoElement: null,
+                    getTiming: function() { return { delay: 0, endDelay: 0, fill: 'none', iterations: 1, iterationStart: 0 }; },
+                    getComputedTiming: function() { return { duration: 0, delay: 0, endDelay: 0, fill: 'none', iterations: 1, iterationStart: 0, progress: 0, currentIteration: 0 }; },
+                    updateTiming: function() {}
+                };
+            }
+            function makeNoopAnimation() {
+                return {
+                    currentTime: 0,
+                    startTime: 0,
+                    playbackRate: 1,
+                    playState: 'finished',
+                    pending: false,
+                    finished: Promise.resolve(),
+                    effect: noopEffect(),
+                    onfinish: null,
+                    oncancel: null,
+                    cancel: function() {},
+                    play: function() {},
+                    pause: function() {},
+                    finish: function() {},
+                    reverse: function() {},
+                    commitStyles: function() {},
+                    updatePlaybackRate: function() {},
+                    addEventListener: function() {},
+                    removeEventListener: function() {},
+                    dispatchEvent: function() { return false; }
+                };
+            }
+            function addMissing(target, name, value) {
+                if (target && typeof target[name] !== 'function') {
+                    try { target[name] = value; } catch (e) {}
+                }
+            }
+            if (typeof window.Animation === 'undefined') {
+                window.Animation = function() { return makeNoopAnimation(); };
+            }
+            var animationProto = window.Animation ? window.Animation.prototype : null;
+            var noopAnimation = makeNoopAnimation();
+            addMissing(animationProto, 'cancel', noopAnimation.cancel);
+            addMissing(animationProto, 'play', noopAnimation.play);
+            addMissing(animationProto, 'pause', noopAnimation.pause);
+            addMissing(animationProto, 'finish', noopAnimation.finish);
+            addMissing(animationProto, 'reverse', noopAnimation.reverse);
+            addMissing(animationProto, 'commitStyles', noopAnimation.commitStyles);
+            addMissing(animationProto, 'updatePlaybackRate', noopAnimation.updatePlaybackRate);
+            var elementProto = window.Element ? window.Element.prototype : null;
+            addMissing(elementProto, 'getAnimations', function() { return []; });
+            addMissing(elementProto, 'animate', function() { return makeNoopAnimation(); });
+            var documentProto = window.Document ? window.Document.prototype : null;
+            addMissing(documentProto, 'getAnimations', function() { return []; });
+        }
+
+        // 5b. BroadcastChannel safe fallback
         if (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'undefined') {
             window.BroadcastChannel = function(name) {
                 this.name = name;
@@ -458,10 +518,128 @@ static const char* s_appEnhancementsScript = R"JS(
             if (!window.__servo_instagram_hooks_installed && typeof document !== 'undefined') {
                 window.__servo_instagram_hooks_installed = true;
 
+                function igInThread() {
+                    return location.pathname.indexOf('/direct/t/') === 0;
+                }
+
+                // Servo's reversed-flex scroller can anchor a DM thread to its
+                // oldest message after a send. Pin only on explicit sends, and
+                // stop pinning as soon as the user scrolls up to read history.
+                var igRaf = window.requestAnimationFrame || function(cb) { return setTimeout(cb, 16); };
+                var igScroller = null;
+                var igObserver = null;
+                var igPinned = true;
+                var igSuppress = 0;
+                var igScheduled = 0;
+                var igRetry = 0;
+
+                function igGap(el) {
+                    return el.scrollHeight - el.clientHeight - el.scrollTop;
+                }
+
+                function igIsSend(el) {
+                    var button = el && el.closest ? el.closest('button, [role="button"]') : null;
+                    if (!button) return false;
+                    var text = (button.innerText || button.textContent || '').trim().toLowerCase();
+                    var aria = (button.getAttribute('aria-label') || '').toLowerCase();
+                    return text === 'send' || aria === 'send' || !!button.querySelector('svg[aria-label="Send"]');
+                }
+
+                function igIsChat(el) {
+                    if (!el || el.nodeType !== 1 || el.clientHeight < 120) return false;
+                    if (el === document.body || el === document.documentElement) return false;
+                    if (el.closest && el.closest('nav, header, [role="navigation"]')) return false;
+                    var label = (el.getAttribute('aria-label') || '').toLowerCase();
+                    if (label.indexOf('navigation') >= 0 || label.indexOf('direct messages') >= 0) return false;
+                    if (el.scrollHeight <= el.clientHeight + 20) return false;
+                    var selector = '[role="log"],[data-testid*="message"],[data-testid*="conversation"],[aria-label*="message"]';
+                    return (el.matches && el.matches(selector)) || !!el.querySelector(selector);
+                }
+
+                function igBind(el) {
+                    if (igObserver && igObserver.disconnect) igObserver.disconnect();
+                    igScroller = el;
+                    if (typeof MutationObserver === 'undefined') return;
+                    try {
+                        igObserver = new MutationObserver(function() { igPin(false); });
+                        igObserver.observe(el, { childList: true, subtree: true });
+                    } catch (e) {
+                        igObserver = null;
+                    }
+                }
+
+                function igFind() {
+                    if (igScroller && (igScroller.isConnected || document.contains(igScroller)) && igIsChat(igScroller)) {
+                        return igScroller;
+                    }
+                    var nodes = document.querySelectorAll(
+                        '[role="log"],[data-testid*="message"],[data-testid*="conversation"],[aria-label*="message"]');
+                    for (var i = 0; i < nodes.length; i++) {
+                        if (igIsChat(nodes[i])) {
+                            igBind(nodes[i]);
+                            return igScroller;
+                        }
+                    }
+                    return null;
+                }
+
+                function igWriteBottom(el) {
+                    var target = el.scrollHeight - el.clientHeight;
+                    if (target <= 0 || Math.abs(el.scrollTop - target) <= 2) return;
+                    igSuppress++;
+                    try { el.scrollTop = target; } catch (e) {}
+                    setTimeout(function() { igSuppress--; }, 0);
+                }
+
+                function igPin(force) {
+                    if (force) igPinned = true;
+                    if (!igScheduled) {
+                        igScheduled = igRaf(function() {
+                            igScheduled = 0;
+                            var scroller = igFind();
+                            if (scroller && (force || igPinned)) igWriteBottom(scroller);
+                        });
+                    }
+                    if (!force) return;
+                    clearTimeout(igRetry);
+                    var left = 5;
+                    (function again() {
+                        if (--left <= 0) return;
+                        igRetry = setTimeout(function() {
+                            var scroller = igScroller && (igScroller.isConnected || document.contains(igScroller))
+                                ? igScroller : igFind();
+                            if (scroller) igWriteBottom(scroller);
+                            again();
+                        }, 60);
+                    })();
+                }
+
+                window.__servoPinInstagramChat = igPin;
+
+                document.addEventListener('scroll', function(e) {
+                    if (!igScroller || igSuppress) return;
+                    if (e.target === igScroller || (igScroller.contains && igScroller.contains(e.target))) {
+                        igPinned = igGap(igScroller) <= 80;
+                    }
+                }, true);
+
+                document.addEventListener('wheel', function(e) {
+                    if (igInThread() && e.deltaY < 0) igPinned = false;
+                }, false);
+
+                document.addEventListener('keydown', function(e) {
+                    if (!igInThread()) return;
+                    if (e.key === 'Home' || e.key === 'PageUp' || e.key === 'ArrowUp') igPinned = false;
+                }, true);
+
+                document.addEventListener('click', function(e) {
+                    if (igInThread() && igIsSend(e.target)) igPin(true);
+                }, false);
+
                 document.addEventListener('click', function(e) {
                     if (!location.pathname.startsWith('/direct/')) return;
                     var target = e.target;
-                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article, aside, [role="navigation"], [aria-label*="Navigation" i]')) return;
+                    if (!target || target.closest('a, button, [role="button"], [role="link"], nav, header, article, aside, [role="navigation"]')) return;
                     var composer = target.closest('[data-lexical-editor="true"], form[role="presentation"], div[role="textbox"]');
                     if (!composer) return;
                     var editable = target.isContentEditable ? target : (target.closest('[contenteditable="true"]') || composer.querySelector('[contenteditable="true"]'));
@@ -486,6 +664,7 @@ static const char* s_appEnhancementsScript = R"JS(
                                     var aria = (b.getAttribute('aria-label') || '').toLowerCase();
                                     if (text === 'send' || aria === 'send' || b.querySelector('svg[aria-label="Send"]')) {
                                         b.click();
+                                        if (window.__servoPinInstagramChat) window.__servoPinInstagramChat(true);
                                         break;
                                     }
                                 }
@@ -493,6 +672,10 @@ static const char* s_appEnhancementsScript = R"JS(
                         }
                     }
                 }, true);
+
+                if (igInThread()) {
+                    setTimeout(function() { igPin(true); }, 300);
+                }
             }
         }
     } catch(e) {}

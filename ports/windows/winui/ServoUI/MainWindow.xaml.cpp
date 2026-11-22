@@ -48,6 +48,12 @@ namespace winrt::ServoUI::implementation
             return result;
         }
 
+        std::wstring WideText(hstring const& value)
+        {
+            std::wstring_view view(value);
+            return std::wstring(view);
+        }
+
         std::string Utf8(hstring const& value)
         {
             std::wstring_view view(value);
@@ -84,6 +90,40 @@ namespace winrt::ServoUI::implementation
             size_t end = json.find('\"', start);
             if (end == std::string::npos) return fallback;
             return Wide(json.substr(start, end - start));
+        }
+
+        int SearchEngineIndex(std::wstring const& value)
+        {
+            if (value == L"Google") return 1;
+            if (value == L"Bing") return 2;
+            if (value == L"Brave") return 3;
+            return 0;
+        }
+
+        std::wstring SearchEngineForIndex(int index)
+        {
+            switch (index) {
+            case 1: return L"Google";
+            case 2: return L"Bing";
+            case 3: return L"Brave";
+            default: return L"DuckDuckGo";
+            }
+        }
+
+        std::wstring UserAgentForIndex(int index)
+        {
+            switch (index) {
+            case 1: return L"Chrome 131 (Desktop)";
+            case 2: return L"Safari 18 (macOS)";
+            default: return L"Firefox 132 (Desktop) [Recommended]";
+            }
+        }
+
+        int UserAgentIndex(std::wstring const& value)
+        {
+            if (value.find(L"Chrome") != std::wstring::npos) return 1;
+            if (value.find(L"Safari") != std::wstring::npos) return 2;
+            return 0;
         }
 
         void ApplyBrowserSettings(BrowserSettings const& settings)
@@ -154,6 +194,21 @@ namespace winrt::ServoUI::implementation
         try {
             auto windowId = Microsoft::UI::GetWindowIdFromWindow(m_xamlHwnd);
             auto appWindow = Microsoft::UI::Windowing::AppWindow::GetFromWindowId(windowId);
+            try {
+                wchar_t modulePath[MAX_PATH] = {};
+                DWORD length = GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
+                if (length > 0 && length < MAX_PATH) {
+                    std::wstring iconPath(modulePath);
+                    size_t separator = iconPath.find_last_of(L"\\/");
+                    if (separator != std::wstring::npos) iconPath.resize(separator + 1);
+                    iconPath += L"app_logo.ico";
+                    if (GetFileAttributesW(iconPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
+                        appWindow.SetIcon(winrt::hstring(iconPath));
+                    }
+                }
+            } catch (...) {
+                LogDebug("Could not apply the taskbar icon; using the embedded executable icon.");
+            }
             auto titleBar = appWindow.TitleBar();
             if (!Microsoft::UI::Windowing::AppWindowTitleBar::IsCustomizationSupported()) return;
             titleBar.ExtendsContentIntoTitleBar(true);
@@ -390,27 +445,71 @@ namespace winrt::ServoUI::implementation
     void MainWindow::PopulateSettingsPane()
     {
         BrowserSettings settings = LoadBrowserSettings();
+        SettingSearchEngine().SelectedIndex(SearchEngineIndex(settings.searchEngine));
+        SettingHomePage().Text(hstring(settings.homePage));
+        SettingDownloadDir().Text(hstring(settings.downloadDir));
+        SettingTheme().SelectedIndex(settings.themeMode >= 0 && settings.themeMode <= 2 ? settings.themeMode : 2);
+        SettingBackdrop().SelectedIndex(settings.backdropType >= 0 && settings.backdropType <= 2 ? settings.backdropType : 0);
+        SettingVerticalTabs().IsOn(settings.enableVerticalTabs);
+        SettingSuggestions().IsOn(settings.enableSuggestions);
+        SettingUserAgent().SelectedIndex(UserAgentIndex(settings.userAgentPersona));
+        SettingNotifications().IsOn(settings.enableNotifications);
+        SettingGeolocation().IsOn(settings.enableGeolocation);
         SettingWebGL2().IsOn(settings.enableWebGL2);
         SettingWebGPU().IsOn(settings.enableWebGPU);
         SettingIndexedDB().IsOn(settings.enableIndexedDB);
         SettingWebRTC().IsOn(settings.enableWebRTC);
-        SettingNotifications().IsOn(settings.enableNotifications);
-        SettingGeolocation().IsOn(settings.enableGeolocation);
         SettingVariableFonts().IsOn(settings.enableVariableFonts);
     }
 
     void MainWindow::ApplySettingsFromPane()
     {
         BrowserSettings settings = LoadBrowserSettings();
+        settings.searchEngine = SearchEngineForIndex(SettingSearchEngine().SelectedIndex());
+        settings.homePage = WideText(SettingHomePage().Text());
+        if (settings.homePage.empty()) settings.homePage = L"https://servo.org";
+        auto downloadDir = WideText(SettingDownloadDir().Text());
+        if (!downloadDir.empty()) settings.downloadDir = downloadDir;
+        settings.themeMode = SettingTheme().SelectedIndex();
+        settings.backdropType = SettingBackdrop().SelectedIndex();
+        settings.enableVerticalTabs = SettingVerticalTabs().IsOn();
+        settings.enableSuggestions = SettingSuggestions().IsOn();
+        settings.userAgentPersona = UserAgentForIndex(SettingUserAgent().SelectedIndex());
+        settings.enableNotifications = SettingNotifications().IsOn();
+        settings.enableGeolocation = SettingGeolocation().IsOn();
         settings.enableWebGL2 = SettingWebGL2().IsOn();
         settings.enableWebGPU = SettingWebGPU().IsOn();
         settings.enableIndexedDB = SettingIndexedDB().IsOn();
         settings.enableWebRTC = SettingWebRTC().IsOn();
-        settings.enableNotifications = SettingNotifications().IsOn();
-        settings.enableGeolocation = SettingGeolocation().IsOn();
         settings.enableVariableFonts = SettingVariableFonts().IsOn();
+
         ApplyBrowserSettings(settings);
+        ApplyTheme(settings.themeMode);
         UpdateStatus(L"Settings saved.");
+    }
+
+    void MainWindow::ApplyTheme(int themeMode)
+    {
+        using Microsoft::UI::Xaml::ElementTheme;
+        ElementTheme theme = ElementTheme::Default;
+        if (themeMode == 0) theme = ElementTheme::Light;
+        else if (themeMode == 1) theme = ElementTheme::Dark;
+        RootGrid().RequestedTheme(theme);
+    }
+
+    void MainWindow::ClearHistoryClicked(IInspectable const&, RoutedEventArgs const&)
+    {
+        BrowserData::ClearHistory();
+        UpdateStatus(L"Browsing history cleared.");
+    }
+
+    void MainWindow::ResetSettingsClicked(IInspectable const&, RoutedEventArgs const&)
+    {
+        BrowserSettings defaults;
+        ApplyBrowserSettings(defaults);
+        PopulateSettingsPane();
+        ApplyTheme(defaults.themeMode);
+        UpdateStatus(L"Default settings restored.");
     }
 
     void MainWindow::RootLoaded(IInspectable const&, RoutedEventArgs const&)
@@ -418,6 +517,7 @@ namespace winrt::ServoUI::implementation
         m_loaded = true;
         m_xamlHwnd = GetXamlHwnd();
         ConfigureTitleBar();
+        ApplyTheme(LoadBrowserSettings().themeMode);
         EnsureShell();
 
         if (m_pendingRequest) {
@@ -715,6 +815,7 @@ namespace winrt::ServoUI::implementation
         settings.enableGeolocation = JsonBool(json, "geolocation", settings.enableGeolocation);
         settings.enableVariableFonts = JsonBool(json, "varfonts", settings.enableVariableFonts);
         ApplyBrowserSettings(settings);
+        ApplyTheme(settings.themeMode);
         PopulateSettingsPane();
     }
 }

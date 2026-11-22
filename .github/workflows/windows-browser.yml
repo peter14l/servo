@@ -183,7 +183,7 @@ jobs:
             throw "WinUI build did not produce ServoUI.exe"
           }
           Get-ChildItem -Path $WinUIOut -File |
-            Where-Object { $_.Extension -in @(".exe", ".dll", ".pri", ".pdb", ".winmd") } |
+            Where-Object { $_.Extension -in @(".exe", ".dll", ".ico", ".pri", ".pdb", ".winmd") } |
             Copy-Item -Destination $Dist/
 
           # Copy servo_capi.dll and import lib

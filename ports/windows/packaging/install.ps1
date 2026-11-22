@@ -41,6 +41,8 @@ $ExePath = Join-Path $TargetDir "ServoUI.exe"
 if (-not (Test-Path $ExePath)) {
     $ExePath = Join-Path $TargetDir "servo_browser.exe"
 }
+$AppIconPath = Join-Path $TargetDir "app_logo.ico"
+$IconLocation = if (Test-Path $AppIconPath) { $AppIconPath } else { "$ExePath,0" }
 $WshShell = New-Object -ComObject WScript.Shell
 
 # Desktop shortcut
@@ -49,6 +51,7 @@ $DesktopShortcut = $WshShell.CreateShortcut((Join-Path $DesktopPath "Servo Brows
 $DesktopShortcut.TargetPath = $ExePath
 $DesktopShortcut.WorkingDirectory = $TargetDir
 $DesktopShortcut.Description = "Servo Modern Web Browser"
+$DesktopShortcut.IconLocation = $IconLocation
 $DesktopShortcut.Save()
 
 # Start Menu shortcut
@@ -57,6 +60,7 @@ $StartShortcut = $WshShell.CreateShortcut((Join-Path $StartMenuPath "Servo Brows
 $StartShortcut.TargetPath = $ExePath
 $StartShortcut.WorkingDirectory = $TargetDir
 $StartShortcut.Description = "Servo Modern Web Browser"
+$StartShortcut.IconLocation = $IconLocation
 $StartShortcut.Save()
 Write-Host "      Shortcuts created." -ForegroundColor Green
 
@@ -70,7 +74,7 @@ if (-not (Test-Path $UninstallKey)) {
 Set-ItemProperty -Path $UninstallKey -Name "DisplayName" -Value "Servo Browser"
 Set-ItemProperty -Path $UninstallKey -Name "DisplayVersion" -Value "1.0.0"
 Set-ItemProperty -Path $UninstallKey -Name "Publisher" -Value "Servo Project"
-Set-ItemProperty -Path $UninstallKey -Name "DisplayIcon" -Value "$ExePath,0"
+Set-ItemProperty -Path $UninstallKey -Name "DisplayIcon" -Value $IconLocation
 Set-ItemProperty -Path $UninstallKey -Name "InstallLocation" -Value $TargetDir
 Set-ItemProperty -Path $UninstallKey -Name "UninstallString" -Value "powershell.exe -ExecutionPolicy Bypass -File `"$TargetDir\uninstall.ps1`""
 Write-Host "      Registered successfully." -ForegroundColor Green

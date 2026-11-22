@@ -65,6 +65,10 @@ namespace winrt::ServoUI::implementation
                               Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SettingsCloseClicked(Windows::Foundation::IInspectable const& sender,
                                   Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ClearHistoryClicked(Windows::Foundation::IInspectable const& sender,
+                                 Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void ResetSettingsClicked(Windows::Foundation::IInspectable const& sender,
+                                  Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
         // Called by WinUIShell when the engine reports state changes.
         void OnUrlChanged(uint32_t index, std::string const& url);
@@ -91,6 +95,7 @@ namespace winrt::ServoUI::implementation
         void UpdateStatus(std::wstring const& status);
         void ApplySettingsFromPane();
         void PopulateSettingsPane();
+        void ApplyTheme(int themeMode);
         void LoadInActiveTab(std::string const& url);
         void SetTabHeader(uint32_t index, std::wstring const& header);
 

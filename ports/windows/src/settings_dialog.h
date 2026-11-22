@@ -9,26 +9,9 @@
 #endif
 #include <windows.h>
 #include <string>
+#include "browser_settings.h"
 
 class BrowserWindow;
-
-struct BrowserSettings {
-    std::wstring searchEngine = L"DuckDuckGo";
-    std::wstring homePage = L"https://servo.org";
-    std::wstring downloadDir;
-    std::wstring userAgentPersona = L"Firefox 132 (Desktop) [Recommended]";
-    int themeMode = 2; // 0: Light, 1: Dark, 2: System Default
-    int backdropType = 0; // 0: Mica Alt, 1: Mica, 2: Solid
-    bool enableVerticalTabs = false;
-    bool enableSuggestions = true;
-    bool enableWebGPU = false;
-    bool enableWebGL2 = true;
-    bool enableIndexedDB = true;
-    bool enableWebRTC = true;
-    bool enableNotifications = true;
-    bool enableGeolocation = false;
-    bool enableVariableFonts = true;
-};
 
 class SettingsDialog {
 public:

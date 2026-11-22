@@ -38,6 +38,8 @@ jobs:
       - name: Setup Rust toolchain
         run: rustup show
 
+      - uses: microsoft/setup-msbuild@v2
+
       - name: Setup Python
         uses: ./.github/actions/setup-python
 
@@ -160,17 +162,29 @@ jobs:
         run: |
           ctest --test-dir build-browser -C Release --output-on-failure
 
+      - name: Build Native WinUI 3 Browser
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $Project = "ports\windows\winui\ServoUI\ServoUI.vcxproj"
+          $Sysroot = Join-Path (Get-Location) "target\artifacts"
+          msbuild $Project /t:Restore /p:Configuration=Release /p:Platform=x64 /p:ServoRoot="$Sysroot"
+          msbuild $Project /p:Configuration=Release /p:Platform=x64 /p:ServoRoot="$Sysroot" /m
+
       - name: Assemble Distribution Package
         shell: pwsh
         run: |
           $Dist = "dist/servo-windows-browser"
           New-Item -ItemType Directory -Force -Path $Dist
           
-          # Copy browser executable
-          Copy-Item "build-browser/Release/servo_browser.exe" -Destination $Dist/ -ErrorAction SilentlyContinue
-          if (-not (Test-Path "$Dist/servo_browser.exe")) {
-            Copy-Item "build-browser/servo_browser.exe" -Destination $Dist/
+          # Copy the WinUI 3 application and its XAML/resources.
+          $WinUIOut = "ports\windows\winui\ServoUI\x64\Release"
+          if (-not (Test-Path (Join-Path $WinUIOut "ServoUI.exe"))) {
+            throw "WinUI build did not produce ServoUI.exe"
           }
+          Get-ChildItem -Path $WinUIOut -File |
+            Where-Object { $_.Extension -in @(".exe", ".dll", ".pri", ".pdb", ".winmd") } |
+            Copy-Item -Destination $Dist/
 
           # Copy servo_capi.dll and import lib
           Copy-Item "target/artifacts/bin/servo_capi.dll" -Destination $Dist/

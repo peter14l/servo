@@ -38,6 +38,7 @@ try {
 if ($Cert) {
     Write-Host "[2/3] Signing application executables and libraries..." -ForegroundColor Yellow
     $Binaries = @(
+        (Join-Path $DistDir "ServoUI.exe"),
         (Join-Path $DistDir "servo_browser.exe"),
         (Join-Path $DistDir "servo_capi.dll")
     )

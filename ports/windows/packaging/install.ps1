@@ -37,7 +37,10 @@ Write-Host "      Binaries deployed." -ForegroundColor Green
 
 # 3. Create Shortcuts
 Write-Host "[3/4] Creating Start Menu and Desktop shortcuts..." -ForegroundColor Yellow
-$ExePath = Join-Path $TargetDir "servo_browser.exe"
+$ExePath = Join-Path $TargetDir "ServoUI.exe"
+if (-not (Test-Path $ExePath)) {
+    $ExePath = Join-Path $TargetDir "servo_browser.exe"
+}
 $WshShell = New-Object -ComObject WScript.Shell
 
 # Desktop shortcut

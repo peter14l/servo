@@ -34,28 +34,6 @@ static const int TAB_STRIP_HEIGHT = 38;
 static const int OMNIBOX_HEIGHT = 44;
 static const int TOP_CHROME_HEIGHT = TAB_STRIP_HEIGHT + OMNIBOX_HEIGHT; // 82px (Tabs + Omnibox)
 
-void ServoSpinEventLoopOnce(struct Servo* servo) {
-    static thread_local bool spinning = false;
-    static thread_local bool pending = false;
-    if (!servo) return;
-    if (spinning) {
-        // A modal loop is pumping messages: remember the wake and run it once
-        // the outer spin (and the modal loop) has returned.
-        pending = true;
-        return;
-    }
-    spinning = true;
-    // Always clear the flag, even if a callback unwinds through here.
-    struct SpinGuard {
-        bool* flag;
-        ~SpinGuard() { *flag = false; }
-    } guard{&spinning};
-    do {
-        pending = false;
-        servo_spin_event_loop(servo);
-    } while (pending);
-}
-
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     if (!hInstance) {
         hInstance = GetModuleHandleW(nullptr);
@@ -512,7 +490,7 @@ void BrowserWindow::OpenAbout() {
     if (m_viewHost) m_viewHost->LoadUrl(aboutUrl);
 }
 
-void BrowserWindow::OnStatusTextChanged(const char* statusText) {
+void BrowserWindow::OnStatusTextChanged(ServoViewHost* /*host*/, const char* statusText) {
     if (!statusText || !*statusText) {
         if (m_statusPillHwnd) {
             DestroyWindow(m_statusPillHwnd);
@@ -598,7 +576,7 @@ void BrowserWindow::ClearFind(int identifier) {
     }
 }
 
-void BrowserWindow::OnFindResult(int identifier, int count, int activeOrdinal) {
+void BrowserWindow::OnFindResult(ServoViewHost* /*host*/, int identifier, int count, int activeOrdinal) {
     if (!m_findBar) return;
     // Ignore results from a previous search so the status cannot flicker.
     if (m_findIdentifier >= 0 && identifier != m_findIdentifier) return;
@@ -663,6 +641,14 @@ void BrowserWindow::ToggleDownloads() {
 void BrowserWindow::OpenSettings() {
     std::string settingsUrl = SettingsDialog::EnsureSettingsPageExists();
     OpenUrlInNewTab(settingsUrl);
+}
+
+std::string BrowserWindow::GetSettingsPageUrl() {
+    return SettingsDialog::EnsureSettingsPageExists();
+}
+
+bool BrowserWindow::CreatePopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request) {
+    return BrowserWindow::CreateForPopup(servo, request) != nullptr;
 }
 
 void BrowserWindow::OpenUrlInNewTab(const std::string& url) {
@@ -963,7 +949,7 @@ void BrowserWindow::OnActiveTabSwitched(const std::string& url, const std::wstri
     UpdateActiveTabUI(url, title);
 }
 
-void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
+void BrowserWindow::OnActiveTabUrlChanged(ServoViewHost* /*host*/, const char* url) {
     if (!url) return;
     if (strcmp(url, "servo://session-restore") == 0 || strcmp(url, "servo:session-restore") == 0) {
         RestorePreviousSession();
@@ -983,7 +969,7 @@ void BrowserWindow::OnActiveTabUrlChanged(const char* url) {
     }
 }
 
-void BrowserWindow::OnActiveTabTitleChanged(const char* title) {
+void BrowserWindow::OnActiveTabTitleChanged(ServoViewHost* /*host*/, const char* title) {
     if (!title) return;
     m_currentTitle = title;
     BrowserData::AddHistory(m_currentUrl, title);
@@ -999,7 +985,7 @@ void BrowserWindow::OnActiveTabTitleChanged(const char* title) {
     }
 }
 
-void BrowserWindow::OnActiveTabLoadStatusChanged(int32_t status) {
+void BrowserWindow::OnActiveTabLoadStatusChanged(ServoViewHost* /*host*/, int32_t status) {
     if (m_omnibox) {
         m_omnibox->SetLoading(status == 0); // 0 = In progress
     }
@@ -1008,7 +994,7 @@ void BrowserWindow::OnActiveTabLoadStatusChanged(int32_t status) {
     }
 }
 
-void BrowserWindow::OnActiveTabCrashed(const char* reason) {
+void BrowserWindow::OnActiveTabCrashed(ServoViewHost* /*host*/, const char* reason) {
     LogDebug("Active tab reported crash: %s", reason ? reason : "unknown");
     std::wstring windowTitle = L"Crashed: ";
     if (reason) {

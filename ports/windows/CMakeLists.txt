@@ -15,6 +15,8 @@ endif()
 
 set(SOURCES
     src/main.cpp
+    src/browser_runtime.cpp
+    src/browser_settings.cpp
     src/browser_window.cpp
     src/servo_view_host.cpp
     src/tab_strip.cpp
@@ -31,6 +33,9 @@ set(SOURCES
 )
 
 set(HEADERS
+    src/browser_shell.h
+    src/browser_runtime.h
+    src/browser_settings.h
     src/browser_window.h
     src/servo_view_host.h
     src/servo_view_utils.h
@@ -101,7 +106,7 @@ set_target_properties(servo_browser PROPERTIES
 
 # Unit test suite
 enable_testing()
-add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp src/browser_data.cpp src/settings_dialog.cpp src/password_manager.cpp)
+add_executable(test_browser_unit tests/test_browser_unit.cpp src/new_tab_page.cpp src/browser_data.cpp src/browser_settings.cpp src/settings_dialog.cpp src/password_manager.cpp)
 target_link_libraries(test_browser_unit PRIVATE crypt32 shlwapi shell32 user32)
 target_include_directories(test_browser_unit PRIVATE src tests/mock_servo)
 target_link_libraries(test_browser_unit PRIVATE

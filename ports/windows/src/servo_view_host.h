@@ -11,9 +11,8 @@
 #include <string>
 #include <functional>
 #include <servo/servo_capi.h>
+#include "browser_shell.h"
 #include "servo_view_utils.h"
-
-class BrowserWindow;
 
 class ServoViewHost {
 public:
@@ -22,8 +21,8 @@ public:
     static ServoViewHost* FromWebView(struct WebView* webview);
     static ServoViewHost* GetActiveHost();
 
-    ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl);
-    ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, struct ServoCreateNewWebViewRequest* request);
+    ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell* browserShell, const std::string& initialUrl);
+    ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell* browserShell, struct ServoCreateNewWebViewRequest* request);
     ~ServoViewHost();
 
     HWND GetHwnd() const { return m_hwnd; }
@@ -92,7 +91,7 @@ private:
     struct Servo* m_servo;
     struct WebView* m_webview;
     RenderingContext* m_context;
-    BrowserWindow* m_browserWindow;
+    IBrowserShell* m_browserShell;
     bool m_trackingMouse;
     bool m_requestConsumed = false;
     // Painting calls synchronously into WebRender, so only do it when a frame

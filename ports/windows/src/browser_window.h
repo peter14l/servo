@@ -14,35 +14,20 @@
 #include <memory>
 #include <map>
 #include <servo/servo_capi.h>
+#include "browser_shell.h"
+#include "browser_runtime.h"
 
-#define WM_APP_SERVO_WAKE (WM_APP + 101)
-// Deferred native controls (select/alert/confirm/file picker) run here instead
-// of inside the Servo event-loop spin, so user interaction time is not charged
-// to WM_APP_SERVO_WAKE and does not block engine message dispatch.
-#define WM_APP_RUN_UI_TASK (WM_APP + 102)
-
-void LogDebug(const char* fmt, ...);
-
-using UiTask = std::function<void()>;
-// Posts a task to the main UI pump. Runs it inline only before the pump exists.
-bool PostUiTask(UiTask task);
-
-// Performance counters owned by the main pump; called from the view host.
-void RecordPaintDuration(unsigned long long milliseconds);
-void RecordDeferredControlDuration(unsigned long long milliseconds);
-void RecordDroppedFrame();
-
-// Runs one Servo event-loop spin unless one is already running on this thread.
-// Modal Win32 UI (popup menus, message boxes) pumps messages, so a wake or
-// timer can otherwise re-enter Servo while a delegate callback is running.
-void ServoSpinEventLoopOnce(struct Servo* servo);
+// Deferred native controls (select/alert/confirm/file picker) run on
+// WM_APP_RUN_UI_TASK instead of inside the Servo event-loop spin, so user
+// interaction time is not charged to WM_APP_SERVO_WAKE. Both messages and the
+// shared engine runtime are declared in browser_runtime.h.
 
 class TabStrip;
 class OmniboxToolbar;
 class FindBar;
 class ServoViewHost;
 
-class BrowserWindow {
+class BrowserWindow : public IBrowserShell {
 public:
     static void RegisterWindowClass(HINSTANCE hInstance);
     static BrowserWindow* Create(struct Servo* servo, const std::string& initialUrl = "");
@@ -55,40 +40,44 @@ public:
     struct Servo* GetServo() const { return m_servo; }
     ServoViewHost* GetViewHost() const { return m_viewHost.get(); }
 
-    void NavigateUrl(const std::string& url);
-    void NavigateBack();
-    void NavigateForward();
-    void NavigateReload();
+    void NavigateUrl(const std::string& url) override;
+    void NavigateBack() override;
+    void NavigateForward() override;
+    void NavigateReload() override;
     void NavigateStop();
 
     int FindInPage(const char* text, bool forward, bool matchCase);
     int FindNext(int identifier, bool forward);
     void ClearFind(int identifier);
-    void OnFindResult(int identifier, int count, int activeOrdinal);
+    void OnFindResult(ServoViewHost* host, int identifier, int count, int activeOrdinal) override;
 
     void OnActiveTabSwitched(const std::string& url, const std::wstring& title);
-    void OnActiveTabUrlChanged(const char* url);
-    void OnActiveTabTitleChanged(const char* title);
-    void OnActiveTabLoadStatusChanged(int32_t status);
-    void OnActiveTabCrashed(const char* reason);
-    void OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height);
+    void OnActiveTabUrlChanged(ServoViewHost* host, const char* url) override;
+    void OnActiveTabTitleChanged(ServoViewHost* host, const char* title) override;
+    void OnActiveTabLoadStatusChanged(ServoViewHost* host, int32_t status) override;
+    void OnActiveTabCrashed(ServoViewHost* host, const char* reason) override;
+    void OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap, uint32_t width, uint32_t height) override;
     void UpdateActiveTabUI(const std::string& url, const std::wstring& title);
 
-    void OpenDevTools();
+    void OpenDevTools() override;
     void SetDevToolsInfo(uint16_t port, const std::string& token);
-    void HandleNewDownload(struct ServoDownloadItem* download);
-    void HandleDownloadUpdated(struct ServoDownloadItem* download);
+    void HandleNewDownload(struct ServoDownloadItem* download) override;
+    void HandleDownloadUpdated(struct ServoDownloadItem* download) override;
     void ToggleDownloads();
     void ToggleCurrentPageBookmark();
     void OpenBookmarks();
     void OpenHistory();
     void OpenAbout();
-    void OnStatusTextChanged(const char* statusText);
-    void OpenSettings();
-    void OpenUrlInNewTab(const std::string& url);
+    void OnStatusTextChanged(ServoViewHost* host, const char* statusText) override;
+    void OpenSettings() override;
+    void OpenUrlInNewTab(const std::string& url) override;
     void RestorePreviousSession();
     void ApplySettings(const struct BrowserSettings& settings);
-    void HandleWebIpcMessage(const std::string& message);
+    void HandleWebIpcMessage(const std::string& message) override;
+
+    // IBrowserShell: internal pages and popup creation.
+    std::string GetSettingsPageUrl() override;
+    bool CreatePopup(struct Servo* servo, struct ServoCreateNewWebViewRequest* request) override;
     void PromptSavePassword(const std::string& origin, const std::string& username, const std::string& password);
     void RequestAutofill(const std::string& origin);
     void ToggleVerticalTabs();
@@ -97,8 +86,8 @@ public:
     void PrintPage();
     void ViewPageSource();
 
-    void ZoomIn();
-    void ZoomOut();
+    void ZoomIn() override;
+    void ZoomOut() override;
     void ZoomReset();
     void ToggleFullscreen();
 

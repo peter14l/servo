@@ -4,9 +4,8 @@
 
 #include "servo_view_host.h"
 #include "servo_raw_window.h"
-#include "browser_window.h"
+#include "browser_shell.h"
 #include "browser_data.h"
-#include "settings_dialog.h"
 #include "new_tab_page.h"
 #include "schannel_gateway.h"
 #include <windowsx.h>
@@ -730,13 +729,13 @@ ServoViewHost* ServoViewHost::FromWebView(struct WebView* webview) {
     return GetActiveHost();
 }
 
-ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow* browserWindow, const std::string& initialUrl)
+ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell* browserShell, const std::string& initialUrl)
     : m_hwnd(nullptr)
     , m_parentHwnd(parentHwnd)
     , m_servo(servo)
     , m_webview(nullptr)
     , m_context(nullptr)
-    , m_browserWindow(browserWindow)
+    , m_browserShell(browserShell)
     , m_trackingMouse(false)
     , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
 {
@@ -844,12 +843,12 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 ServoViewHost::ServoViewHost(
     HWND parentHwnd,
     struct Servo* servo,
-    BrowserWindow* browserWindow,
+    IBrowserShell* browserShell,
     struct ServoCreateNewWebViewRequest* request
 )
     : m_parentHwnd(parentHwnd)
     , m_servo(servo)
-    , m_browserWindow(browserWindow)
+    , m_browserShell(browserShell)
     , m_hwnd(nullptr)
     , m_webview(nullptr)
     , m_context(nullptr)
@@ -999,7 +998,8 @@ void ServoViewHost::LoadUrl(const std::string& url) {
             clean.pop_back();
         }
         if (clean == "servo://settings" || clean == "servo:settings" || clean == "about:settings" || clean == "settings" || clean == "chrome://settings" || clean == "edge://settings") {
-            target = SettingsDialog::EnsureSettingsPageExists();
+            target = m_browserShell ? m_browserShell->GetSettingsPageUrl()
+                                    : "data:text/html,<h1>Settings are unavailable</h1>";
         } else if (clean == "servo://bookmarks" || clean == "servo:bookmarks" || clean == "about:bookmarks" || clean == "bookmarks") {
             target = BrowserData::EnsureBookmarksPageExists();
         } else if (clean == "servo://history" || clean == "servo:history" || clean == "about:history" || clean == "history") {
@@ -1284,9 +1284,9 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         short delta = GET_WHEEL_DELTA_WPARAM(wParam);
         if (GetKeyState(VK_CONTROL) & 0x8000) {
             // Ctrl + Wheel: Smooth Zoom In / Zoom Out
-            if (m_browserWindow) {
-                if (delta > 0) m_browserWindow->ZoomIn();
-                else if (delta < 0) m_browserWindow->ZoomOut();
+            if (m_browserShell) {
+                if (delta > 0) m_browserShell->ZoomIn();
+                else if (delta < 0) m_browserShell->ZoomOut();
             }
             return 0;
         }
@@ -1434,9 +1434,9 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
     if (url) {
         LogDebug("[NAV] url changed: %s", url);
     }
-    if (self && self->m_browserWindow && url) {
+    if (self && self->m_browserShell && url) {
         std::string displayUrl = SchannelGateway::UnwrapUrl(url);
-        self->m_browserWindow->OnActiveTabUrlChanged(displayUrl.c_str());
+        self->m_browserShell->OnActiveTabUrlChanged(self, displayUrl.c_str());
     }
 }
 
@@ -1445,16 +1445,16 @@ void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, v
     if (title) {
         LogDebug("[NAV] title changed: %s", title);
     }
-    if (self && self->m_browserWindow && title) {
-        self->m_browserWindow->OnActiveTabTitleChanged(title);
+    if (self && self->m_browserShell && title) {
+        self->m_browserShell->OnActiveTabTitleChanged(self, title);
     }
 }
 
 void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     LogDebug("[NAV] load status: %d", (int)status);
-    if (self && self->m_browserWindow) {
-        self->m_browserWindow->OnActiveTabLoadStatusChanged(status);
+    if (self && self->m_browserShell) {
+        self->m_browserShell->OnActiveTabLoadStatusChanged(self, status);
     }
     if (self && self->m_webview && (status == 1 || status == 2)) {
         self->InjectPageEnhancements();
@@ -1473,13 +1473,13 @@ void ServoViewHost::OnLoadError(struct WebView* webview, const char* url, int32_
              url ? url : "", errorCode, errorText ? errorText : "");
     if (url && (strncmp(url, "servo://", 8) == 0 || strncmp(url, "servo:", 6) == 0 ||
                 strncmp(url, "chrome://", 9) == 0 || strncmp(url, "edge://", 7) == 0)) {
-        if (self && self->m_browserWindow) {
-            self->m_browserWindow->NavigateUrl(url);
+        if (self && self->m_browserShell) {
+            self->m_browserShell->NavigateUrl(url);
             return;
         }
     }
-    if (self && self->m_browserWindow && errorCode < 0) {
-        self->m_browserWindow->OnActiveTabLoadStatusChanged(-1);
+    if (self && self->m_browserShell && errorCode < 0) {
+        self->m_browserShell->OnActiveTabLoadStatusChanged(self, -1);
     }
 }
 
@@ -1545,8 +1545,8 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
                     dst[p * 4 + 3] = a;
                 }
 
-                if (m_browserWindow) {
-                    m_browserWindow->OnTabFaviconUpdated(this, hBitmap, width, height);
+                if (m_browserShell) {
+                    m_browserShell->OnTabFaviconUpdated(this, hBitmap, width, height);
                 } else {
                     DeleteObject(hBitmap);
                 }
@@ -1644,19 +1644,19 @@ void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
 
     switch (cmd) {
     case 1:
-        if (m_browserWindow) m_browserWindow->NavigateBack();
+        if (m_browserShell) m_browserShell->NavigateBack();
         break;
     case 2:
-        if (m_browserWindow) m_browserWindow->NavigateForward();
+        if (m_browserShell) m_browserShell->NavigateForward();
         break;
     case 3:
-        if (m_browserWindow) m_browserWindow->NavigateReload();
+        if (m_browserShell) m_browserShell->NavigateReload();
         break;
     case 4:
         SendMessageW(m_hwnd, WM_COPY, 0, 0);
         break;
     case 5:
-        if (m_browserWindow) m_browserWindow->OpenDevTools();
+        if (m_browserShell) m_browserShell->OpenDevTools();
         break;
     case 6:
         if (m_webview) {
@@ -1665,14 +1665,14 @@ void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
         }
         break;
     case 7:
-        if (m_browserWindow) {
+        if (m_browserShell) {
             std::string srcUrl = "view-source:" + GetUrl();
-            m_browserWindow->OpenUrlInNewTab(srcUrl);
+            m_browserShell->OpenUrlInNewTab(srcUrl);
         }
         break;
     case 8:
-        if (m_browserWindow) {
-            m_browserWindow->OpenSettings();
+        if (m_browserShell) {
+            m_browserShell->OpenSettings();
         }
         break;
     }
@@ -1693,8 +1693,8 @@ void ServoViewHost::OnConsoleMessage(struct WebView* webview, int32_t level, con
     if (message) {
         const char* ipc = strstr(message, "__servo_ipc__:");
         if (ipc) {
-            if (self && self->m_browserWindow) {
-                self->m_browserWindow->HandleWebIpcMessage(ipc + 14);
+            if (self && self->m_browserShell) {
+                self->m_browserShell->HandleWebIpcMessage(ipc + 14);
             }
             return;
         }
@@ -1705,16 +1705,16 @@ void ServoViewHost::OnConsoleMessage(struct WebView* webview, int32_t level, con
 
 void ServoViewHost::OnBeforeDownload(struct WebView* webview, struct ServoDownloadItem* download, void (*callback)(bool, void*), void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_browserWindow) {
-        self->m_browserWindow->HandleNewDownload(download);
+    if (self && self->m_browserShell) {
+        self->m_browserShell->HandleNewDownload(download);
     }
     if (callback) callback(true, userData);
 }
 
 void ServoViewHost::OnDownloadUpdated(struct WebView* webview, struct ServoDownloadItem* download, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_browserWindow) {
-        self->m_browserWindow->HandleDownloadUpdated(download);
+    if (self && self->m_browserShell) {
+        self->m_browserShell->HandleDownloadUpdated(download);
     }
 }
 
@@ -1744,11 +1744,7 @@ bool ServoViewHost::OnRequestCreateNew(
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (!self || !request) return false;
     LogDebug("ServoViewHost::OnRequestCreateNew: request=0x%p", request);
-    if (self->m_browserWindow) {
-        BrowserWindow* popup = BrowserWindow::CreateForPopup(self->m_servo, request);
-        return popup != nullptr;
-    }
-    return false;
+    return self->m_browserShell && self->m_browserShell->CreatePopup(self->m_servo, request);
 }
 
 void ServoViewHost::OnNotifyCrashed(
@@ -1761,15 +1757,15 @@ void ServoViewHost::OnNotifyCrashed(
     LogDebug("[CRASH] WebView crashed: reason='%s', backtrace='%s'",
              reason ? reason : "unknown",
              backtrace ? backtrace : "none");
-    if (self && self->m_browserWindow) {
-        self->m_browserWindow->OnActiveTabCrashed(reason ? reason : "Unknown error");
+    if (self && self->m_browserShell) {
+        self->m_browserShell->OnActiveTabCrashed(self, reason ? reason : "Unknown error");
     }
 }
 
 void ServoViewHost::OnStatusTextChanged(struct WebView* /*webview*/, const char* status, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (self && self->m_browserWindow) {
-        self->m_browserWindow->OnStatusTextChanged(status);
+    if (self && self->m_browserShell) {
+        self->m_browserShell->OnStatusTextChanged(self, status);
     }
 }
 
@@ -1781,13 +1777,13 @@ void ServoViewHost::OnFindResult(
     void* userData
 ) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (!self || !self->m_browserWindow) return;
+    if (!self || !self->m_browserShell) return;
     int ordinal = 0;
     if (count > 0 && result) {
         ordinal = servo_find_result_get_active_match_ordinal(result);
         if (ordinal <= 0) ordinal = 1;
     }
-    self->m_browserWindow->OnFindResult(identifier, count, ordinal);
+    self->m_browserShell->OnFindResult(self, identifier, count, ordinal);
 }
 
 void ServoViewHost::OnRequestAuthentication(

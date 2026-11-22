@@ -1805,21 +1805,24 @@ void ServoViewHost::OnRequestAuthentication(
     callback(nullptr, nullptr, userData);
 }
 
-static void OnJsEvalCallback(const char* /*res*/, const char* err, void* /*userData*/) {
+static void OnJsEvalCallback(ServoValue* value, const char* err, void* /*userData*/) {
     if (err && *err) {
         LogDebug("[JS EVAL ERR] %s", err);
+    }
+    if (value) {
+        servo_value_free(value);
     }
 }
 
 void ServoViewHost::InjectPageEnhancements() {
     if (!m_webview) return;
-    servo_webview_evaluate_javascript(m_webview, s_platformCompatScript, OnJsEvalCallback, nullptr);
-    servo_webview_evaluate_javascript(m_webview, s_appEnhancementsScript, OnJsEvalCallback, nullptr);
+    servo_webview_evaluate_javascript_v2(m_webview, s_platformCompatScript, OnJsEvalCallback, nullptr);
+    servo_webview_evaluate_javascript_v2(m_webview, s_appEnhancementsScript, OnJsEvalCallback, nullptr);
 }
 
 void ServoViewHost::EvaluateJavaScript(const std::string& script) {
     if (m_webview && !script.empty()) {
-        servo_webview_evaluate_javascript(m_webview, script.c_str(), OnJsEvalCallback, nullptr);
+        servo_webview_evaluate_javascript_v2(m_webview, script.c_str(), OnJsEvalCallback, nullptr);
     }
 }
 

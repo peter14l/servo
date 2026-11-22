@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "servo_view_host.h"
+#include "browser_runtime.h"
 #include "servo_raw_window.h"
 #include "browser_shell.h"
 #include "browser_data.h"

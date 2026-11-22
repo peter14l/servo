@@ -61,6 +61,8 @@ public:
 
     void StartWatchdog();
     void StopWatchdog();
+    // Gracefully releases Servo so persisted site data is written to disk.
+    void Shutdown();
     // Lets the watchdog attribute a stall to the message being dispatched.
     void SetCurrentMessage(UINT message);
 

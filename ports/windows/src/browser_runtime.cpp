@@ -525,6 +525,14 @@ void BrowserRuntime::StopWatchdog() {
     LogPerfSummary("shutdown");
 }
 
+void BrowserRuntime::Shutdown() {
+    StopWatchdog();
+    if (m_servo) {
+        servo_free(m_servo);
+        m_servo = nullptr;
+    }
+}
+
 void BrowserRuntime::SetCurrentMessage(UINT message) {
     InterlockedExchange(&g_uiCurrentMsg, (LONG)message);
     InterlockedExchange64(&g_uiMsgStarted, (LONG64)GetTickCount64());

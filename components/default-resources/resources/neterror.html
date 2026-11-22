@@ -67,7 +67,7 @@
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d93025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
       Could not load page
     </h1>
-    <p class="help-text">Servo was unable to establish a secure connection to the server.</p>
+    <p class="help-text" id="error-summary">Servo could not load this page. Check your network connection and try again.</p>
     <div class="reason-box" id="reason-text">${reason}</div>
     <div id="tls-advice" style="display:none;" class="help-text">
       <strong>Note:</strong> Error 10054 indicates the server abruptly terminated the TLS handshake. This typically occurs on legacy servers (such as older IIS installations) that require outdated CBC or SHA-1 cipher suites which modern secure browsers disallow.
@@ -77,13 +77,25 @@
     <button class="btn" onclick="location.reload()">Try Again</button>
   </div>
   <script>
-    var reason = document.getElementById('reason-text').textContent;
-    if (reason && (reason.indexOf('10054') !== -1 || reason.indexOf('forcibly closed') !== -1)) {
+    var reason = document.getElementById('reason-text').textContent || '';
+    var summary = document.getElementById('error-summary');
+    var lower = reason.toLowerCase();
+    if (reason.indexOf('10054') !== -1 || lower.indexOf('forcibly closed') !== -1) {
+      if (summary) summary.textContent = 'Servo could not establish a secure connection to the server.';
       document.getElementById('tls-advice').style.display = 'block';
       var gw = document.getElementById('gateway-btn');
       if (gw) {
         gw.href = 'http://127.0.0.1:51820/gateway?url=' + encodeURIComponent(location.href);
       }
+    } else if (lower.indexOf('tcp connect error') !== -1 ||
+               lower.indexOf('connection refused') !== -1 ||
+               lower.indexOf('timed out') !== -1 ||
+               lower.indexOf('name or service not known') !== -1 ||
+               lower.indexOf('proxy connection failed') !== -1) {
+      if (summary) summary.textContent = 'Servo could not connect to the server. Check your network connection and try again.';
+    } else if (lower.indexOf('ssl') !== -1 || lower.indexOf('tls') !== -1 ||
+               lower.indexOf('certificate') !== -1 || lower.indexOf('secure connection') !== -1) {
+      if (summary) summary.textContent = 'Servo could not establish a secure connection to the server.';
     }
   </script>
 </body>

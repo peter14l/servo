@@ -159,6 +159,16 @@ namespace winrt::ServoUI::implementation
         m_shell.reset();
     }
 
+    void MainWindow::ShutdownEngine()
+    {
+        if (m_engineShutdown) return;
+        m_engineShutdown = true;
+
+        // WebViews must die before Servo: their destructors send CloseWebView.
+        m_shell.reset();
+        BrowserRuntime::Instance().Shutdown();
+    }
+
     HWND MainWindow::GetXamlHwnd()
     {
         if (m_xamlHwnd && IsWindow(m_xamlHwnd)) return m_xamlHwnd;
@@ -218,6 +228,17 @@ namespace winrt::ServoUI::implementation
             titleBar.ButtonPressedBackgroundColor(Windows::UI::ColorHelper::FromArgb(48, 255, 255, 255));
             titleBar.ButtonForegroundColor(Windows::UI::Colors::White());
             titleBar.ButtonInactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(160, 255, 255, 255));
+
+            // ExtendsContentIntoTitleBar means our XAML occupies the same pixels
+            // as the system caption buttons. Reserve their measured inset so the
+            // new-tab button and drag region never sit underneath Close.
+            double rightInset = titleBar.RightInset();
+            Microsoft::UI::Xaml::Thickness titlePadding{};
+            titlePadding.Left = 8.0;
+            titlePadding.Top = 0.0;
+            titlePadding.Right = rightInset;
+            titlePadding.Bottom = 0.0;
+            TitleBarArea().Padding(titlePadding);
             UpdateDragRegions();
         } catch (...) {
             LogDebug("Custom title bar setup failed; falling back to the system title bar.");
@@ -240,17 +261,29 @@ namespace winrt::ServoUI::implementation
             UINT dpi = GetDpiForWindow(m_xamlHwnd);
             if (dpi > 0) scale = static_cast<float>(dpi) / 96.0f;
 
-            // Only the empty part of the tab strip is a drag region. Tabs, the
-            // new-tab button, and the caption buttons stay interactive.
-            double tabStripWidth = Tabs().ActualWidth();
-            double titleBarWidth = TitleBarArea().ActualWidth();
-            if (tabStripWidth <= 0 || titleBarWidth <= 0) return;
-            double leftPadding = TitleBarArea().Padding().Left;
-            double newTabButtonWidth = 34.0;
+            // The caption-button inset can change with DPI or window size, so
+            // keep the reserved padding current on every drag-region refresh.
+            auto padding = TitleBarArea().Padding();
+            double rightInset = titleBar.RightInset();
+            if (std::abs(padding.Right - rightInset) > 0.5) {
+                Microsoft::UI::Xaml::Thickness updated = padding;
+                updated.Right = rightInset;
+                TitleBarArea().Padding(updated);
+                padding = updated;
+            }
 
-            int x = static_cast<int>(std::lround(leftPadding * scale));
-            int width = static_cast<int>(std::lround(
-                std::max(0.0, tabStripWidth - newTabButtonWidth) * scale));
+            // Only the empty part of the title bar is a drag region. The tabs
+            // toggle, tab strip, new-tab button, and caption buttons stay
+            // interactive.
+            double titleBarWidth = TitleBarArea().ActualWidth();
+            if (titleBarWidth <= 0) return;
+            double toggleWidth = VerticalTabsToggle().ActualWidth();
+            double newTabButtonWidth = AddTabButton().ActualWidth();
+            double available = titleBarWidth - padding.Left - padding.Right -
+                               toggleWidth - newTabButtonWidth - 12.0;
+
+            int x = static_cast<int>(std::lround((padding.Left + toggleWidth + 6.0) * scale));
+            int width = static_cast<int>(std::lround(std::max(0.0, available) * scale));
             int height = static_cast<int>(std::lround(TitleBarArea().ActualHeight() * scale));
             if (width <= 0 || height <= 0) return;
 
@@ -363,6 +396,7 @@ namespace winrt::ServoUI::implementation
         m_tabUrls.push_back(actualUrl);
         m_tabTitles.push_back(title);
         m_activeTab = static_cast<uint32_t>(m_tabUrls.size() - 1);
+        RefreshVerticalTabs();
         LayoutViewport();
         UpdateActiveTab(m_activeTab);
     }
@@ -385,6 +419,7 @@ namespace winrt::ServoUI::implementation
         }
         m_updatingTabs = false;
         m_activeTab = active;
+        RefreshVerticalTabs();
         LayoutViewport();
         UpdateActiveTab(active);
     }
@@ -394,6 +429,7 @@ namespace winrt::ServoUI::implementation
         if (index >= m_tabUrls.size() || !m_shell) return;
         m_shell->SelectTab(index);
         m_activeTab = index;
+        RefreshVerticalTabs();
         LayoutViewport();
         UpdateActiveTab(index);
     }
@@ -424,6 +460,7 @@ namespace winrt::ServoUI::implementation
             if (index >= items.Size()) return;
             auto item = items.GetAt(index).as<muxc::TabViewItem>();
             item.Header(box_value(hstring(header)));
+            RefreshVerticalTabs();
         } catch (...) {
         }
     }
@@ -485,6 +522,7 @@ namespace winrt::ServoUI::implementation
 
         ApplyBrowserSettings(settings);
         ApplyTheme(settings.themeMode);
+        ApplyVerticalTabs(settings.enableVerticalTabs);
         UpdateStatus(L"Settings saved.");
     }
 
@@ -495,6 +533,46 @@ namespace winrt::ServoUI::implementation
         if (themeMode == 0) theme = ElementTheme::Light;
         else if (themeMode == 1) theme = ElementTheme::Dark;
         RootGrid().RequestedTheme(theme);
+    }
+
+    void MainWindow::ApplyVerticalTabs(bool enable)
+    {
+        try {
+            VerticalTabsPanel().Visibility(enable ? Microsoft::UI::Xaml::Visibility::Visible
+                                                  : Microsoft::UI::Xaml::Visibility::Collapsed);
+            Microsoft::UI::Xaml::GridLength railWidth{};
+            railWidth.Value = enable ? 180.0 : 0.0;
+            railWidth.GridUnitType = Microsoft::UI::Xaml::GridUnitType::Pixel;
+            VerticalTabsColumn().Width(railWidth);
+            Tabs().Visibility(enable ? Microsoft::UI::Xaml::Visibility::Collapsed
+                                     : Microsoft::UI::Xaml::Visibility::Visible);
+            RefreshVerticalTabs();
+            LayoutViewport();
+            UpdateDragRegions();
+        } catch (...) {
+            LogDebug("Could not apply vertical tab layout.");
+        }
+    }
+
+    void MainWindow::RefreshVerticalTabs()
+    {
+        try {
+            m_updatingTabs = true;
+            auto items = VerticalTabsList().Items();
+            items.Clear();
+            for (size_t i = 0; i < m_tabTitles.size(); ++i) {
+                auto item = muxc::ListViewItem{};
+                std::wstring title = m_tabTitles[i];
+                item.Content(box_value(hstring(title.empty() ? L"New tab" : title)));
+                items.Append(item);
+            }
+            if (!m_tabTitles.empty() && m_activeTab < m_tabTitles.size()) {
+                VerticalTabsList().SelectedIndex(static_cast<int32_t>(m_activeTab));
+            }
+            m_updatingTabs = false;
+        } catch (...) {
+            m_updatingTabs = false;
+        }
     }
 
     void MainWindow::ClearHistoryClicked(IInspectable const&, RoutedEventArgs const&)
@@ -509,6 +587,7 @@ namespace winrt::ServoUI::implementation
         ApplyBrowserSettings(defaults);
         PopulateSettingsPane();
         ApplyTheme(defaults.themeMode);
+        ApplyVerticalTabs(defaults.enableVerticalTabs);
         UpdateStatus(L"Default settings restored.");
     }
 
@@ -517,7 +596,9 @@ namespace winrt::ServoUI::implementation
         m_loaded = true;
         m_xamlHwnd = GetXamlHwnd();
         ConfigureTitleBar();
-        ApplyTheme(LoadBrowserSettings().themeMode);
+        BrowserSettings settings = LoadBrowserSettings();
+        ApplyTheme(settings.themeMode);
+        ApplyVerticalTabs(settings.enableVerticalTabs);
         EnsureShell();
 
         if (m_pendingRequest) {
@@ -658,6 +739,24 @@ namespace winrt::ServoUI::implementation
     void MainWindow::AddTabClicked(IInspectable const&, RoutedEventArgs const&)
     {
         AddTab(std::string());
+    }
+
+    void MainWindow::VerticalTabsToggleClicked(IInspectable const&, RoutedEventArgs const&)
+    {
+        BrowserSettings settings = LoadBrowserSettings();
+        settings.enableVerticalTabs = !settings.enableVerticalTabs;
+        ApplyBrowserSettings(settings);
+        ApplyVerticalTabs(settings.enableVerticalTabs);
+        SettingVerticalTabs().IsOn(settings.enableVerticalTabs);
+        UpdateStatus(settings.enableVerticalTabs ? L"Vertical tabs on." : L"Vertical tabs off.");
+    }
+
+    void MainWindow::VerticalTabsSelectionChanged(IInspectable const&,
+                                                  muxc::SelectionChangedEventArgs const&)
+    {
+        if (m_updatingTabs) return;
+        int32_t index = VerticalTabsList().SelectedIndex();
+        if (index >= 0) SelectTab(static_cast<uint32_t>(index));
     }
 
     void MainWindow::SettingsClicked(IInspectable const&, RoutedEventArgs const&)
@@ -816,6 +915,7 @@ namespace winrt::ServoUI::implementation
         settings.enableVariableFonts = JsonBool(json, "varfonts", settings.enableVariableFonts);
         ApplyBrowserSettings(settings);
         ApplyTheme(settings.themeMode);
+        ApplyVerticalTabs(settings.enableVerticalTabs);
         PopulateSettingsPane();
     }
 }

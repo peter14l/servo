@@ -31,6 +31,7 @@ namespace winrt::ServoUI::implementation
         void OpenUrlInNewTabFromShell(std::string const& url);
         void OpenSettingsFromShell();
         bool OpenPopupTab(ServoCreateNewWebViewRequest* request);
+        void ShutdownEngine();
 
         // XAML event handlers.
         void RootLoaded(Windows::Foundation::IInspectable const& sender,
@@ -51,6 +52,10 @@ namespace winrt::ServoUI::implementation
                          Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void AddTabClicked(Windows::Foundation::IInspectable const& sender,
                            Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void VerticalTabsToggleClicked(Windows::Foundation::IInspectable const& sender,
+                                       Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void VerticalTabsSelectionChanged(Windows::Foundation::IInspectable const& sender,
+                                          Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         void SettingsClicked(Windows::Foundation::IInspectable const& sender,
                              Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void TabsSelectionChanged(Windows::Foundation::IInspectable const& sender,
@@ -96,6 +101,8 @@ namespace winrt::ServoUI::implementation
         void ApplySettingsFromPane();
         void PopulateSettingsPane();
         void ApplyTheme(int themeMode);
+        void ApplyVerticalTabs(bool enable);
+        void RefreshVerticalTabs();
         void LoadInActiveTab(std::string const& url);
         void SetTabHeader(uint32_t index, std::wstring const& header);
 
@@ -107,6 +114,7 @@ namespace winrt::ServoUI::implementation
         uint32_t m_activeTab = 0;
         bool m_loaded = false;
         bool m_updatingTabs = false;
+        bool m_engineShutdown = false;
         std::vector<std::string> m_tabUrls;
         std::vector<std::wstring> m_tabTitles;
     };

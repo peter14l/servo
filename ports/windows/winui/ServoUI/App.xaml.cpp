@@ -96,6 +96,11 @@ namespace winrt::ServoUI::implementation
 
         auto mainWindow = make<MainWindow>();
         mainWindow.ActivateAsInitial(to_hstring(std::string_view(InitialUrlFromCommandLine())));
+        mainWindow.Closed([mainWindow](Windows::Foundation::IInspectable const&,
+                                       Microsoft::UI::Xaml::WindowEventArgs const&) {
+            mainWindow.ShutdownEngine();
+            Application::Current().Exit();
+        });
         window = mainWindow;
         runtime.PostInitialWake();
     }

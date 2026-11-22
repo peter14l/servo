@@ -125,7 +125,19 @@ static const char* s_platformCompatScript = R"JS(
             addMissing(documentProto, 'getAnimations', function() { return []; });
         }
 
-        // 5b. BroadcastChannel safe fallback
+        // 5b. SVG animated-value interfaces. Google's shell reads
+        // SVGAnimatedString.baseVal while styling inline icons; when the
+        // interface is missing that throw aborts icon setup and leaves SVGs
+        // visually clipped.
+        if (typeof window !== 'undefined' && typeof window.SVGAnimatedString === 'undefined') {
+            window.SVGAnimatedString = function(initial) {
+                var value = initial == null ? '' : String(initial);
+                this.baseVal = value;
+                this.animVal = value;
+            };
+        }
+
+        // 5c. BroadcastChannel safe fallback
         if (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'undefined') {
             window.BroadcastChannel = function(name) {
                 this.name = name;
@@ -429,6 +441,129 @@ static const char* s_platformCompatScript = R"JS(
                 } catch(e) {}
             }, false);
         }
+
+        // 16. Backspace deletion fallback. Servo's Win32 key forwarding can
+        // deliver a Backspace keydown to the webview without the native editable
+        // default action running. Only delete when that action demonstrably did
+        // nothing, so functional native deletions are never doubled.
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            var servoBackspacePending = null;
+
+            function servoIsEditable(el) {
+                if (!el || el.nodeType !== 1) return false;
+                var tag = el.tagName ? el.tagName.toLowerCase() : '';
+                if (tag === 'input' || tag === 'textarea') return !el.disabled && !el.readOnly;
+                return !!el.isContentEditable;
+            }
+
+            function servoSnapEditable(el) {
+                var snap = { text: null, start: -1, end: -1 };
+                if (el.value !== undefined) {
+                    snap.text = String(el.value);
+                    snap.start = typeof el.selectionStart === 'number' ? el.selectionStart : -1;
+                    snap.end = typeof el.selectionEnd === 'number' ? el.selectionEnd : -1;
+                } else {
+                    snap.text = el.textContent || '';
+                    var sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0) {
+                        var range = sel.getRangeAt(0);
+                        snap.start = range.startOffset;
+                        snap.end = range.endOffset;
+                    }
+                }
+                return snap;
+            }
+
+            function servoNotifyInput(el) {
+                try {
+                    var evt = document.createEvent('Event');
+                    evt.initEvent('input', true, true);
+                    el.dispatchEvent(evt);
+                } catch (e) {}
+            }
+
+            function servoDeleteBackward(el) {
+                if (el.value !== undefined) {
+                    var start = typeof el.selectionStart === 'number' ? el.selectionStart : -1;
+                    var end = typeof el.selectionEnd === 'number' ? el.selectionEnd : -1;
+                    if (start < 0 || end < 0) return false;
+                    if (start === end) {
+                        if (start <= 0) return false;
+                        start -= 1;
+                    }
+                    if (typeof el.setRangeText === 'function') {
+                        el.setRangeText('', start, end, 'end');
+                    } else {
+                        var value = String(el.value);
+                        el.value = value.slice(0, start) + value.slice(end);
+                        try { el.setSelectionRange(start, start); } catch (e) {}
+                    }
+                    servoNotifyInput(el);
+                    return true;
+                }
+
+                var sel = window.getSelection();
+                if (!sel || !sel.rangeCount) return false;
+                var range = sel.getRangeAt(0);
+                if (!el.contains(range.startContainer)) return false;
+                if (!range.collapsed) {
+                    range.deleteContents();
+                } else {
+                    var node = range.startContainer;
+                    var offset = range.startOffset;
+                    var textNode = null;
+                    var deleteOffset = -1;
+                    if (node.nodeType === 3 && offset > 0) {
+                        textNode = node;
+                        deleteOffset = offset - 1;
+                    } else {
+                        var walker = document.createTreeWalker(el, 4 /* SHOW_TEXT */, null, false);
+                        var previous = null;
+                        var candidate;
+                        while ((candidate = walker.nextNode())) {
+                            if (candidate === node && node.nodeType === 3) break;
+                            if (node.nodeType === 1 && node.contains(candidate) && offset > 0) continue;
+                            previous = candidate;
+                        }
+                        if (previous && previous.nodeValue && previous.nodeValue.length > 0) {
+                            textNode = previous;
+                            deleteOffset = previous.nodeValue.length - 1;
+                        }
+                    }
+                    if (!textNode || deleteOffset < 0) return false;
+                    range.setStart(textNode, deleteOffset);
+                    range.setEnd(textNode, deleteOffset + 1);
+                    range.deleteContents();
+                }
+                sel.removeAllRanges();
+                sel.addRange(range);
+                servoNotifyInput(el);
+                return true;
+            }
+
+            document.addEventListener('input', function() {
+                if (servoBackspacePending) servoBackspacePending.changed = true;
+            }, true);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key !== 'Backspace' && e.keyCode !== 8) return;
+                var el = e.target;
+                if (!servoIsEditable(el)) return;
+                servoBackspacePending = { el: el, before: servoSnapEditable(el), changed: false };
+                var pending = servoBackspacePending;
+                setTimeout(function() {
+                    try {
+                        if (servoBackspacePending !== pending) return;
+                        servoBackspacePending = null;
+                        if (pending.changed) return;
+                        if (document.activeElement !== pending.el) return;
+                        var after = servoSnapEditable(pending.el);
+                        if (after.text !== pending.before.text) return;
+                        servoDeleteBackward(pending.el);
+                    } catch (e) {}
+                }, 0);
+            }, true);
+        }
     } catch(e) {}
 })();
 )JS";
@@ -522,20 +657,16 @@ static const char* s_appEnhancementsScript = R"JS(
                     return location.pathname.indexOf('/direct/t/') === 0;
                 }
 
-                // Servo's reversed-flex scroller can anchor a DM thread to its
-                // oldest message after a send. Pin only on explicit sends, and
-                // stop pinning as soon as the user scrolls up to read history.
-                var igRaf = window.requestAnimationFrame || function(cb) { return setTimeout(cb, 16); };
+                // Servo can anchor a reversed-flex DM thread to the wrong end
+                // after a send. Steer toward the message that was just added
+                // instead of blindly pinning to scrollHeight, and stop the
+                // moment the user scrolls so we never fight them.
                 var igScroller = null;
                 var igObserver = null;
-                var igPinned = true;
-                var igSuppress = 0;
-                var igScheduled = 0;
-                var igRetry = 0;
-
-                function igGap(el) {
-                    return el.scrollHeight - el.clientHeight - el.scrollTop;
-                }
+                var igNewNode = null;
+                var igRunId = 0;
+                var igCanceled = false;
+                var igWriting = 0;
 
                 function igIsSend(el) {
                     var button = el && el.closest ? el.closest('button, [role="button"]') : null;
@@ -545,6 +676,15 @@ static const char* s_appEnhancementsScript = R"JS(
                     return text === 'send' || aria === 'send' || !!button.querySelector('svg[aria-label="Send"]');
                 }
 
+                function igMessageSelector() {
+                    return '[role="message"],[data-testid*="message"],[data-testid*="conversation"],[aria-label*="message"]';
+                }
+
+                function igIsMessage(el) {
+                    if (!el || el.nodeType !== 1) return false;
+                    return !!(el.matches && el.matches(igMessageSelector())) || !!el.querySelector(igMessageSelector());
+                }
+
                 function igIsChat(el) {
                     if (!el || el.nodeType !== 1 || el.clientHeight < 120) return false;
                     if (el === document.body || el === document.documentElement) return false;
@@ -552,8 +692,7 @@ static const char* s_appEnhancementsScript = R"JS(
                     var label = (el.getAttribute('aria-label') || '').toLowerCase();
                     if (label.indexOf('navigation') >= 0 || label.indexOf('direct messages') >= 0) return false;
                     if (el.scrollHeight <= el.clientHeight + 20) return false;
-                    var selector = '[role="log"],[data-testid*="message"],[data-testid*="conversation"],[aria-label*="message"]';
-                    return (el.matches && el.matches(selector)) || !!el.querySelector(selector);
+                    return igIsMessage(el);
                 }
 
                 function igBind(el) {
@@ -561,7 +700,19 @@ static const char* s_appEnhancementsScript = R"JS(
                     igScroller = el;
                     if (typeof MutationObserver === 'undefined') return;
                     try {
-                        igObserver = new MutationObserver(function() { igPin(false); });
+                        igObserver = new MutationObserver(function(records) {
+                            for (var i = 0; i < records.length; i++) {
+                                var added = records[i].addedNodes;
+                                for (var j = added.length - 1; j >= 0; j--) {
+                                    var node = added[j];
+                                    if (node.nodeType !== 1) continue;
+                                    if (igIsMessage(node) || (node.closest && node.closest(igMessageSelector()))) {
+                                        igNewNode = node;
+                                        return;
+                                    }
+                                }
+                            }
+                        });
                         igObserver.observe(el, { childList: true, subtree: true });
                     } catch (e) {
                         igObserver = null;
@@ -583,53 +734,74 @@ static const char* s_appEnhancementsScript = R"JS(
                     return null;
                 }
 
-                function igWriteBottom(el) {
-                    var target = el.scrollHeight - el.clientHeight;
-                    if (target <= 0 || Math.abs(el.scrollTop - target) <= 2) return;
-                    igSuppress++;
-                    try { el.scrollTop = target; } catch (e) {}
-                    setTimeout(function() { igSuppress--; }, 0);
+                function igTargetMessage(el) {
+                    if (igNewNode && (igNewNode.isConnected || document.contains(igNewNode)) &&
+                        (!el.contains || el.contains(igNewNode))) {
+                        return igNewNode;
+                    }
+                    var nodes = el.querySelectorAll(igMessageSelector());
+                    for (var i = nodes.length - 1; i >= 0; i--) {
+                        var rect = nodes[i].getBoundingClientRect ? nodes[i].getBoundingClientRect() : null;
+                        if (rect && rect.height > 0) return nodes[i];
+                    }
+                    return null;
+                }
+
+                function igSteer(el, target) {
+                    if (!el.getBoundingClientRect || !target.getBoundingClientRect) return false;
+                    var view = el.getBoundingClientRect();
+                    var item = target.getBoundingClientRect();
+                    if (!view.height || !item.height) return false;
+                    var delta = (item.top + item.height / 2) - (view.top + view.height / 2);
+                    if (Math.abs(delta) <= view.height * 0.2) return false;
+                    var before = el.scrollTop;
+                    var step = Math.max(28, Math.min(view.height * 0.45, Math.abs(delta)));
+                    igWriting++;
+                    try { el.scrollTop = before + (delta > 0 ? step : -step); } catch (e) {}
+                    setTimeout(function() { igWriting = Math.max(0, igWriting - 1); }, 0);
+                    return Math.abs(el.scrollTop - before) > 0.5;
+                }
+
+                function igStop() {
+                    igCanceled = true;
+                    igRunId++;
                 }
 
                 function igPin(force) {
-                    if (force) igPinned = true;
-                    if (!igScheduled) {
-                        igScheduled = igRaf(function() {
-                            igScheduled = 0;
-                            var scroller = igFind();
-                            if (scroller && (force || igPinned)) igWriteBottom(scroller);
-                        });
-                    }
                     if (!force) return;
-                    clearTimeout(igRetry);
-                    var left = 5;
+                    var run = ++igRunId;
+                    igCanceled = false;
+                    var left = 10;
                     (function again() {
-                        if (--left <= 0) return;
-                        igRetry = setTimeout(function() {
-                            var scroller = igScroller && (igScroller.isConnected || document.contains(igScroller))
-                                ? igScroller : igFind();
-                            if (scroller) igWriteBottom(scroller);
-                            again();
-                        }, 60);
+                        if (run !== igRunId || igCanceled || --left <= 0) return;
+                        var el = igScroller && (igScroller.isConnected || document.contains(igScroller))
+                            ? igScroller : igFind();
+                        if (!el) {
+                            setTimeout(again, 50);
+                            return;
+                        }
+                        var target = igTargetMessage(el);
+                        if (!target || !igSteer(el, target)) return;
+                        setTimeout(again, 40);
                     })();
                 }
 
                 window.__servoPinInstagramChat = igPin;
 
                 document.addEventListener('scroll', function(e) {
-                    if (!igScroller || igSuppress) return;
+                    if (igWriting || !igScroller) return;
                     if (e.target === igScroller || (igScroller.contains && igScroller.contains(e.target))) {
-                        igPinned = igGap(igScroller) <= 80;
+                        igStop();
                     }
                 }, true);
 
                 document.addEventListener('wheel', function(e) {
-                    if (igInThread() && e.deltaY < 0) igPinned = false;
+                    if (igInThread() && e.deltaY < 0) igStop();
                 }, false);
 
                 document.addEventListener('keydown', function(e) {
                     if (!igInThread()) return;
-                    if (e.key === 'Home' || e.key === 'PageUp' || e.key === 'ArrowUp') igPinned = false;
+                    if (e.key === 'Home' || e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'Backspace') igStop();
                 }, true);
 
                 document.addEventListener('click', function(e) {

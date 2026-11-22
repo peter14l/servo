@@ -585,7 +585,10 @@ pub enum ConnectionError {
 
 impl std::fmt::Display for ConnectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
+        match self {
+            ConnectionError::HttpError(message) => write!(f, "{message}"),
+            ConnectionError::ProxyError(message) => write!(f, "proxy connection failed: {message}"),
+        }
     }
 }
 
@@ -622,14 +625,17 @@ impl Service<Destination> for ProxyConnector {
         std::pin::Pin<Box<dyn Future<Output = Result<TokioIo<TcpStream>, ConnectionError>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        // `client` is the direct connector, so a failure here is not a proxy
+        // failure even when this wrapper normally routes through a proxy.
         self.client
             .poll_ready(cx)
-            .map_err(|e| ConnectionError::ProxyError(format!("{e}")))
+            .map_err(|e| ConnectionError::HttpError(format!("{e}")))
     }
 
     fn call(&mut self, req: Destination) -> Self::Future {
         match self.matcher.intercept(&req) {
             Some(intercept) => {
+                // Only an actual proxy tunnel should be reported as ProxyError.
                 let mut tunnel = Tunnel::new(intercept.uri().clone(), self.client.clone());
                 let final_tunnel = if let Some(auth) = intercept.basic_auth() {
                     tunnel.with_auth(auth.clone())
@@ -643,7 +649,7 @@ impl Service<Destination> for ProxyConnector {
             None => Box::pin(
                 self.client
                     .call(req)
-                    .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
+                    .map_err(|e| ConnectionError::HttpError(format!("{e}"))),
             ),
         }
     }

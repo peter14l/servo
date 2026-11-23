@@ -29,7 +29,7 @@ env:
   INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
-  WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
+  WPT_ALWAYS_SUCCEED_ARG: "${{ (inputs.wpt-sync-from-upstream || secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET == '') && '--always-succeed' || '' }}"
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,

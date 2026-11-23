@@ -251,7 +251,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json,support/crown/codecov.json
-          fail_ci_if_error: true
+          fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
           flags: unittests
 
   media-examples:

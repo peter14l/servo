@@ -37,8 +37,6 @@
             <Style x:Key="ModernIconPath" TargetType="Path">
                 <Setter Property="Stroke" Value="{ThemeResource TextFillColorPrimaryBrush}"/>
                 <Setter Property="StrokeThickness" Value="1.75"/>
-                <Setter Property="StrokeLineCap" Value="Round"/>
-                <Setter Property="StrokeLineJoin" Value="Round"/>
                 <Setter Property="Width" Value="18"/>
                 <Setter Property="Height" Value="18"/>
                 <Setter Property="Stretch" Value="Uniform"/>

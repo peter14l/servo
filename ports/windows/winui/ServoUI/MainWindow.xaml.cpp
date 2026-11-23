@@ -75,6 +75,21 @@ namespace winrt::ServoUI::implementation
             return result;
         }
 
+        std::string Utf8(std::wstring const& value)
+        {
+            if (value.empty()) return {};
+            int length = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr, 0, nullptr, nullptr);
+            if (length <= 1) return {};
+            std::string result(static_cast<size_t>(length - 1), '\0');
+            WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, &result[0], length, nullptr, nullptr);
+            return result;
+        }
+
+        std::wstring Wide(std::wstring const& value)
+        {
+            return value;
+        }
+
         bool JsonBool(std::string const& json, const char* key, bool fallback)
         {
             std::string quoted = std::string("\"") + key + "\":";
@@ -1481,7 +1496,9 @@ namespace winrt::ServoUI::implementation
         uint32_t index = TabIndexFromContextMenu(sender);
         if (index >= m_tabUrls.size()) return;
         try {
-            Windows::ApplicationModel::DataTransfer::Clipboard::SetText(hstring(Wide(m_tabUrls[index])));
+            auto dataPackage = Windows::ApplicationModel::DataTransfer::DataPackage::CreateDataPackage();
+            dataPackage.SetText(hstring(Wide(m_tabUrls[index])));
+            Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(dataPackage);
             UpdateStatus(L"URL copied to clipboard.");
         } catch (...) {
             UpdateStatus(L"Could not copy the URL.");

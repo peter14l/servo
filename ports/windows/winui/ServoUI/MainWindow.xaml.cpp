@@ -1496,7 +1496,7 @@ namespace winrt::ServoUI::implementation
         uint32_t index = TabIndexFromContextMenu(sender);
         if (index >= m_tabUrls.size()) return;
         try {
-            auto dataPackage = Windows::ApplicationModel::DataTransfer::DataPackage::CreateDataPackage();
+            auto dataPackage = Windows::ApplicationModel::DataTransfer::DataPackage{};
             dataPackage.SetText(hstring(Wide(m_tabUrls[index])));
             Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(dataPackage);
             UpdateStatus(L"URL copied to clipboard.");

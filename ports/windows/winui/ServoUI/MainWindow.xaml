@@ -33,7 +33,7 @@
                 <Setter Property="UseSystemFocusVisuals" Value="True"/>
             </Style>
 
-            <!-- Custom modern line icons: shared stroke styling for every PathGeometry in ModernIcons.xaml. -->
+            <!-- Custom modern line icons: shared stroke styling for hand-authored 24x24 stroke paths. -->
             <Style x:Key="ModernIconPath" TargetType="Path">
                 <Setter Property="Stroke" Value="{ThemeResource TextFillColorPrimaryBrush}"/>
                 <Setter Property="StrokeThickness" Value="1.75"/>
@@ -108,7 +108,7 @@
                     Click="VerticalTabsToggleClicked" ToolTipService.ToolTip="Vertical tabs"
                     AutomationProperties.Name="Toggle vertical tabs" AutomationProperties.HelpText="Shows tabs in a vertical rail."
                     AutomationProperties.AutomationId="VerticalTabsToggle">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.VerticalTabs}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 5 4 L 5 20 M 8 5 L 20 5 L 20 10 L 8 10 Z M 8 13 L 20 13 L 20 18 L 8 18 Z"/>
             </Button>
 
             <muxc:TabView x:Name="Tabs" Grid.Column="1" VerticalAlignment="Stretch"
@@ -121,7 +121,7 @@
                     Click="AddTabClicked" ToolTipService.ToolTip="New tab (Ctrl+T)"
                     AutomationProperties.Name="New tab" AutomationProperties.HelpText="Opens a new tab. Shortcut: Control plus T."
                     AutomationProperties.AutomationId="NewTabButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.AddTab}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 4 5 L 20 5 L 20 19 L 4 19 Z M 12 9 L 12 15 M 9 12 L 15 12"/>
             </Button>
         </Grid>
 
@@ -148,12 +148,12 @@
             <Button x:Name="BackButton" Grid.Column="0" Style="{StaticResource ChromeButtonStyle}"
                     Click="BackClicked" ToolTipService.ToolTip="Back (Alt+Left)"
                     AutomationProperties.Name="Back" AutomationProperties.AutomationId="BackButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Back}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 19 12 L 5 12 M 11 6 L 5 12 L 11 18"/>
             </Button>
             <Button x:Name="ForwardButton" Grid.Column="1" Style="{StaticResource ChromeButtonStyle}"
                     Click="ForwardClicked" ToolTipService.ToolTip="Forward (Alt+Right)"
                     AutomationProperties.Name="Forward" AutomationProperties.AutomationId="ForwardButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Forward}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 5 12 L 19 12 M 13 6 L 19 12 L 13 18"/>
             </Button>
 
             <!-- Stop and Reload share one slot; OnLoadStatusChanged swaps them. -->
@@ -161,20 +161,20 @@
                 <Button x:Name="ReloadButton" Style="{StaticResource ChromeButtonStyle}"
                         Click="ReloadClicked" ToolTipService.ToolTip="Reload (F5)"
                         AutomationProperties.Name="Reload" AutomationProperties.AutomationId="ReloadButton">
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Reload}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 21 12 A 9 9 0 1 1 14.78 3.44 M 21 3 L 21 9 L 15 9"/>
                 </Button>
                 <Button x:Name="StopButton" Style="{StaticResource ChromeButtonStyle}"
                         Click="StopClicked" ToolTipService.ToolTip="Stop loading (Esc)"
                         Visibility="Collapsed"
                         AutomationProperties.Name="Stop loading" AutomationProperties.AutomationId="StopButton">
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Stop}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 7 7 L 17 7 L 17 17 L 7 17 Z"/>
                 </Button>
             </Grid>
 
             <Button x:Name="HomeButton" Grid.Column="3" Style="{StaticResource ChromeButtonStyle}"
                     Click="HomeClicked" ToolTipService.ToolTip="Home"
                     AutomationProperties.Name="Home" AutomationProperties.AutomationId="HomeButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Home}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 3 11 L 12 4 L 21 11 M 5 10 L 5 20 L 19 20 L 19 10 M 10 20 L 10 14 L 14 14 L 14 20"/>
             </Button>
 
             <Button x:Name="SecurityChip" Grid.Column="4" Style="{StaticResource ChromeButtonStyle}"
@@ -184,9 +184,9 @@
                 <StackPanel Orientation="Horizontal" Spacing="4">
                     <Grid Width="14" Height="14">
                         <Path x:Name="SecuritySecurePath" Style="{StaticResource ModernIconPathSmall}"
-                              Data="{StaticResource Icon.Shield}"/>
+                              Data="M 12 3 L 20 6 L 20 12 C 20 17 16 20.4 12 22 C 8 20.4 4 17 4 12 L 4 6 Z"/>
                         <Path x:Name="SecurityWarningPath" Style="{StaticResource ModernIconPathSmall}"
-                              Data="{StaticResource Icon.ShieldWarning}" Visibility="Collapsed"/>
+                              Data="M 12 3 L 20 6 L 20 12 C 20 17 16 20.4 12 22 C 8 20.4 4 17 4 12 L 4 6 Z M 12 9 L 12 14.5 M 12 18 L 12.05 18" Visibility="Collapsed"/>
                     </Grid>
                     <TextBlock x:Name="SecurityHost" Text="" FontSize="11" MaxWidth="92"
                                TextTrimming="CharacterEllipsis"
@@ -207,9 +207,9 @@
                     AutomationProperties.Name="Bookmark this tab" AutomationProperties.AutomationId="BookmarkButton">
                 <Grid>
                     <Path x:Name="BookmarkOutlinePath" Style="{StaticResource ModernIconPath}"
-                          Data="{StaticResource Icon.Bookmark}"/>
+                          Data="M 6 3 L 18 3 L 18 21 L 12 16 L 6 21 Z"/>
                     <Path x:Name="BookmarkFilledPath" Style="{StaticResource ModernIconPathFilled}"
-                          Data="{StaticResource Icon.BookmarkFilled}" Visibility="Collapsed"/>
+                          Data="M 6 3 L 18 3 L 18 21 L 12 16 L 6 21 Z" Visibility="Collapsed"/>
                 </Grid>
             </Button>
 
@@ -217,7 +217,7 @@
                     Click="DownloadsClicked" ToolTipService.ToolTip="Downloads (Ctrl+J)"
                     AutomationProperties.Name="Downloads" AutomationProperties.AutomationId="DownloadsButton">
                 <Grid>
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Downloads}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 12 3 L 12 15 M 8 11 L 12 15 L 16 11 M 4 17 L 4 20 L 20 20 L 20 17"/>
                     <TextBlock x:Name="DownloadBadge" Text="" FontSize="9" HorizontalAlignment="Right"
                                VerticalAlignment="Top" Margin="0,-6,-6,0"
                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
@@ -227,7 +227,7 @@
             <Button x:Name="FindButton" Grid.Column="8" Style="{StaticResource ChromeButtonStyle}"
                     Click="FindOpenClicked" ToolTipService.ToolTip="Find on page (Ctrl+F)"
                     AutomationProperties.Name="Find on page" AutomationProperties.AutomationId="FindButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Find}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 10 4 A 6 6 0 1 1 10 16 A 6 6 0 1 1 10 4 M 14.5 14.5 L 20 20 M 7.5 8 L 12 8 M 7.5 11 L 10.5 11"/>
             </Button>
 
             <Button x:Name="FullscreenButton" Grid.Column="9" Style="{StaticResource ChromeButtonStyle}"
@@ -235,22 +235,22 @@
                     AutomationProperties.Name="Fullscreen" AutomationProperties.AutomationId="FullscreenButton">
                 <Grid>
                     <Path x:Name="FullscreenEnterPath" Style="{StaticResource ModernIconPath}"
-                          Data="{StaticResource Icon.Fullscreen}"/>
+                          Data="M 4 9 L 4 4 L 9 4 M 15 4 L 20 4 L 20 9 M 20 15 L 20 20 L 15 20 M 9 20 L 4 20 L 4 15"/>
                     <Path x:Name="FullscreenExitPath" Style="{StaticResource ModernIconPath}"
-                          Data="{StaticResource Icon.ExitFullscreen}" Visibility="Collapsed"/>
+                          Data="M 9 4 L 9 9 L 4 9 M 15 9 L 20 9 L 20 4 M 20 15 L 15 15 L 15 20 M 4 15 L 9 15 L 9 20" Visibility="Collapsed"/>
                 </Grid>
             </Button>
 
             <Button x:Name="SettingsButton" Grid.Column="10" Style="{StaticResource ChromeButtonStyle}"
                     Click="SettingsClicked" ToolTipService.ToolTip="Settings (Ctrl+,)"
                     AutomationProperties.Name="Settings" AutomationProperties.AutomationId="SettingsButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Settings}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 4 8 L 20 8 M 4 16 L 20 16 M 9 5 L 9 11 M 15 13 L 15 19"/>
             </Button>
 
             <Button x:Name="AppButton" Grid.Column="11" Style="{StaticResource ChromeButtonStyle}"
                     Flyout="{StaticResource AppMenuFlyout}" ToolTipService.ToolTip="Menu"
                     AutomationProperties.Name="Browser menu" AutomationProperties.AutomationId="AppButton">
-                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Menu}"/>
+                <Path Style="{StaticResource ModernIconPath}" Data="M 4 7 L 20 7 M 4 12 L 20 12 M 4 17 L 20 17"/>
             </Button>
 
             <TextBlock x:Name="StatusText" Grid.Column="12" VerticalAlignment="Center"
@@ -279,7 +279,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Path Grid.Column="0" Style="{StaticResource ModernIconPath}"
-                          Data="{StaticResource Icon.ShieldWarning}"/>
+                          Data="M 12 3 L 20 6 L 20 12 C 20 17 16 20.4 12 22 C 8 20.4 4 17 4 12 L 4 6 Z M 12 9 L 12 14.5 M 12 18 L 12.05 18"/>
                     <TextBlock x:Name="ErrorText" Grid.Column="1" Text="" FontSize="13" TextWrapping="Wrap"
                                VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive"
                                AutomationProperties.Name="Navigation error"/>
@@ -288,7 +288,7 @@
                     <Button x:Name="ErrorDismissButton" Grid.Column="3" Width="28" Height="28" Padding="0"
                             Click="ErrorDismissClicked" ToolTipService.ToolTip="Dismiss"
                             AutomationProperties.Name="Dismiss error">
-                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                        <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                     </Button>
                 </Grid>
             </Border>
@@ -305,7 +305,7 @@
                     <Button x:Name="SecurityInfoCloseButton" Grid.Column="1" Width="28" Height="28" Padding="0"
                             Click="SecurityInfoCloseClicked" ToolTipService.ToolTip="Close"
                             AutomationProperties.Name="Close connection details">
-                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                        <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                     </Button>
                 </Grid>
             </Border>
@@ -351,7 +351,7 @@
                         <Button x:Name="DownloadsCloseButton" Grid.Column="3" Width="28" Height="28" Padding="0"
                                 Click="DownloadsCloseClicked" ToolTipService.ToolTip="Close"
                                 AutomationProperties.Name="Close downloads">
-                            <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                            <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                         </Button>
                     </Grid>
                     <ListView x:Name="DownloadsList" Grid.Row="1" MaxHeight="260"
@@ -386,7 +386,7 @@
                     <Button Content="Reset" Padding="8,3" Click="ZoomResetClicked" AutomationProperties.Name="Reset zoom"/>
                     <Button Width="26" Height="26" Padding="0" Click="ZoomBubbleCloseClicked"
                             ToolTipService.ToolTip="Close" AutomationProperties.Name="Close zoom bubble">
-                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                        <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                     </Button>
                 </StackPanel>
             </Border>
@@ -423,17 +423,17 @@
                 <Button Grid.Column="4" Width="30" Height="30" Padding="0" Click="FindPreviousClicked"
                         Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find previous (Shift+Enter)"
                         AutomationProperties.Name="Find previous">
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Back}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 19 12 L 5 12 M 11 6 L 5 12 L 11 18"/>
                 </Button>
                 <Button Grid.Column="5" Width="30" Height="30" Padding="0" Click="FindNextClicked"
                         Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find next (Enter)"
                         AutomationProperties.Name="Find next">
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Forward}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 5 12 L 19 12 M 13 6 L 19 12 L 13 18"/>
                 </Button>
                 <Button Grid.Column="6" Width="30" Height="30" Padding="0" Click="FindCloseClicked"
                         Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Close (Escape)"
                         AutomationProperties.Name="Close find">
-                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                    <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                 </Button>
             </Grid>
         </StackPanel>
@@ -502,7 +502,7 @@
                     <Button Width="34" Click="SettingsCloseClicked" Background="Transparent"
                             BorderThickness="0" ToolTipService.ToolTip="Close"
                             AutomationProperties.Name="Close settings">
-                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                        <Path Style="{StaticResource ModernIconPath}" Data="M 6 6 L 18 18 M 18 6 L 6 18"/>
                     </Button>
                 </StackPanel>
             </Grid>

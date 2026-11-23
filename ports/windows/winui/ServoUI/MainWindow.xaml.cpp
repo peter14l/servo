@@ -401,7 +401,7 @@ namespace winrt::ServoUI::implementation
         item.MinWidth(120);
         item.MaxWidth(260);
         item.IsClosable(true);
-        item.ContextFlyout(Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
+        item.ContextFlyout(RootGrid().Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
         item.ContextRequested([this](auto const& sender, auto const&) {
             m_contextTabIndex = TabIndexFromContextMenu(sender);
         });
@@ -696,7 +696,7 @@ namespace winrt::ServoUI::implementation
             for (size_t i = 0; i < m_tabTitles.size(); ++i) {
                 auto item = muxc::ListViewItem{};
                 item.Content(CreateTabHeader(static_cast<uint32_t>(i), m_tabTitles[i]));
-                item.ContextFlyout(Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
+                item.ContextFlyout(RootGrid().Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
                 item.ContextRequested([this](auto const& sender, auto const&) {
                     m_contextTabIndex = TabIndexFromContextMenu(sender);
                 });

@@ -339,7 +339,10 @@ bool BrowserRuntime::Initialize() {
 
     ServoPreferences* prefs = servo_preferences_create();
     if (prefs) {
-        servo_preferences_set_bool(prefs, "devtools_server_enabled", false);
+        // The host chrome has no in-window frontend, but Servo's Firefox RDP
+        // server is useful to external tooling and is required for F12 to do
+        // anything real. The token is intentionally never logged or displayed.
+        servo_preferences_set_bool(prefs, "devtools_server_enabled", true);
         servo_preferences_set_string(prefs, "user_agent", uaString.c_str());
         servo_preferences_set_bool(prefs, "network_use_webpki_roots", true);
         servo_preferences_set_i64(prefs, "network_connection_timeout", 30);
@@ -440,6 +443,9 @@ void BrowserRuntime::SetDevToolsCallback(DevToolsCallback callback) {
 }
 
 void BrowserRuntime::NotifyDevTools(uint16_t port, const std::string& token) {
+    // Cache the port for shells that query it after initialization. The token
+    // is a credential; do not persist or surface it from the chrome.
+    m_devToolsPort = port;
     if (m_devToolsCallback) {
         m_devToolsCallback(port, token);
     }

@@ -364,15 +364,18 @@ void BrowserWindow::SetVerticalTabs(bool enable) {
 
 void BrowserWindow::OpenDevTools() {
     if (m_devtoolsPort > 0) {
-        std::string devtoolsUrl = "http://localhost:" + std::to_string(m_devtoolsPort);
-        if (!m_devtoolsToken.empty()) {
-            devtoolsUrl += "/?token=" + m_devtoolsToken;
-        }
-        if (m_tabStrip) {
-            m_tabStrip->AddTab(devtoolsUrl);
-        }
+        // Servo exposes Firefox Remote Debugging Protocol over raw TCP in this
+        // checkout. Opening an http://localhost tab would be misleading, so
+        // report the actual endpoint instead of exposing the token.
+        std::wstring message =
+            L"DevTools server is listening on 127.0.0.1:" +
+            std::to_wstring(m_devtoolsPort) +
+            L".\n\nThis build has no in-window DevTools frontend; connect with a "
+            L"Firefox RDP-compatible client.";
+        MessageBoxW(m_hwnd, message.c_str(), L"DevTools", MB_OK | MB_ICONINFORMATION);
     } else {
-        MessageBoxW(m_hwnd, L"DevTools server is initializing or listening on local port.", L"DevTools", MB_OK | MB_ICONINFORMATION);
+        MessageBoxW(m_hwnd, L"DevTools server is still starting...", L"DevTools",
+                    MB_OK | MB_ICONINFORMATION);
     }
 }
 

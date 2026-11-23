@@ -54,6 +54,12 @@ namespace winrt::ServoUI::implementation
                            Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void VerticalTabsToggleClicked(Windows::Foundation::IInspectable const& sender,
                                        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void VerticalTabsSplitterPointerPressed(Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args);
+        void VerticalTabsSplitterPointerMoved(Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args);
+        void VerticalTabsSplitterPointerReleased(Windows::Foundation::IInspectable const& sender,
+            Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args);
         void VerticalTabsSelectionChanged(Windows::Foundation::IInspectable const& sender,
                                           Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         void SettingsClicked(Windows::Foundation::IInspectable const& sender,
@@ -62,12 +68,30 @@ namespace winrt::ServoUI::implementation
                                   Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
         void TabsTabCloseRequested(Microsoft::UI::Xaml::Controls::TabView const& sender,
                                    Microsoft::UI::Xaml::Controls::TabViewTabCloseRequestedEventArgs const& args);
+        void TabContextRequested(Windows::Foundation::IInspectable const& sender,
+                                 Microsoft::UI::Xaml::Input::ContextRequestedEventArgs const& args);
+        void TabContextCloseClicked(Windows::Foundation::IInspectable const& sender,
+                                    Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void TabContextCloseOthersClicked(Windows::Foundation::IInspectable const& sender,
+                                          Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void TabContextCloseRightClicked(Windows::Foundation::IInspectable const& sender,
+                                         Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void TabContextDuplicateClicked(Windows::Foundation::IInspectable const& sender,
+                                        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void TabContextReloadClicked(Windows::Foundation::IInspectable const& sender,
+                                     Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void FindOpenClicked(Windows::Foundation::IInspectable const& sender,
                              Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void FindBoxKeyDown(Windows::Foundation::IInspectable const& sender,
                             Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const& args);
+        void FindBoxTextChanged(Windows::Foundation::IInspectable const& sender,
+                                Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+        void FindNextClicked(Windows::Foundation::IInspectable const& sender,
+                             Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void FindCloseClicked(Windows::Foundation::IInspectable const& sender,
                               Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SettingsSaveClicked(Windows::Foundation::IInspectable const& sender,
+                                 Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SettingsCloseClicked(Windows::Foundation::IInspectable const& sender,
                                   Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ClearHistoryClicked(Windows::Foundation::IInspectable const& sender,
@@ -82,6 +106,8 @@ namespace winrt::ServoUI::implementation
         void OnStatusTextChanged(std::string const& status);
         void OnCrashed(uint32_t index, char const* reason);
         void OnFindResult(int identifier, int count, int activeOrdinal);
+        void OnTabFavicon(uint32_t index, std::vector<uint8_t> const& pixels,
+                          uint32_t width, uint32_t height);
         void OnDownloadStarted(std::string const& url);
         void OnDownloadUpdated(std::string const& url, int64_t received, int64_t total);
         void HandleWebIpcMessage(std::string const& message);
@@ -102,9 +128,14 @@ namespace winrt::ServoUI::implementation
         void PopulateSettingsPane();
         void ApplyTheme(int themeMode);
         void ApplyVerticalTabs(bool enable);
+        void SetVerticalTabsColumnWidth(int width);
+        void PersistVerticalTabsWidth();
         void RefreshVerticalTabs();
         void LoadInActiveTab(std::string const& url);
         void SetTabHeader(uint32_t index, std::wstring const& header);
+        Windows::Foundation::IInspectable CreateTabHeader(uint32_t index, std::wstring const& title);
+        uint32_t TabIndexFromContextMenu(Windows::Foundation::IInspectable const& sender);
+        void UpdateNavigationButtons();
 
         winrt::event_token m_rootLayoutUpdatedToken{};
         std::unique_ptr<WinUIShell> m_shell;
@@ -112,11 +143,17 @@ namespace winrt::ServoUI::implementation
         ServoCreateNewWebViewRequest* m_pendingRequest = nullptr;
         HWND m_xamlHwnd = nullptr;
         uint32_t m_activeTab = 0;
+        uint32_t m_contextTabIndex = 0;
         bool m_loaded = false;
         bool m_updatingTabs = false;
         bool m_engineShutdown = false;
+        bool m_resizingVerticalTabs = false;
+        uint32_t m_resizePointerId = 0;
+        double m_resizeStartX = 0.0;
+        int m_resizeStartWidth = 180;
         std::vector<std::string> m_tabUrls;
         std::vector<std::wstring> m_tabTitles;
+        std::vector<Microsoft::UI::Xaml::Media::Imaging::SoftwareBitmapSource> m_tabFaviconSources;
     };
 }
 

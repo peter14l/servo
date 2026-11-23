@@ -14,9 +14,11 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 namespace winrt::ServoUI::implementation
 {
@@ -121,6 +123,7 @@ namespace winrt::ServoUI::implementation
         }
         if (!host || !host->IsValid()) return false;
 
+        ResetFindState();
         m_tabs.push_back(std::move(host));
         m_active = static_cast<uint32_t>(m_tabs.size() - 1);
         ApplyViewVisibility();
@@ -131,6 +134,7 @@ namespace winrt::ServoUI::implementation
     void WinUIShell::CloseTab(uint32_t index)
     {
         if (index >= m_tabs.size()) return;
+        ResetFindState();
         m_tabs.erase(m_tabs.begin() + static_cast<ptrdiff_t>(index));
         if (m_tabs.empty()) {
             m_active = 0;
@@ -146,6 +150,7 @@ namespace winrt::ServoUI::implementation
     void WinUIShell::SelectTab(uint32_t index)
     {
         if (index >= m_tabs.size() || index == m_active) return;
+        ResetFindState();
         m_active = index;
         ApplyViewVisibility();
         ApplyViewportToActive();
@@ -170,6 +175,13 @@ namespace winrt::ServoUI::implementation
                         m_viewport.bottom - m_viewport.top);
     }
 
+    void WinUIShell::ResetFindState()
+    {
+        m_findIdentifier = -1;
+        m_findText.clear();
+        m_findView = nullptr;
+    }
+
     void WinUIShell::Find(const std::string& text, bool forward, bool matchCase)
     {
         ServoViewHost* view = ActiveView();
@@ -178,9 +190,11 @@ namespace winrt::ServoUI::implementation
             ClearFind();
             return;
         }
+        if (m_findView != view) ResetFindState();
         if (m_findIdentifier < 0 || text != m_findText) {
             m_findIdentifier = servo_webview_find(view->GetWebView(), text.c_str(), forward, matchCase);
             m_findText = text;
+            m_findView = view;
         } else {
             servo_webview_find_next(view->GetWebView(), m_findIdentifier, forward);
         }
@@ -188,12 +202,10 @@ namespace winrt::ServoUI::implementation
 
     void WinUIShell::ClearFind()
     {
-        ServoViewHost* view = ActiveView();
-        if (view && view->GetWebView() && m_findIdentifier >= 0) {
-            servo_webview_find_clear(view->GetWebView(), m_findIdentifier);
+        if (m_findView && m_findView->GetWebView() && m_findIdentifier >= 0) {
+            servo_webview_find_clear(m_findView->GetWebView(), m_findIdentifier);
         }
-        m_findIdentifier = -1;
-        m_findText.clear();
+        ResetFindState();
     }
 
     void WinUIShell::OnActiveTabUrlChanged(ServoViewHost* host, const char* url)
@@ -236,10 +248,37 @@ namespace winrt::ServoUI::implementation
         m_owner.OnStatusTextChanged(status);
     }
 
-    void WinUIShell::OnTabFaviconUpdated(ServoViewHost*, HBITMAP, uint32_t, uint32_t)
+    void WinUIShell::OnTabFaviconUpdated(ServoViewHost* host, HBITMAP hBitmap,
+                                         uint32_t width, uint32_t height)
     {
-        // XAML tab headers use native glyphs for now. Favicon bitmaps are not
-        // painted through GDI, so there is no old hBitmap to present here.
+        const size_t index = IndexFor(host);
+        if (hBitmap && index != kNoTab && width > 0 && height > 0) {
+            BITMAP bm{};
+            if (GetObjectW(hBitmap, sizeof(bm), &bm) == sizeof(bm) && bm.bmBits &&
+                static_cast<uint32_t>(bm.bmWidth) >= width) {
+                const int rawHeight = bm.bmHeight;
+                const int bitmapHeight = rawHeight >= 0 ? rawHeight : -rawHeight;
+                if (static_cast<uint32_t>(bitmapHeight) >= height) {
+                    const size_t srcStride = static_cast<size_t>(bm.bmWidthBytes);
+                    const size_t dstStride = static_cast<size_t>(width) * 4;
+                    if (srcStride >= dstStride) {
+                        std::vector<uint8_t> pixels(dstStride * height);
+                        const auto* src = static_cast<const uint8_t*>(bm.bmBits);
+                        for (uint32_t row = 0; row < height; ++row) {
+                            std::memcpy(pixels.data() + row * dstStride,
+                                        src + row * srcStride, dstStride);
+                        }
+                        auto* owner = &m_owner;
+                        const uint32_t tabIndex = static_cast<uint32_t>(index);
+                        PostUiTask([owner, tabIndex, pixels = std::move(pixels), width, height]() {
+                            owner->OnTabFavicon(tabIndex, pixels, width, height);
+                        });
+                    }
+                }
+            }
+        }
+        // Ownership of the HBITMAP is transferred to the shell.
+        if (hBitmap) DeleteObject(hBitmap);
     }
 
     void WinUIShell::OnFindResult(ServoViewHost* host, int identifier, int count, int activeOrdinal)
@@ -274,6 +313,9 @@ namespace winrt::ServoUI::implementation
         }
         if (engine.find("bing") != std::string::npos) {
             return "https://www.bing.com/search?q=" + query;
+        }
+        if (engine.find("ecosia") != std::string::npos) {
+            return "https://www.ecosia.org/search?q=" + query;
         }
         return "https://duckduckgo.com/?q=" + query;
     }
@@ -318,10 +360,14 @@ namespace winrt::ServoUI::implementation
             return;
         }
 
+        if (lower.rfind("view-source:", 0) == 0) {
+            if (ServoViewHost* view = ActiveView()) view->ViewPageSource();
+            return;
+        }
+
         bool hasScheme = clean.find("://") != std::string::npos ||
             lower.rfind("about:", 0) == 0 || lower.rfind("data:", 0) == 0 ||
-            lower.rfind("file:", 0) == 0 || lower.rfind("servo:", 0) == 0 ||
-            lower.rfind("view-source:", 0) == 0;
+            lower.rfind("file:", 0) == 0 || lower.rfind("servo:", 0) == 0;
         if (!hasScheme && IsBareHost(clean)) {
             LoadInActiveTab("https://" + clean);
         } else if (hasScheme) {
@@ -348,7 +394,14 @@ namespace winrt::ServoUI::implementation
 
     void WinUIShell::OpenDevTools()
     {
-        m_owner.OnStatusTextChanged("DevTools server is disabled in this lightweight build.");
+        const uint16_t port = BrowserRuntime::Instance().DevToolsPort();
+        if (port == 0) {
+            m_owner.OnStatusTextChanged("DevTools server is starting...");
+            return;
+        }
+        m_owner.OnStatusTextChanged(
+            "DevTools server listening on 127.0.0.1:" + std::to_string(port) +
+            " (Firefox RDP client required).");
     }
 
     void WinUIShell::OpenUrlInNewTab(const std::string& url)

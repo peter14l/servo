@@ -11,6 +11,28 @@
         <media:MicaBackdrop Kind="BaseAlt"/>
     </Window.SystemBackdrop>
 
+    <Window.Resources>
+        <!-- Keep the native button visual states while removing the flat chrome surface. -->
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#14000000"/>
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#24000000"/>
+        <Style x:Key="ChromeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <muxc:MenuFlyout x:Key="TabContextMenu">
+            <muxc:MenuFlyoutItem Text="Close tab" Click="TabContextCloseClicked"/>
+            <muxc:MenuFlyoutItem Text="Close other tabs" Click="TabContextCloseOthersClicked"/>
+            <muxc:MenuFlyoutItem Text="Close tabs to the right" Click="TabContextCloseRightClicked"/>
+            <muxc:MenuFlyoutSeparator/>
+            <muxc:MenuFlyoutItem Text="Duplicate" Click="TabContextDuplicateClicked"/>
+            <muxc:MenuFlyoutItem Text="Reload" Click="TabContextReloadClicked"/>
+        </muxc:MenuFlyout>
+    </Window.Resources>
+
     <Grid x:Name="RootGrid" Loaded="RootLoaded" KeyDown="RootKeyDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,18 +50,18 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <Button x:Name="VerticalTabsToggle" Grid.Column="0" Width="34" Height="30"
-                    Click="VerticalTabsToggleClicked" ToolTipService.ToolTip="Vertical tabs"
-                    Background="Transparent" BorderThickness="0">
+            <Button x:Name="VerticalTabsToggle" Grid.Column="0" Style="{StaticResource ChromeButtonStyle}"
+                    Click="VerticalTabsToggleClicked" ToolTipService.ToolTip="Vertical tabs">
                 <FontIcon Glyph="&#xE8FD;" FontSize="15"/>
             </Button>
 
             <muxc:TabView x:Name="Tabs" Grid.Column="1" VerticalAlignment="Stretch"
+                          TabWidthMode="SizeToContent" CloseButtonOverlayMode="OnPointerOver"
                           SelectionChanged="TabsSelectionChanged"
                           TabCloseRequested="TabsTabCloseRequested"
                           IsAddTabButtonVisible="False"/>
-            <Button x:Name="AddTabButton" Grid.Column="2" Width="34" Height="30" Click="AddTabClicked"
-                    ToolTipService.ToolTip="New tab (Ctrl+T)" Background="Transparent" BorderThickness="0">
+            <Button x:Name="AddTabButton" Grid.Column="2" Style="{StaticResource ChromeButtonStyle}"
+                    Click="AddTabClicked" ToolTipService.ToolTip="New tab (Ctrl+T)">
                 <FontIcon Glyph="&#xE710;" FontSize="14"/>
             </Button>
         </Grid>
@@ -58,37 +80,37 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Width="34" Click="BackClicked" ToolTipService.ToolTip="Back (Alt+Left)"
-                    Background="Transparent" BorderThickness="0">
+            <Button x:Name="BackButton" Grid.Column="0" Style="{StaticResource ChromeButtonStyle}"
+                    Click="BackClicked" ToolTipService.ToolTip="Back (Alt+Left)">
                 <FontIcon Glyph="&#xE72B;" FontSize="16"/>
             </Button>
-            <Button Grid.Column="1" Width="34" Click="ForwardClicked" ToolTipService.ToolTip="Forward (Alt+Right)"
-                    Background="Transparent" BorderThickness="0">
+            <Button x:Name="ForwardButton" Grid.Column="1" Style="{StaticResource ChromeButtonStyle}"
+                    Click="ForwardClicked" ToolTipService.ToolTip="Forward (Alt+Right)">
                 <FontIcon Glyph="&#xE72A;" FontSize="16"/>
             </Button>
-            <Button Grid.Column="2" Width="34" Click="ReloadClicked" ToolTipService.ToolTip="Reload (F5)"
-                    Background="Transparent" BorderThickness="0">
+            <Button Grid.Column="2" Style="{StaticResource ChromeButtonStyle}"
+                    Click="ReloadClicked" ToolTipService.ToolTip="Reload (F5)">
                 <FontIcon Glyph="&#xE72C;" FontSize="16"/>
             </Button>
-            <Button Grid.Column="3" Width="34" Click="HomeClicked" ToolTipService.ToolTip="Home"
-                    Background="Transparent" BorderThickness="0">
+            <Button Grid.Column="3" Style="{StaticResource ChromeButtonStyle}"
+                    Click="HomeClicked" ToolTipService.ToolTip="Home">
                 <FontIcon Glyph="&#xE80F;" FontSize="16"/>
             </Button>
 
             <TextBox x:Name="Omnibox" Grid.Column="4" VerticalAlignment="Center"
                      PlaceholderText="Search or enter web address" KeyDown="OmniboxKeyDown"
-                     FontSize="14" MinWidth="120"/>
+                     FontSize="14" MinWidth="120" CornerRadius="16" Padding="12,4,10,4"/>
 
             <TextBlock x:Name="StatusText" Grid.Column="5" VerticalAlignment="Center"
                        MaxWidth="180" TextTrimming="CharacterEllipsis"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
 
-            <Button Grid.Column="6" Width="34" Click="FindOpenClicked" ToolTipService.ToolTip="Find on page (Ctrl+F)"
-                    Background="Transparent" BorderThickness="0">
+            <Button Grid.Column="6" Style="{StaticResource ChromeButtonStyle}"
+                    Click="FindOpenClicked" ToolTipService.ToolTip="Find on page (Ctrl+F)">
                 <FontIcon Glyph="&#xE721;" FontSize="16"/>
             </Button>
-            <Button Grid.Column="7" Width="34" Click="SettingsClicked" ToolTipService.ToolTip="Settings"
-                    Background="Transparent" BorderThickness="0">
+            <Button Grid.Column="7" Style="{StaticResource ChromeButtonStyle}"
+                    Click="SettingsClicked" ToolTipService.ToolTip="Settings">
                 <FontIcon Glyph="&#xE713;" FontSize="16"/>
             </Button>
         </Grid>
@@ -103,11 +125,20 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox x:Name="FindBox" Grid.Column="0" PlaceholderText="Find on page"
-                     KeyDown="FindBoxKeyDown"/>
-            <Button Grid.Column="1" Width="30" Click="FindCloseClicked" Background="Transparent"
-                    BorderThickness="0" ToolTipService.ToolTip="Close">
+                     KeyDown="FindBoxKeyDown" TextChanged="FindBoxTextChanged"/>
+            <TextBlock x:Name="FindCount" Grid.Column="1" Margin="6,0,2,0" MinWidth="64"
+                       VerticalAlignment="Center" TextAlignment="Right" FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text=""/>
+            <Button Grid.Column="2" Width="30" Height="30" Padding="0" Click="FindNextClicked"
+                    Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find next (Enter)">
+                <FontIcon Glyph="&#xE72A;" FontSize="13"/>
+            </Button>
+            <Button Grid.Column="3" Width="30" Height="30" Padding="0" Click="FindCloseClicked"
+                    Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Close">
                 <FontIcon Glyph="&#xE711;" FontSize="12"/>
             </Button>
         </Grid>
@@ -116,6 +147,7 @@
         <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="VerticalTabsColumn" Width="0"/>
+                <ColumnDefinition x:Name="VerticalTabsSplitterColumn" Width="0"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -127,7 +159,14 @@
                           Background="Transparent" Padding="6"/>
             </Border>
 
-            <Border x:Name="ViewportArea" Grid.Column="1" Background="Transparent"
+            <Border x:Name="VerticalTabsSplitter" Grid.Column="1" Width="6"
+                    Visibility="Collapsed" Background="{ThemeResource CardStrokeColorDefaultBrush}"
+                    PointerPressed="VerticalTabsSplitterPointerPressed"
+                    PointerMoved="VerticalTabsSplitterPointerMoved"
+                    PointerReleased="VerticalTabsSplitterPointerReleased"
+                    PointerCanceled="VerticalTabsSplitterPointerReleased"/>
+
+            <Border x:Name="ViewportArea" Grid.Column="2" Background="Transparent"
                     SizeChanged="ViewportSizeChanged"/>
         </Grid>
 
@@ -150,38 +189,46 @@
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"
                                Margin="0,4,0,0"/>
                 </StackPanel>
-                <Button Grid.Column="1" Width="34" Click="SettingsCloseClicked" Background="Transparent"
-                        BorderThickness="0" ToolTipService.ToolTip="Close">
-                    <FontIcon Glyph="&#xE711;" FontSize="12"/>
-                </Button>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                            VerticalAlignment="Center">
+                    <TextBlock x:Name="SettingsStatus" Text="" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Button Content="Save" Click="SettingsSaveClicked" Padding="16,5"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                    <Button Width="34" Click="SettingsCloseClicked" Background="Transparent"
+                            BorderThickness="0" ToolTipService.ToolTip="Close">
+                        <FontIcon Glyph="&#xE711;" FontSize="12"/>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled">
-                <StackPanel Spacing="12" MaxWidth="760" HorizontalAlignment="Left" Margin="0,0,24,24">
+                <StackPanel Spacing="12" MaxWidth="860" HorizontalAlignment="Center" Margin="24">
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Start, home, and new tabs" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="Default search engine" FontSize="13"/>
-                            <ComboBox x:Name="SettingSearchEngine" Width="280" SelectedIndex="0">
+                            <ComboBox x:Name="SettingSearchEngine" Width="280" HorizontalAlignment="Left" SelectedIndex="0">
                                 <ComboBoxItem Content="DuckDuckGo"/>
                                 <ComboBoxItem Content="Google"/>
                                 <ComboBoxItem Content="Bing"/>
-                                <ComboBoxItem Content="Brave"/>
+                                <ComboBoxItem Content="Ecosia"/>
                             </ComboBox>
                             <TextBlock Text="Home page" FontSize="13" Margin="0,6,0,0"/>
-                            <TextBox x:Name="SettingHomePage" Width="520"
+                            <TextBox x:Name="SettingHomePage" HorizontalAlignment="Stretch"
                                      PlaceholderText="https://servo.org"/>
                             <TextBlock Text="Download folder" FontSize="13" Margin="0,6,0,0"/>
-                            <TextBox x:Name="SettingDownloadDir" Width="520"
+                            <TextBox x:Name="SettingDownloadDir" HorizontalAlignment="Stretch"
                                      PlaceholderText="Downloads"/>
                         </StackPanel>
                     </Border>
 
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Appearance" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="Theme" FontSize="13"/>
@@ -204,12 +251,12 @@
                     </Border>
 
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Privacy and services" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="User agent (applies after restart)" FontSize="13"/>
-                            <ComboBox x:Name="SettingUserAgent" Width="420" SelectedIndex="0">
+                            <ComboBox x:Name="SettingUserAgent" Width="420" HorizontalAlignment="Left" SelectedIndex="0">
                                 <ComboBoxItem Content="Firefox 132 (Desktop) [Recommended]"/>
                                 <ComboBoxItem Content="Chrome 131 (Desktop)"/>
                                 <ComboBoxItem Content="Safari 18 (macOS)"/>
@@ -222,8 +269,8 @@
                     </Border>
 
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Web experiments" FontSize="17" FontWeight="SemiBold"/>
                             <muxc:ToggleSwitch x:Name="SettingWebGL2" Header="WebGL 2"
@@ -240,8 +287,19 @@
                     </Border>
 
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Web standards &amp; compatibility" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Native desktop fingerprint, navigator.webdriver suppression, and window.chrome compatibility shims are enabled for site compatibility."
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Padding="20" CornerRadius="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Data and reset" FontSize="17" FontWeight="SemiBold"/>
                             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -256,13 +314,13 @@
                     </Border>
 
                     <Border Padding="20" CornerRadius="8"
-                            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                            BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1">
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="6">
                             <TextBlock Text="About Servo Browser" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="Native Windows shell powered by the Servo engine."
                                        FontSize="13"/>
-                            <TextBlock Text="Changes are saved automatically when you close this pane."
+                            <TextBlock Text="Changes are saved when you choose Save or close this pane."
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </Border>

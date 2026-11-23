@@ -4,6 +4,8 @@
 
 #include "browser_settings.h"
 
+#include <algorithm>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -81,6 +83,9 @@ BrowserSettings LoadBrowserSettings() {
     s.themeMode = GetPrivateProfileIntW(L"Appearance", L"ThemeMode", 2, ini.c_str());
     s.backdropType = GetPrivateProfileIntW(L"Appearance", L"BackdropType", 0, ini.c_str());
     s.enableVerticalTabs = GetPrivateProfileIntW(L"Appearance", L"EnableVerticalTabs", 0, ini.c_str()) != 0;
+    s.verticalTabsWidth = GetPrivateProfileIntW(L"Appearance", L"VerticalTabsWidth", 180, ini.c_str());
+    if (s.verticalTabsWidth < 100) s.verticalTabsWidth = 100;
+    if (s.verticalTabsWidth > 420) s.verticalTabsWidth = 420;
     s.enableSuggestions = GetPrivateProfileIntW(L"Appearance", L"EnableSuggestions", 1, ini.c_str()) != 0;
 
     s.enableWebGPU = GetPrivateProfileIntW(L"Experiments", L"EnableWebGPU", 0, ini.c_str()) != 0;
@@ -122,6 +127,8 @@ void SaveBrowserSettings(const BrowserSettings& s) {
     WritePrivateProfileStringW(L"Appearance", L"ThemeMode", std::to_wstring(s.themeMode).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"Appearance", L"BackdropType", std::to_wstring(s.backdropType).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"Appearance", L"EnableVerticalTabs", s.enableVerticalTabs ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"Appearance", L"VerticalTabsWidth",
+        std::to_wstring(std::clamp(s.verticalTabsWidth, 100, 420)).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"Appearance", L"EnableSuggestions", s.enableSuggestions ? L"1" : L"0", ini.c_str());
 
     WritePrivateProfileStringW(L"Experiments", L"EnableWebGPU", s.enableWebGPU ? L"1" : L"0", ini.c_str());

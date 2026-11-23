@@ -249,6 +249,12 @@ static const char* NEW_TAB_HEAD = R"HTML(<!DOCTYPE html>
     margin-bottom: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
+  .tile-icon-box > svg {
+    width: 26px;
+    height: 26px;
+    display: block;
+    flex: 0 0 auto;
+  }
   .tile-title {
     font-size: 0.82rem;
     font-weight: 600;

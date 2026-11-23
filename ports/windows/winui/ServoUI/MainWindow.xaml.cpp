@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 using namespace winrt;
@@ -96,7 +97,7 @@ namespace winrt::ServoUI::implementation
         {
             if (value == L"Google") return 1;
             if (value == L"Bing") return 2;
-            if (value == L"Brave") return 3;
+            if (value == L"Ecosia") return 3;
             return 0;
         }
 
@@ -105,7 +106,7 @@ namespace winrt::ServoUI::implementation
             switch (index) {
             case 1: return L"Google";
             case 2: return L"Bing";
-            case 3: return L"Brave";
+            case 3: return L"Ecosia";
             default: return L"DuckDuckGo";
             }
         }
@@ -224,10 +225,18 @@ namespace winrt::ServoUI::implementation
             titleBar.ExtendsContentIntoTitleBar(true);
             titleBar.ButtonBackgroundColor(Windows::UI::Colors::Transparent());
             titleBar.ButtonInactiveBackgroundColor(Windows::UI::Colors::Transparent());
-            titleBar.ButtonHoverBackgroundColor(Windows::UI::ColorHelper::FromArgb(32, 255, 255, 255));
-            titleBar.ButtonPressedBackgroundColor(Windows::UI::ColorHelper::FromArgb(48, 255, 255, 255));
-            titleBar.ButtonForegroundColor(Windows::UI::Colors::White());
-            titleBar.ButtonInactiveForegroundColor(Windows::UI::ColorHelper::FromArgb(160, 255, 255, 255));
+            bool lightTheme = RootGrid().ActualTheme() == Microsoft::UI::Xaml::ElementTheme::Light;
+            auto glyphColor = lightTheme ? Windows::UI::Colors::Black() : Windows::UI::Colors::White();
+            titleBar.ButtonHoverBackgroundColor(lightTheme
+                ? Windows::UI::ColorHelper::FromArgb(20, 0, 0, 0)
+                : Windows::UI::ColorHelper::FromArgb(32, 255, 255, 255));
+            titleBar.ButtonPressedBackgroundColor(lightTheme
+                ? Windows::UI::ColorHelper::FromArgb(36, 0, 0, 0)
+                : Windows::UI::ColorHelper::FromArgb(48, 255, 255, 255));
+            titleBar.ButtonForegroundColor(glyphColor);
+            titleBar.ButtonInactiveForegroundColor(lightTheme
+                ? Windows::UI::ColorHelper::FromArgb(120, 0, 0, 0)
+                : Windows::UI::ColorHelper::FromArgb(160, 255, 255, 255));
 
             // ExtendsContentIntoTitleBar means our XAML occupies the same pixels
             // as the system caption buttons. Reserve their measured inset so the
@@ -386,7 +395,16 @@ namespace winrt::ServoUI::implementation
         std::wstring title = request ? L"Popup" : (actualUrl.empty() ? L"New tab" : Wide(actualUrl));
 
         auto item = muxc::TabViewItem{};
-        item.Header(box_value(hstring(title)));
+        const uint32_t newIndex = static_cast<uint32_t>(m_tabFaviconSources.size());
+        m_tabFaviconSources.emplace_back();
+        item.Header(CreateTabHeader(newIndex, title));
+        item.MinWidth(120);
+        item.MaxWidth(260);
+        item.IsClosable(true);
+        item.ContextFlyout(Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
+        item.ContextRequested([this](auto const& sender, auto const&) {
+            m_contextTabIndex = TabIndexFromContextMenu(sender);
+        });
 
         m_updatingTabs = true;
         Tabs().TabItems().Append(item);
@@ -411,6 +429,9 @@ namespace winrt::ServoUI::implementation
         if (index < items.Size()) items.RemoveAt(index);
         m_tabUrls.erase(m_tabUrls.begin() + static_cast<ptrdiff_t>(index));
         m_tabTitles.erase(m_tabTitles.begin() + static_cast<ptrdiff_t>(index));
+        if (index < m_tabFaviconSources.size()) {
+            m_tabFaviconSources.erase(m_tabFaviconSources.begin() + static_cast<ptrdiff_t>(index));
+        }
 
         uint32_t active = m_shell->ActiveTabIndex();
         m_updatingTabs = true;
@@ -442,6 +463,7 @@ namespace winrt::ServoUI::implementation
         std::wstring title = m_tabTitles[index];
         Title(hstring(title.empty() ? L"Servo" : title + L" - Servo"));
         UpdateStatus(L"");
+        UpdateNavigationButtons();
     }
 
     void MainWindow::UpdateStatus(std::wstring const& status)
@@ -452,6 +474,37 @@ namespace winrt::ServoUI::implementation
         }
     }
 
+    void MainWindow::UpdateNavigationButtons()
+    {
+        try {
+            ServoViewHost* view = m_shell ? m_shell->ActiveView() : nullptr;
+            BackButton().IsEnabled(view && view->CanGoBack());
+            ForwardButton().IsEnabled(view && view->CanGoForward());
+        } catch (...) {
+        }
+    }
+
+    Windows::Foundation::IInspectable MainWindow::CreateTabHeader(
+        uint32_t index, std::wstring const& title)
+    {
+        auto panel = muxc::StackPanel{};
+        panel.Orientation(muxc::Orientation::Horizontal);
+        panel.Spacing(8);
+
+        if (index < m_tabFaviconSources.size() && m_tabFaviconSources[index]) {
+            auto icon = muxc::Image{};
+            icon.Width(16);
+            icon.Height(16);
+            icon.Source(m_tabFaviconSources[index]);
+            panel.Children().Append(icon);
+        }
+
+        auto label = muxc::TextBlock{};
+        label.Text(hstring(title.empty() ? L"New tab" : title));
+        panel.Children().Append(label);
+        return panel;
+    }
+
     void MainWindow::SetTabHeader(uint32_t index, std::wstring const& header)
     {
         if (index >= m_tabTitles.size()) return;
@@ -459,7 +512,7 @@ namespace winrt::ServoUI::implementation
             auto items = Tabs().TabItems();
             if (index >= items.Size()) return;
             auto item = items.GetAt(index).as<muxc::TabViewItem>();
-            item.Header(box_value(hstring(header)));
+            item.Header(CreateTabHeader(index, header));
             RefreshVerticalTabs();
         } catch (...) {
         }
@@ -474,6 +527,7 @@ namespace winrt::ServoUI::implementation
     void MainWindow::OpenSettingsPane()
     {
         PopulateSettingsPane();
+        SettingsStatus().Text(hstring(L""));
         // XAML overlays cannot draw above the native Servo child HWND.
         if (m_shell) m_shell->SetNativeViewsVisible(false);
         SettingsPanel().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
@@ -538,12 +592,27 @@ namespace winrt::ServoUI::implementation
     void MainWindow::ApplyVerticalTabs(bool enable)
     {
         try {
+            BrowserSettings settings = LoadBrowserSettings();
+            const int width = std::clamp(settings.verticalTabsWidth, 100, 420);
+
             VerticalTabsPanel().Visibility(enable ? Microsoft::UI::Xaml::Visibility::Visible
                                                   : Microsoft::UI::Xaml::Visibility::Collapsed);
+            VerticalTabsSplitter().Visibility(enable ? Microsoft::UI::Xaml::Visibility::Visible
+                                                     : Microsoft::UI::Xaml::Visibility::Collapsed);
+            VerticalTabsColumn().MinWidth(enable ? 100.0 : 0.0);
+            VerticalTabsColumn().MaxWidth(enable ? 420.0 : 0.0);
+
             Microsoft::UI::Xaml::GridLength railWidth{};
-            railWidth.Value = enable ? 180.0 : 0.0;
+            railWidth.Value = enable ? static_cast<double>(width) : 0.0;
             railWidth.GridUnitType = Microsoft::UI::Xaml::GridUnitType::Pixel;
             VerticalTabsColumn().Width(railWidth);
+
+            Microsoft::UI::Xaml::GridLength splitterWidth{};
+            splitterWidth.Value = 1.0;
+            splitterWidth.GridUnitType = enable ? Microsoft::UI::Xaml::GridUnitType::Auto
+                                                : Microsoft::UI::Xaml::GridUnitType::Pixel;
+            VerticalTabsSplitterColumn().Width(splitterWidth);
+
             Tabs().Visibility(enable ? Microsoft::UI::Xaml::Visibility::Collapsed
                                      : Microsoft::UI::Xaml::Visibility::Visible);
             RefreshVerticalTabs();
@@ -554,6 +623,70 @@ namespace winrt::ServoUI::implementation
         }
     }
 
+    void MainWindow::SetVerticalTabsColumnWidth(int width)
+    {
+        const int clamped = std::clamp(width, 100, 420);
+        Microsoft::UI::Xaml::GridLength railWidth{};
+        railWidth.Value = static_cast<double>(clamped);
+        railWidth.GridUnitType = Microsoft::UI::Xaml::GridUnitType::Pixel;
+        VerticalTabsColumn().Width(railWidth);
+        LayoutViewport();
+    }
+
+    void MainWindow::PersistVerticalTabsWidth()
+    {
+        const int width = std::clamp(
+            static_cast<int>(std::lround(VerticalTabsColumn().Width().Value)), 100, 420);
+        BrowserSettings settings = LoadBrowserSettings();
+        settings.verticalTabsWidth = width;
+        SaveBrowserSettings(settings);
+    }
+
+    void MainWindow::VerticalTabsSplitterPointerPressed(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args)
+    {
+        try {
+            m_resizingVerticalTabs = true;
+            m_resizePointerId = args.Pointer().PointerId();
+            m_resizeStartX = args.GetCurrentPoint(RootGrid()).Position().X;
+            m_resizeStartWidth = static_cast<int>(std::lround(VerticalTabsColumn().Width().Value));
+            VerticalTabsSplitter().CapturePointer(args.Pointer());
+            args.Handled(true);
+        } catch (...) {
+            m_resizingVerticalTabs = false;
+        }
+    }
+
+    void MainWindow::VerticalTabsSplitterPointerMoved(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args)
+    {
+        if (!m_resizingVerticalTabs || args.Pointer().PointerId() != m_resizePointerId) return;
+        try {
+            const double currentX = args.GetCurrentPoint(RootGrid()).Position().X;
+            const int delta = static_cast<int>(std::lround(currentX - m_resizeStartX));
+            SetVerticalTabsColumnWidth(m_resizeStartWidth + delta);
+            args.Handled(true);
+        } catch (...) {
+        }
+    }
+
+    void MainWindow::VerticalTabsSplitterPointerReleased(
+        Windows::Foundation::IInspectable const&,
+        Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& args)
+    {
+        if (!m_resizingVerticalTabs || args.Pointer().PointerId() != m_resizePointerId) return;
+        try {
+            VerticalTabsSplitter().ReleasePointerCapture(args.Pointer());
+            PersistVerticalTabsWidth();
+            args.Handled(true);
+        } catch (...) {
+        }
+        m_resizingVerticalTabs = false;
+        m_resizePointerId = 0;
+    }
+
     void MainWindow::RefreshVerticalTabs()
     {
         try {
@@ -562,8 +695,11 @@ namespace winrt::ServoUI::implementation
             items.Clear();
             for (size_t i = 0; i < m_tabTitles.size(); ++i) {
                 auto item = muxc::ListViewItem{};
-                std::wstring title = m_tabTitles[i];
-                item.Content(box_value(hstring(title.empty() ? L"New tab" : title)));
+                item.Content(CreateTabHeader(static_cast<uint32_t>(i), m_tabTitles[i]));
+                item.ContextFlyout(Resources().Lookup(box_value(L"TabContextMenu")).as<muxc::MenuFlyout>());
+                item.ContextRequested([this](auto const& sender, auto const&) {
+                    m_contextTabIndex = TabIndexFromContextMenu(sender);
+                });
                 items.Append(item);
             }
             if (!m_tabTitles.empty() && m_activeTab < m_tabTitles.size()) {
@@ -588,6 +724,7 @@ namespace winrt::ServoUI::implementation
         PopulateSettingsPane();
         ApplyTheme(defaults.themeMode);
         ApplyVerticalTabs(defaults.enableVerticalTabs);
+        SettingsStatus().Text(hstring(L"Defaults restored"));
         UpdateStatus(L"Default settings restored.");
     }
 
@@ -595,9 +732,9 @@ namespace winrt::ServoUI::implementation
     {
         m_loaded = true;
         m_xamlHwnd = GetXamlHwnd();
-        ConfigureTitleBar();
         BrowserSettings settings = LoadBrowserSettings();
         ApplyTheme(settings.themeMode);
+        ConfigureTitleBar();
         ApplyVerticalTabs(settings.enableVerticalTabs);
         EnsureShell();
 
@@ -667,6 +804,14 @@ namespace winrt::ServoUI::implementation
             args.Handled(true);
         } else if (ctrl && key == VirtualKey::F) {
             FindOpenClicked(nullptr, RoutedEventArgs{});
+            args.Handled(true);
+        } else if (ctrl && key == VirtualKey::U) {
+            if (m_shell && m_shell->ActiveView()) {
+                m_shell->ActiveView()->ViewPageSource();
+            }
+            args.Handled(true);
+        } else if (key == VirtualKey::F12 || (ctrl && shift && key == VirtualKey::I)) {
+            if (m_shell) m_shell->OpenDevTools();
             args.Handled(true);
         } else if (ctrl && key == VirtualKey::R) {
             if (m_shell) m_shell->NavigateReload();
@@ -789,33 +934,129 @@ namespace winrt::ServoUI::implementation
         }
     }
 
+    uint32_t MainWindow::TabIndexFromContextMenu(IInspectable const& sender)
+    {
+        try {
+            auto horizontal = Tabs().TabItems();
+            for (uint32_t i = 0; i < horizontal.Size(); ++i) {
+                if (horizontal.GetAt(i) == sender) return i;
+            }
+            auto vertical = VerticalTabsList().Items();
+            for (uint32_t i = 0; i < vertical.Size(); ++i) {
+                if (vertical.GetAt(i) == sender) return i;
+            }
+        } catch (...) {
+        }
+        return m_contextTabIndex < m_tabUrls.size() ? m_contextTabIndex : m_activeTab;
+    }
+
+    void MainWindow::TabContextRequested(IInspectable const& sender,
+                                         Microsoft::UI::Xaml::Input::ContextRequestedEventArgs const&)
+    {
+        uint32_t index = TabIndexFromContextMenu(sender);
+        m_contextTabIndex = index < m_tabUrls.size() ? index : m_activeTab;
+    }
+
+    void MainWindow::TabContextCloseClicked(IInspectable const& sender, RoutedEventArgs const&)
+    {
+        uint32_t index = TabIndexFromContextMenu(sender);
+        if (index < m_tabUrls.size()) CloseTab(index);
+    }
+
+    void MainWindow::TabContextCloseOthersClicked(IInspectable const& sender, RoutedEventArgs const&)
+    {
+        uint32_t keep = TabIndexFromContextMenu(sender);
+        if (keep >= m_tabUrls.size()) return;
+        for (int i = static_cast<int>(m_tabUrls.size()) - 1; i >= 0; --i) {
+            if (static_cast<uint32_t>(i) != keep) CloseTab(static_cast<uint32_t>(i));
+        }
+    }
+
+    void MainWindow::TabContextCloseRightClicked(IInspectable const& sender, RoutedEventArgs const&)
+    {
+        uint32_t index = TabIndexFromContextMenu(sender);
+        if (index >= m_tabUrls.size()) return;
+        for (int i = static_cast<int>(m_tabUrls.size()) - 1; i > static_cast<int>(index); --i) {
+            CloseTab(static_cast<uint32_t>(i));
+        }
+    }
+
+    void MainWindow::TabContextDuplicateClicked(IInspectable const& sender, RoutedEventArgs const&)
+    {
+        uint32_t index = TabIndexFromContextMenu(sender);
+        if (index < m_tabUrls.size()) AddTab(m_tabUrls[index]);
+    }
+
+    void MainWindow::TabContextReloadClicked(IInspectable const& sender, RoutedEventArgs const&)
+    {
+        uint32_t index = TabIndexFromContextMenu(sender);
+        if (index >= m_tabUrls.size()) return;
+        SelectTab(index);
+        if (m_shell) m_shell->NavigateReload();
+    }
+
     void MainWindow::FindOpenClicked(IInspectable const&, RoutedEventArgs const&)
     {
         FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Visible);
+        FindCount().Text(hstring(L""));
         LayoutViewport();
         FindBox().Focus(Microsoft::UI::Xaml::FocusState::Programmatic);
         FindBox().SelectAll();
     }
 
-    void MainWindow::FindBoxKeyDown(IInspectable const&, KeyRoutedEventArgs const& args)
+    void MainWindow::FindBoxKeyDown(IInspectable const& sender, KeyRoutedEventArgs const& args)
     {
         if (args.Key() == Windows::System::VirtualKey::Enter && m_shell) {
-            bool shift = KeyDown(VK_SHIFT);
-            m_shell->Find(to_string(FindBox().Text()), !shift, false);
+            FindNextClicked(sender, RoutedEventArgs{});
             args.Handled(true);
         } else if (args.Key() == Windows::System::VirtualKey::Escape) {
             FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+            FindCount().Text(hstring(L""));
             LayoutViewport();
             if (m_shell) m_shell->ClearFind();
             args.Handled(true);
         }
     }
 
+    void MainWindow::FindBoxTextChanged(IInspectable const&,
+                                        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const&)
+    {
+        if (!m_shell) return;
+        std::string text = to_string(FindBox().Text());
+        if (text.empty()) {
+            FindCount().Text(hstring(L""));
+            m_shell->ClearFind();
+            return;
+        }
+        m_shell->Find(text, true, false);
+    }
+
+    void MainWindow::FindNextClicked(IInspectable const&, RoutedEventArgs const&)
+    {
+        if (!m_shell) return;
+        std::string text = to_string(FindBox().Text());
+        if (text.empty()) {
+            FindCount().Text(hstring(L""));
+            m_shell->ClearFind();
+            return;
+        }
+        bool shift = KeyDown(VK_SHIFT);
+        m_shell->Find(text, !shift, false);
+        FindBox().Focus(Microsoft::UI::Xaml::FocusState::Programmatic);
+    }
+
     void MainWindow::FindCloseClicked(IInspectable const&, RoutedEventArgs const&)
     {
         FindPanel().Visibility(Microsoft::UI::Xaml::Visibility::Collapsed);
+        FindCount().Text(hstring(L""));
         LayoutViewport();
         if (m_shell) m_shell->ClearFind();
+    }
+
+    void MainWindow::SettingsSaveClicked(IInspectable const&, RoutedEventArgs const&)
+    {
+        ApplySettingsFromPane();
+        SettingsStatus().Text(hstring(L"Saved"));
     }
 
     void MainWindow::SettingsCloseClicked(IInspectable const&, RoutedEventArgs const&)
@@ -829,7 +1070,10 @@ namespace winrt::ServoUI::implementation
     {
         if (index >= m_tabUrls.size()) return;
         m_tabUrls[index] = url;
-        if (index == m_activeTab) Omnibox().Text(hstring(Wide(url)));
+        if (index == m_activeTab) {
+            Omnibox().Text(hstring(Wide(url)));
+            UpdateNavigationButtons();
+        }
     }
 
     void MainWindow::OnTitleChanged(uint32_t index, std::string const& title)
@@ -848,6 +1092,7 @@ namespace winrt::ServoUI::implementation
     {
         if (index != m_activeTab) return;
         UpdateStatus(status == 0 ? L"Loading..." : L"");
+        UpdateNavigationButtons();
     }
 
     void MainWindow::OnStatusTextChanged(std::string const& status)
@@ -871,10 +1116,43 @@ namespace winrt::ServoUI::implementation
 
     void MainWindow::OnFindResult(int, int count, int activeOrdinal)
     {
-        if (count <= 0) {
-            UpdateStatus(L"No matches");
-        } else {
-            UpdateStatus(std::to_wstring(count) + L" matches (match " + std::to_wstring(activeOrdinal + 1) + L")");
+        std::wstring summary = count <= 0
+            ? std::wstring(L"No matches")
+            : std::to_wstring(count) + L" matches (match " + std::to_wstring(activeOrdinal + 1) + L")";
+        try {
+            FindCount().Text(hstring(summary));
+        } catch (...) {
+        }
+        UpdateStatus(summary);
+    }
+
+    void MainWindow::OnTabFavicon(uint32_t index, std::vector<uint8_t> const& pixels,
+                                  uint32_t width, uint32_t height)
+    {
+        try {
+            if (index >= m_tabUrls.size() || width == 0 || height == 0) return;
+            const size_t required = static_cast<size_t>(width) * height * 4;
+            if (pixels.size() < required) return;
+            if (m_tabFaviconSources.size() < m_tabUrls.size()) {
+                m_tabFaviconSources.resize(m_tabUrls.size());
+            }
+
+            auto buffer = Windows::Storage::Streams::Buffer(static_cast<uint32_t>(pixels.size()));
+            buffer.Length(static_cast<uint32_t>(pixels.size()));
+            std::memcpy(buffer.Data(), pixels.data(), pixels.size());
+
+            auto bitmap = Windows::Graphics::Imaging::SoftwareBitmap::CreateCopyFromBuffer(
+                buffer,
+                Windows::Graphics::Imaging::BitmapPixelFormat::Bgra8,
+                static_cast<int32_t>(width),
+                static_cast<int32_t>(height),
+                Windows::Graphics::Imaging::BitmapAlphaMode::Premultiplied);
+            auto source = Microsoft::UI::Xaml::Media::Imaging::SoftwareBitmapSource{};
+            (void)source.SetBitmapAsync(bitmap);
+            m_tabFaviconSources[index] = source;
+            SetTabHeader(index, m_tabTitles[index]);
+        } catch (...) {
+            LogDebug("Could not display tab favicon.");
         }
     }
 

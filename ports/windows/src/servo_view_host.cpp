@@ -13,6 +13,7 @@
 #include <commdlg.h>
 #include <algorithm>
 #include <deque>
+#include <fstream>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -1094,6 +1095,8 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, IBrowserShell
     , m_browserShell(browserShell)
     , m_trackingMouse(false)
     , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
+    , m_history{ initialUrl.empty() ? std::string("about:blank") : initialUrl }
+    , m_historyIndex(0)
 {
     s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
@@ -1217,6 +1220,8 @@ ServoViewHost::ServoViewHost(
     , m_context(nullptr)
     , m_trackingMouse(false)
     , m_currentCursor(LoadCursorW(nullptr, IDC_ARROW))
+    , m_history{ "about:blank" }
+    , m_historyIndex(0)
 {
     s_allHosts.push_back(this);
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
@@ -1394,8 +1399,168 @@ void ServoViewHost::LoadUrl(const std::string& url) {
             target = SchannelGateway::WrapUrl(clean);
         }
 
+        RecordNavigationUrl(SchannelGateway::UnwrapUrl(target));
         ServoError err = servo_webview_load(m_webview, target.c_str());
         LogDebug("servo_webview_load('%s') returned %d", target.c_str(), (int)err);
+    }
+}
+
+void ServoViewHost::RecordNavigationUrl(const std::string& url)
+{
+    if (url.empty()) return;
+    if (!m_history.empty() && m_historyIndex < m_history.size() &&
+        m_history[m_historyIndex] == url) {
+        return;
+    }
+    if (m_historyIndex > 0 && m_historyIndex - 1 < m_history.size() &&
+        m_history[m_historyIndex - 1] == url) {
+        --m_historyIndex;
+        return;
+    }
+    if (m_historyIndex + 1 < m_history.size() &&
+        m_history[m_historyIndex + 1] == url) {
+        ++m_historyIndex;
+        return;
+    }
+    if (m_historyIndex + 1 < m_history.size()) {
+        m_history.resize(m_historyIndex + 1);
+    }
+    m_history.push_back(url);
+    m_historyIndex = m_history.size() - 1;
+}
+
+namespace
+{
+    struct ViewSourceRequest
+    {
+        ServoViewHost* host;
+        std::string pageUrl;
+    };
+
+    std::string HtmlEscape(const std::string& value)
+    {
+        std::string out;
+        out.reserve(value.size() + 16);
+        for (char c : value) {
+            switch (c) {
+            case '&': out += "&amp;"; break;
+            case '<': out += "&lt;"; break;
+            case '>': out += "&gt;"; break;
+            case '"': out += "&quot;"; break;
+            case '\'': out += "&#39;"; break;
+            default: out += c; break;
+            }
+        }
+        return out;
+    }
+
+    std::string FileUrlFromPath(const std::wstring& path)
+    {
+        int length = WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (length <= 1) return {};
+        std::string utf8(static_cast<size_t>(length - 1), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1, &utf8[0], length, nullptr, nullptr);
+
+        static const char* hex = "0123456789ABCDEF";
+        std::string encoded = "file:///";
+        for (unsigned char c : utf8) {
+            char slash = c == '\\' ? '/' : static_cast<char>(c);
+            bool safe = (slash >= 'a' && slash <= 'z') || (slash >= 'A' && slash <= 'Z') ||
+                        (slash >= '0' && slash <= '9') ||
+                        slash == '/' || slash == ':' || slash == '-' || slash == '_' ||
+                        slash == '.' || slash == '~';
+            if (safe) {
+                encoded += slash;
+            } else {
+                encoded += '%';
+                encoded += hex[(slash >> 4) & 0x0F];
+                encoded += hex[slash & 0x0F];
+            }
+        }
+        return encoded;
+    }
+}
+
+bool ServoViewHost::IsAlive(ServoViewHost* host)
+{
+    return std::find(s_allHosts.begin(), s_allHosts.end(), host) != s_allHosts.end();
+}
+
+void ServoViewHost::ViewPageSource()
+{
+    if (!m_webview || !m_browserShell) return;
+    auto* request = new ViewSourceRequest{ this, GetUrl() };
+    ServoError result = servo_webview_evaluate_javascript_v2(
+        m_webview,
+        "document.documentElement ? document.documentElement.outerHTML : ''",
+        &ServoViewHost::OnViewSourceResult,
+        request);
+    if (result != SERVO_ERROR_OK) {
+        delete request;
+        LogDebug("View source evaluation failed with error %d", (int)result);
+    }
+}
+
+void ServoViewHost::OnViewSourceResult(ServoValue* value, const char* errorMessage, void* userData)
+{
+    std::unique_ptr<ViewSourceRequest> request(static_cast<ViewSourceRequest*>(userData));
+    std::string source;
+    if (value) {
+        size_t required = servo_value_get_string(value, nullptr, 0);
+        if (required > 1) {
+            source.resize(required - 1);
+            servo_value_get_string(value, &source[0], required);
+        }
+        servo_value_free(value);
+    }
+    if (errorMessage && *errorMessage) {
+        LogDebug("[VIEW SOURCE] %s", errorMessage);
+        return;
+    }
+    if (source.empty() || !request || !request->host || !IsAlive(request->host) ||
+        !request->host->m_browserShell) {
+        return;
+    }
+
+    std::string pageTitle = HtmlEscape(request->pageUrl.empty() ? "Page" : request->pageUrl);
+    std::string escaped = HtmlEscape(source);
+    std::string document =
+        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        "<title>View Source - " + pageTitle + "</title>"
+        "<style>"
+        ":root { color-scheme: light dark; }"
+        "body { margin: 0; min-height: 100vh; background: #f6f8fb; color: #1b1f27;"
+        " font: 13px/1.55 'Cascadia Mono', Consolas, monospace; }"
+        "header { position: sticky; top: 0; z-index: 1; padding: 12px 20px;"
+        " background: rgba(255,255,255,.94); border-bottom: 1px solid #d8dde7;"
+        " font: 600 14px/1.4 'Segoe UI Variable', 'Segoe UI', sans-serif; }"
+        "header span { color: #64748b; font-weight: 400; margin-left: 10px; }"
+        "pre { margin: 0; padding: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }"
+        "@media (prefers-color-scheme: dark) {"
+        "body { background: #11151c; color: #e6edf7; }"
+        "header { background: rgba(17,21,28,.94); border-color: #2b3444; }"
+        "header span { color: #94a3b8; } }"
+        "</style></head><body><header>Page source<span>" + pageTitle +
+        "</span></header><pre>" + escaped + "</pre></body></html>";
+
+    wchar_t tempDirectory[MAX_PATH] = {};
+    if (!GetTempPathW(MAX_PATH, tempDirectory)) return;
+    static unsigned long long sequence = 0;
+    wchar_t filePath[MAX_PATH] = {};
+    swprintf(filePath, MAX_PATH, L"%sServoViewSource_%lu_%llu.html",
+             tempDirectory, GetCurrentProcessId(), ++sequence);
+
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) {
+        LogDebug("[VIEW SOURCE] Could not write %ls", filePath);
+        return;
+    }
+    out.write(document.data(), static_cast<std::streamsize>(document.size()));
+    out.close();
+
+    std::string fileUrl = FileUrlFromPath(filePath);
+    if (!fileUrl.empty()) {
+        request->host->m_browserShell->OpenUrlInNewTab(fileUrl);
     }
 }
 
@@ -1412,23 +1577,40 @@ void ServoViewHost::Stop() {
 }
 
 void ServoViewHost::GoBack() {
-    if (m_webview && servo_webview_can_go_back(m_webview)) {
+    if (!m_webview) return;
+    if (servo_webview_can_go_back(m_webview)) {
         servo_webview_go_back(m_webview, 1);
+        return;
+    }
+    // Servo's session history is sometimes empty for host-driven loads. Fall
+    // back to the URLs this view has actually displayed so the toolbar arrows
+    // remain useful regardless of engine history bookkeeping.
+    if (m_historyIndex > 0) {
+        --m_historyIndex;
+        servo_webview_load(m_webview, m_history[m_historyIndex].c_str());
     }
 }
 
 void ServoViewHost::GoForward() {
-    if (m_webview && servo_webview_can_go_forward(m_webview)) {
+    if (!m_webview) return;
+    if (servo_webview_can_go_forward(m_webview)) {
         servo_webview_go_forward(m_webview, 1);
+        return;
+    }
+    if (m_historyIndex + 1 < m_history.size()) {
+        ++m_historyIndex;
+        servo_webview_load(m_webview, m_history[m_historyIndex].c_str());
     }
 }
 
 bool ServoViewHost::CanGoBack() const {
-    return m_webview ? servo_webview_can_go_back(m_webview) : false;
+    bool engineCanGoBack = m_webview && servo_webview_can_go_back(m_webview);
+    return engineCanGoBack || (!m_history.empty() && m_historyIndex > 0);
 }
 
 bool ServoViewHost::CanGoForward() const {
-    return m_webview ? servo_webview_can_go_forward(m_webview) : false;
+    bool engineCanGoForward = m_webview && servo_webview_can_go_forward(m_webview);
+    return engineCanGoForward || (!m_history.empty() && m_historyIndex + 1 < m_history.size());
 }
 
 std::string ServoViewHost::GetUrl() const {
@@ -1742,6 +1924,10 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             default:
                 break;
             }
+            // Ctrl+Shift+I opens DevTools; plain Ctrl+I remains with the page.
+            if (ctrl && (GetKeyState(VK_SHIFT) & 0x8000) && wParam == 'I') {
+                isBrowserShortcut = true;
+            }
         } else if (alt) {
             switch (wParam) {
             case VK_LEFT: case VK_RIGHT: case VK_HOME: case 'D':
@@ -1818,6 +2004,7 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
     }
     if (self && self->m_browserShell && url) {
         std::string displayUrl = SchannelGateway::UnwrapUrl(url);
+        self->RecordNavigationUrl(displayUrl);
         self->m_browserShell->OnActiveTabUrlChanged(self, displayUrl.c_str());
     }
 }
@@ -2047,10 +2234,7 @@ void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
         }
         break;
     case 7:
-        if (m_browserShell) {
-            std::string srcUrl = "view-source:" + GetUrl();
-            m_browserShell->OpenUrlInNewTab(srcUrl);
-        }
+        ViewPageSource();
         break;
     case 8:
         if (m_browserShell) {

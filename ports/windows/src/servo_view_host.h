@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <string>
 #include <functional>
+#include <vector>
 #include <servo/servo_capi.h>
 #include "browser_shell.h"
 #include "servo_view_utils.h"
@@ -48,6 +49,7 @@ public:
     std::string GetTitle() const;
     void HandleFaviconChanged(const char* url);
     void ShowContextMenu(int screenX, int screenY);
+    void ViewPageSource();
     void EvaluateJavaScript(const std::string& script);
 
 private:
@@ -87,6 +89,9 @@ private:
 
     uint32_t GetServoModifiers() const;
     void InjectPageEnhancements();
+    void RecordNavigationUrl(const std::string& url);
+    static bool IsAlive(ServoViewHost* host);
+    static void OnViewSourceResult(ServoValue* value, const char* errorMessage, void* userData);
 
     HWND m_hwnd;
     HWND m_parentHwnd;
@@ -105,4 +110,6 @@ private:
     DWORD m_paintThrottleMs = 0;
     bool m_paintTimerPending = false;
     HCURSOR m_currentCursor;
+    std::vector<std::string> m_history;
+    size_t m_historyIndex = 0;
 };

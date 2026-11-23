@@ -70,6 +70,7 @@ namespace winrt::ServoUI::implementation
         void ApplyViewVisibility();
         void ApplyViewportToActive();
         void LoadInActiveTab(const std::string& url);
+        void ResetFindState();
         static std::string Trim(const std::string& value);
         static std::string SearchUrl(const std::string& text);
 
@@ -83,5 +84,6 @@ namespace winrt::ServoUI::implementation
         float m_zoom = 1.0f;
         int m_findIdentifier = -1;
         std::string m_findText;
+        ServoViewHost* m_findView = nullptr;
     };
 }

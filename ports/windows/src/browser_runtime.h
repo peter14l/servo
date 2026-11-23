@@ -52,6 +52,7 @@ public:
     using DevToolsCallback = std::function<void(uint16_t, const std::string&)>;
     void SetDevToolsCallback(DevToolsCallback callback);
     void NotifyDevTools(uint16_t port, const std::string& token);
+    uint16_t DevToolsPort() const { return m_devToolsPort; }
 
     // Called from the C waker (any thread) and from the UI thread respectively.
     void OnServoWake();
@@ -74,4 +75,5 @@ private:
     DWORD m_mainThreadId = 0;
     struct Servo* m_servo = nullptr;
     DevToolsCallback m_devToolsCallback;
+    uint16_t m_devToolsPort = 0;
 };

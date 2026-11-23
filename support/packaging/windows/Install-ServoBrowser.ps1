@@ -2,6 +2,14 @@
 .SYNOPSIS
     Installs Servo Browser for Windows with desktop shortcuts, Start Menu integration,
     and Windows Default Browser registry capabilities.
+.DESCRIPTION
+    Registers browser capability metadata so the user can pick Servo Browser in
+    Windows Settings > Default apps. This script never writes UserChoice: Windows
+    deliberately reserves that key for an explicit user action.
+
+    Any imported certificate is the CI self-signed test certificate for local dev
+    builds only. Production signing, MSIX/Store-ready packaging and the update
+    channel are separate deployment decisions and are intentionally not done here.
 .PARAMETER InstallDir
     Target directory for installation (default: $env:LOCALAPPDATA\Programs\ServoBrowser)
 .PARAMETER Silent
@@ -14,6 +22,18 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# DEV/PREVIEW ONLY: trust the self-signed certificate shipped with CI packages so a
+# local browser launches without a warning. This is not production code signing.
+$CertPath = Join-Path $PSScriptRoot "ServoBrowser.cer"
+if (Test-Path $CertPath) {
+    Write-Host "[+] Importing local self-signed test certificate (dev only)" -ForegroundColor Yellow
+    try {
+        Import-Certificate -FilePath $CertPath -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
+    } catch {
+        Write-Warning "Could not import $CertPath; the binary may show an untrusted-publisher warning."
+    }
+}
 
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "  Installing Servo Browser (for Windows)" -ForegroundColor Cyan
@@ -152,6 +172,28 @@ $Shortcut.IconLocation = "$DestExe,0"
 $Shortcut.Save()
 Write-Host "[+] Created Start Menu shortcut: $StartMenuShortcutPath" -ForegroundColor Green
 
+# Utility shortcuts in the same Start Menu folder. Only routes the shell actually
+# handles are registered, so no shortcut claims a feature that does not exist.
+# DevTools is intentionally omitted: there is no --devtools command-line flag and
+# Servo exposes Firefox RDP only, so a shortcut would imply an in-window frontend.
+$UtilityShortcuts = @(
+    @{ Name = "Settings"; Argument = "servo://settings"; Description = "Open Servo Browser settings" },
+    @{ Name = "Bookmarks"; Argument = "servo://bookmarks"; Description = "Open Servo Browser bookmarks" },
+    @{ Name = "History"; Argument = "servo://history"; Description = "Open Servo Browser history" },
+    @{ Name = "Downloads"; Argument = "servo://downloads"; Description = "Open Servo Browser downloads" }
+)
+foreach ($entry in $UtilityShortcuts) {
+    $utilityPath = Join-Path $StartMenuFolder "$($entry.Name).lnk"
+    $utility = $WshShell.CreateShortcut($utilityPath)
+    $utility.TargetPath = $DestExe
+    $utility.Arguments = $entry.Argument
+    $utility.WorkingDirectory = $InstallDir
+    $utility.Description = $entry.Description
+    $utility.IconLocation = "$DestExe,0"
+    $utility.Save()
+    Write-Host "[+] Created Start Menu shortcut: $utilityPath" -ForegroundColor Green
+}
+
 # Register in Windows Registry
 # 1. App Paths
 $AppPathReg = "HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\servobrowser.exe"
@@ -172,6 +214,9 @@ Set-ItemProperty -Path $UninstallReg -Name "NoModify" -Value 1
 Set-ItemProperty -Path $UninstallReg -Name "NoRepair" -Value 1
 
 # 3. Default Browser Registration (StartMenuInternet)
+# We register the declarations Windows requires for a browser to appear in
+# Settings > Apps > Default apps. We never touch UserChoice: that key is owned by
+# the user and Windows may ignore or actively reject programmatic writes to it.
 $BrowserReg = "HKCU:\Software\Clients\StartMenuInternet\ServoBrowser"
 New-Item -Path $BrowserReg -Force | Out-Null
 Set-ItemProperty -Path $BrowserReg -Name "(Default)" -Value "Servo Browser"
@@ -184,6 +229,18 @@ $BrowserOpenReg = "$BrowserReg\shell\open\command"
 New-Item -Path $BrowserOpenReg -Force | Out-Null
 Set-ItemProperty -Path $BrowserOpenReg -Name "(Default)" -Value "`"$DestExe`""
 
+# The ProgID referenced by URLAssociations/FileAssociations must exist or the
+# capability declaration points at nothing.
+$ProgIdReg = "HKCU:\Software\Classes\ServoBrowserHTML"
+New-Item -Path $ProgIdReg -Force | Out-Null
+Set-ItemProperty -Path $ProgIdReg -Name "(Default)" -Value "Servo Browser HTML Document"
+$ProgIdIconReg = "$ProgIdReg\DefaultIcon"
+New-Item -Path $ProgIdIconReg -Force | Out-Null
+Set-ItemProperty -Path $ProgIdIconReg -Name "(Default)" -Value "$DestExe,0"
+$ProgIdOpenReg = "$ProgIdReg\shell\open\command"
+New-Item -Path $ProgIdOpenReg -Force | Out-Null
+Set-ItemProperty -Path $ProgIdOpenReg -Name "(Default)" -Value "`"$DestExe`" `"%1`""
+
 $CapabilitiesReg = "$BrowserReg\Capabilities"
 New-Item -Path $CapabilitiesReg -Force | Out-Null
 Set-ItemProperty -Path $CapabilitiesReg -Name "ApplicationDescription" -Value "Servo Browser is a fast, memory-safe web browser powered by Rust."
@@ -195,12 +252,51 @@ New-Item -Path $UrlAssocReg -Force | Out-Null
 Set-ItemProperty -Path $UrlAssocReg -Name "http" -Value "ServoBrowserHTML"
 Set-ItemProperty -Path $UrlAssocReg -Name "https" -Value "ServoBrowserHTML"
 
+$FileAssocReg = "$CapabilitiesReg\FileAssociations"
+New-Item -Path $FileAssocReg -Force | Out-Null
+Set-ItemProperty -Path $FileAssocReg -Name ".html" -Value "ServoBrowserHTML"
+Set-ItemProperty -Path $FileAssocReg -Name ".htm" -Value "ServoBrowserHTML"
+Set-ItemProperty -Path $FileAssocReg -Name ".url" -Value "ServoBrowserHTML"
+
 # Register capabilities in RegisteredApplications
 $RegisteredApps = "HKCU:\Software\RegisteredApplications"
 if (-not (Test-Path $RegisteredApps)) {
     New-Item -Path $RegisteredApps -Force | Out-Null
 }
 Set-ItemProperty -Path $RegisteredApps -Name "ServoBrowser" -Value "Software\Clients\StartMenuInternet\ServoBrowser\Capabilities"
+
+# 4. Diagnostics folder for update/feedback scaffolding.
+# This is documentation/template scaffolding only: no updater or crash reporter is
+# installed. See UPDATE_AND_FEEDBACK.md for the current (manual) path.
+$DiagnosticsDir = Join-Path $InstallDir "Diagnostics"
+if (-not (Test-Path $DiagnosticsDir)) {
+    New-Item -ItemType Directory -Path $DiagnosticsDir -Force | Out-Null
+}
+$FeedbackTemplate = @'
+Servo Browser - feedback / diagnostics template
+==============================================
+
+Nothing is uploaded automatically. Fill this in by hand and redact it before
+sharing in an issue or with a maintainer.
+
+- Version / commit:
+- OS build:
+- What happened:
+- Steps to reproduce:
+- Expected result:
+- Relevant log path (see UPDATE_AND_FEEDBACK.md):
+
+REDACT BEFORE SHARING:
+- URLs with query strings, tokens, session ids or auth parameters
+- Local filesystem paths that include your username or company name
+- Cookies, credentials, DevTools tokens and certificate material
+- Screenshots that show personal data
+
+Do not paste raw crash dumps or logs until you have checked them for the above.
+'@
+$FeedbackTemplatePath = Join-Path $DiagnosticsDir "feedback-template.txt"
+Set-Content -Path $FeedbackTemplatePath -Value $FeedbackTemplate -Encoding utf8
+Write-Host "[+] Created diagnostics template: $FeedbackTemplatePath" -ForegroundColor Green
 
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "  Servo Browser successfully installed!" -ForegroundColor Green

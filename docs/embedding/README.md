@@ -41,6 +41,9 @@ below.
 | [SECURITY_AUDIT.md](SECURITY_AUDIT.md) | Security & robustness audit of the engine and the embedding boundary, with file/line evidence and priorities. |
 | [HARDENING_PLAN.md](HARDENING_PLAN.md) | Concrete, bounded designs for the stability work (hang monitor, reachable panics, fuzzing) and FFI-boundary hardening. |
 | [WINDOWS_BROWSER_PLAN.md](WINDOWS_BROWSER_PLAN.md) | Executable plan & progress tracker for building a native Windows C++/C# browser using Rust Servo with Mica Alt styling. |
+| [WINUI_UIUX_COMPLETION_CHECKLIST.md](WINUI_UIUX_COMPLETION_CHECKLIST.md) | Living UI/UX gap register and prioritized P0–P3 work list for the native WinUI browser; records what is implemented in source versus runtime-verified. |
+| [WINUI_PLATFORM_SCALING.md](WINUI_PLATFORM_SCALING.md) | P3 preparation: ownership map and scaffolding for sharing browser core contracts without turning WinUI into a cross-platform UI framework. |
+| [UPDATE_AND_FEEDBACK.md](../../support/packaging/windows/UPDATE_AND_FEEDBACK.md) | Manual update path, Windows log locations, artifact SHA256 verification and redaction rules for feedback. Scaffolding only — no auto-updater. |
 | [IOS_PORT_SPIKE.md](IOS_PORT_SPIKE.md) | Feasibility spike and deliberate decision on an iOS port: what is missing and what the go/no-go experiment is. |
 | [CONTRIBUTING_EMBEDDING.md](CONTRIBUTING_EMBEDDING.md) | How to add or change C API functions safely and get them reviewed and tested. |
 

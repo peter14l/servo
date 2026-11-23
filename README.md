@@ -55,6 +55,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
 - Restart your shell to make sure `cargo` is available
 - Install the other dependencies: `.\mach bootstrap`
 - Build servoshell: `.\mach build`
+- For the native WinUI browser: see the [UI/UX completion checklist](docs/embedding/WINUI_UIUX_COMPLETION_CHECKLIST.md) and the [Windows packaging guide](support/packaging/windows/README.md). CI builds only; no local build steps are documented here.
 
 ### Android
 

@@ -4,6 +4,7 @@
 
 #include "settings_dialog.h"
 #include "browser_window.h"
+#include "browser_settings.h"
 #include "fluent_theme.h"
 #include <commctrl.h>
 #include <shlobj.h>
@@ -50,6 +51,8 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
         CreateDirectoryW(dir.c_str(), nullptr);
         std::wstring htmlPath = dir + L"\\settings.html";
 
+        // The WinUI shell ignores this generated fallback and uses the native
+        // XAML settings pane. Keep these fields in sync for the legacy shell.
         FILE* fp = _wfsopen(htmlPath.c_str(), L"w", _SH_DENYNO);
         if (fp) {
             const char* html =
@@ -435,6 +438,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE721;</span><div class=\"card-info\"><h3>Default search engine</h3><p>Used for searches submitted from the address bar.</p></div></div><div class=\"segmented-group\" id=\"grp-search\"><button class=\"seg-btn active\" data-group=\"search\" data-val=\"DuckDuckGo\" onclick=\"selectSegment('search','DuckDuckGo',this)\">DuckDuckGo</button><button class=\"seg-btn\" data-group=\"search\" data-val=\"Google\" onclick=\"selectSegment('search','Google',this)\">Google</button><button class=\"seg-btn\" data-group=\"search\" data-val=\"Bing\" onclick=\"selectSegment('search','Bing',this)\">Bing</button><button class=\"seg-btn\" data-group=\"search\" data-val=\"Ecosia\" onclick=\"selectSegment('search','Ecosia',this)\">Ecosia</button></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE80F;</span><div class=\"card-info\"><h3>Home page</h3><p>Page loaded on new windows and when clicking the Home button.</p></div></div><input type=\"url\" id=\"home\" onchange=\"save()\" value=\"https://servo.org\"></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE896;</span><div class=\"card-info\"><h3>Downloads location</h3><p>Folder where downloaded files are saved automatically.</p></div></div><input type=\"text\" id=\"dl\" onchange=\"save()\"></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE721;</span><div class=\"card-info\"><h3>Custom search engine</h3><p>URL template for the address bar; %s is replaced with the encoded query. Leave empty to use the selected engine.</p></div></div><input type=\"url\" id=\"customSearch\" placeholder=\"https://example.com/search?q=%s\" onchange=\"save()\"></div>\n"
                 "  </div>\n"
                 "  <div id=\"appearance\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">Appearance</h1>\n"
@@ -443,6 +447,9 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE7F4;</span><div class=\"card-info\"><h3>Mica Alt tabbed backdrop</h3><p>Windows 11 translucent system material.</p></div></div><div class=\"segmented-group\" id=\"grp-backdrop\"><button class=\"seg-btn active\" data-group=\"backdrop\" data-val=\"0\" onclick=\"selectSegment('backdrop','0',this)\">Mica Alt (Tabbed)</button><button class=\"seg-btn\" data-group=\"backdrop\" data-val=\"1\" onclick=\"selectSegment('backdrop','1',this)\">Mica</button><button class=\"seg-btn\" data-group=\"backdrop\" data-val=\"2\" onclick=\"selectSegment('backdrop','2',this)\">Solid</button></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE8C4;</span><div class=\"card-info\"><h3>Vertical tabs</h3><p>Dock the tab bar on the left side of the window (Ctrl+Shift+V).</p></div></div><div class=\"win-toggle\" id=\"toggle-verticaltabs\" onclick=\"toggleSwitch('verticaltabs')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-verticaltabs\">Off</span></div></div>\n"
                 "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE721;</span><div class=\"card-info\"><h3>Omnibox search & domain suggestions</h3><p>Show drop-down interactive suggestions with Rank-0 website priority while typing.</p></div></div><div class=\"win-toggle active\" id=\"toggle-sugg\" onclick=\"toggleSwitch('sugg')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-sugg\">On</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE790;</span><div class=\"card-info\"><h3>Accent color</h3><p>Named chrome accent. Native shells apply their own brushes.</p></div></div><div class=\"segmented-group\" id=\"grp-accent\"><button class=\"seg-btn active\" data-group=\"accent\" data-val=\"Default\" onclick=\"selectSegment('accent','Default',this)\">Default</button><button class=\"seg-btn\" data-group=\"accent\" data-val=\"Blue\" onclick=\"selectSegment('accent','Blue',this)\">Blue</button><button class=\"seg-btn\" data-group=\"accent\" data-val=\"Purple\" onclick=\"selectSegment('accent','Purple',this)\">Purple</button><button class=\"seg-btn\" data-group=\"accent\" data-val=\"Teal\" onclick=\"selectSegment('accent','Teal',this)\">Teal</button></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE8D2;</span><div class=\"card-info\"><h3>Text scale</h3><p>Chrome and web text size as a percentage of the default.</p></div></div><div class=\"segmented-group\" id=\"grp-textScale\"><button class=\"seg-btn\" data-group=\"textScale\" data-val=\"50\" onclick=\"selectSegment('textScale','50',this)\">50%</button><button class=\"seg-btn active\" data-group=\"textScale\" data-val=\"100\" onclick=\"selectSegment('textScale','100',this)\">100%</button><button class=\"seg-btn\" data-group=\"textScale\" data-val=\"150\" onclick=\"selectSegment('textScale','150',this)\">150%</button><button class=\"seg-btn\" data-group=\"textScale\" data-val=\"200\" onclick=\"selectSegment('textScale','200',this)\">200%</button></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE9E9;</span><div class=\"card-info\"><h3>Reduce motion</h3><p>Requests calmer chrome animations where supported.</p></div></div><div class=\"win-toggle\" id=\"toggle-reducemotion\" onclick=\"toggleSwitch('reducemotion')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-reducemotion\">Off</span></div></div>\n"
                 "  </div>\n"
                 "  <div id=\"compatibility\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">Web Standards & Anti-Bot Compatibility</h1>\n"
@@ -462,7 +469,9 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  </div>\n"
                 "  <div id=\"privacy\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">Privacy & Data</h1>\n"
-                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE74D;</span><div class=\"card-info\"><h3>Clear settings on this page</h3><p>Resets the preferences stored locally by this page.</p></div></div><button class=\"btn btn-danger\" onclick=\"clearData()\">Clear Settings</button></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE72E;</span><div class=\"card-info\"><h3>Private browsing</h3><p>Chrome-level preference. Engine private mode is configured per WebView by the shell.</p></div></div><div class=\"win-toggle\" id=\"toggle-privatemode\" onclick=\"toggleSwitch('privatemode')\"><div class=\"win-toggle-track\"><div class=\"win-toggle-thumb\"></div></div><span class=\"win-toggle-status\" id=\"lbl-privatemode\">Off</span></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE74D;</span><div class=\"card-info\"><h3>Clear browsing data categories</h3><p>Default selection offered by this fallback page.</p></div></div><div style=\"display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px\"><label><input type=\"checkbox\" id=\"clearHistory\" checked onchange=\"save()\"> History</label><label><input type=\"checkbox\" id=\"clearCookies\" checked onchange=\"save()\"> Cookies</label><label><input type=\"checkbox\" id=\"clearCache\" checked onchange=\"save()\"> Cache</label><label><input type=\"checkbox\" id=\"clearSiteData\" onchange=\"save()\"> Site data</label><label><input type=\"checkbox\" id=\"clearPasswords\" onchange=\"save()\"> Passwords</label></div></div>\n"
+                "    <div class=\"settings-card\"><div class=\"card-left\"><span class=\"ficon card-icon\">&#xE74D;</span><div class=\"card-info\"><h3>Clear settings on this page</h3><p>Resets the preferences stored locally by this page only.</p></div></div><button class=\"btn btn-danger\" onclick=\"clearData()\">Clear Settings</button></div>\n"
                 "  </div>\n"
                 "  <div id=\"about\" class=\"section\">\n"
                 "    <h1 class=\"section-title\">About Servo</h1>\n"
@@ -515,6 +524,8 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    if (lbl) lbl.textContent = active ? 'On' : 'Off';\n"
                 "  }\n"
                 "}\n"
+                "function setChecked(id, checked) { const el = document.getElementById(id); if (el) el.checked = checked; }\n"
+                "function isChecked(id) { const el = document.getElementById(id); return el ? el.checked : false; }\n"
                 "function load() {\n"
                 "  const raw = _getPref('servo_prefs');\n"
                 "  const s = raw ? JSON.parse(raw) : {};\n"
@@ -533,10 +544,25 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  if (s.notifications !== undefined) setToggleActive('notifications', s.notifications);\n"
                 "  if (s.geolocation !== undefined) setToggleActive('geolocation', s.geolocation);\n"
                 "  if (s.varfonts !== undefined) setToggleActive('varfonts', s.varfonts);\n"
+                "  if (s.customSearch !== undefined) document.getElementById('customSearch').value = s.customSearch;\n"
+                "  if (s.accent !== undefined) setSegmentVal('accent', s.accent);\n"
+                "  if (s.textScale !== undefined) setSegmentVal('textScale', String(s.textScale));\n"
+                "  if (s.reduceMotion !== undefined) setToggleActive('reducemotion', s.reduceMotion);\n"
+                "  if (s.privateMode !== undefined) setToggleActive('privatemode', s.privateMode);\n"
+                "  if (s.clearDataMask !== undefined) {\n"
+                "    setChecked('clearHistory', (s.clearDataMask & 1) !== 0);\n"
+                "    setChecked('clearCookies', (s.clearDataMask & 2) !== 0);\n"
+                "    setChecked('clearCache', (s.clearDataMask & 4) !== 0);\n"
+                "    setChecked('clearSiteData', (s.clearDataMask & 8) !== 0);\n"
+                "    setChecked('clearPasswords', (s.clearDataMask & 16) !== 0);\n"
+                "  }\n"
                 "}\n"
                 "function save() {\n"
                 "  const f = getSegmentVal('font') || 'Inter';\n"
                 "  document.body.style.fontFamily = `'${f}', -apple-system, sans-serif`;\n"
+                "  const clearDataMask = (isChecked('clearHistory') ? 1 : 0) | (isChecked('clearCookies') ? 2 : 0) |\n"
+                "    (isChecked('clearCache') ? 4 : 0) | (isChecked('clearSiteData') ? 8 : 0) |\n"
+                "    (isChecked('clearPasswords') ? 16 : 0);\n"
                 "  const s = {\n"
                 "    font: f,\n"
                 "    search: getSegmentVal('search'),\n"
@@ -552,7 +578,13 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "    webrtc: isToggleActive('webrtc'),\n"
                 "    notifications: isToggleActive('notifications'),\n"
                 "    geolocation: isToggleActive('geolocation'),\n"
-                "    varfonts: isToggleActive('varfonts')\n"
+                "    varfonts: isToggleActive('varfonts'),\n"
+                "    customSearch: document.getElementById('customSearch').value,\n"
+                "    accent: getSegmentVal('accent') || 'Default',\n"
+                "    textScale: parseInt(getSegmentVal('textScale') || '100', 10),\n"
+                "    reduceMotion: isToggleActive('reducemotion'),\n"
+                "    privateMode: isToggleActive('privatemode'),\n"
+                "    clearDataMask: clearDataMask\n"
                 "  };\n"
                 "  _setPref('servo_prefs', JSON.stringify(s));\n"
                 "  console.log('__servo_ipc__:apply_settings:' + JSON.stringify(s));\n"
@@ -560,7 +592,7 @@ std::string SettingsDialog::EnsureSettingsPageExists() {
                 "  t.classList.add('show');\n"
                 "  setTimeout(() => t.classList.remove('show'), 1600);\n"
                 "}\n"
-                "function clearData() { _clearPrefs(); alert('Browsing data and caches cleared.'); }\n"
+                "function clearData() { _clearPrefs(); alert('Local page preferences cleared. Browser data is cleared from the native settings pane.'); }\n"
                 "window.onload = load;\n"
                 "</script>\n</body>\n</html>\n";
             fputs(html, fp);
@@ -803,7 +835,7 @@ void SettingsDialog::CreateControls() {
     SendMessageW(m_comboUserAgent, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
     y += 32;
 
-    m_btnClearData = CreateWindowW(L"BUTTON", L"Clear Browsing Data (Cookies & Cache)",
+    m_btnClearData = CreateWindowW(L"BUTTON", L"Clear Browsing Data...",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
         x, y, 260, 26, m_hwnd, (HMENU)IDC_BTN_CLEAR_DATA, hInst, nullptr);
     SendMessageW(m_btnClearData, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
@@ -874,32 +906,39 @@ void SettingsDialog::CreateControls() {
 }
 
 void SettingsDialog::ClearBrowsingData() {
-    wchar_t localAppData[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
-        std::wstring cacheDir = std::wstring(localAppData) + L"\\Servo Browser\\Cache";
-        std::wstring cookieDir = std::wstring(localAppData) + L"\\Servo Browser\\Cookies";
+    auto toWide = [](const std::string& value) {
+        if (value.empty()) return std::wstring();
+        int length = MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
+        if (length <= 0) return std::wstring();
+        std::wstring result(static_cast<size_t>(length), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, &result[0], length);
+        result.resize(static_cast<size_t>(length - 1));
+        return result;
+    };
 
-        auto deleteDirFiles = [](const std::wstring& dir) {
-            std::wstring search = dir + L"\\*.*";
-            WIN32_FIND_DATAW fd;
-            HANDLE hFind = FindFirstFileW(search.c_str(), &fd);
-            if (hFind != INVALID_HANDLE_VALUE) {
-                do {
-                    if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-                        std::wstring path = dir + L"\\" + fd.cFileName;
-                        DeleteFileW(path.c_str());
-                    }
-                } while (FindNextFileW(hFind, &fd));
-                FindClose(hFind);
-            }
-        };
+    const int mask = m_settings.clearDataMask;
+    ClearBrowsingDataResult result = BrowserSettings::ClearBrowsingData(mask);
 
-        deleteDirFiles(cacheDir);
-        deleteDirFiles(cookieDir);
+    std::wstring cleared;
+    auto appendName = [&](const wchar_t* name) {
+        if (!cleared.empty()) cleared += L", ";
+        cleared += name;
+    };
+    if (result.clearedMask & BrowserClearHistory) appendName(L"history");
+    if (result.clearedMask & BrowserClearCookies) appendName(L"cookies");
+    if (result.clearedMask & BrowserClearCache) appendName(L"cache");
+    if (result.clearedMask & BrowserClearSiteData) appendName(L"site data");
+    if (result.clearedMask & BrowserClearPasswords) appendName(L"passwords");
 
-        MessageBoxW(m_hwnd, L"Browsing data (Cookies and HTTP Cache) successfully cleared.",
-            L"Clear Browsing Data", MB_OK | MB_ICONINFORMATION);
+    std::wstring message = cleared.empty()
+        ? L"No browsing data was cleared."
+        : L"Cleared: " + cleared + L".";
+    if (!result.details.empty()) {
+        message += L"\n\n";
+        message += toWide(result.details);
     }
+
+    MessageBoxW(m_hwnd, message.c_str(), L"Clear Browsing Data", MB_OK | MB_ICONINFORMATION);
 }
 
 void SettingsDialog::ApplyAndClose() {

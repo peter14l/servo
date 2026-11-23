@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "browser_data.h"
+#include "browser_settings.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -450,6 +451,7 @@ std::string BrowserData::EnsureBookmarksPageExists() {
         << "  <div class=\"nav-footer\">\n"
         << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
         << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
         << "    <a href=\"servo://settings\">Settings</a> &bull; "
         << "    <a href=\"servo://about\">About Servo</a>\n"
         << "  </div>\n"
@@ -507,6 +509,7 @@ std::string BrowserData::EnsureHistoryPageExists() {
         << "  <div class=\"nav-footer\">\n"
         << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
         << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
         << "    <a href=\"servo://settings\">Settings</a> &bull; "
         << "    <a href=\"servo://about\">About Servo</a>\n"
         << "  </div>\n"
@@ -565,6 +568,7 @@ std::string BrowserData::EnsureAboutPageExists() {
         << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
         << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
         << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
         << "    <a href=\"servo://settings\">Settings</a>\n"
         << "  </div>\n"
         << "</div>\n"
@@ -592,6 +596,168 @@ static std::string HtmlEscape(const std::string& data) {
         }
     }
     return buffer;
+}
+
+static std::string FileUrlFromWidePath(const std::wstring& filePath) {
+    char utf8Path[MAX_PATH * 3] = { 0 };
+    if (WideCharToMultiByte(CP_UTF8, 0, filePath.c_str(), -1, utf8Path,
+                            sizeof(utf8Path), nullptr, nullptr) <= 0) {
+        return {};
+    }
+    std::string pathStr = utf8Path;
+    for (char& c : pathStr) {
+        if (c == '\\') c = '/';
+    }
+    return "file:///" + pathStr;
+}
+
+std::string BrowserData::EnsureErrorPageExists(const std::string& failedUrl,
+                                               int code,
+                                               const std::string& text) {
+    std::wstring filePath = GetConfigDirectory() + L"\\error.html";
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) return {};
+
+    const std::string safeUrl = HtmlEscape(failedUrl.empty() ? "about:blank" : failedUrl);
+    const std::string safeReason = HtmlEscape(text.empty() ? "The site did not return a response." : text);
+    const std::string retryUrl = EscapeJsonString(failedUrl.empty() ? "about:blank" : failedUrl);
+
+    out << "<!DOCTYPE html>\n<html><head><meta charset=\"UTF-8\"><title>Can't reach this page - Servo</title><style>"
+        << COMMON_PAGE_CSS
+        << ".error-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 36px; max-width: 680px; margin: 40px auto; text-align: center; }\n"
+        << ".error-card h1 { font-size: 26px; font-weight: 600; margin-bottom: 12px; }\n"
+        << ".error-subtitle { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }\n"
+        << ".error-details { background: rgba(0, 0, 0, 0.15); border: 1px solid var(--card-border); border-radius: 6px; padding: 12px 16px; font-family: Consolas, monospace; font-size: 12.5px; color: var(--danger); margin-bottom: 28px; text-align: left; word-break: break-all; line-height: 1.6; }\n"
+        << ".error-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }\n"
+        << ".btn-primary { background: var(--accent); color: #fff !important; border-color: var(--accent); font-weight: 600; }\n"
+        << ".btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }\n"
+        << "</style></head><body>\n"
+        << "<div class=\"container\">\n"
+        << "  <div class=\"error-card\">\n"
+        << "    <h1>This site can't be reached</h1>\n"
+        << "    <p class=\"error-subtitle\">Servo could not load <b>" << safeUrl << "</b>. Check the address and your connection, then try again.</p>\n"
+        << "    <div class=\"error-details\">\n"
+        << "      <div><b>Error code:</b> " << code << "</div>\n"
+        << "      <div><b>Reason:</b> " << safeReason << "</div>\n"
+        << "      <div><b>Address:</b> " << safeUrl << "</div>\n"
+        << "    </div>\n"
+        << "    <div class=\"error-actions\">\n"
+        << "      <button class=\"btn btn-primary\" onclick=\"retry()\">Try again</button>\n"
+        << "      <button class=\"btn\" onclick=\"history.back()\">Go back</button>\n"
+        << "      <a class=\"btn\" href=\"servo://newtab\">Open New Tab</a>\n"
+        << "    </div>\n"
+        << "  </div>\n"
+        << "  <div class=\"nav-footer\">\n"
+        << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
+        << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
+        << "    <a href=\"servo://settings\">Settings</a>\n"
+        << "  </div>\n"
+        << "</div>\n"
+        << "<script>\n"
+        << "function retry() { window.location.href = \"" << retryUrl << "\"; }\n"
+        << "</script>\n"
+        << "</body></html>\n";
+    out.close();
+    return FileUrlFromWidePath(filePath);
+}
+
+std::string BrowserData::EnsureDownloadsPageExists() {
+    std::wstring filePath = GetConfigDirectory() + L"\\downloads.html";
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) return {};
+
+    out << "<!DOCTYPE html>\n<html><head><meta charset=\"UTF-8\"><title>Downloads - Servo</title><style>"
+        << COMMON_PAGE_CSS
+        << ".info-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px; line-height: 1.7; }\n"
+        << ".info-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }\n"
+        << ".info-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; }\n"
+        << "</style></head><body>\n"
+        << "<div class=\"container\">\n"
+        << "  <div class=\"header\">\n"
+        << "    <div class=\"title-group\"><h1>Downloads</h1></div>\n"
+        << "    <button class=\"btn\" onclick=\"window.location.href='servo://downloads'\">Open Downloads Pane</button>\n"
+        << "  </div>\n"
+        << "  <div class=\"info-card\">\n"
+        << "    <h2>Downloads are managed by the browser chrome</h2>\n"
+        << "    <p>Active and completed downloads appear in the native downloads pane (<b>Ctrl+J</b>). This page is the generated fallback for shells that cannot open native chrome.</p>\n"
+        << "    <p>Opening the downloads route from a shell with native chrome will show the real list instead of this page.</p>\n"
+        << "  </div>\n"
+        << "  <div class=\"nav-footer\">\n"
+        << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
+        << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://settings\">Settings</a> &bull; "
+        << "    <a href=\"servo://about\">About Servo</a>\n"
+        << "  </div>\n"
+        << "</div>\n"
+        << "</body></html>\n";
+    out.close();
+    return FileUrlFromWidePath(filePath);
+}
+
+static const char* PermissionLabel(int32_t permission) {
+    switch (permission) {
+        case 0: return "Location";
+        case 1: return "Notifications";
+        case 2: return "Camera & microphone";
+        case 3: return "Clipboard";
+        default: return "Other";
+    }
+}
+
+std::string BrowserData::EnsurePermissionsPageExists() {
+    std::wstring filePath = GetConfigDirectory() + L"\\permissions.html";
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) return {};
+
+    auto permissions = LoadSitePermissions();
+
+    out << "<!DOCTYPE html>\n<html><head><meta charset=\"UTF-8\"><title>Site permissions - Servo</title><style>"
+        << COMMON_PAGE_CSS
+        << ".perm-table { width: 100%; border-collapse: collapse; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); overflow: hidden; }\n"
+        << ".perm-table th, .perm-table td { padding: 12px 16px; text-align: left; font-size: 13.5px; border-bottom: 1px solid var(--card-border); word-break: break-all; }\n"
+        << ".perm-table th { color: var(--text-muted); font-weight: 600; }\n"
+        << ".perm-table tr:last-child td { border-bottom: none; }\n"
+        << ".decision { font-weight: 600; }\n"
+        << ".decision.allow { color: #107c10; }\n"
+        << ".decision.deny { color: var(--danger); }\n"
+        << ".note { color: var(--text-muted); font-size: 13px; margin-top: 14px; line-height: 1.6; }\n"
+        << "</style></head><body>\n"
+        << "<div class=\"container\">\n"
+        << "  <div class=\"header\">\n"
+        << "    <div class=\"title-group\"><h1>Site Permissions</h1></div>\n"
+        << "    <a class=\"btn\" href=\"servo://settings\">Open Settings</a>\n"
+        << "  </div>\n";
+
+    if (permissions.empty()) {
+        out << "  <div class=\"empty-state\"><p>No per-origin permission decisions have been saved yet.</p></div>\n";
+    } else {
+        out << "  <table class=\"perm-table\">\n"
+            << "    <thead><tr><th>Origin</th><th>Permission</th><th>Decision</th></tr></thead>\n"
+            << "    <tbody>\n";
+        for (const auto& permission : permissions) {
+            out << "      <tr><td>" << HtmlEscape(permission.origin) << "</td><td>"
+                << PermissionLabel(permission.permission) << "</td><td>"
+                << "<span class=\"decision " << (permission.allow ? "allow" : "deny") << "\">"
+                << (permission.allow ? "Allow" : "Deny") << "</span></td></tr>\n";
+        }
+        out << "    </tbody>\n  </table>\n";
+    }
+
+    out << "  <p class=\"note\">Decisions are stored per origin in a separate file so changing general settings does not erase them. Use the native settings pane to review or reset permissions.</p>\n"
+        << "  <div class=\"nav-footer\">\n"
+        << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
+        << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://history\">History</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
+        << "    <a href=\"servo://settings\">Settings</a>\n"
+        << "  </div>\n"
+        << "</div>\n"
+        << "</body></html>\n";
+    out.close();
+    return FileUrlFromWidePath(filePath);
 }
 
 std::string BrowserData::EnsureCrashRecoveryPageExists(const std::string& failedUrl, const std::string& reason) {
@@ -633,6 +799,7 @@ std::string BrowserData::EnsureCrashRecoveryPageExists(const std::string& failed
         << "    <a href=\"servo://newtab\">New Tab</a> &bull; "
         << "    <a href=\"servo://history\">History</a> &bull; "
         << "    <a href=\"servo://bookmarks\">Bookmarks</a> &bull; "
+        << "    <a href=\"servo://downloads\">Downloads</a> &bull; "
         << "    <a href=\"servo://settings\">Settings</a>\n"
         << "  </div>\n"
         << "</div>\n"

@@ -19,6 +19,8 @@
 
 using UiTask = std::function<void()>;
 
+struct ClearBrowsingDataResult;
+
 // Runs a task on the thread that owns the registered main HWND. Falls back to
 // running inline only before that HWND exists.
 bool PostUiTask(UiTask task);
@@ -66,6 +68,10 @@ public:
     void Shutdown();
     // Lets the watchdog attribute a stall to the message being dispatched.
     void SetCurrentMessage(UINT message);
+
+    // Registered with the shared settings helper at startup. Reports only the
+    // categories that the verified Servo C APIs actually cleared.
+    static ClearBrowsingDataResult ClearEngineData(int mask);
 
 private:
     BrowserRuntime() = default;

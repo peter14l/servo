@@ -23,6 +23,10 @@ powershell -ExecutionPolicy Bypass -File .\support\packaging\windows\Install-Ser
 5. **Windows Settings Integration:** Registers under `StartMenuInternet` and `RegisteredApplications` for HTTP/HTTPS associations, allowing you to choose Servo Browser as your Default Browser in Windows 10 & 11 Settings.
 6. **Add/Remove Programs:** Adds an entry in Windows Settings > Installed Apps for one-click uninstallation.
 
+The installer registers capability metadata (StartMenuInternet, URL/file associations and a ProgID) so Servo appears in Windows Settings > Default apps. It does **not** write `UserChoice`: choosing the default browser is always a user action. Self-signed certificate import is for local dev builds only; production signing and MSIX packaging are separate deployment decisions.
+
+For artifact verification, log locations and what must be redacted before sharing, see [UPDATE_AND_FEEDBACK.md](UPDATE_AND_FEEDBACK.md).
+
 ---
 
 ## 2. Silent / Automated Installation

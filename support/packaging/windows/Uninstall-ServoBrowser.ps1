@@ -32,6 +32,7 @@ if (Test-Path $StartMenuFolder) {
 Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\servobrowser.exe" -Recurse -Force
 Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ServoBrowser" -Recurse -Force
 Remove-Item -Path "HKCU:\Software\Clients\StartMenuInternet\ServoBrowser" -Recurse -Force
+Remove-Item -Path "HKCU:\Software\Classes\ServoBrowserHTML" -Recurse -Force
 Remove-ItemProperty -Path "HKCU:\Software\RegisteredApplications" -Name "ServoBrowser" -Force
 Write-Host "[+] Removed Registry registrations" -ForegroundColor Green
 

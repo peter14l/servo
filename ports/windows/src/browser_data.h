@@ -37,6 +37,12 @@ public:
     static std::string EnsureHistoryPageExists();
     static std::string EnsureAboutPageExists();
     static std::string EnsureCrashRecoveryPageExists(const std::string& failedUrl, const std::string& reason);
+    // Returns a loadable file:// URL, or an empty string when the page could
+    // not be generated. The shell uses the error page as a navigation
+    // interstitial; the other two are generated fallbacks for native chrome.
+    static std::string EnsureErrorPageExists(const std::string& failedUrl, int code, const std::string& text);
+    static std::string EnsureDownloadsPageExists();
+    static std::string EnsurePermissionsPageExists();
 
     static void SaveSession(const std::vector<std::string>& urls, int activeIndex);
     static bool LoadSession(std::vector<std::string>& urls, int& activeIndex);

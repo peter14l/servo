@@ -11,6 +11,13 @@
         <media:MicaBackdrop Kind="BaseAlt"/>
     </Window.SystemBackdrop>
 
+    <!--
+        Airspace note: every XAML surface that can appear below the toolbar is
+        a *row* in RootGrid (ChromePanelsStack). XAML cannot paint above the
+        native Servo child HWND in row 3, so panels push the HWND down instead
+        of overlapping it. SettingsPanel is the only full-window surface and it
+        hides the native views while visible.
+    -->
     <Grid x:Name="RootGrid" Loaded="RootLoaded" KeyDown="RootKeyDown">
         <Grid.Resources>
             <!-- Keep the native button visual states while removing the flat chrome surface. -->
@@ -23,16 +30,64 @@
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="UseSystemFocusVisuals" Value="True"/>
             </Style>
+
+            <!-- Custom modern line icons: shared stroke styling for every PathGeometry in ModernIcons.xaml. -->
+            <Style x:Key="ModernIconPath" TargetType="Path">
+                <Setter Property="Stroke" Value="{ThemeResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="StrokeThickness" Value="1.75"/>
+                <Setter Property="StrokeLineCap" Value="Round"/>
+                <Setter Property="StrokeLineJoin" Value="Round"/>
+                <Setter Property="Width" Value="18"/>
+                <Setter Property="Height" Value="18"/>
+                <Setter Property="Stretch" Value="Uniform"/>
+                <Setter Property="UseLayoutRounding" Value="True"/>
+            </Style>
+
+            <Style x:Key="ModernIconPathSmall" BasedOn="{StaticResource ModernIconPath}" TargetType="Path">
+                <Setter Property="Width" Value="14"/>
+                <Setter Property="Height" Value="14"/>
+                <Setter Property="StrokeThickness" Value="1.6"/>
+            </Style>
+
+            <Style x:Key="ModernIconPathFilled" BasedOn="{StaticResource ModernIconPath}" TargetType="Path">
+                <Setter Property="Fill" Value="{ThemeResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="Stroke" Value="{x:Null}"/>
+            </Style>
+
             <muxc:MenuFlyout x:Key="TabContextMenu">
                 <muxc:MenuFlyoutItem Text="Close tab" Click="TabContextCloseClicked"/>
+                <muxc:MenuFlyoutItem Text="Close tabs to the left" Click="TabContextCloseLeftClicked"/>
                 <muxc:MenuFlyoutItem Text="Close other tabs" Click="TabContextCloseOthersClicked"/>
                 <muxc:MenuFlyoutItem Text="Close tabs to the right" Click="TabContextCloseRightClicked"/>
                 <muxc:MenuFlyoutSeparator/>
+                <muxc:MenuFlyoutItem Text="Pin tab" Click="TabContextPinClicked"/>
+                <muxc:MenuFlyoutItem Text="Mute tab" Click="TabContextMuteClicked"/>
                 <muxc:MenuFlyoutItem Text="Duplicate" Click="TabContextDuplicateClicked"/>
                 <muxc:MenuFlyoutItem Text="Reload" Click="TabContextReloadClicked"/>
+                <muxc:MenuFlyoutItem Text="Reload ignoring cache" Click="TabContextReloadIgnoringCacheClicked"/>
+                <muxc:MenuFlyoutSeparator/>
+                <muxc:MenuFlyoutItem Text="Copy URL" Click="TabContextCopyUrlClicked"/>
+                <muxc:MenuFlyoutItem Text="Reopen closed tab" Click="TabContextRestoreClosedClicked"/>
+                <muxc:MenuFlyoutItem Text="Search tabs" Click="TabContextTabSearchClicked"/>
+            </muxc:MenuFlyout>
+
+            <muxc:MenuFlyout x:Key="AppMenuFlyout">
+                <muxc:MenuFlyoutItem Text="New tab" Click="AddTabClicked"/>
+                <muxc:MenuFlyoutItem Text="Reopen closed tab" Click="AppRestoreTabClicked"/>
+                <muxc:MenuFlyoutItem Text="Search tabs" Click="AppTabSearchClicked"/>
+                <muxc:MenuFlyoutSeparator/>
+                <muxc:MenuFlyoutItem Text="History" Click="AppHistoryClicked"/>
+                <muxc:MenuFlyoutItem Text="Bookmarks" Click="AppBookmarksClicked"/>
+                <muxc:MenuFlyoutItem Text="Downloads" Click="AppDownloadsClicked"/>
+                <muxc:MenuFlyoutSeparator/>
+                <muxc:MenuFlyoutItem Text="Print" Click="AppPrintClicked"/>
+                <muxc:MenuFlyoutItem Text="Fullscreen" Click="AppFullscreenClicked"/>
+                <muxc:MenuFlyoutItem Text="Settings" Click="SettingsClicked"/>
             </muxc:MenuFlyout>
         </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -50,25 +105,32 @@
             </Grid.ColumnDefinitions>
 
             <Button x:Name="VerticalTabsToggle" Grid.Column="0" Style="{StaticResource ChromeButtonStyle}"
-                    Click="VerticalTabsToggleClicked" ToolTipService.ToolTip="Vertical tabs">
-                <FontIcon Glyph="&#xE8FD;" FontSize="15"/>
+                    Click="VerticalTabsToggleClicked" ToolTipService.ToolTip="Vertical tabs"
+                    AutomationProperties.Name="Toggle vertical tabs" AutomationProperties.HelpText="Shows tabs in a vertical rail."
+                    AutomationProperties.AutomationId="VerticalTabsToggle">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.VerticalTabs}"/>
             </Button>
 
             <muxc:TabView x:Name="Tabs" Grid.Column="1" VerticalAlignment="Stretch"
                           TabWidthMode="SizeToContent" CloseButtonOverlayMode="OnPointerOver"
                           SelectionChanged="TabsSelectionChanged"
                           TabCloseRequested="TabsTabCloseRequested"
-                          IsAddTabButtonVisible="False"/>
+                          IsAddTabButtonVisible="False"
+                          AutomationProperties.Name="Tabs" AutomationProperties.AutomationId="TabStrip"/>
             <Button x:Name="AddTabButton" Grid.Column="2" Style="{StaticResource ChromeButtonStyle}"
-                    Click="AddTabClicked" ToolTipService.ToolTip="New tab (Ctrl+T)">
-                <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                    Click="AddTabClicked" ToolTipService.ToolTip="New tab (Ctrl+T)"
+                    AutomationProperties.Name="New tab" AutomationProperties.HelpText="Opens a new tab. Shortcut: Control plus T."
+                    AutomationProperties.AutomationId="NewTabButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.AddTab}"/>
             </Button>
         </Grid>
 
         <!-- Navigation toolbar -->
-        <Grid Grid.Row="1" Height="46" Padding="10,0,10,0" ColumnSpacing="6"
-              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid x:Name="ToolbarArea" Grid.Row="1" Height="48" Padding="10,0,10,0" ColumnSpacing="4"
+              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+              AutomationProperties.Name="Browser toolbar" AutomationProperties.AutomationId="ToolbarArea">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -77,70 +139,304 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <Button x:Name="BackButton" Grid.Column="0" Style="{StaticResource ChromeButtonStyle}"
-                    Click="BackClicked" ToolTipService.ToolTip="Back (Alt+Left)">
-                <FontIcon Glyph="&#xE72B;" FontSize="16"/>
+                    Click="BackClicked" ToolTipService.ToolTip="Back (Alt+Left)"
+                    AutomationProperties.Name="Back" AutomationProperties.AutomationId="BackButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Back}"/>
             </Button>
             <Button x:Name="ForwardButton" Grid.Column="1" Style="{StaticResource ChromeButtonStyle}"
-                    Click="ForwardClicked" ToolTipService.ToolTip="Forward (Alt+Right)">
-                <FontIcon Glyph="&#xE72A;" FontSize="16"/>
-            </Button>
-            <Button Grid.Column="2" Style="{StaticResource ChromeButtonStyle}"
-                    Click="ReloadClicked" ToolTipService.ToolTip="Reload (F5)">
-                <FontIcon Glyph="&#xE72C;" FontSize="16"/>
-            </Button>
-            <Button Grid.Column="3" Style="{StaticResource ChromeButtonStyle}"
-                    Click="HomeClicked" ToolTipService.ToolTip="Home">
-                <FontIcon Glyph="&#xE80F;" FontSize="16"/>
+                    Click="ForwardClicked" ToolTipService.ToolTip="Forward (Alt+Right)"
+                    AutomationProperties.Name="Forward" AutomationProperties.AutomationId="ForwardButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Forward}"/>
             </Button>
 
-            <TextBox x:Name="Omnibox" Grid.Column="4" VerticalAlignment="Center"
+            <!-- Stop and Reload share one slot; OnLoadStatusChanged swaps them. -->
+            <Grid Grid.Column="2" Width="34">
+                <Button x:Name="ReloadButton" Style="{StaticResource ChromeButtonStyle}"
+                        Click="ReloadClicked" ToolTipService.ToolTip="Reload (F5)"
+                        AutomationProperties.Name="Reload" AutomationProperties.AutomationId="ReloadButton">
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Reload}"/>
+                </Button>
+                <Button x:Name="StopButton" Style="{StaticResource ChromeButtonStyle}"
+                        Click="StopClicked" ToolTipService.ToolTip="Stop loading (Esc)"
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Stop loading" AutomationProperties.AutomationId="StopButton">
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Stop}"/>
+                </Button>
+            </Grid>
+
+            <Button x:Name="HomeButton" Grid.Column="3" Style="{StaticResource ChromeButtonStyle}"
+                    Click="HomeClicked" ToolTipService.ToolTip="Home"
+                    AutomationProperties.Name="Home" AutomationProperties.AutomationId="HomeButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Home}"/>
+            </Button>
+
+            <Button x:Name="SecurityChip" Grid.Column="4" Style="{StaticResource ChromeButtonStyle}"
+                    Width="Auto" MinWidth="34" Padding="6,0" Click="SecurityChipClicked"
+                    ToolTipService.ToolTip="Connection security"
+                    AutomationProperties.Name="Connection security" AutomationProperties.AutomationId="SecurityChip">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <Grid Width="14" Height="14">
+                        <Path x:Name="SecuritySecurePath" Style="{StaticResource ModernIconPathSmall}"
+                              Data="{StaticResource Icon.Shield}"/>
+                        <Path x:Name="SecurityWarningPath" Style="{StaticResource ModernIconPathSmall}"
+                              Data="{StaticResource Icon.ShieldWarning}" Visibility="Collapsed"/>
+                    </Grid>
+                    <TextBlock x:Name="SecurityHost" Text="" FontSize="11" MaxWidth="92"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </Button>
+
+            <TextBox x:Name="Omnibox" Grid.Column="5" VerticalAlignment="Center"
                      PlaceholderText="Search or enter web address" KeyDown="OmniboxKeyDown"
-                     FontSize="14" MinWidth="120" CornerRadius="16" Padding="12,4,10,4"/>
+                     TextChanged="OmniboxTextChanged"
+                     FontSize="14" MinWidth="120" CornerRadius="16" Padding="12,4,10,4"
+                     AutomationProperties.Name="Address and search bar"
+                     AutomationProperties.HelpText="Type a web address or search terms. Shortcut: Control plus L."
+                     AutomationProperties.AutomationId="Omnibox" TabIndex="1"/>
 
-            <TextBlock x:Name="StatusText" Grid.Column="5" VerticalAlignment="Center"
-                       MaxWidth="180" TextTrimming="CharacterEllipsis"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+            <Button x:Name="BookmarkButton" Grid.Column="6" Style="{StaticResource ChromeButtonStyle}"
+                    Click="BookmarkClicked" ToolTipService.ToolTip="Bookmark this tab (Ctrl+D)"
+                    AutomationProperties.Name="Bookmark this tab" AutomationProperties.AutomationId="BookmarkButton">
+                <Grid>
+                    <Path x:Name="BookmarkOutlinePath" Style="{StaticResource ModernIconPath}"
+                          Data="{StaticResource Icon.Bookmark}"/>
+                    <Path x:Name="BookmarkFilledPath" Style="{StaticResource ModernIconPathFilled}"
+                          Data="{StaticResource Icon.BookmarkFilled}" Visibility="Collapsed"/>
+                </Grid>
+            </Button>
 
-            <Button Grid.Column="6" Style="{StaticResource ChromeButtonStyle}"
-                    Click="FindOpenClicked" ToolTipService.ToolTip="Find on page (Ctrl+F)">
-                <FontIcon Glyph="&#xE721;" FontSize="16"/>
+            <Button x:Name="DownloadsButton" Grid.Column="7" Style="{StaticResource ChromeButtonStyle}"
+                    Click="DownloadsClicked" ToolTipService.ToolTip="Downloads (Ctrl+J)"
+                    AutomationProperties.Name="Downloads" AutomationProperties.AutomationId="DownloadsButton">
+                <Grid>
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Downloads}"/>
+                    <TextBlock x:Name="DownloadBadge" Text="" FontSize="9" HorizontalAlignment="Right"
+                               VerticalAlignment="Top" Margin="0,-6,-6,0"
+                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                </Grid>
             </Button>
-            <Button Grid.Column="7" Style="{StaticResource ChromeButtonStyle}"
-                    Click="SettingsClicked" ToolTipService.ToolTip="Settings">
-                <FontIcon Glyph="&#xE713;" FontSize="16"/>
+
+            <Button x:Name="FindButton" Grid.Column="8" Style="{StaticResource ChromeButtonStyle}"
+                    Click="FindOpenClicked" ToolTipService.ToolTip="Find on page (Ctrl+F)"
+                    AutomationProperties.Name="Find on page" AutomationProperties.AutomationId="FindButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Find}"/>
             </Button>
+
+            <Button x:Name="FullscreenButton" Grid.Column="9" Style="{StaticResource ChromeButtonStyle}"
+                    Click="FullscreenClicked" ToolTipService.ToolTip="Fullscreen (F11)"
+                    AutomationProperties.Name="Fullscreen" AutomationProperties.AutomationId="FullscreenButton">
+                <Grid>
+                    <Path x:Name="FullscreenEnterPath" Style="{StaticResource ModernIconPath}"
+                          Data="{StaticResource Icon.Fullscreen}"/>
+                    <Path x:Name="FullscreenExitPath" Style="{StaticResource ModernIconPath}"
+                          Data="{StaticResource Icon.ExitFullscreen}" Visibility="Collapsed"/>
+                </Grid>
+            </Button>
+
+            <Button x:Name="SettingsButton" Grid.Column="10" Style="{StaticResource ChromeButtonStyle}"
+                    Click="SettingsClicked" ToolTipService.ToolTip="Settings (Ctrl+,)"
+                    AutomationProperties.Name="Settings" AutomationProperties.AutomationId="SettingsButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Settings}"/>
+            </Button>
+
+            <Button x:Name="AppButton" Grid.Column="11" Style="{StaticResource ChromeButtonStyle}"
+                    Flyout="{StaticResource AppMenuFlyout}" ToolTipService.ToolTip="Menu"
+                    AutomationProperties.Name="Browser menu" AutomationProperties.AutomationId="AppButton">
+                <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Menu}"/>
+            </Button>
+
+            <TextBlock x:Name="StatusText" Grid.Column="12" VerticalAlignment="Center"
+                       MaxWidth="150" TextTrimming="CharacterEllipsis"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"
+                       AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Status"
+                       AutomationProperties.AutomationId="StatusText"/>
         </Grid>
 
-        <!-- Find on page. It lives in its own row because XAML overlays cannot
-             paint above the native Servo child HWND. -->
-        <Grid x:Name="FindPanel" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top"
-              Margin="0,8,16,0" Padding="10,6,6,6" Visibility="Collapsed"
-              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-              BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1" CornerRadius="6"
-              ColumnSpacing="6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox x:Name="FindBox" Grid.Column="0" PlaceholderText="Find on page"
-                     KeyDown="FindBoxKeyDown" TextChanged="FindBoxTextChanged"/>
-            <TextBlock x:Name="FindCount" Grid.Column="1" Margin="6,0,2,0" MinWidth="64"
-                       VerticalAlignment="Center" TextAlignment="Right" FontSize="12"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text=""/>
-            <Button Grid.Column="2" Width="30" Height="30" Padding="0" Click="FindNextClicked"
-                    Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find next (Enter)">
-                <FontIcon Glyph="&#xE72A;" FontSize="13"/>
-            </Button>
-            <Button Grid.Column="3" Width="30" Height="30" Padding="0" Click="FindCloseClicked"
-                    Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Close">
-                <FontIcon Glyph="&#xE711;" FontSize="12"/>
-            </Button>
-        </Grid>
+        <!--
+            Chrome panels occupy their own grid row. Only one or two are visible
+            at a time; the native viewport row moves down instead of being
+            covered. This is intentional: XAML cannot overlay the Servo HWND.
+        -->
+        <StackPanel x:Name="ChromePanelsStack" Grid.Row="2" Orientation="Vertical"
+                    AutomationProperties.Name="Browser panels">
+
+            <Border x:Name="ErrorBanner" Visibility="Collapsed" Padding="12,8" Margin="10,4,10,4"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Path Grid.Column="0" Style="{StaticResource ModernIconPath}"
+                          Data="{StaticResource Icon.ShieldWarning}"/>
+                    <TextBlock x:Name="ErrorText" Grid.Column="1" Text="" FontSize="13" TextWrapping="Wrap"
+                               VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive"
+                               AutomationProperties.Name="Navigation error"/>
+                    <Button x:Name="ErrorRetryButton" Grid.Column="2" Content="Retry" Padding="10,4"
+                            Click="ErrorRetryClicked" AutomationProperties.Name="Retry navigation"/>
+                    <Button x:Name="ErrorDismissButton" Grid.Column="3" Width="28" Height="28" Padding="0"
+                            Click="ErrorDismissClicked" ToolTipService.ToolTip="Dismiss"
+                            AutomationProperties.Name="Dismiss error">
+                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border x:Name="SecurityInfoPanel" Visibility="Collapsed" Padding="12,8" Margin="10,4,10,4"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="SecurityInfoText" Grid.Column="0" Text="" FontSize="12" TextWrapping="Wrap"/>
+                    <Button x:Name="SecurityInfoCloseButton" Grid.Column="1" Width="28" Height="28" Padding="0"
+                            Click="SecurityInfoCloseClicked" ToolTipService.ToolTip="Close"
+                            AutomationProperties.Name="Close connection details">
+                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border x:Name="SuggestionsPanel" Visibility="Collapsed" Padding="6" Margin="10,4,10,4"
+                    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid RowSpacing="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Suggestions" FontSize="11" Margin="6,0,0,0"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <ListView x:Name="SuggestionsList" Grid.Row="1" MaxHeight="220"
+                              SelectionChanged="SuggestionSelectionChanged"
+                              AutomationProperties.Name="Address bar suggestions"
+                              AutomationProperties.AutomationId="SuggestionsList"/>
+                </Grid>
+            </Border>
+
+            <Border x:Name="DownloadsPanel" Visibility="Collapsed" Padding="10" Margin="10,4,10,4"
+                    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid RowSpacing="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Downloads" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="DownloadStatusText" Grid.Column="1" Text="" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Download status"/>
+                        <Button x:Name="ClearDownloadsButton" Grid.Column="2" Content="Clear all" Padding="10,4"
+                                Click="ClearDownloadsClicked" AutomationProperties.Name="Clear download list"/>
+                        <Button x:Name="DownloadsCloseButton" Grid.Column="3" Width="28" Height="28" Padding="0"
+                                Click="DownloadsCloseClicked" ToolTipService.ToolTip="Close"
+                                AutomationProperties.Name="Close downloads">
+                            <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                        </Button>
+                    </Grid>
+                    <ListView x:Name="DownloadsList" Grid.Row="1" MaxHeight="260"
+                              AutomationProperties.Name="Download items" AutomationProperties.AutomationId="DownloadsList"/>
+                </Grid>
+            </Border>
+
+            <Border x:Name="TabSearchPanel" Visibility="Collapsed" Padding="10" Margin="10,4,10,4"
+                    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid RowSpacing="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBox x:Name="TabSearchBox" Grid.Row="0" PlaceholderText="Search open tabs"
+                             TextChanged="TabSearchBoxTextChanged"
+                             AutomationProperties.Name="Search open tabs" AutomationProperties.AutomationId="TabSearchBox"/>
+                    <ListView x:Name="TabSearchList" Grid.Row="1" MaxHeight="200"
+                              SelectionChanged="TabSearchSelectionChanged"
+                              AutomationProperties.Name="Matching tabs"/>
+                </Grid>
+            </Border>
+
+            <Border x:Name="ZoomBubble" Visibility="Collapsed" HorizontalAlignment="Right"
+                    Padding="10,6" Margin="10,4,16,4"
+                    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock x:Name="ZoomText" Text="100%" FontSize="13" VerticalAlignment="Center"
+                               AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Zoom level"/>
+                    <Button Content="Reset" Padding="8,3" Click="ZoomResetClicked" AutomationProperties.Name="Reset zoom"/>
+                    <Button Width="26" Height="26" Padding="0" Click="ZoomBubbleCloseClicked"
+                            ToolTipService.ToolTip="Close" AutomationProperties.Name="Close zoom bubble">
+                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Find on page. Its own row preserves the native-HWND airspace rule. -->
+            <Grid x:Name="FindPanel" HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="0,8,16,0" Padding="10,6,6,6" Visibility="Collapsed"
+                  Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                  BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="1" CornerRadius="6"
+                  ColumnSpacing="6"
+                  AutomationProperties.Name="Find on page" AutomationProperties.AutomationId="FindPanel">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FindBox" Grid.Column="0" PlaceholderText="Find on page"
+                         KeyDown="FindBoxKeyDown" TextChanged="FindBoxTextChanged"
+                         AutomationProperties.Name="Find text" AutomationProperties.AutomationId="FindBox" TabIndex="2"/>
+                <TextBlock x:Name="FindCount" Grid.Column="1" Margin="6,0,2,0" MinWidth="64"
+                           VerticalAlignment="Center" TextAlignment="Right" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text=""
+                           AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Find results"/>
+                <ToggleButton x:Name="FindMatchCase" Grid.Column="2" Content="Aa" Width="30" Height="30"
+                              Click="FindOptionClicked" ToolTipService.ToolTip="Match case"
+                              AutomationProperties.Name="Match case"/>
+                <ToggleButton x:Name="FindWholeWord" Grid.Column="3" Content="W" Width="30" Height="30"
+                              Click="FindOptionClicked" ToolTipService.ToolTip="Whole word"
+                              AutomationProperties.Name="Whole word"/>
+                <Button Grid.Column="4" Width="30" Height="30" Padding="0" Click="FindPreviousClicked"
+                        Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find previous (Shift+Enter)"
+                        AutomationProperties.Name="Find previous">
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Back}"/>
+                </Button>
+                <Button Grid.Column="5" Width="30" Height="30" Padding="0" Click="FindNextClicked"
+                        Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Find next (Enter)"
+                        AutomationProperties.Name="Find next">
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Forward}"/>
+                </Button>
+                <Button Grid.Column="6" Width="30" Height="30" Padding="0" Click="FindCloseClicked"
+                        Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Close (Escape)"
+                        AutomationProperties.Name="Close find">
+                    <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
+                </Button>
+            </Grid>
+        </StackPanel>
 
         <!-- Servo's HWND is a native child of the XAML window placed over this region. -->
         <Grid Grid.Row="3">
@@ -155,7 +451,8 @@
                     BorderBrush="{ThemeResource TextFillColorSecondaryBrush}" BorderThickness="0,0,1,0">
                 <ListView x:Name="VerticalTabsList" SelectionMode="Single"
                           SelectionChanged="VerticalTabsSelectionChanged"
-                          Background="Transparent" Padding="6"/>
+                          Background="Transparent" Padding="6"
+                          AutomationProperties.Name="Vertical tab list"/>
             </Border>
 
             <Border x:Name="VerticalTabsSplitter" Grid.Column="1" Width="6"
@@ -163,15 +460,17 @@
                     PointerPressed="VerticalTabsSplitterPointerPressed"
                     PointerMoved="VerticalTabsSplitterPointerMoved"
                     PointerReleased="VerticalTabsSplitterPointerReleased"
-                    PointerCanceled="VerticalTabsSplitterPointerReleased"/>
+                    PointerCanceled="VerticalTabsSplitterPointerReleased"
+                    AutomationProperties.Name="Resize vertical tabs"/>
 
             <Border x:Name="ViewportArea" Grid.Column="2" Background="Transparent"
-                    SizeChanged="ViewportSizeChanged"/>
+                    SizeChanged="ViewportSizeChanged" AutomationProperties.Name="Web content"/>
         </Grid>
 
         <!-- Native XAML settings pane (no HTML settings page). -->
         <Grid x:Name="SettingsPanel" Grid.RowSpan="4" Visibility="Collapsed" Padding="28"
-              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+              Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+              AutomationProperties.Name="Settings" AutomationProperties.AutomationId="SettingsPanel">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -190,54 +489,70 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
                             VerticalAlignment="Center">
+                    <TextBox x:Name="SettingsSearch" Width="220" PlaceholderText="Search settings"
+                             TextChanged="SettingsSearchTextChanged"
+                             AutomationProperties.Name="Search settings" AutomationProperties.AutomationId="SettingsSearch"/>
                     <TextBlock x:Name="SettingsStatus" Text="" FontSize="12" VerticalAlignment="Center"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Settings status"/>
                     <Button Content="Save" Click="SettingsSaveClicked" Padding="16,5"
                             Background="{ThemeResource AccentFillColorDefaultBrush}"
-                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                            AutomationProperties.Name="Save settings"/>
                     <Button Width="34" Click="SettingsCloseClicked" Background="Transparent"
-                            BorderThickness="0" ToolTipService.ToolTip="Close">
-                        <FontIcon Glyph="&#xE711;" FontSize="12"/>
+                            BorderThickness="0" ToolTipService.ToolTip="Close"
+                            AutomationProperties.Name="Close settings">
+                        <Path Style="{StaticResource ModernIconPath}" Data="{StaticResource Icon.Close}"/>
                     </Button>
                 </StackPanel>
             </Grid>
 
             <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled">
                 <StackPanel Spacing="12" MaxWidth="860" HorizontalAlignment="Center" Margin="24">
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardStart" Tag="start home new tab search engine custom download folder" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Start, home, and new tabs" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="Default search engine" FontSize="13"/>
-                            <ComboBox x:Name="SettingSearchEngine" Width="280" HorizontalAlignment="Left" SelectedIndex="0">
+                            <ComboBox x:Name="SettingSearchEngine" Width="280" HorizontalAlignment="Left" SelectedIndex="0"
+                                      AutomationProperties.Name="Default search engine">
                                 <ComboBoxItem Content="DuckDuckGo"/>
                                 <ComboBoxItem Content="Google"/>
                                 <ComboBoxItem Content="Bing"/>
                                 <ComboBoxItem Content="Ecosia"/>
+                                <ComboBoxItem Content="Custom…"/>
                             </ComboBox>
+                            <TextBox x:Name="SettingCustomSearch" HorizontalAlignment="Stretch" Width="420"
+                                     PlaceholderText="https://example.com/search?q={q}"
+                                     Visibility="Collapsed"
+                                     AutomationProperties.Name="Custom search engine URL"
+                                     AutomationProperties.HelpText="Use {q} where the query should be inserted. Applies immediately."/>
+                            <TextBlock x:Name="CustomSearchNote" Text="Custom engines are used for address-bar searches; suggestions still come from the selected built-in provider."
+                                       Visibility="Collapsed" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Text="Home page" FontSize="13" Margin="0,6,0,0"/>
                             <TextBox x:Name="SettingHomePage" HorizontalAlignment="Stretch"
-                                     PlaceholderText="https://servo.org"/>
+                                     PlaceholderText="https://servo.org" AutomationProperties.Name="Home page URL"/>
                             <TextBlock Text="Download folder" FontSize="13" Margin="0,6,0,0"/>
                             <TextBox x:Name="SettingDownloadDir" HorizontalAlignment="Stretch"
-                                     PlaceholderText="Downloads"/>
+                                     PlaceholderText="Downloads" AutomationProperties.Name="Download folder"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardAppearance" Tag="appearance theme accent color text scaling reduce motion private vertical tabs suggestions" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="Appearance" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Appearance and accessibility" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="Theme" FontSize="13"/>
-                            <ComboBox x:Name="SettingTheme" Width="280" SelectedIndex="2">
+                            <ComboBox x:Name="SettingTheme" Width="280" SelectedIndex="2" AutomationProperties.Name="Theme">
                                 <ComboBoxItem Content="Light"/>
                                 <ComboBoxItem Content="Dark"/>
                                 <ComboBoxItem Content="System default"/>
                             </ComboBox>
                             <TextBlock Text="Window backdrop (applies after restart)" FontSize="13" Margin="0,6,0,0"/>
-                            <ComboBox x:Name="SettingBackdrop" Width="280" SelectedIndex="0">
+                            <ComboBox x:Name="SettingBackdrop" Width="280" SelectedIndex="0" AutomationProperties.Name="Window backdrop">
                                 <ComboBoxItem Content="Mica Alt"/>
                                 <ComboBoxItem Content="Mica"/>
                                 <ComboBoxItem Content="Solid"/>
@@ -246,46 +561,93 @@
                                                OnContent="On" OffContent="Off" Margin="0,6,0,0"/>
                             <muxc:ToggleSwitch x:Name="SettingSuggestions" Header="Search suggestions in the address bar"
                                                OnContent="On" OffContent="Off"/>
+                            <TextBlock Text="Accent color: unavailable (WinUI 3 follows the Windows accent color)."
+                                       FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Text="Text scaling (applies after restart)" FontSize="13"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Slider x:Name="SettingTextScale" Width="260" Minimum="100" Maximum="150"
+                                        StepFrequency="10" TickFrequency="10" Value="100"
+                                        AutomationProperties.Name="Text scaling"/>
+                                <TextBlock x:Name="TextScaleValue" Text="100%" VerticalAlignment="Center" FontSize="12"/>
+                            </StackPanel>
+                            <muxc:ToggleSwitch x:Name="SettingReduceMotion" Header="Reduce motion (no chrome animations are used)"
+                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingPrivateMode" Header="Private windows (unavailable in this build)"
+                                               OnContent="On" OffContent="Off" IsEnabled="False"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardPrivacy" Tag="privacy permissions notifications geolocation site default browser camera microphone" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="Privacy and services" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Privacy, site permissions, and services" FontSize="17" FontWeight="SemiBold"/>
                             <TextBlock Text="User agent (applies after restart)" FontSize="13"/>
-                            <ComboBox x:Name="SettingUserAgent" Width="420" HorizontalAlignment="Left" SelectedIndex="0">
+                            <ComboBox x:Name="SettingUserAgent" Width="420" HorizontalAlignment="Left" SelectedIndex="0"
+                                      AutomationProperties.Name="User agent">
                                 <ComboBoxItem Content="Firefox 132 (Desktop) [Recommended]"/>
                                 <ComboBoxItem Content="Chrome 131 (Desktop)"/>
                                 <ComboBoxItem Content="Safari 18 (macOS)"/>
                             </ComboBox>
-                            <muxc:ToggleSwitch x:Name="SettingNotifications" Header="Notifications"
+                            <muxc:ToggleSwitch x:Name="SettingNotifications" Header="Notifications (global default)"
                                                OnContent="Allowed" OffContent="Blocked" Margin="0,6,0,0"/>
-                            <muxc:ToggleSwitch x:Name="SettingGeolocation" Header="Geolocation"
+                            <muxc:ToggleSwitch x:Name="SettingGeolocation" Header="Geolocation (global default)"
                                                OnContent="Allowed" OffContent="Blocked"/>
+                            <TextBlock Text="Per-site permissions" FontSize="13" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="PermissionOrigin" Text="No active site" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Notifications" FontSize="12"/>
+                                    <ComboBox x:Name="PermissionNotifications" Width="220" SelectedIndex="0"
+                                              SelectionChanged="PermissionNotificationsChanged"
+                                              AutomationProperties.Name="Notifications for this site">
+                                        <ComboBoxItem Content="Ask"/>
+                                        <ComboBoxItem Content="Allow"/>
+                                        <ComboBoxItem Content="Block"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Geolocation" FontSize="12"/>
+                                    <ComboBox x:Name="PermissionGeolocation" Width="220" SelectedIndex="0"
+                                              SelectionChanged="PermissionGeolocationChanged"
+                                              AutomationProperties.Name="Geolocation for this site">
+                                        <ComboBoxItem Content="Ask"/>
+                                        <ComboBoxItem Content="Allow"/>
+                                        <ComboBoxItem Content="Block"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="Default browser" FontSize="13" Margin="0,6,0,0"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <TextBlock x:Name="DefaultBrowserStatus" Text="Checking…" VerticalAlignment="Center" FontSize="12"/>
+                                <Button Content="Check status" Click="CheckDefaultBrowserClicked" Padding="10,4"
+                                        AutomationProperties.Name="Check default browser status"/>
+                                <Button Content="Make default" Click="MakeDefaultBrowserClicked" Padding="10,4"
+                                        AutomationProperties.Name="Make Servo the default browser"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardExperiments" Tag="web experiments webgl webgpu indexeddb webrtc variable fonts" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Web experiments" FontSize="17" FontWeight="SemiBold"/>
-                            <muxc:ToggleSwitch x:Name="SettingWebGL2" Header="WebGL 2"
-                                               OnContent="On" OffContent="Off"/>
-                            <muxc:ToggleSwitch x:Name="SettingWebGPU" Header="WebGPU (experimental)"
-                                               OnContent="On" OffContent="Off"/>
-                            <muxc:ToggleSwitch x:Name="SettingIndexedDB" Header="IndexedDB"
-                                               OnContent="On" OffContent="Off"/>
-                            <muxc:ToggleSwitch x:Name="SettingWebRTC" Header="WebRTC"
-                                               OnContent="On" OffContent="Off"/>
-                            <muxc:ToggleSwitch x:Name="SettingVariableFonts" Header="Variable fonts"
-                                               OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebGL2" Header="WebGL 2" OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebGPU" Header="WebGPU (experimental)" OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingIndexedDB" Header="IndexedDB" OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingWebRTC" Header="WebRTC" OnContent="On" OffContent="Off"/>
+                            <muxc:ToggleSwitch x:Name="SettingVariableFonts" Header="Variable fonts" OnContent="On" OffContent="Off"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardStandards" Tag="web standards compatibility fingerprint" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="8">
@@ -296,23 +658,50 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardData" Tag="data reset clear browsing history cookies cache site data passwords import export" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="10">
                             <TextBlock Text="Data and reset" FontSize="17" FontWeight="SemiBold"/>
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <Button x:Name="SettingClearHistory" Content="Clear browsing history"
-                                        Click="ClearHistoryClicked"/>
+                                        Click="ClearHistoryClicked" AutomationProperties.Name="Clear browsing history"/>
                                 <Button x:Name="SettingReset" Content="Restore default settings"
-                                        Click="ResetSettingsClicked"/>
+                                        Click="ResetSettingsClicked" AutomationProperties.Name="Restore default settings"/>
+                            </StackPanel>
+                            <TextBlock Text="Clear browsing data" FontSize="13" Margin="0,6,0,0"/>
+                            <Grid ColumnSpacing="8" RowSpacing="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <CheckBox x:Name="ClearHistoryCheck" Grid.Row="0" Grid.Column="0" Content="Browsing history" IsChecked="True"/>
+                                <CheckBox x:Name="ClearCookiesCheck" Grid.Row="0" Grid.Column="1" Content="Cookies"/>
+                                <CheckBox x:Name="ClearCacheCheck" Grid.Row="0" Grid.Column="2" Content="Cache"/>
+                                <CheckBox x:Name="ClearSiteDataCheck" Grid.Row="1" Grid.Column="0" Content="Site data"/>
+                                <CheckBox x:Name="ClearPasswordsCheck" Grid.Row="1" Grid.Column="1" Content="Passwords"/>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Clear selected data" Click="ClearDataClicked"
+                                        AutomationProperties.Name="Clear selected browsing data"/>
+                                <Button Content="Import data (unavailable)" IsEnabled="False" Padding="10,4"
+                                        ToolTipService.ToolTip="Import is not implemented in this build."
+                                        AutomationProperties.Name="Import data unavailable"/>
+                                <Button Content="Export data (unavailable)" IsEnabled="False" Padding="10,4"
+                                        ToolTipService.ToolTip="Export is not implemented in this build."
+                                        AutomationProperties.Name="Export data unavailable"/>
                             </StackPanel>
                             <TextBlock Text="History is stored locally on this device only."
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Padding="20" CornerRadius="8"
+                    <Border x:Name="SettingsCardAbout" Tag="about version help servo native windows shell" Padding="20" CornerRadius="8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                         <StackPanel Spacing="6">

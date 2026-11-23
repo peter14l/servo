@@ -8,6 +8,7 @@ on:
       - 'ports/windows/**'
       - 'ffi/capi/**'
       - 'support/cmake/**'
+      - 'support/packaging/windows/**'
       - 'components/**'
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - 'ports/windows/**'
       - 'ffi/capi/**'
       - 'support/cmake/**'
+      - 'support/packaging/windows/**'
       - 'components/**'
 
 concurrency:
@@ -29,6 +31,151 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
+  # Source-only gates. Intentionally no build, no mach/cargo/msbuild and no tests:
+  # the heavy Windows job below remains the single build path for this workflow.
+  source-gates:
+    name: Lightweight source gates (no build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve diff range
+        id: diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=origin/${{ github.base_ref }}...HEAD" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=HEAD~1..HEAD" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Diff whitespace check
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check "${{ steps.diff.outputs.range }}"
+
+      - name: Source-only gates (XML, forbidden patterns, secrets)
+        shell: bash
+        env:
+          DIFF_RANGE: ${{ steps.diff.outputs.range }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          import xml.etree.ElementTree as ET
+
+          root = subprocess.check_output(
+              ["git", "rev-parse", "--show-toplevel"], text=True
+          ).strip()
+          changed = [
+              path
+              for path in subprocess.check_output(
+                  ["git", "diff", "--name-only", "--diff-filter=ACMR", os.environ["DIFF_RANGE"]],
+                  text=True,
+              ).splitlines()
+              if path
+          ]
+
+          # 1. XAML / MSBuild files must stay well-formed XML.
+          xml_suffixes = (
+              ".xaml", ".vcxproj", ".vcxproj.filters", ".appxmanifest",
+              ".resx", ".props", ".targets",
+          )
+          parsed = 0
+          for rel in changed:
+              if not rel.lower().endswith(xml_suffixes):
+                  continue
+              path = os.path.join(root, rel)
+              if not os.path.isfile(path):
+                  continue
+              try:
+                  ET.parse(path)
+              except ET.ParseError as exc:
+                  print(f"XML_PARSE_FAIL {rel}: {exc}", file=sys.stderr)
+                  sys.exit(1)
+              parsed += 1
+          print(f"XML/XAML parse: OK ({parsed} changed file(s))")
+
+          # 2. Forbidden source patterns. These are intentional guardrails, not lints:
+          #    - IBuffer.Data() hands out a raw pointer with an easy-to-mishandle lifetime.
+          #    - UserChoice must only ever be changed by the user via Windows Settings.
+          data_call = re.compile(r"\.Data\s*\(")
+          registry_write = re.compile(
+              r"(?i)set-itemproperty|new-itemproperty|reg\s+add|regsetvalue|setvalue"
+          )
+          failures = []
+          generated = ("graphify-out/", ".project/", "target/", "dist/")
+          for rel in changed:
+              low = rel.lower()
+              if low.startswith(generated):
+                  continue
+              if not low.endswith((".cpp", ".h", ".hpp", ".cc", ".cxx", ".ps1", ".cs", ".rs")):
+                  continue
+              path = os.path.join(root, rel)
+              if not os.path.isfile(path):
+                  continue
+              with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                  text = handle.read()
+              uses_ibuffer = "IBuffer" in text
+              for lineno, line in enumerate(text.splitlines(), 1):
+                  if uses_ibuffer and data_call.search(line):
+                      failures.append(f"FORBIDDEN IBuffer.Data() at {rel}:{lineno}")
+                  if "userchoice" in line.lower() and registry_write.search(line):
+                      failures.append(f"FORBIDDEN UserChoice write at {rel}:{lineno}")
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+          print("Forbidden-pattern scan: OK")
+
+          # 3. Secret pattern scan over changed text files. Example/placeholder lines
+          #    are skipped; binaries and prose docs are not scanned.
+          secret_patterns = [
+              re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
+              re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+              re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
+              re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
+              re.compile(
+                  r"(?i)\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|password)\b"
+                  r"\s*[:=]\s*[\"'][^\"']{16,}[\"']"
+              ),
+          ]
+          skip_suffixes = (
+              ".md", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf",
+              ".zip", ".dll", ".exe", ".pdb", ".lib",
+          )
+          secret_hits = []
+          scanned = 0
+          for rel in changed:
+              if rel.lower().startswith(generated) or rel.lower().endswith(skip_suffixes):
+                  continue
+              path = os.path.join(root, rel)
+              if not os.path.isfile(path):
+                  continue
+              with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                  lines = handle.read().splitlines()
+              scanned += 1
+              for lineno, line in enumerate(lines, 1):
+                  lower = line.lower()
+                  if any(word in lower for word in ("example", "placeholder", "redact", "dummy")):
+                      continue
+                  for pattern in secret_patterns:
+                      if pattern.search(line):
+                          secret_hits.append(f"SECRET_PATTERN {rel}:{lineno}")
+                          break
+          if secret_hits:
+              print("\n".join(secret_hits), file=sys.stderr)
+              print("Remove or rotate the value before merging.", file=sys.stderr)
+              sys.exit(1)
+          print(f"Secret-pattern scan: OK ({scanned} changed text file(s) inspected)")
+          PY
+
   build-windows-browser:
     name: Build Native Windows Browser (x86_64)
     runs-on: windows-2022
@@ -208,9 +355,60 @@ jobs:
         run: |
           .\ports\windows\packaging\sign_and_package.ps1 -DistDir "dist/servo-windows-browser"
 
+      # Integrity metadata only. This does not sign or update the artifact: production
+      # signing, MSIX/Store packaging and the update channel remain deployment decisions.
+      - name: Emit artifact SHA256 and manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $Artifact = "dist/servo-windows-browser-setup.zip"
+          if (-not (Test-Path $Artifact)) {
+            throw "Missing installable artifact: $Artifact"
+          }
+
+          $Hash = (Get-FileHash -Algorithm SHA256 -Path $Artifact).Hash.ToLowerInvariant()
+
+          # Read the workspace version from Cargo.toml so the manifest cannot drift.
+          $Version = "unknown"
+          $InWorkspacePackage = $false
+          foreach ($line in Get-Content "Cargo.toml") {
+            if ($line -match '^\s*\[workspace\.package\]\s*$') { $InWorkspacePackage = $true; continue }
+            if ($InWorkspacePackage -and $line -match '^\s*version\s*=\s*"([^"]+)"') {
+              $Version = $Matches[1]
+              break
+            }
+            if ($InWorkspacePackage -and $line -match '^\s*\[') { break }
+          }
+
+          $Manifest = [ordered]@{
+            schema     = "servo-windows-browser-artifact/v1"
+            artifact   = [System.IO.Path]::GetFileName($Artifact)
+            version    = $Version
+            commit     = "${{ github.sha }}"
+            sha256     = $Hash
+            builtAtUtc = (Get-Date).ToUniversalTime().ToString("o")
+          }
+          $ManifestPath = "dist/servo-windows-browser-manifest.json"
+          $Manifest | ConvertTo-Json -Depth 3 | Set-Content -Path $ManifestPath -Encoding utf8
+
+          Write-Host "SHA256 ($Artifact) = $Hash"
+          Write-Host "Wrote $ManifestPath"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value @"
+          ### Artifact integrity
+
+          - Artifact: $($Manifest.artifact)
+          - Version: $Version
+          - Commit: $($Manifest.commit)
+          - SHA256: $Hash
+
+          "@
+
       - name: Upload Self-Signed Installable Browser Artifact
         uses: actions/upload-artifact@v4
         with:
           name: servo-windows-browser-setup
-          path: dist/servo-windows-browser-setup.zip
+          path: |
+            dist/servo-windows-browser-setup.zip
+            dist/servo-windows-browser-manifest.json
+          if-no-files-found: error
 

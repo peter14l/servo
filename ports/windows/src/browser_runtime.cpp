@@ -6,11 +6,14 @@
 #include "browser_settings.h"
 #include "schannel_gateway.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdarg>
 #include <memory>
 #include <mutex>
 #include <share.h>
+#include <utility>
+#include <vector>
 #include <shlobj.h>
 #include <dbghelp.h>
 
@@ -222,6 +225,24 @@ void OnDevToolsServerStarted(Servo* /*servo*/, uint16_t port, const char* token,
     BrowserRuntime::Instance().NotifyDevTools(port, token ? token : "");
 }
 
+struct SiteNameCollector {
+    std::vector<std::string> sites;
+};
+
+bool CollectSiteForClear(const struct ServoSiteData* site, uintptr_t, uintptr_t, void* userData) {
+    auto* collector = static_cast<SiteNameCollector*>(userData);
+    if (!site || !site->name || !collector) return true;
+    std::string name(site->name);
+    if (!name.empty()) collector->sites.push_back(std::move(name));
+    return true;
+}
+
+void AppendClearDetail(std::string& details, const char* text) {
+    if (!text) return;
+    if (!details.empty()) details += "; ";
+    details += text;
+}
+
 } // namespace
 
 void LogDebug(const char* fmt, ...) {
@@ -387,6 +408,23 @@ bool BrowserRuntime::Initialize() {
         servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 48);
         servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 24);
         servo_preferences_set_i64(prefs, "session_history_max_length", 5);
+
+        // textScale is a chrome-level percentage. Servo exposes only the
+        // underlying font-size preferences, so map 100% to the defaults
+        // (16 px body / 13 px monospace) and scale from there.
+        const int textScale = std::clamp(userSettings.textScale, 50, 200);
+        const int64_t defaultFontSize = std::max<int64_t>(1, 16LL * textScale / 100);
+        const int64_t monoFontSize = std::max<int64_t>(1, 13LL * textScale / 100);
+        servo_preferences_set_i64(prefs, "fonts_default_size", defaultFontSize);
+        servo_preferences_set_i64(prefs, "fonts_default_monospace_size", monoFontSize);
+
+        // These shared settings have no Servo preference with these names:
+        // TODO(winui-settings): "custom_search_engine" is chrome state; generated pages use it directly.
+        // TODO(winui-settings): "download_dir" is not a Servo preference; paths come from the request context.
+        // TODO(winui-settings): "accent_color" is chrome-only; Mica and accent brushes are native.
+        // TODO(winui-settings): "reduced_motion" is not exposed by Servo's preference C API.
+        // TODO(winui-settings): "private_mode" is not a Servo preference; it is per-WebView via servo_webview_builder_set_private_browsing.
+        // TODO(winui-settings): "clear_data_mask" is a chrome selection consumed by BrowserSettings::ClearBrowsingData.
         servo_builder_set_preferences(builder, prefs);
     }
 
@@ -429,6 +467,7 @@ bool BrowserRuntime::Initialize() {
         return false;
     }
     LogDebug("Servo instance built.");
+    SetEngineDataClearHook(&BrowserRuntime::ClearEngineData);
     servo_setup_logging(m_servo);
     SchannelGateway::Start();
     return true;
@@ -537,6 +576,83 @@ void BrowserRuntime::Shutdown() {
         servo_free(m_servo);
         m_servo = nullptr;
     }
+}
+
+ClearBrowsingDataResult BrowserRuntime::ClearEngineData(int mask) {
+    ClearBrowsingDataResult result;
+    result.requestedMask = mask;
+
+    Servo* servo = Instance().m_servo;
+    if (!servo) {
+        AppendClearDetail(result.details, "engine is not initialized");
+        return result;
+    }
+
+    if (mask & BrowserClearCookies) {
+        ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+        if (manager) {
+            servo_site_data_clear_cookies(manager);
+            servo_site_data_manager_free(manager);
+            result.clearedMask |= BrowserClearCookies;
+        } else {
+            AppendClearDetail(result.details, "cookies: site data manager unavailable");
+        }
+    }
+
+    if (mask & BrowserClearSiteData) {
+        ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+        if (manager) {
+            // LOCAL | SESSION excludes cookies, which have their own mask bit.
+            const uint32_t storageTypes = SERVO_STORAGE_TYPE_LOCAL | SERVO_STORAGE_TYPE_SESSION;
+            SiteNameCollector collector;
+            int visit = servo_site_data_visit_sites(manager, storageTypes,
+                                                    CollectSiteForClear, &collector);
+            if (visit != SERVO_ERROR_OK) {
+                AppendClearDetail(result.details, "site data: enumeration failed");
+            } else if (collector.sites.empty()) {
+                // No matching site storage exists, so the requested state is
+                // already true. This is not a claim that cookies were cleared.
+                result.clearedMask |= BrowserClearSiteData;
+            } else {
+                std::vector<const char*> sitePointers;
+                sitePointers.reserve(collector.sites.size());
+                for (const std::string& site : collector.sites) {
+                    sitePointers.push_back(site.c_str());
+                }
+                int cleared = servo_site_data_clear_site_data(manager, sitePointers.data(),
+                                                              sitePointers.size(), storageTypes);
+                if (cleared == SERVO_ERROR_OK) {
+                    result.clearedMask |= BrowserClearSiteData;
+                } else {
+                    AppendClearDetail(result.details, "site data: clear failed");
+                }
+            }
+            servo_site_data_manager_free(manager);
+        } else {
+            AppendClearDetail(result.details, "site data: site data manager unavailable");
+        }
+    }
+
+    if (mask & BrowserClearCache) {
+        ServoNetworkManager* manager = servo_get_network_manager(servo);
+        if (manager) {
+            int cleared = servo_network_manager_clear_cache(manager);
+            servo_network_manager_free(manager);
+            if (cleared == SERVO_ERROR_OK) {
+                result.clearedMask |= BrowserClearCache;
+            } else {
+                AppendClearDetail(result.details, "cache: clear failed");
+            }
+        } else {
+            AppendClearDetail(result.details, "cache: network manager unavailable");
+        }
+    }
+
+    if (mask & BrowserClearPasswords) {
+        AppendClearDetail(result.details, "passwords: no verified C API");
+    }
+
+    return result;
 }
 
 void BrowserRuntime::SetCurrentMessage(UINT message) {

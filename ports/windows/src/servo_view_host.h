@@ -52,6 +52,12 @@ public:
     void ViewPageSource();
     void EvaluateJavaScript(const std::string& script);
 
+    // Find-in-page. Servo's C API (servo_webview_find) accepts only `forward`
+    // and `match_case`; `wholeWord` is kept for callers that share a signature
+    // with other shells and is documented at the implementation as unsupported.
+    void Find(const std::string& text, bool forward, bool matchCase);
+    void Find(const std::string& text, bool forward, bool matchCase, bool wholeWord);
+
 private:
     void RaiseForCompositionHosting();
 
@@ -93,6 +99,17 @@ private:
     static bool IsAlive(ServoViewHost* host);
     static void OnViewSourceResult(ServoValue* value, const char* errorMessage, void* userData);
 
+    // Navigation errors and security state are reported to the shell, which
+    // owns all user-visible chrome (lock icon, error interstitial, etc.).
+    void HandleLoadError(const char* url, int32_t errorCode, const char* errorText);
+    void ReportNavigationSecurity(const std::string& url);
+    // Target-aware context menu helpers. The engine's ServoContextMenuParams
+    // are cached for the current right-click; host-only commands are executed
+    // here, while engine actions are emulated because the one-shot C callback
+    // has already been answered with DISMISS.
+    void ExecuteContextCommand(int command, const std::string& linkUrl, const std::string& imageUrl);
+    void InjectEditShortcut(const char* key, const char* code, uint32_t modifiers);
+
     HWND m_hwnd;
     HWND m_parentHwnd;
     struct Servo* m_servo;
@@ -112,4 +129,17 @@ private:
     HCURSOR m_currentCursor;
     std::vector<std::string> m_history;
     size_t m_historyIndex = 0;
+
+    // Most recent engine-provided context-menu target (deep-copied in
+    // OnContextMenu, which runs before the native menu is built in the common
+    // case). A short freshness window prevents a stale target from a previous
+    // right-click from changing a keyboard-invoked menu.
+    std::string m_contextMenuLinkUrl;
+    std::string m_contextMenuImageUrl;
+    uint32_t m_contextMenuFlags = 0;
+    ULONGLONG m_contextMenuParamsAtMs = 0;
+
+    // Set to the error page URL so a failure while loading that page does not
+    // trigger an endless error-page reload loop.
+    std::string m_errorPageUrl;
 };

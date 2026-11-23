@@ -378,6 +378,7 @@ static const char* NEW_TAB_BODY = R"HTML(
     <a href="servo://session-restore" class="action-chip"><span class="ficon">&#xE777;</span> Restore Session</a>
     <a href="servo://bookmarks" class="action-chip"><span class="ficon">&#xE734;</span> Bookmarks</a>
     <a href="servo://history" class="action-chip"><span class="ficon">&#xE81C;</span> History</a>
+    <a href="servo://downloads" class="action-chip"><span class="ficon">&#xE896;</span> Downloads</a>
     <a href="servo://settings" class="action-chip"><span class="ficon">&#xE713;</span> Settings</a>
   </div>
 </div>
@@ -439,7 +440,7 @@ static const char* NEW_TAB_SCRIPT = R"HTML(
       var query = input.value.trim();
       if (!query) return;
 
-      if (/^(servo|chrome|edge):/i.test(query) || query === 'settings' || query === 'history' || query === 'bookmarks' || query === 'about' || query === 'newtab' || query === 'about:settings' || query === 'about:bookmarks' || query === 'about:history') {
+      if (/^(servo|chrome|edge):/i.test(query) || query === 'settings' || query === 'history' || query === 'bookmarks' || query === 'downloads' || query === 'about' || query === 'newtab' || query === 'about:settings' || query === 'about:bookmarks' || query === 'about:history' || query === 'about:downloads') {
         console.log('__servo_ipc__:navigate:' + query);
         return;
       }

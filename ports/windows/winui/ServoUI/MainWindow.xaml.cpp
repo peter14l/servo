@@ -1139,7 +1139,7 @@ namespace winrt::ServoUI::implementation
 
             auto buffer = Windows::Storage::Streams::Buffer(static_cast<uint32_t>(pixels.size()));
             buffer.Length(static_cast<uint32_t>(pixels.size()));
-            std::memcpy(buffer.Data(), pixels.data(), pixels.size());
+            std::memcpy(buffer.data(), pixels.data(), pixels.size());
 
             auto bitmap = Windows::Graphics::Imaging::SoftwareBitmap::CreateCopyFromBuffer(
                 buffer,

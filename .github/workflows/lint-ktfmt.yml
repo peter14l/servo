@@ -22,8 +22,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Run ktfmtCheck with diagnostics
+      - name: Print ktfmt CLI formatted output
         run: |
-          ./gradlew :servoview:ktfmtCheckScripts --info --rerun-tasks || true
-          printf '\n--- servoview/build.gradle.kts current content ---\n'
-          sed -n '1,25p' servoview/build.gradle.kts
+          curl -fsSL -o /tmp/ktfmt.jar https://github.com/Kotlin/ktfmt/releases/download/v0.64/ktfmt-0.64-with-dependencies.jar
+          cp servoview/build.gradle.kts /tmp/build.gradle.kts
+          java -jar /tmp/ktfmt.jar --kotlinlang-style /tmp/build.gradle.kts
+          printf '\n--- ktfmt-0.64 formatted servoview/build.gradle.kts ---\n'
+          cat /tmp/build.gradle.kts

@@ -769,9 +769,7 @@ class MachCommands(CommandBase):
         with open(bmf_output, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=4)
 
-    def speedometer_runner(
-        self, binary: str, bmf_output: str | None, profile: str, retries: int = 2
-    ) -> None:
+    def speedometer_runner(self, binary: str, bmf_output: str | None, profile: str, retries: int = 2) -> None:
         # Speedometer is served from an external site. A transient stall there
         # can exceed the timeout without indicating a Servo regression, so retry
         # a bounded number of times. Every attempt must still produce a valid

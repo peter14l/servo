@@ -48,14 +48,16 @@ Two hard rules:
 | ktfmt final verification | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396796842` | `PASSED` | `Lint ktfmt` = Success. |
 | Main CI | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 194 jobs: 79 success, 115 skipped, 0 failures. |
 | Strict WPT | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 20/20 WPT shards success; `Process WPT Results` success; `WPT_ALWAYS_SUCCEED_ARG` empty; sample shard log `Filtering 0 unexpected results`. |
-| Re-enable previously skipped WPT suites | `f5992a160b6d7ca29883258a1cf82107fac0cc4c` | `45413720692` | `FAILED` → rerun `IN_PROGRESS` | 78 success / 115 skipped / **1 cancelled**; no job had a genuine `failure`. The cancelled job is `MacOS Arm64 (Unit Tests, Bencher, C API) / MacOS / Build and test Servo's C API` — it never got a runner (`runner_id=0`, no steps) and was cancelled after 15 min, so GitHub marked the run failed. Job rerun requested; strict WPT results remain clean. |
+| Re-enable previously skipped WPT suites | `f5992a160b6d7ca29883258a1cf82107fac0cc4c` | `45413720692` | `FAILED` (infrastructure, not code) | Attempt 1: 78 success / 115 skipped / **1 cancelled** / 0 genuine failures — `MacOS Arm64 (Unit Tests, Bencher, C API) / MacOS / Build and test Servo's C API` (job `138514276569`) never got a runner (`runner_id=0`, no steps). Attempt 2 (single-job rerun): `Result` failed with `No artifacts found matching pattern 'cargo-timings-*'` because a one-job rerun cannot merge first-attempt artifacts. Strict WPT results remained clean. |
+| Fresh full run on docs commit | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660357` | `IN_PROGRESS` | Full-run watcher active; this run supersedes the rerun-artifact failure above. |
 | Local heavy builds / test suites | — | — | `NOT_RUN` | By design: all builds and tests run in GitHub Actions only. |
 
 Older failures are covered by later fixes and are recorded for traceability, not as open
 work: `45384672757` (Main, `Install crown`) and `45384672761` (Lint ktfmt) were resolved
 by `903f8325122`, `f0fba21fa6f`, and `5461673d1e9`.
 
-**Overall status: `CI_AND_WPT = PASSED` at `5461673d1e9`; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.**
+**Overall status: `CI_AND_WPT = PASSED` at `5461673d1e9`; re-enable verification not yet
+re-confirmed at `f5992a160b6` / `fd4655eb3b6`; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.**
 
 ---
 
@@ -67,9 +69,9 @@ they provide a prerequisite.
 
 | Gate | Title | Effort | Status | Depends on | Verification gate |
 |---|---|---|---|---|---|
-| **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `FAILED` → rerun `IN_PROGRESS` (`f5992a160b6` / run `45413720692`, cancelled macOS arm64 job) | — | Main workflow + strict WPT job conclusions |
+| **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `FAILED` (infrastructure) → fresh run `IN_PROGRESS` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
-| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
+| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `IN_PROGRESS` (implementation in this change; CI verification pending) | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
 | **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `NOT_CONFIRMED` | REL-0, W1 | WPT pass-rate baseline + real-site runbook |
 | **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `NOT_CONFIRMED` | REL-0, W5.6/W5.7 | Perf analysis job + baseline comparison |
@@ -86,14 +88,15 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 ## 4. Gate detail (current state / next action)
 
 ### REL-0 — Strict CI/WPT baseline
-- **State:** `FAILED` → rerun `IN_PROGRESS` — run `45413720692` on `f5992a160b6`.
-- **Diagnosis:** 78 jobs success, 115 skipped, 1 cancelled, **0 genuine failures**. The sole
-  non-success is `MacOS Arm64 (Unit Tests, Bencher, C API) / MacOS / Build and test Servo's
-  C API` (job `138514276569`): no steps ran, `runner_id=0`, cancelled after ~15 min waiting
-  for a macOS arm64 runner. This is infrastructure churn, not a code regression. A job-level
-  rerun has been requested.
-- **Next action:** watch the rerun to terminal; confirm all job conclusions, all strict WPT
-  shards with the re-enabled suites, `Process WPT Results`, and an empty
+- **State:** `FAILED` (infrastructure) → fresh full run `IN_PROGRESS` — `45428660357` on
+  `fd4655eb3b6`.
+- **Diagnosis:** run `45413720692` had 78 success, 115 skipped, 1 cancelled and **0 genuine
+  failures**; the cancelled `MacOS Arm64 … C API` job (`138514276569`) never got a runner
+  (`runner_id=0`). Its single-job rerun then made `Result` fail with
+  `No artifacts found matching pattern 'cargo-timings-*'` — a rerun/artifact-merge artifact,
+  not a code regression. Neither attempt is usable as a green baseline.
+- **Next action:** watch `45428660357` to terminal; confirm all job conclusions, all strict
+  WPT shards with the re-enabled suites, `Process WPT Results`, and an empty
   `WPT_ALWAYS_SUCCEED_ARG`.
 - **If green:** set `PASSED` with the run id. If the cancellation repeats: record it as a
   runner-availability blocker, not a code failure; do not re-add `--always-succeed`.
@@ -105,9 +108,20 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 - **Blocker:** requires a human and a real GPU machine; never CI.
 
 ### REL-2 — browserd ABI / lifecycle
-- **State:** `NOT_CONFIRMED` (embedding API version is pre-1.0; see `ABI_STABILITY.md`).
-- **Next action:** define and test create → use → suspend → resume → destroy sequences for
-  every handle browserd touches; verify no panic crosses the FFI boundary.
+- **State:** `IN_PROGRESS` — implementation in this change; `NOT_RUN` in CI so far.
+- **Implemented:** `ABI_STABILITY.md` §4.5 now enumerates all eight adopted `HandleKind`
+  variants with ownership and thread affinity; the matching stale claims in
+  `AGENT_BUILD_PLAN.md` (W2.5 result, SECURITY_AUDIT reconciliation, §D.2.1) and
+  `HARDENING_PLAN.md` §B.1 are corrected. `tests/capi/c/test_api.c` adds six C tests:
+  builder, rendering context, request context, value and webview-builder lifecycle
+  (garbage pointer, use-after-free, double-free, null) plus a wrong-kind test proving the
+  `HandleKind` tag in the registry key. The versioning rules for pre-1.0 changes remain
+  those in `ABI_STABILITY.md` §2.4; no FFI panic path was weakened.
+- **Next action:** push and watch `embedding-api.yml` on all platforms; then mark `PASSED`
+  with the run id. Explicit suspend/resume of a browserd shell is not a C-handle API and
+  remains outside these tests; it belongs to REL-1's runtime checklist.
+- **Known blind spots (unchanged):** address reuse in the registry and the temporary-pointer
+  rule, both registered in `AGENT_BUILD_PLAN.md` §D.2.1.
 
 ### REL-3 — Real-world compatibility
 - **State:** `NOT_CONFIRMED`.
@@ -148,3 +162,5 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 |---|---|---|
 | 2026-11-24 | Tracker created. CI/WPT `PASSED` at `5461673d1e9`; re-enable run `45413720692` initially `IN_PROGRESS`; all public-release gates `NOT_CONFIRMED`/`BLOCKED`. | Runs `45396796842`, `45396797175`, `45413720692` |
 | 2026-11-24 | Run `45413720692` concluded `failure` solely from one infrastructure-cancelled macOS arm64 C API job (no real failure); job rerun requested; REL-0 set to `FAILED` → rerun `IN_PROGRESS`. | Run `45413720692`, job `138514276569` |
+| 2026-11-24 | Attempt 2 of `45413720692` also concluded `failure`: single-job rerun could not merge first-attempt artifacts, so `Result` reported no `cargo-timings-*`. Both attempts recorded as infrastructure, not code; fresh full run `45428660357` started on the docs commit. | Run `45413720692`, check run `Result` |
+| 2026-11-24 | REL-2 Wave 1 implemented: handle-registry docs corrected to all eight `HandleKind` variants; six C lifecycle/wrong-kind tests added in `tests/capi/c/test_api.c`. State `IN_PROGRESS` pending CI. | Local diff (no local build/test run) |

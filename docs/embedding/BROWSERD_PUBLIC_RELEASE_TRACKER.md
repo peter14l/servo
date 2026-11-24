@@ -78,7 +78,7 @@ they provide a prerequisite.
 | **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
 | **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (steps 1–2 prepared; real-site runs `NOT_RUN`) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); `SITE_SMOKE_RUNBOOK.md` |
 | **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
-| **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `NOT_CONFIRMED` | REL-0, W5.6/W5.7 | Perf analysis job + baseline comparison |
+| **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `BLOCKED` (measurements `DONE`, threshold gate not run) | REL-0, W5.6/W5.7 | `PERFORMANCE_BASELINE.md`; bencher token + Windows perf + leak evidence |
 | **REL-6** | Distribution (signed artifacts, installers, update story) | L | `NOT_CONFIRMED` | REL-1, REL-2, W5.3/W3.4 | Release workflow artifacts from successful runs only |
 | **REL-7** | Observability (size, startup, throughput, crash telemetry) | M | `NOT_CONFIRMED` | REL-4 | CI metrics job + opt-in telemetry pipeline |
 | **REL-8** | Public-release sign-off (documented go/no-go with all gates evidenced) | S | `BLOCKED` | REL-1 … REL-7 | Signed decision record |
@@ -165,9 +165,23 @@ other multiplatform work is additive and must not regress the Windows path. A ga
   runs with valid CLI syntax.
 
 ### REL-5 — Performance
-- **State:** `NOT_CONFIRMED`.
-- **Next action:** keep the real Speedometer benchmark and gate; retry only `TimeoutExpired`.
-  Compare against the recorded baseline (`W5.6`), do not weaken the threshold.
+- **State:** `BLOCKED` — measurements are recorded, but no threshold comparison ran.
+- **Evidence (`DONE`):** `PERFORMANCE_BASELINE.md` records the real Speedometer score from
+  Main run `45428660357` / job `138599279029` (`5.5637 ± 0.1620`, no retries used) and the
+  perf-analysis numbers from artifact `14941829764` / job `138599178752` (Layout mean
+  `106.8 ms`, Renderer mean `129.6 ms`, FP/FCP mean `1.060 s`, 5 samples of `servo.org`).
+  The retry wrapper in `testing_commands.py` retries only `subprocess.TimeoutExpired`, bounded
+  at 2, and still fails on malformed results; the threshold was not weakened.
+- **Blocker:** `Send results` in `.github/workflows/bencher.yml` failed with
+  `error: a value is required for '--token <TOKEN>' but none was supplied`. The step has
+  `continue-on-error: true`, so the job stayed green while **no baseline comparison or
+  regression detection occurred**. Do not claim a threshold pass, and do not remove
+  `continue-on-error` until the token is confirmed or a reviewed visible gate replaces it.
+- **Additional gaps:** no long-uptime / repeated load-unload leak evidence; no Windows
+  performance evidence (Speedometer is `false` on Windows/macOS/Android/OpenHarmony and runs
+  only for `checked-release` on Linux), so the flagship target is not covered.
+- **Next action:** configure/review the bencher token, re-run and record a real baseline
+  comparison at the same threshold, then add leak and Windows evidence. Do not lower the gate.
 
 ### REL-6 — Distribution
 - **State:** `NOT_CONFIRMED`.
@@ -197,3 +211,4 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | REL-3 step 1: published per-suite WPT baseline from strict run `45396797175` (`5461673d1e9`). Reports 88.37% assertion pass rate and 55.04% harness-`OK` rate separately, flags 109 harness-`OK` files with failing assertions, and never counts `SKIP` as a pass. REL-3 → `IN_PROGRESS` (steps 2–3 pending). | `WPT_STRICT_BASELINE.md`, `wpt_strict_baseline.json`, artifact `14924931895` |
 | 2026-11-24 | REL-0 `PASSED` on full Main run `45428660357` (`fd4655eb3b6`): 194 jobs, 0 failures/cancellations, 20/20 strict WPT shards + `Process WPT Results` success, empty `WPT_ALWAYS_SUCCEED_ARG`, `Filtering 0 unexpected results`. The cancelled macOS C API check came from the separate Embedding API run `45428660374`, not the Main run. | Run `45428660357`; jobs `138599103611`, `138604438839` |
 | 2026-11-24 | REL-3 step 2 preparation: fixed five-site smoke set and evidence/triage rules published in `SITE_SMOKE_RUNBOOK.md`. Hardened `site_smoketest.py` so a missing binary is an error (exit 2) and `--dry-run` output is explicitly `NOT_RUN`; regenerated `SITE_SMOKETEST_REPORT.md` as a plan. No site executed — real-site results remain `NOT_RUN`. | `SITE_SMOKE_RUNBOOK.md`, `SITE_SMOKETEST_REPORT.md`; dry-run verified locally |
+| 2026-11-24 | REL-5 measurements published in `PERFORMANCE_BASELINE.md` (Speedometer 5.5637 ± 0.1620; Layout mean 106.8 ms, Renderer mean 129.6 ms, FP/FCP mean 1.060 s), but the bencher threshold submission failed on a missing token and was masked by `continue-on-error: true`. No pass claimed; no Windows or leak evidence. REL-5 → `BLOCKED`. | Jobs `138599279029`, `138599178752`; artifact `14941829764` |

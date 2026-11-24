@@ -241,18 +241,28 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-5 — Performance
 
-- **State:** `NOT_CONFIRMED`.
+- **State:** `BLOCKED` (measurements `DONE`; threshold gate and platform coverage pending).
 - **Prerequisites:** REL-0; `W5.6`/`W5.7`.
 - **Touch points:** perf analysis job, `benchmark-servo.sh` (fetched in CI, not vendored),
-  Speedometer gate.
+  Speedometer gate, `.github/workflows/bencher.yml`, `docs/embedding/PERFORMANCE_BASELINE.md`.
 - **Steps:**
-  1. Keep the real benchmark and threshold; retry **only** `TimeoutExpired`.
-  2. Compare against the recorded baseline; investigate regressions rather than lowering
-     the gate.
-  3. Confirm long-uptime / repeated load-unload leak results.
-- **Acceptance:** perf job green on its real threshold; baseline comparison recorded.
-- **Tests:** perf analysis job id + numbers.
-- **Gotchas:** do not reintroduce stale flags (e.g. `--print-pwm`) into benchmarks.
+  1. `DONE` — keep the real benchmark and threshold; retry **only** `TimeoutExpired` (bounded
+     at 2 in `testing_commands.py`; malformed results still fail). No retry was used in run
+     `45428660357`; Speedometer scored `5.5637 ± 0.1620`. Perf-analysis numbers and artifact
+     provenance are in `PERFORMANCE_BASELINE.md`.
+  2. `BLOCKED` — compare against the recorded baseline: `Send results` failed with a missing
+     `--token` value while `continue-on-error: true` kept the job green, so **no comparison
+     ran**. Configure/confirm the token (or a reviewed visible gate) first; do not simply
+     delete `continue-on-error` and break CI on configuration. Investigate regressions rather
+     than lowering the gate.
+  3. `NOT_RUN` — confirm long-uptime / repeated load-unload leak results and add flagship
+     Windows performance evidence (Speedometer is Linux `checked-release` only).
+- **Acceptance:** perf job green on its real threshold **and** a baseline comparison recorded
+  — **not met**. No pass is claimed for this gate.
+- **Tests:** perf analysis job id + numbers (`138599178752`, artifact `14941829764`),
+  Speedometer job `138599279029`.
+- **Gotchas:** do not reintroduce stale flags (e.g. `--print-pwm`) into benchmarks; a green
+  job with a masked submission error is not a green threshold.
 
 ### REL-6 — Distribution
 

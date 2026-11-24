@@ -216,7 +216,9 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
         let len = self.0.attrs().borrow().len();
         let mut attrs = Vec::with_capacity(len);
         for i in 0..len {
-            attrs.push(XPathWrapper::from(self.0.attrs().ensure_dom(cx, i, &self.0)));
+            attrs.push(XPathWrapper::from(
+                self.0.attrs().ensure_dom(cx, i, &self.0),
+            ));
         }
         attrs.into_iter()
     }

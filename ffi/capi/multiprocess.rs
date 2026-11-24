@@ -5,7 +5,7 @@
 use std::ffi::c_char;
 
 #[cfg(feature = "multiprocess")]
-use servo::{run_content_process, create_sandbox};
+use servo::{create_sandbox, run_content_process};
 
 /// Runs a content process that this binary was re-executed to create.
 ///

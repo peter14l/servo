@@ -58,9 +58,8 @@ impl Default for ServoPdfPrintSettings {
 /// - `success`: true if the PDF was successfully generated and written.
 /// - `output_path`: UTF-8 path to the written file, or NULL on failure.
 /// - `user_data`: the pointer passed to `servo_webview_print_to_pdf`.
-pub type ServoPdfPrintCallback = Option<
-    unsafe extern "C" fn(success: bool, output_path: *const c_char, user_data: *mut c_void),
->;
+pub type ServoPdfPrintCallback =
+    Option<unsafe extern "C" fn(success: bool, output_path: *const c_char, user_data: *mut c_void)>;
 
 /// Prints the contents of `webview` to a PDF file at `output_path`.
 ///

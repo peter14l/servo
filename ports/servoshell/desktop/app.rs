@@ -126,7 +126,11 @@ impl App {
         if let Some(ref ext_dir) = self.servoshell_preferences.load_extension {
             match crate::desktop::extensions::load_extension(ext_dir) {
                 Ok(ext) => {
-                    log::info!("Loaded WebExtension: {} v{}", ext.manifest.name, ext.manifest.version);
+                    log::info!(
+                        "Loaded WebExtension: {} v{}",
+                        ext.manifest.name,
+                        ext.manifest.version
+                    );
                     for script in ext.scripts {
                         user_content_manager.add_script(script);
                     }

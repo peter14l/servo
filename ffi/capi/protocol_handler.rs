@@ -5,13 +5,13 @@
 use std::ffi::{c_char, c_void};
 use std::future::Future;
 use std::pin::Pin;
-use embedder_traits::WebResourceResponse;
-use embedder_traits::WebResourceRequest;
+
+use embedder_traits::{WebResourceRequest, WebResourceResponse};
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 use servo_api::ServoUrl;
 use servo_api::protocol_handler::{
-    DoneChannel, FetchContext, HttpStatus, NetworkError, ProtocolHandler, ProtocolRegistry, Request,
-    ResourceFetchTiming, ResourceTimingType, Response, ResponseBody,
+    DoneChannel, FetchContext, HttpStatus, NetworkError, ProtocolHandler, ProtocolRegistry,
+    Request, ResourceFetchTiming, ResourceTimingType, Response, ResponseBody,
 };
 use url::Url;
 
@@ -396,7 +396,7 @@ pub unsafe extern "C" fn servo_web_resource_response_set_url(
         Ok(u) => {
             response.url = u;
             0
-        }
+        },
         Err(_) => -1,
     }
 }
@@ -420,7 +420,7 @@ pub unsafe extern "C" fn servo_web_resource_response_set_status(
                 response.status_message = msg.to_vec();
             }
             0
-        }
+        },
         Err(_) => -1,
     }
 }

@@ -343,12 +343,10 @@ pub unsafe extern "C" fn servo_webview_add_script_message_handler(
         let raw_webview = webview;
         webview_ref
             .message_router()
-            .add_message_handler(name, move |msg_name, data_json| {
-                unsafe {
-                    let name_c = std::ffi::CString::new(msg_name).unwrap_or_default();
-                    let data_c = std::ffi::CString::new(data_json).unwrap_or_default();
-                    callback(raw_webview, name_c.as_ptr(), data_c.as_ptr(), user_data);
-                }
+            .add_message_handler(name, move |msg_name, data_json| unsafe {
+                let name_c = std::ffi::CString::new(msg_name).unwrap_or_default();
+                let data_c = std::ffi::CString::new(data_json).unwrap_or_default();
+                callback(raw_webview, name_c.as_ptr(), data_c.as_ptr(), user_data);
             });
 
         ServoError::Ok

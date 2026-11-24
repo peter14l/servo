@@ -328,12 +328,17 @@ impl CookieStorage {
 
     /// Returns all cookies in the store mutably (for deletion).
     pub fn all_cookies_mut(&mut self) -> Vec<&mut ServoCookie> {
-        self.cookies_map.values_mut().flat_map(|v| v.iter_mut()).collect()
+        self.cookies_map
+            .values_mut()
+            .flat_map(|v| v.iter_mut())
+            .collect()
     }
 
     /// Returns cookies for a specific domain mutably.
     pub fn cookies_for_domain_mut(&mut self, domain: &str) -> Option<Vec<&mut ServoCookie>> {
-        self.cookies_map.get_mut(domain).map(|v| v.iter_mut().collect())
+        self.cookies_map
+            .get_mut(domain)
+            .map(|v| v.iter_mut().collect())
     }
 }
 

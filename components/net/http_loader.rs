@@ -131,15 +131,25 @@ impl CertErrorCode {
             CertErrorCode::SelfSigned as i32
         } else if text_lower.contains("unknown") && text_lower.contains("authority") {
             CertErrorCode::UnknownCA as i32
-        } else if text_lower.contains("common name") || text_lower.contains("hostname") || text_lower.contains("subject alternative") {
+        } else if text_lower.contains("common name") ||
+            text_lower.contains("hostname") ||
+            text_lower.contains("subject alternative")
+        {
             CertErrorCode::CommonNameInvalid as i32
         } else if text_lower.contains("revoked") {
             CertErrorCode::Revoked as i32
-        } else if text_lower.contains("incomplete chain") || text_lower.contains("chain incomplete") {
+        } else if text_lower.contains("incomplete chain") || text_lower.contains("chain incomplete")
+        {
             CertErrorCode::IncompleteChain as i32
-        } else if text_lower.contains("weak signature") || text_lower.contains("sha1") || text_lower.contains("md5") {
+        } else if text_lower.contains("weak signature") ||
+            text_lower.contains("sha1") ||
+            text_lower.contains("md5")
+        {
             CertErrorCode::WeakSignatureAlgorithm as i32
-        } else if text_lower.contains("weak key") || text_lower.contains("key size") || text_lower.contains("rsa.*1024") {
+        } else if text_lower.contains("weak key") ||
+            text_lower.contains("key size") ||
+            text_lower.contains("rsa.*1024")
+        {
             CertErrorCode::WeakKey as i32
         } else if text_lower.contains("transparency") || text_lower.contains("ct log") {
             CertErrorCode::TransparencyRequired as i32
@@ -254,7 +264,10 @@ impl HttpState {
                 certificate_der,
                 sender,
             ));
-        Some(matches!(receiver.await.ok(), Some(CertificateErrorResponse::Allow)))
+        Some(matches!(
+            receiver.await.ok(),
+            Some(CertificateErrorResponse::Allow)
+        ))
     }
 }
 
@@ -674,7 +687,8 @@ async fn obtain_response(
 
     // Canonicalize youtube.com apex domain to www.youtube.com to avoid TLS renegotiation failure
     let target_url_str = if url.host_str() == Some("youtube.com") {
-        url.as_str().replacen("://youtube.com", "://www.youtube.com", 1)
+        url.as_str()
+            .replacen("://youtube.com", "://www.youtube.com", 1)
     } else {
         url.as_str().to_string()
     };
@@ -2388,7 +2402,8 @@ async fn http_network_fetch(
                 Ok(wrapped_response) => wrapped_response,
                 Err(error) => {
                     // Check if this is a certificate error
-                    if let NetworkError::SslValidation(ref error_text, ref certificate_der) = error {
+                    if let NetworkError::SslValidation(ref error_text, ref certificate_der) = error
+                    {
                         // Try to handle the certificate error via the embedder
                         // Only for navigation requests with a webview
                         if request.mode == RequestMode::Navigate {
@@ -2400,18 +2415,24 @@ async fn http_network_fetch(
                                 .as_ref()
                                 .is_some_and(|body| body.source_is_null());
 
-                            let allowed = context.state.request_certificate_error(
-                                request,
-                                CertErrorCode::from_error_text(error_text),
-                                error_text.clone(),
-                                certificate_der.clone(),
-                            ).await;
+                            let allowed = context
+                                .state
+                                .request_certificate_error(
+                                    request,
+                                    CertErrorCode::from_error_text(error_text),
+                                    error_text.clone(),
+                                    certificate_der.clone(),
+                                )
+                                .await;
 
                             match allowed {
                                 Some(true) => {
                                     // Add certificate to override manager and retry
                                     context.state.override_manager.add_override(
-                                        &rustls_pki_types::CertificateDer::from_slice(certificate_der).into_owned()
+                                        &rustls_pki_types::CertificateDer::from_slice(
+                                            certificate_der,
+                                        )
+                                        .into_owned(),
                                     );
                                     // Retry the request
                                     let retry_future = obtain_response(
@@ -2431,9 +2452,11 @@ async fn http_network_fetch(
                                     );
                                     match retry_future.await {
                                         Ok(wrapped_response) => wrapped_response,
-                                        Err(retry_error) => return Response::network_error(retry_error),
+                                        Err(retry_error) => {
+                                            return Response::network_error(retry_error);
+                                        },
                                     }
-                                }
+                                },
                                 _ => return Response::network_error(error),
                             }
                         } else {
@@ -2442,7 +2465,7 @@ async fn http_network_fetch(
                     } else {
                         return Response::network_error(error);
                     }
-                }
+                },
             };
             (response_stream, msg)
         },

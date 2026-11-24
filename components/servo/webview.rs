@@ -44,8 +44,8 @@ use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
-    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, RequestContext, SelectElement, Servo,
-    UserContentManager, WebRenderDebugOption,
+    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, RequestContext, SelectElement,
+    Servo, UserContentManager, WebRenderDebugOption,
 };
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
@@ -776,7 +776,8 @@ impl WebView {
     /// The embedder should call this when the containing window's size changes.
     /// This will notify the delegate via `WebViewDelegate::notify_window_resized`.
     pub fn was_resized(&self, width: u32, height: u32) {
-        self.delegate().notify_window_resized(self.clone(), width, height);
+        self.delegate()
+            .notify_window_resized(self.clone(), width, height);
     }
 
     /// Notify Servo that the window containing this [`WebView`] has been moved.
@@ -1301,8 +1302,9 @@ impl WebView {
     /// [`WebViewDelegate::on_find_result`].
     pub fn find(&self, text: &str, forward: bool, match_case: bool) -> i32 {
         let identifier = self.servo().constellation_proxy().next_find_identifier();
-        self.servo().constellation_proxy().send(
-            EmbedderToConstellationMessage::Find(
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::Find(
                 self.id(),
                 FindRequest {
                     identifier,
@@ -1310,19 +1312,21 @@ impl WebView {
                     forward,
                     match_case,
                 },
-            ),
-        );
+            ));
         identifier
     }
 
     /// Find the next match for the given find request identifier.
     pub fn find_next(&self, identifier: i32, forward: bool) {
-        self.servo().constellation_proxy().send(
-            EmbedderToConstellationMessage::FindNext(
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::FindNext(
                 self.id(),
-                FindNextRequest { identifier, forward },
-            ),
-        );
+                FindNextRequest {
+                    identifier,
+                    forward,
+                },
+            ));
     }
 
     /// Clear the find results for the given identifier.

@@ -301,9 +301,9 @@ impl<'dom> LayoutDom<'dom, Node> {
                     .get_attr_val_for_layout(&ns!(), &local_name!("contenteditable"));
                 match state {
                     Some(value)
-                        if value.eq_ignore_ascii_case("true")
-                            || value.eq_ignore_ascii_case("plaintext-only")
-                            || value.is_empty() =>
+                        if value.eq_ignore_ascii_case("true") ||
+                            value.eq_ignore_ascii_case("plaintext-only") ||
+                            value.is_empty() =>
                     {
                         // Editing host (matches `HTMLElement::is_editing_host`).
                         return true;
@@ -322,8 +322,8 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {
         self.parent_node_ref()
-            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
-            || (*self).is_editable_or_editing_host_for_layout()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input()) ||
+            (*self).is_editable_or_editing_host_for_layout()
     }
 
     pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {

@@ -1078,7 +1078,11 @@ impl BoxFragmentWithStyle<'_> {
                     },
                     OverflowClipMarginBox::BorderBox => {},
                 };
-                radii = offset_radii(builder.border_radius(), offsets_from_border, &overflow_clip_rect);
+                radii = offset_radii(
+                    builder.border_radius(),
+                    offsets_from_border,
+                    &overflow_clip_rect,
+                );
             } else if overflow.x != ComputedOverflow::Clip {
                 let max = LayoutRect::max_rect();
                 overflow_clip_rect.min.x = max.min.x;
@@ -1160,7 +1164,8 @@ impl BoxFragmentWithStyle<'_> {
         if is_flex {
             match style.get_position().flex_direction {
                 FlexDirection::ColumnReverse => {
-                    let max_scroll_y = (content_rect.height() - scroll_frame_rect.height()).max(0.0);
+                    let max_scroll_y =
+                        (content_rect.height() - scroll_frame_rect.height()).max(0.0);
                     initial_offset.y = max_scroll_y;
                 },
                 FlexDirection::RowReverse => {

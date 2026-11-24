@@ -701,8 +701,10 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         // Root all options up front so they cannot be collected by the GC while
         // we mutate selectedness below (see issue #48538-style reachability bugs).
         let no_gc = cx.no_gc();
-        let options: Vec<DomRoot<HTMLOptionElement>> =
-            self.list_of_options(no_gc).map(|opt| opt.as_rooted()).collect();
+        let options: Vec<DomRoot<HTMLOptionElement>> = self
+            .list_of_options(no_gc)
+            .map(|opt| opt.as_rooted())
+            .collect();
         let mut opt_iter = options.into_iter();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {

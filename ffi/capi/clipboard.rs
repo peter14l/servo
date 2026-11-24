@@ -45,8 +45,9 @@ pub type ServoClipboardGetTextCallback = Option<
 /// `text` is a NUL terminated UTF-8 string that is only valid for the duration
 /// of the callback. There is no response: the engine does not wait for the
 /// clipboard to be updated.
-pub type ServoClipboardSetTextCallback =
-    Option<unsafe extern "C" fn(webview: *mut WebView, text: *const c_char, user_data: *mut c_void)>;
+pub type ServoClipboardSetTextCallback = Option<
+    unsafe extern "C" fn(webview: *mut WebView, text: *const c_char, user_data: *mut c_void),
+>;
 
 /// A delegate that gives a C host control over the system clipboard.
 ///

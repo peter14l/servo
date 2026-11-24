@@ -23,6 +23,7 @@ use embedder_traits::{
     MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId, UrlRequest,
     ViewportDetails, WebDriverCommandMsg,
 };
+use euclid::Rect;
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
@@ -30,7 +31,6 @@ use paint_api::display_list::PaintTimingInfo;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use euclid::Rect;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::{

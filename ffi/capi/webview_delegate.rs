@@ -9,6 +9,11 @@ use embedder_traits::{
     ConsoleLogLevel, ContextMenuAction, ContextMenuItem, Cursor, PermissionFeature, RgbColor,
     SelectElementOptionOrOptgroup,
 };
+pub use servo_api::LoadStatus;
+use servo_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
+};
+use url::Url;
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
@@ -17,11 +22,6 @@ use crate::protocol_handler::{
 };
 use crate::value::ServoValue;
 use crate::webview::ServoCreateNewWebViewRequest;
-pub use servo_api::LoadStatus;
-use servo_api::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
-};
-use url::Url;
 
 /// Cursor types matching `embedder_traits::Cursor`.
 #[repr(i32)]
@@ -669,7 +669,6 @@ pub struct ServoWebViewDelegate {
     >,
 
     // Embedder control category (new)
-
     /// Called when a select element dropdown should be shown (for `<select>`).
     ///
     /// `params` contains the select element parameters. The embedder should
@@ -910,8 +909,9 @@ pub struct ServoWebViewDelegate {
     /// Called when the animating state changes.
     ///
     /// When `animating` is true, the embedder should ensure the event loop is pumped regularly.
-    pub notify_animating_changed:
-        Option<unsafe extern "C" fn(webview: *mut WebView, animating: bool, user_data: *mut c_void)>,
+    pub notify_animating_changed: Option<
+        unsafe extern "C" fn(webview: *mut WebView, animating: bool, user_data: *mut c_void),
+    >,
 
     // History category
     /// Called when the session history changes.
@@ -956,12 +956,7 @@ pub struct ServoWebViewDelegate {
         ),
     >,
     /// Called when the editable element loses focus or requests dismissing the IME.
-    pub hide_ime: Option<
-        unsafe extern "C" fn(
-            webview: *mut WebView,
-            user_data: *mut c_void,
-        ),
-    >,
+    pub hide_ime: Option<unsafe extern "C" fn(webview: *mut WebView, user_data: *mut c_void)>,
 
     // File picker category
     /// Called when the web page requests a file picker dialog (e.g. `<input type="file">`).
@@ -1008,14 +1003,8 @@ pub struct ServoWebViewDelegate {
 
     /// Called when the web page requests that its containing window be moved to
     /// the given position in device pixels (for example via `window.moveTo`).
-    pub request_move_to: Option<
-        unsafe extern "C" fn(
-            webview: *mut WebView,
-            x: i32,
-            y: i32,
-            user_data: *mut c_void,
-        ),
-    >,
+    pub request_move_to:
+        Option<unsafe extern "C" fn(webview: *mut WebView, x: i32, y: i32, user_data: *mut c_void)>,
 
     /// Called when the web page requests that its containing window be resized
     /// to the given outer size in device pixels (for example via
@@ -1592,7 +1581,11 @@ impl WebViewDelegate for ServoWebViewDelegate {
 
                 for item in context_menu.items() {
                     match item {
-                        ContextMenuItem::Item { label, action, enabled } => {
+                        ContextMenuItem::Item {
+                            label,
+                            action,
+                            enabled,
+                        } => {
                             let c_label = CString::new(label.as_str()).unwrap_or_default();
                             let label_ptr = c_label.as_ptr();
                             label_cstrings.push(c_label);
@@ -1621,8 +1614,12 @@ impl WebViewDelegate for ServoWebViewDelegate {
                     width: pos.width(),
                     height: pos.height(),
                     flags: element_info.flags.bits() as u32,
-                    link_url: link_url_cstr.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
-                    image_url: image_url_cstr.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                    link_url: link_url_cstr
+                        .as_ref()
+                        .map_or(std::ptr::null(), |s| s.as_ptr()),
+                    image_url: image_url_cstr
+                        .as_ref()
+                        .map_or(std::ptr::null(), |s| s.as_ptr()),
                     items: c_items.as_ptr(),
                     items_count: c_items.len(),
                 };
@@ -2085,13 +2082,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
         let Some(callback) = self.notify_animating_changed else {
             return;
         };
-        unsafe {
-            callback(
-                &mut webview as *mut WebView,
-                animating,
-                self.user_data,
-            )
-        };
+        unsafe { callback(&mut webview as *mut WebView, animating, self.user_data) };
     }
 
     fn notify_history_changed(&self, mut webview: WebView, entries: Vec<Url>, current: usize) {
@@ -2120,7 +2111,9 @@ impl WebViewDelegate for ServoWebViewDelegate {
         };
         let reason_c = CString::new(reason).unwrap_or_default();
         let backtrace_c = backtrace.and_then(|b| CString::new(b).ok());
-        let backtrace_ptr = backtrace_c.as_ref().map_or(std::ptr::null(), |b| b.as_ptr());
+        let backtrace_ptr = backtrace_c
+            .as_ref()
+            .map_or(std::ptr::null(), |b| b.as_ptr());
         unsafe {
             callback(
                 &mut webview as *mut WebView,
@@ -2217,13 +2210,8 @@ impl WebViewDelegate for ServoWebViewDelegate {
         // SAFETY: The embedder is assumed to uphold the safety requirements of
         // the `ServoWebViewDelegate` struct, including the requirement that it
         // consumes or frees `request` and returns `true` when it does so.
-        let consumed = unsafe {
-            callback(
-                &mut parent_webview as *mut WebView,
-                handle,
-                self.user_data,
-            )
-        };
+        let consumed =
+            unsafe { callback(&mut parent_webview as *mut WebView, handle, self.user_data) };
         if !consumed {
             // The embedder declined to take ownership. Free the handle, which
             // drops the request and denies the popup.
@@ -2276,12 +2264,16 @@ unsafe extern "C" fn authentication_trampoline(
         let username = if username.is_null() {
             String::new()
         } else {
-            unsafe { CStr::from_ptr(username) }.to_string_lossy().into_owned()
+            unsafe { CStr::from_ptr(username) }
+                .to_string_lossy()
+                .into_owned()
         };
         let password = if password.is_null() {
             String::new()
         } else {
-            unsafe { CStr::from_ptr(password) }.to_string_lossy().into_owned()
+            unsafe { CStr::from_ptr(password) }
+                .to_string_lossy()
+                .into_owned()
         };
         responder(username, password);
     }));
@@ -2346,7 +2338,10 @@ unsafe extern "C" fn prompt_trampoline(result: *const c_char, user_data: *mut c_
         let text = if result.is_null() {
             None
         } else {
-            unsafe { CStr::from_ptr(result) }.to_str().ok().map(|s| s.to_owned())
+            unsafe { CStr::from_ptr(result) }
+                .to_str()
+                .ok()
+                .map(|s| s.to_owned())
         };
         responder(text);
     }));
@@ -2361,11 +2356,8 @@ unsafe extern "C" fn file_picker_trampoline(
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = unsafe {
-            Box::from_raw(
-                user_data as *mut Box<dyn FnOnce(Option<Vec<PathBuf>>)>,
-            )
-        };
+        let responder =
+            unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(Option<Vec<PathBuf>>)>) };
         if paths.is_null() || path_count == 0 {
             responder(None);
             return;
@@ -2402,9 +2394,7 @@ unsafe extern "C" fn select_element_trampoline(
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = unsafe {
-            Box::from_raw(user_data as *mut Box<dyn FnOnce(Vec<usize>)>)
-        };
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(Vec<usize>)>) };
         // A NULL array with a non-zero count would be a caller contract
         // violation; treat it as a cancel rather than reading through it.
         let indices = if selected_indices.is_null() || count == 0 {

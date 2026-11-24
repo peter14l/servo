@@ -1100,7 +1100,8 @@ impl DocumentEventHandler {
                     .dispatch(cx, node.upcast(), false);
 
                 let is_editable = node.is_editable_or_editing_host() ||
-                    node.inclusive_ancestors(ShadowIncluding::Yes).any(|n| n.is_editable_or_editing_host());
+                    node.inclusive_ancestors(ShadowIncluding::Yes)
+                        .any(|n| n.is_editable_or_editing_host());
 
                 // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
                 // called on them, call the default mousedown handler on retargeted node.
@@ -1109,7 +1110,10 @@ impl DocumentEventHandler {
                 if (result && pointer_event_result) || is_editable {
                     let target_node = if node.is_editable_or_editing_host() {
                         Some(DomRoot::from_ref(node))
-                    } else if let Some(n) = node.inclusive_ancestors(ShadowIncluding::Yes).find(|n| n.is_editable_or_editing_host()) {
+                    } else if let Some(n) = node
+                        .inclusive_ancestors(ShadowIncluding::Yes)
+                        .find(|n| n.is_editable_or_editing_host())
+                    {
                         Some(n)
                     } else {
                         mouse_event
@@ -1137,14 +1141,10 @@ impl DocumentEventHandler {
                                 .focus_handler()
                                 .focus(cx, &target.find_click_focusable_area(cx));
                         } else {
-                            document
-                                .focus_handler()
-                                .focus(cx, &focus_area);
+                            document.focus_handler().focus(cx, &focus_area);
                         }
                     } else {
-                        document
-                            .focus_handler()
-                            .focus(cx, &focus_area);
+                        document.focus_handler().focus(cx, &focus_area);
                     }
                 }
 

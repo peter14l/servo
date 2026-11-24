@@ -342,9 +342,7 @@ mod tests {
         let received = Rc::new(RefCell::new(Vec::new()));
         let received_clone = received.clone();
         router.add_message_handler("greet".to_string(), move |name, data| {
-            received_clone
-                .borrow_mut()
-                .push(format!("{name}:{data}"));
+            received_clone.borrow_mut().push(format!("{name}:{data}"));
         });
 
         // The queued message is replayed.

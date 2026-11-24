@@ -70,7 +70,12 @@ pub struct ServoDelegate {
     /// retain the value. The token can be used to bypass the permission prompt
     /// from the DevTools client.
     pub notify_devtools_server_started: Option<
-        unsafe extern "C" fn(servo: *mut Servo, port: u16, token: *const c_char, user_data: *mut c_void),
+        unsafe extern "C" fn(
+            servo: *mut Servo,
+            port: u16,
+            token: *const c_char,
+            user_data: *mut c_void,
+        ),
     >,
 
     /// Called when a DevTools client requests a connection.
@@ -78,9 +83,8 @@ pub struct ServoDelegate {
     /// Return `true` to allow the connection, `false` to deny it.
     /// The embedder should typically show a permissions prompt to the user
     /// before allowing the connection.
-    pub request_devtools_connection: Option<
-        unsafe extern "C" fn(servo: *mut Servo, user_data: *mut c_void) -> bool,
-    >,
+    pub request_devtools_connection:
+        Option<unsafe extern "C" fn(servo: *mut Servo, user_data: *mut c_void) -> bool>,
 }
 
 struct ServoDelegateWrapper {
@@ -105,7 +109,14 @@ impl RustServoDelegate for ServoDelegateWrapper {
         // The `servo` argument is `NULL`: the Rust `ServoDelegate` trait does not
         // give the delegate a `Servo` handle, and the C contract documents that.
         // `token` outlives the call.
-        unsafe { callback(std::ptr::null_mut(), port, token.as_ptr(), self.delegate.user_data) };
+        unsafe {
+            callback(
+                std::ptr::null_mut(),
+                port,
+                token.as_ptr(),
+                self.delegate.user_data,
+            )
+        };
     }
 
     fn request_devtools_connection(&self, request: AllowOrDenyRequest) {

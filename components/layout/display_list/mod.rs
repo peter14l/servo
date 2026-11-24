@@ -344,8 +344,8 @@ impl DisplayListBuilder<'_> {
                         info.external_id,
                         info.content_rect,
                         info.clip_rect,
-                        info.offset,            /* external_scroll_offset */
-                        0,                      /* scroll_offset_generation */
+                        info.offset, /* external_scroll_offset */
+                        0,           /* scroll_offset_generation */
                         wr::HasScrollLinkedEffect::No,
                     )
                 },
@@ -1680,7 +1680,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender(), self.padding_rect());
+        let radii = offset_radii(
+            self.border_radius(),
+            -self.fragment.border.to_webrender(),
+            self.padding_rect(),
+        );
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -2351,7 +2355,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: offset_radii(self.border_radius(), SideOffsets2D::new_all_same(offset), &outline_rect),
+            radius: offset_radii(
+                self.border_radius(),
+                SideOffsets2D::new_all_same(offset),
+                &outline_rect,
+            ),
             do_aa: true,
         });
         builder
@@ -2397,7 +2405,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                     // The `border-radius` value applies to the border box, but inset shadows
                     // use the padding box instead. So we need to shrink the `border-radius`
                     // by the border widths.
-                    offset_radii(self.border_radius(), -self.fragment.border.to_webrender(), &rect)
+                    offset_radii(
+                        self.border_radius(),
+                        -self.fragment.border.to_webrender(),
+                        &rect,
+                    )
                 },
                 BoxShadowClipMode::Outset => self.border_radius(),
             };

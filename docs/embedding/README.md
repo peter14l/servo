@@ -37,6 +37,7 @@ below.
 | [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) | Fixed real-site smoke set, evidence rules, and triage procedure. Execution is `NOT_RUN`. |
 | [SITE_SMOKETEST_REPORT.md](SITE_SMOKETEST_REPORT.md) | Generated status of the fixed smoke set; currently an explicit `NOT_RUN` plan, not results. |
 | [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md) | Speedometer and perf-analysis numbers from Main run `45428660357`; explains why the bencher threshold gate is `BLOCKED`, not passed. |
+| [OBSERVABILITY_EVIDENCE.md](OBSERVABILITY_EVIDENCE.md) | Three-platform metrics report (run `45371749676`) and the missing crash-telemetry / opt-in pipeline behind REL-7 `BLOCKED`. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |

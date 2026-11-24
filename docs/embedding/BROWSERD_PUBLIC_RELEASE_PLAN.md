@@ -279,16 +279,25 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-7 — Observability
 
-- **State:** `NOT_CONFIRMED`.
+- **State:** `BLOCKED` (size/startup/throughput evidence `DONE`; crash telemetry pending).
 - **Prerequisites:** REL-4.
-- **Touch points:** CI metrics job, opt-in telemetry pipeline.
+- **Touch points:** CI metrics job, opt-in telemetry pipeline,
+  `docs/embedding/OBSERVABILITY_EVIDENCE.md`.
 - **Steps:**
-  1. Emit and retain size, startup, throughput, and crash metrics.
-  2. Make crash reporting opt-in; symbolicate crashes.
-  3. Confirm metrics are available for each shipped platform.
-- **Acceptance:** metrics present and linked from the tracker.
-- **Tests:** CI metrics job id + sample payload.
-- **Gotchas:** no silent telemetry; privacy posture must match `SECURITY.md`.
+  1. `DONE` for size/startup/throughput: three-platform metrics report from run
+     `45371749676` (artifact `14910991391`) is recorded in `OBSERVABILITY_EVIDENCE.md`.
+     Retention is ordinary CI artifacts; no enforced gate (hosted-runner noise).
+     `NOT_RUN` for crash metrics beyond the coarse C API job-result proxy.
+  2. `BLOCKED` — make crash reporting opt-in; symbolicate crashes. POSIX backtraces and a
+     Windows exception filter exist, but no minidump upload, counter, or opt-in pipeline is
+     implemented (`FUZZING_AND_CRASH_TELEMETRY.md` §3, `PARITY_MATRIX.md`).
+  3. `DONE` for the C API matrix at `ceade17166`; must be repeated on the candidate release
+     commit. The run at `fd4655eb3b6` had a cancelled macOS job and is not clean evidence.
+- **Acceptance:** metrics present and linked from the tracker **and** opt-in crash telemetry
+  implemented — **not met**.
+- **Tests:** CI metrics job id + sample payload (`138376090700`, artifact `14910991391`).
+- **Gotchas:** no silent telemetry; privacy posture must match `SECURITY.md`. A reporter that
+  exits 0 on deltas is not a gate.
 
 ### REL-8 — Public-release sign-off
 

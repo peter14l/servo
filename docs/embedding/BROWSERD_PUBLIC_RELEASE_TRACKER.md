@@ -80,7 +80,7 @@ they provide a prerequisite.
 | **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `BLOCKED` (measurements `DONE`, threshold gate not run) | REL-0, W5.6/W5.7 | `PERFORMANCE_BASELINE.md`; bencher token + Windows perf + leak evidence |
 | **REL-6** | Distribution (signed artifacts, installers, update story) | L | `NOT_CONFIRMED` | REL-1, REL-2, W5.3/W3.4 | Release workflow artifacts from successful runs only |
-| **REL-7** | Observability (size, startup, throughput, crash telemetry) | M | `NOT_CONFIRMED` | REL-4 | CI metrics job + opt-in telemetry pipeline |
+| **REL-7** | Observability (size, startup, throughput, crash telemetry) | M | `BLOCKED` (metrics `DONE`; crash telemetry missing) | REL-4 | `OBSERVABILITY_EVIDENCE.md`; opt-in crash pipeline |
 | **REL-8** | Public-release sign-off (documented go/no-go with all gates evidenced) | S | `BLOCKED` | REL-1 … REL-7 | Signed decision record |
 
 **Flagship / platform rule.** Windows + WinUI 3 is the flagship shell. Android and any
@@ -189,9 +189,21 @@ other multiplatform work is additive and must not regress the Windows path. A ga
   (`W5.3`, `W3.4`); verify a clean-machine install for the flagship Windows target.
 
 ### REL-7 — Observability
-- **State:** `NOT_CONFIRMED`.
-- **Next action:** ensure size / startup / throughput / crash metrics are emitted and
-  retained; crash reporting must be opt-in (`FULL_BROWSER_ROADMAP.md` §3.5).
+- **State:** `BLOCKED` — metrics pipeline `DONE`, crash telemetry and opt-in reporting absent.
+- **Evidence (`DONE`):** `OBSERVABILITY_EVIDENCE.md` records a clean three-platform report from
+  run `45371749676` / commit `ceade17166` (all three C API jobs `success`, report job
+  `138376090700`, artifact `14910991391`): Linux startup 6 ms / load 52 ms / JS 16 ms /
+  cdylib 1,210,689 KiB; Windows 16 / 78 / 15 ms / 223,526 KiB; macOS 16 / 257 / 116 ms /
+  365,110 KiB. Metric-collection code is unchanged on current `main`. Deltas >25% are flagged
+  informationally; the job is a reporter, not a gate, and the numbers are single hosted-runner
+  samples, not a budget.
+- **Blocker:** only a coarse "C API job result" crash proxy is recorded. No minidumps,
+  symbolication, crash counter/trend, or opt-in crash-reporting pipeline exists
+  (`FUZZING_AND_CRASH_TELEMETRY.md` §3 ends at embedder hooks; `PARITY_MATRIX.md` marks native
+  telemetry `In Progress`; `FULL_BROWSER_ROADMAP.md` §3.5 is unmet).
+- **Next action:** implement opt-in crash capture/telemetry with symbols and documented
+  retention; decide whether dedicated-runner measurements can support a real gate; re-run the
+  three-platform report on the release candidate and attach the run id.
 
 ### REL-8 — Public-release sign-off
 - **State:** `BLOCKED` until REL-1 … REL-7 are `PASSED`.
@@ -212,3 +224,4 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | REL-0 `PASSED` on full Main run `45428660357` (`fd4655eb3b6`): 194 jobs, 0 failures/cancellations, 20/20 strict WPT shards + `Process WPT Results` success, empty `WPT_ALWAYS_SUCCEED_ARG`, `Filtering 0 unexpected results`. The cancelled macOS C API check came from the separate Embedding API run `45428660374`, not the Main run. | Run `45428660357`; jobs `138599103611`, `138604438839` |
 | 2026-11-24 | REL-3 step 2 preparation: fixed five-site smoke set and evidence/triage rules published in `SITE_SMOKE_RUNBOOK.md`. Hardened `site_smoketest.py` so a missing binary is an error (exit 2) and `--dry-run` output is explicitly `NOT_RUN`; regenerated `SITE_SMOKETEST_REPORT.md` as a plan. No site executed — real-site results remain `NOT_RUN`. | `SITE_SMOKE_RUNBOOK.md`, `SITE_SMOKETEST_REPORT.md`; dry-run verified locally |
 | 2026-11-24 | REL-5 measurements published in `PERFORMANCE_BASELINE.md` (Speedometer 5.5637 ± 0.1620; Layout mean 106.8 ms, Renderer mean 129.6 ms, FP/FCP mean 1.060 s), but the bencher threshold submission failed on a missing token and was masked by `continue-on-error: true`. No pass claimed; no Windows or leak evidence. REL-5 → `BLOCKED`. | Jobs `138599279029`, `138599178752`; artifact `14941829764` |
+| 2026-11-24 | REL-7 evidence published in `OBSERVABILITY_EVIDENCE.md`: clean three-platform metrics report from run `45371749676` (`ceade17166`, artifact `14910991391`); no crash telemetry or opt-in pipeline. REL-7 → `BLOCKED`. | Run `45371749676`; job `138376090700` |

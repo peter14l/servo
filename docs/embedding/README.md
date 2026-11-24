@@ -34,8 +34,11 @@ below.
 | [BROWSERD_PUBLIC_RELEASE_PLAN.md](BROWSERD_PUBLIC_RELEASE_PLAN.md) | Executable tickets and verification gates that implement the public-readiness tracker. |
 | [WPT_STRICT_BASELINE.md](WPT_STRICT_BASELINE.md) | Per-suite WPT baseline from the strict CI run; reports harness `OK` and assertion pass rate separately and does not count `SKIP` as a pass. |
 | [wpt_strict_baseline.json](wpt_strict_baseline.json) | Machine-readable version of that baseline, including the source run id and revision. |
-| [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) | Fixed real-site smoke set, evidence rules, and triage procedure. Execution is `NOT_RUN`. |
-| [SITE_SMOKETEST_REPORT.md](SITE_SMOKETEST_REPORT.md) | Generated status of the fixed smoke set; currently an explicit `NOT_RUN` plan, not results. |
+| [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) | Fixed real-site smoke set, evidence rules, and triage procedure. Step 2 executed `PASSED`; REL-3 still `IN_PROGRESS`. |
+| [SITE_SMOKETEST_REPORT.md](SITE_SMOKETEST_REPORT.md) | Executed five-site results from successful run `45428660357`: all `PASS` with screenshots and full provenance. |
+| [site_smoketest.json](site_smoketest.json) | Machine-readable smoke results, including screenshot paths. |
+| [site_smoke_shots/](site_smoke_shots/) | Five 1280×740 PNG screenshots captured during the executed smoke run. |
+| [WPT_TRIAGE.md](WPT_TRIAGE.md) | Triage register: four resolved smoke harness/provenance defects and the discarded invalid run. |
 | [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md) | Speedometer and perf-analysis numbers from Main run `45428660357`; explains why the bencher threshold gate is `BLOCKED`, not passed. |
 | [OBSERVABILITY_EVIDENCE.md](OBSERVABILITY_EVIDENCE.md) | Three-platform metrics report (run `45371749676`) and the missing crash-telemetry / opt-in pipeline behind REL-7 `BLOCKED`. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |

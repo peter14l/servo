@@ -360,35 +360,13 @@ process. A handle that is not live makes the entry point return
 `SERVO_ERROR_INVALID_ARGUMENT`; a second `_free` returns the same error instead
 of double-freeing.
 
-All eight public handle kinds have adopted it: `create`/`build` registers,
-`free` unregisters and rejects a second free, an entry point that consumes a
-handle unregisters it before taking ownership, and every other entry point
-rejects a handle that is not live with `SERVO_ERROR_INVALID_ARGUMENT`. The
-`HandleKind` tag is what makes a live handle of one type miss another type's
-entry points: the registry stores `(address, kind)`, not just the address.
-
-| Handle | `HandleKind` | Created by | Ownership ends at | Threading |
-|---|---|---|---|---|
-| `ServoOptions` | `Options` | `servo_options_create` | `servo_options_free`, or consumed by `servo_builder_set_options` | creating thread |
-| `ServoBuilder` | `Builder` | `servo_builder_create` | `servo_builder_free`, or consumed by `servo_builder_build` | creating thread |
-| `RenderingContext` | `RenderingContext` | `servo_rendering_context_create_*` | `servo_rendering_context_free`, or consumed by `servo_webview_builder_create` | creating thread |
-| `ServoValue` | `Value` | value-producing entry points such as `servo_value_from_json` | `servo_value_free`, or a consuming value entry point | creating thread |
-| `ServoWebViewBuilder` | `WebViewBuilder` | `servo_webview_builder_create` | `servo_webview_builder_free`, or consumed by `servo_webview_builder_build` | creating thread |
-| `Servo` | `Servo` | `servo_builder_build` | `servo_free` | creating thread |
-| `ServoSiteDataManager` | `SiteDataManager` | `servo_get_site_data_manager` | `servo_site_data_manager_free` | creating thread |
-| `ServoRequestContext` | `RequestContext` | `servo_request_context_create` | `servo_request_context_free`, or consumed by `servo_builder_set_request_context` / `servo_webview_builder_set_request_context` | creating thread |
-
-There is no separate `ServoUserContentManager` handle kind: those entry points
-validate the `Servo` or `ServoWebViewBuilder` handle they are called with.
-Lifecycle tests in `tests/capi/c/test_api.c` exercise garbage pointers,
-use-after-free, double-free and wrong-kind handles for the handle kinds that
-can be constructed without a live page; the remaining kinds are exercised by
-the integration tests in `tests/capi/c/test_integration.c`.
-
+- Adopted by: `ServoOptions` — `servo_options_create` (registers), the 20
+  `servo_options_set_*` / `servo_options_enable_*` entry points (reject a
+  non-live handle), `servo_options_free` (unregisters, and rejects a second
+  free), and the consuming `servo_builder_set_options` (unregisters).
 - Limits: address reuse can defeat the check, and the tag distinguishes handle
-  *types* only among the types that have adopted the registry — now all of them.
-  The residual blind spots are address reuse and the temporary-pointer rule,
-  both recorded in `AGENT_BUILD_PLAN.md` §D.2.1.
+  *types* only among the types that have adopted the registry. The remaining
+  handle types are tracked in `AGENT_BUILD_PLAN.md` §D.2.1.
 - The registry is compiled into release builds as well — a check that exists
   only in debug builds does not protect anyone who ships this.
 

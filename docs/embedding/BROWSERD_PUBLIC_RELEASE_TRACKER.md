@@ -48,8 +48,9 @@ Two hard rules:
 | ktfmt final verification | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396796842` | `PASSED` | `Lint ktfmt` = Success. |
 | Main CI | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 194 jobs: 79 success, 115 skipped, 0 failures. |
 | Strict WPT | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 20/20 WPT shards success; `Process WPT Results` success; `WPT_ALWAYS_SUCCEED_ARG` empty; sample shard log `Filtering 0 unexpected results`. |
-| Re-enable previously skipped WPT suites | `f5992a160b6d7ca29883258a1cf82107fac0cc4c` | `45413720692` | `FAILED` (infrastructure, not code) | Attempt 1: 78 success / 115 skipped / **1 cancelled** / 0 genuine failures — `MacOS Arm64 (Unit Tests, Bencher, C API) / MacOS / Build and test Servo's C API` (job `138514276569`) never got a runner (`runner_id=0`, no steps). Attempt 2 (single-job rerun): `Result` failed with `No artifacts found matching pattern 'cargo-timings-*'` because a one-job rerun cannot merge first-attempt artifacts. Strict WPT results remained clean. |
-| Fresh full run on docs commit | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660357` | `IN_PROGRESS` | Full-run watcher active; this run supersedes the rerun-artifact failure above. |
+| Re-enable previously skipped WPT suites | `f5992a160b6d7ca29883258a1cf82107fac0cc4c` | `45413720692` | `FAILED` (infrastructure, not code) | Attempt 1: 78 success / 115 skipped / **1 cancelled** / 0 genuine failures — `MacOS Arm64 … C API` job `138514276569` never got a runner (`runner_id=0`). Attempt 2 (single-job rerun): `Result` failed with `No artifacts found matching pattern 'cargo-timings-*'` because a one-job rerun cannot merge first-attempt artifacts. Strict WPT results remained clean. |
+| Fresh full run on docs commit | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660357` | `IN_PROGRESS` | Full-run watcher active; supersedes the rerun-artifact failure above. |
+| REL-2 lifecycle test attempt | `5881869781f` | `45434483363` | `FAILED` (genuine, reverted) | All three C API jobs panicked at `ffi/capi/lib.rs:882`: `misaligned pointer dereference … address 0x1`. The tests assumed handle-liveness checks that are present in uncommitted local work but **not** in committed `main`, where `servo_builder_set_event_loop_waker` dereferences the garbage handle. Reverted in this change. |
 | Local heavy builds / test suites | — | — | `NOT_RUN` | By design: all builds and tests run in GitHub Actions only. |
 
 Older failures are covered by later fixes and are recorded for traceability, not as open
@@ -71,7 +72,7 @@ they provide a prerequisite.
 |---|---|---|---|---|---|
 | **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `FAILED` (infrastructure) → fresh run `IN_PROGRESS` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
-| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `IN_PROGRESS` (implementation in this change; CI verification pending) | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
+| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
 | **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `NOT_CONFIRMED` | REL-0, W1 | WPT pass-rate baseline + real-site runbook |
 | **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `NOT_CONFIRMED` | REL-0, W5.6/W5.7 | Perf analysis job + baseline comparison |
@@ -108,20 +109,21 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 - **Blocker:** requires a human and a real GPU machine; never CI.
 
 ### REL-2 — browserd ABI / lifecycle
-- **State:** `IN_PROGRESS` — implementation in this change; `NOT_RUN` in CI so far.
-- **Implemented:** `ABI_STABILITY.md` §4.5 now enumerates all eight adopted `HandleKind`
-  variants with ownership and thread affinity; the matching stale claims in
-  `AGENT_BUILD_PLAN.md` (W2.5 result, SECURITY_AUDIT reconciliation, §D.2.1) and
-  `HARDENING_PLAN.md` §B.1 are corrected. `tests/capi/c/test_api.c` adds six C tests:
-  builder, rendering context, request context, value and webview-builder lifecycle
-  (garbage pointer, use-after-free, double-free, null) plus a wrong-kind test proving the
-  `HandleKind` tag in the registry key. The versioning rules for pre-1.0 changes remain
-  those in `ABI_STABILITY.md` §2.4; no FFI panic path was weakened.
-- **Next action:** push and watch `embedding-api.yml` on all platforms; then mark `PASSED`
-  with the run id. Explicit suspend/resume of a browserd shell is not a C-handle API and
-  remains outside these tests; it belongs to REL-1's runtime checklist.
-- **Known blind spots (unchanged):** address reuse in the registry and the temporary-pointer
-  rule, both registered in `AGENT_BUILD_PLAN.md` §D.2.1.
+- **State:** `FAILED` → `NOT_CONFIRMED`; the first implementation attempt was reverted.
+- **Root cause of run `45434483363`:** all three platform C API jobs panicked in
+  `servo_builder_set_event_loop_waker` with `misaligned pointer dereference … address 0x1`
+  (`ffi/capi/lib.rs:882`). The new C tests passed a deliberately bogus handle expecting
+  `SERVO_ERROR_INVALID_ARGUMENT`, but committed `main` only registers/checks `ServoOptions`;
+  every other handle kind is still an unchecked raw pointer. The wider registry adoption
+  exists in uncommitted local work only, so the tests and matching doc edits asserted
+  behaviour that is not on this branch. No checks were weakened to make the tests pass.
+- **Decision:** revert the tests and the "all eight handle kinds adopted" documentation.
+  The docs are accurate again (`ServoOptions` only); REL-2 stays `NOT_CONFIRMED`.
+- **Next action:** land the handle-registry adoption as a **code** change first — register
+  in each constructor, check liveness in each entry point, unregister where ownership moves —
+  then re-add the lifecycle tests on top of the committed behaviour. Until then, garbage and
+  double-freed handles of those types remain undefined behaviour by contract.
+- **Note:** the C API version is pre-1.0; versioning rules are in `ABI_STABILITY.md` §2.4.
 
 ### REL-3 — Real-world compatibility
 - **State:** `NOT_CONFIRMED`.
@@ -163,4 +165,4 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | Tracker created. CI/WPT `PASSED` at `5461673d1e9`; re-enable run `45413720692` initially `IN_PROGRESS`; all public-release gates `NOT_CONFIRMED`/`BLOCKED`. | Runs `45396796842`, `45396797175`, `45413720692` |
 | 2026-11-24 | Run `45413720692` concluded `failure` solely from one infrastructure-cancelled macOS arm64 C API job (no real failure); job rerun requested; REL-0 set to `FAILED` → rerun `IN_PROGRESS`. | Run `45413720692`, job `138514276569` |
 | 2026-11-24 | Attempt 2 of `45413720692` also concluded `failure`: single-job rerun could not merge first-attempt artifacts, so `Result` reported no `cargo-timings-*`. Both attempts recorded as infrastructure, not code; fresh full run `45428660357` started on the docs commit. | Run `45413720692`, check run `Result` |
-| 2026-11-24 | REL-2 Wave 1 implemented: handle-registry docs corrected to all eight `HandleKind` variants; six C lifecycle/wrong-kind tests added in `tests/capi/c/test_api.c`. State `IN_PROGRESS` pending CI. | Local diff (no local build/test run) |
+| 2026-11-24 | REL-2 lifecycle tests on `5881869781f` failed on all 3 platforms (`45434483363`): garbage handle dereferenced at `ffi/capi/lib.rs:882` because registry adoption beyond `ServoOptions` is not in committed code. Reverted tests and over-claiming docs; REL-2 remains `NOT_CONFIRMED`. | Jobs `138588460265/612/962` |

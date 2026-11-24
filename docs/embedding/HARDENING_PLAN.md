@@ -270,20 +270,16 @@ Deviations from the sketch below, both deliberate:
   through the pointer to find out whether the pointer is valid, which is exactly
   the dereference that must not happen. The trade-offs are that address reuse
   can defeat the check (a recycled address looks live) and that a live handle of
-  another type is a miss only because of the `HandleKind` tag. All eight public
-  handle kinds now adopt the registry, so the tag is exercised by the C tests
-  that pass a handle of one type to another type's entry point; it exists so
-  that another handle type cannot silently satisfy a different type's entry
-  points.
+  another type is a miss only because of the `HandleKind` tag — the tag is
+  unexercised until a second kind is adopted, and exists so that the next
+  adopted type cannot silently satisfy another type's entry point.
 
-**Still open**, registered in `AGENT_BUILD_PLAN.md` §D.2.1: address reuse (a
-recycled allocation address looks live) and the temporary-pointer rule. All
-eight handle kinds are covered — `ServoOptions`, `ServoBuilder`,
-`RenderingContext`, `ServoValue`, `ServoWebViewBuilder`, `Servo`,
-`ServoSiteDataManager` and `ServoRequestContext` — as enumerated in
-`ABI_STABILITY.md` §4.5. `ServoUserContentManager` has no handle kind of its
-own; its entry points validate the `Servo` / `WebViewBuilder` handles they are
-called with.
+**Still uncovered**, registered in `AGENT_BUILD_PLAN.md` §D.2.1: the other
+handle types (`ServoBuilder`, `RenderingContext`, `ServoValue`,
+`ServoUserContentManager`, `ServoWebViewBuilder`, `Servo`,
+`ServoSiteDataManager`, `ServoRequestContext`). Each is the same mechanical
+edit — register in the constructor, check in the entry points, unregister where
+ownership moves — plus one `HandleKind` variant.
 
 **Original design sketch (kept for the record).**
 

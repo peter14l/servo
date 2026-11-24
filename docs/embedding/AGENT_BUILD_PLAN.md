@@ -629,15 +629,13 @@ plus the `Observability report` job). Two mechanisms, one scope decision:
 The **live-handle registry** (`ffi/capi/lib.rs::handle_registry`) is a
 `Mutex<HashSet<(usize, HandleKind)>>` keyed on the handle's address, so checking is a
 lookup and never a dereference — which is the property a magic cookie cannot have (it
-must be read through the pointer you are unsure about). W2.5 introduced the
-mechanism on `ServoOptions`: `create` registers, `free` unregisters and so refuses a
-second free, the consuming `servo_builder_set_options` unregisters the handle it takes,
-and the setter/enable entry points refuse a handle that is not live, all with
-`SERVO_ERROR_INVALID_ARGUMENT` and an `# Errors` doc line. The current tree applies
-the same pattern to all eight public handle kinds, enumerated in `ABI_STABILITY.md`
-§4.5. The `HandleKind` tag is now exercised by the C lifecycle tests that pass a live
-handle of one type to another type's entry points; without the tag such a handle
-would satisfy the other type's registry lookup.
+must be read through the pointer you are unsure about). It is adopted for `ServoOptions`
+only: `create` registers, `free` unregisters and so refuses a second free,
+`servo_builder_set_options` unregisters the handle it consumes, and the 20 setter/enable
+entry points refuse a handle that is not live, all with `SERVO_ERROR_INVALID_ARGUMENT`
+and an `# Errors` doc line. The `HandleKind` tag exists so a later adopted type cannot
+satisfy this one's entry points; it is honest to say it is unexercised until a second
+type is adopted.
 
 The **`struct_size` gap** closed: `ServoCookieFilter` and `ServoProxyConfig` were the
 only two embedder-allocated, pass-by-pointer structs without the field, so a caller built
@@ -1734,7 +1732,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | already reconciled: the §1 claim was verified against the tree and the C exposure it promised now exists — `90cd8411e4c` (W6.4), run `39305923519`. The section's remaining "C Embedding Exposure" text is accurate for the tree-update half; the action-forwarding half is recorded in §D.2.1 |
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
 | `docs/embedding/AUDIT.md` :342 | "76 functions … 5 delegate fields" as the C API's size | a snapshot taken before Wave C; the export surface is now 241 `servo_*` symbols in `ffi/capi/symbols.txt` and `ServoWebViewDelegate` has 5+ callback fields. Re-counting is part of W2.8's audit pass, not a per-ticket edit, because the number changes with almost every Wave-C ticket |
-| `docs/embedding/SECURITY_AUDIT.md` :178-188 | "the embedder can pass dangling or double-freed handles … not enforced", and "adding optional debug validation (handle state/magic cookies)" as future work | partly closed after the audit was written: thread affinity is enforced at every entry point (`entry_checks::check_main_thread`, all builds) and the live-handle registry rejects a non-live handle of every public handle kind (`ABI_STABILITY.md` §4.5, W2.5 and its follow-ups). What remains of the audit's list is address reuse and the temporary-pointer rule, both in §D.2.1 |
+| `docs/embedding/SECURITY_AUDIT.md` :178-188 | "the embedder can pass dangling or double-freed handles … not enforced", and "adding optional debug validation (handle state/magic cookies)" as future work | partly closed after the audit was written: thread affinity is enforced at every entry point (`entry_checks::check_main_thread`, all builds) and the live-handle registry rejects a non-live `ServoOptions` handle (`ABI_STABILITY.md` §4.5, W2.5). What remains of the audit's list is the handle types that have not adopted the registry and the temporary-pointer rule, both in §D.2.1 |
 | `docs/embedding/CEF_PARITY.md` §9 P0 #2 | "replace `assert!`/`unwrap` with structured error returns across `ffi/capi` (currently dozens of `assert!` call sites and `.to_str().unwrap()`)" | gone: `grep 'assert!\(\|panic!\(\|unwrap()' -- ffi/capi` finds no `assert!`/`panic!` at all and three `.unwrap()`, each on `last()` of a vector that was just pushed to. W5.5 closed the reachable half and its table in `HARDENING_PLAN.md` §A.2 is the surviving classification; the P0 line itself was never re-worded, so it still described a workload that does not exist. Corrected here, together with §A.2's count line, which Wave C's three additions had made stale in the other direction |
 | `docs/embedding/AUDIT.md` §3 | C API "still no … dialogs, DevTools" and "DevTools not reachable from C" | the DevTools server is reachable from C: `servo_preferences_set_devtools_server` plus the `ServoDelegate` callbacks `notify_devtools_server_started` / `request_devtools_connection` (exercised by the W4.4 integration test) |
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
@@ -1770,7 +1768,7 @@ ticket's own status is not read as "everything in this area is done").**
 | Gap | What is missing | Where it is recorded |
 |---|---|---|
 | Accessibility *action forwarding* from C (W6.4) | The tree updates reach the embedder, but an embedder cannot ask Servo to perform an AccessKit `ActionRequest` (press, focus, …) on a node. Needs an engine-side path from a C call to the accesskit action handler, not FFI plumbing | `ACCESSIBILITY_AND_PRINTING.md` §1, this table |
-| Handle-liveness registry coverage (W2.5) | **Closed:** all eight `HandleKind` variants now check liveness — `ServoOptions`, `ServoBuilder`, `RenderingContext`, `ServoValue`, `ServoWebViewBuilder`, `Servo`, `ServoSiteDataManager`, `ServoRequestContext`. `ServoUserContentManager` has no handle kind of its own and checks the `Servo` / `WebViewBuilder` handles it is called with. Garbage-pointer, use-after-free, double-free and wrong-kind cases are in `tests/capi/c/test_api.c`. Address reuse and the temporary-pointer rule remain open | `ABI_STABILITY.md` §4.5, `HARDENING_PLAN.md` §B.1 |
+| Handle-liveness registry adopted for `ServoOptions` only (W2.5) | `ServoBuilder`, `RenderingContext`, `ServoValue`, `ServoUserContentManager`, `ServoWebViewBuilder`, `Servo`, `ServoSiteDataManager`, `ServoRequestContext` still dereference a handle with no liveness check. Each is the same mechanical edit | `HARDENING_PLAN.md` §B.1 |
 | Bounds-checked prefix reading for by-pointer structs (W2.5) | `ServoCookieFilter` / `ServoProxyConfig` currently *reject* a `struct_size` smaller than the compiled-in size. When a field is first appended to either, the entry point must switch to reading only the fields inside `struct_size`, or every caller built against the previous header breaks | `ABI_STABILITY.md` §3.3, §2.4 |
 | Callback-buffer poisoning in debug builds (HARDENING_PLAN §B.2) | The "valid only for this call" rule is documented but not observable: a test cannot yet catch an embedder that retains a callback pointer | `HARDENING_PLAN.md` §B.2 |
 | Protocol-handler concurrency test (HARDENING_PLAN §B.3) | The `Send + Sync` requirement is documented at the install entry point, but nothing exercises a handler from the network/worker threads the contract allows. Belongs with the stress/fuzz work | `HARDENING_PLAN.md` §B.3, W2.8 |

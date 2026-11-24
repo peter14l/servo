@@ -22,10 +22,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Run ktfmtFormat and print diff
+      - name: Run ktfmtCheck with diagnostics
         run: |
-          ./gradlew ktfmtFormat
-          printf '\n--- git diff -- support/android/apk ---\n'
-          git -C ../.. diff -- support/android/apk
-          printf '\n--- servoview/build.gradle.kts after ktfmtFormat ---\n'
+          ./gradlew :servoview:ktfmtCheckScripts --info --rerun-tasks || true
+          printf '\n--- servoview/build.gradle.kts current content ---\n'
           sed -n '1,25p' servoview/build.gradle.kts

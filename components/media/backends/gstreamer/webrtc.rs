@@ -261,8 +261,15 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
             .set_property_from_str("bundle-policy", bundle_policy.as_str());
         self.webrtc
             .set_property_from_str("ice-transport-policy", ice_transport_policy.as_str());
-        self.webrtc
-            .set_property_from_str("rtcp-mux-policy", rtcp_mux_policy.as_str());
+        // `rtcp-mux-policy` is only available in newer GStreamer versions. Older
+        // versions panic when asked to set an unknown property, which would take
+        // down the whole browser on WebRTC setup.
+        if self.webrtc.has_property("rtcp-mux-policy") {
+            self.webrtc
+                .set_property_from_str("rtcp-mux-policy", rtcp_mux_policy.as_str());
+        } else {
+            warn!("GStreamer webrtcbin does not support rtcp-mux-policy; skipping");
+        }
         Ok(())
     }
 

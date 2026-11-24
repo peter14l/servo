@@ -1,11 +1,14 @@
 # mypy: allow-untyped-defs
 
 import os
+import re
+import time
 
 from .executorwebdriver import (
     WebDriverProtocol,
     WebDriverTestharnessExecutor,
     WebDriverTestharnessProtocolPart,
+    WebDriverTestDriverProtocolPart,
     WebDriverRefTestExecutor,
     WebDriverCrashtestExecutor,
 )
@@ -71,9 +74,24 @@ class ServoDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
         self.parent.webdriver.extension.reset_all_cookies()
 
 
+class ServoDriverTestDriverProtocolPart(WebDriverTestDriverProtocolPart):
+    """Tolerate the testharness resume script racing the message queue install."""
+
+    def _get_next_message_classic(self, url, script_resume):
+        try:
+            return super()._get_next_message_classic(url, script_resume)
+        except webdriver.error.JavascriptErrorException as js_error:
+            if re.search(r'window\.__wptrunner_process_next_event is not a function',
+                         js_error.message):
+                time.sleep(0.05)
+                return None
+            raise
+
+
 class ServoProtocol(WebDriverProtocol):
     implements = [
         ServoDriverTestharnessProtocolPart,
+        ServoDriverTestDriverProtocolPart,
     ]
     for base_part in WebDriverProtocol.implements:
         if base_part.name not in {part.name for part in implements}:

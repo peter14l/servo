@@ -54,8 +54,9 @@ Use exactly the tracker's states from `BROWSERD_PUBLIC_RELEASE_TRACKER.md` §1:
 | Repo | `E:\servo`, remote `https://github.com/peter14l/servo.git` |
 | Working tree | `E:\servo` contains un-committed user work — never stage or commit it |
 | Isolated worktree | `C:\Users\LOQ\AppData\Local\Temp\opencode\servo-ci-fix` on `fix/ci-jobs` |
-| Last fully verified clean Main/WPT | `5461673d1e9`, runs `45396796842` / `45396797175` |
-| Current pushed `main` | `f5992a160b6` (WPT suite re-enables), run `45413720692` `FAILED` from one infrastructure-cancelled macOS arm64 job; job rerun in progress |
+| Last fully verified clean Main/WPT | `fd4655eb3b6`, Main run `45428660357` (includes WPT suite re-enables); 0 failures/cancellations |
+| Earlier clean baseline (pre-re-enable) | `5461673d1e9`, runs `45396796842` / `45396797175` |
+| Current pushed `main` | `687b6ed7d7` (revert + WPT baseline docs); differs from the verified commit only in docs and `etc/ci/wpt_pass_rate.py` |
 | Flagship shell | Windows + WinUI 3; Android/multiplatform is additive only |
 | `gh` CLI | authenticated as `peter14l` |
 
@@ -142,22 +143,27 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-0 — Preserve the strict CI/WPT baseline
 
-- **State:** `FAILED` → rerun `IN_PROGRESS` (tracker §2/§3).
+- **State:** `PASSED` — Main run `45428660357` on `fd4655eb3b6` (tracker §2/§3).
 - **Prerequisites:** none.
 - **Touch points:** `.github/workflows/linux-wpt.yml`, `.github/workflows/linux.yml`,
   `tests/wpt/include.ini`.
-- **Diagnosis so far:** run `45413720692` had 78 success / 115 skipped / 1 cancelled / 0
-  genuine failures. The cancelled macOS arm64 C API job never got a runner — infrastructure
-  churn, not a code regression. A job-level rerun has been requested.
-- **Steps:**
-  1. Watch the rerun of run `45413720692` on `f5992a160b6` to terminal using §1.4 commands.
-  2. Confirm every job conclusion; investigate any `cancelled` job before declaring green.
-  3. Confirm all WPT shards, `Process WPT Results`, empty `WPT_ALWAYS_SUCCEED_ARG`, and a
-     sample shard log.
-  4. If green, update the tracker to `PASSED` with the run id. If not, diagnose the genuine
-     failure and fix in place — never restore `--always-succeed`.
+- **Diagnosis (superseded attempts):** run `45413720692` had 78 success / 115 skipped /
+  1 cancelled / 0 genuine failures — the macOS arm64 C API job never got a runner. Its
+  single-job rerun then failed `Result` with `No artifacts found matching pattern
+  'cargo-timings-*'` because a one-job rerun cannot merge first-attempt artifacts. A fresh
+  full run was required; neither attempt is a usable baseline.
+- **Steps (all executed):**
+  1. Watched the fresh full run `45428660357` to terminal: 194 jobs, 79 `success`,
+     115 `skipped`, **0 failures / 0 cancellations**.
+  2. Confirmed all WPT shards (20/20) `success` and `Process WPT Results` `success`.
+  3. Confirmed `WPT_ALWAYS_SUCCEED_ARG` empty in shard logs and `Filtering 0 unexpected
+     results` in a sample shard log. Static check: the flag is set only when
+     `inputs.wpt-sync-from-upstream` is true in `linux-wpt.yml`.
+  4. Recorded `PASSED` with the run id; no masking argument was restored.
 - **Acceptance:** Main run `success`/no failures; strict WPT clean with the seven
-  re-enabled suites; no masking argument.
+  re-enabled suites; no masking argument — **met**. Note: a separate cancelled macOS C API
+  check from the Embedding API run `45428660374` is not part of this Main-run verification and
+  is tracked under REL-2.
 - **Tests:** §1.4 verification commands, recorded in the tracker change log.
 - **Gotchas:** a `cancelled` job with no steps means it never got a runner — confirm
   whether it is infrastructure churn or a real regression before ignoring it. Do not treat

@@ -49,16 +49,19 @@ Two hard rules:
 | Main CI | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 194 jobs: 79 success, 115 skipped, 0 failures. |
 | Strict WPT | `5461673d1e96d5db8ab22020f96112b51a0ae42c` | `45396797175` | `PASSED` | 20/20 WPT shards success; `Process WPT Results` success; `WPT_ALWAYS_SUCCEED_ARG` empty; sample shard log `Filtering 0 unexpected results`. |
 | Re-enable previously skipped WPT suites | `f5992a160b6d7ca29883258a1cf82107fac0cc4c` | `45413720692` | `FAILED` (infrastructure, not code) | Attempt 1: 78 success / 115 skipped / **1 cancelled** / 0 genuine failures — `MacOS Arm64 … C API` job `138514276569` never got a runner (`runner_id=0`). Attempt 2 (single-job rerun): `Result` failed with `No artifacts found matching pattern 'cargo-timings-*'` because a one-job rerun cannot merge first-attempt artifacts. Strict WPT results remained clean. |
-| Fresh full run on docs commit | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660357` | `IN_PROGRESS` | Full-run watcher active; supersedes the rerun-artifact failure above. |
+| Fresh full run on docs commit (re-enabled suites) | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660357` | `PASSED` | 194 jobs: 79 success, 115 skipped, **0 failures / 0 cancellations**; 20/20 WPT shards and `Process WPT Results` success; `WPT_ALWAYS_SUCCEED_ARG` empty; sample shard log `Filtering 0 unexpected results`. Current `main` differs from this commit only in docs and `etc/ci/wpt_pass_rate.py`. |
 | REL-2 lifecycle test attempt | `5881869781f` | `45434483363` | `FAILED` (genuine, reverted) | All three C API jobs panicked at `ffi/capi/lib.rs:882`: `misaligned pointer dereference … address 0x1`. The tests assumed handle-liveness checks that are present in uncommitted local work but **not** in committed `main`, where `servo_builder_set_event_loop_waker` dereferences the garbage handle. Reverted in this change. |
+| Separate Embedding API run on docs commit | `fd4655eb3b6b39ad1698aa5571bba45869aa4283` | `45428660374` | `FAILED` (infrastructure) | Linux and Windows C API jobs passed; `C API (macOS)` (`138567556244`) was cancelled with no runner. This is a different workflow from the Main run above and is recorded under REL-2, not REL-0. |
 | Local heavy builds / test suites | — | — | `NOT_RUN` | By design: all builds and tests run in GitHub Actions only. |
 
 Older failures are covered by later fixes and are recorded for traceability, not as open
 work: `45384672757` (Main, `Install crown`) and `45384672761` (Lint ktfmt) were resolved
 by `903f8325122`, `f0fba21fa6f`, and `5461673d1e9`.
 
-**Overall status: `CI_AND_WPT = PASSED` at `5461673d1e9`; re-enable verification not yet
-re-confirmed at `f5992a160b6` / `fd4655eb3b6`; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.**
+**Overall status: `CI_AND_WPT = PASSED` at `fd4655eb3b6` (`45428660357`), including the
+re-enabled WPT suites; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.** The separate Embedding
+API workflow on that commit is not green (see `45428660374`), so REL-2 remains unconfirmed;
+green Main/WPT is beta/dogfood readiness only.
 
 ---
 
@@ -70,7 +73,7 @@ they provide a prerequisite.
 
 | Gate | Title | Effort | Status | Depends on | Verification gate |
 |---|---|---|---|---|---|
-| **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `FAILED` (infrastructure) → fresh run `IN_PROGRESS` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
+| **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `PASSED` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
 | **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
 | **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (baseline `DONE`) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); real-site runbook pending |
@@ -89,18 +92,22 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 ## 4. Gate detail (current state / next action)
 
 ### REL-0 — Strict CI/WPT baseline
-- **State:** `FAILED` (infrastructure) → fresh full run `IN_PROGRESS` — `45428660357` on
-  `fd4655eb3b6`.
-- **Diagnosis:** run `45413720692` had 78 success, 115 skipped, 1 cancelled and **0 genuine
-  failures**; the cancelled `MacOS Arm64 … C API` job (`138514276569`) never got a runner
-  (`runner_id=0`). Its single-job rerun then made `Result` fail with
-  `No artifacts found matching pattern 'cargo-timings-*'` — a rerun/artifact-merge artifact,
-  not a code regression. Neither attempt is usable as a green baseline.
-- **Next action:** watch `45428660357` to terminal; confirm all job conclusions, all strict
-  WPT shards with the re-enabled suites, `Process WPT Results`, and an empty
-  `WPT_ALWAYS_SUCCEED_ARG`.
-- **If green:** set `PASSED` with the run id. If the cancellation repeats: record it as a
-  runner-availability blocker, not a code failure; do not re-add `--always-succeed`.
+- **State:** `PASSED` — full Main run `45428660357` on `fd4655eb3b6`, which includes the
+  seven WPT suite re-enables from `f5992a160b6`.
+- **Evidence:** 194 jobs — 79 `success`, 115 `skipped`, **0 failures and 0 cancellations**;
+  20/20 WPT shards `success`; `Process WPT Results` success; `WPT_ALWAYS_SUCCEED_ARG` empty in
+  shard logs; sample shard log shows `Filtering 0 unexpected results`. No check run in the Main
+  workflow was cancelled.
+- **Earlier attempts (superseded, recorded for traceability):** `45413720692` had 78 success /
+  115 skipped / 1 cancelled / 0 genuine failures — `MacOS Arm64 … C API` (`138514276569`)
+  never got a runner (`runner_id=0`). Its single-job rerun then failed `Result` with
+  `No artifacts found matching pattern 'cargo-timings-*'` (rerun/artifact-merge artifact).
+  Neither is usable as a green baseline.
+- **Scope note:** the separate Embedding API run `45428660374` on the same commit had one
+  cancelled macOS C API job and is not part of this Main-run verification; it is tracked under
+  REL-2. Current `main` (`687b6ed7d7`) differs from `fd4655eb3b6` only in documentation and
+  the analysis script `etc/ci/wpt_pass_rate.py`, so no compiled code changed after the green run.
+- **Rule preserved:** no `--always-succeed` on Main; no weakened check; no failed-run install.
 
 ### REL-1 — Runtime / platform validation
 - **State:** `NOT_CONFIRMED`.
@@ -179,3 +186,4 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | Attempt 2 of `45413720692` also concluded `failure`: single-job rerun could not merge first-attempt artifacts, so `Result` reported no `cargo-timings-*`. Both attempts recorded as infrastructure, not code; fresh full run `45428660357` started on the docs commit. | Run `45413720692`, check run `Result` |
 | 2026-11-24 | REL-2 lifecycle tests on `5881869781f` failed on all 3 platforms (`45434483363`): garbage handle dereferenced at `ffi/capi/lib.rs:882` because registry adoption beyond `ServoOptions` is not in committed code. Reverted tests and over-claiming docs; REL-2 remains `NOT_CONFIRMED`. | Jobs `138588460265/612/962` |
 | 2026-11-24 | REL-3 step 1: published per-suite WPT baseline from strict run `45396797175` (`5461673d1e9`). Reports 88.37% assertion pass rate and 55.04% harness-`OK` rate separately, flags 109 harness-`OK` files with failing assertions, and never counts `SKIP` as a pass. REL-3 → `IN_PROGRESS` (steps 2–3 pending). | `WPT_STRICT_BASELINE.md`, `wpt_strict_baseline.json`, artifact `14924931895` |
+| 2026-11-24 | REL-0 `PASSED` on full Main run `45428660357` (`fd4655eb3b6`): 194 jobs, 0 failures/cancellations, 20/20 strict WPT shards + `Process WPT Results` success, empty `WPT_ALWAYS_SUCCEED_ARG`, `Filtering 0 unexpected results`. The cancelled macOS C API check came from the separate Embedding API run `45428660374`, not the Main run. | Run `45428660357`; jobs `138599103611`, `138604438839` |

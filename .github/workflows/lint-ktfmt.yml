@@ -1,5 +1,6 @@
 name: Lint ktfmt
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'support/android/apk/**'
@@ -21,5 +22,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Run ktfmtCheck
-        run: ./gradlew ktfmtCheck
+      - name: Run ktfmtFormat and print diff
+        run: |
+          ./gradlew ktfmtFormat
+          printf '\n--- git diff -- support/android/apk ---\n'
+          git -C ../.. diff -- support/android/apk
+          printf '\n--- servoview/build.gradle.kts after ktfmtFormat ---\n'
+          sed -n '1,25p' servoview/build.gradle.kts

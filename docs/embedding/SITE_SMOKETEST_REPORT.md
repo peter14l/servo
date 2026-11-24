@@ -1,48 +1,38 @@
 # Real-World Website Conformance Smoke Report
 
+> **NOT_RUN plan.** No servoshell binary was executed. This is not test evidence. See [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) for the execution and triage procedure.
+
 | Site | Category | Status | Time | Root Cause |
 |---|---|---|---:|---|
-| [Example Domain](https://example.com) | Basic HTML5 / Static Document | `PLANNED` | 0.0s | Awaiting binary build on runner |
-| [Hacker News](https://news.ycombinator.com) | Table Layout / Lightweight Dynamic | `PLANNED` | 0.0s | Awaiting binary build on runner |
-| [Wikipedia Main Page](https://en.wikipedia.org/wiki/Main_Page) | Complex Content / Media Queries / SVG | `PLANNED` | 0.0s | Awaiting binary build on runner |
-| [DuckDuckGo Lite](https://lite.duckduckgo.com) | Forms / Query Parameters | `PLANNED` | 0.0s | Awaiting binary build on runner |
-| [Httpbin JSON](https://httpbin.org/get) | Network / Headers / HTTPS | `PLANNED` | 0.0s | Awaiting binary build on runner |
+| [Example Domain](https://example.com) | Basic HTML5 / Static Document | `NOT_RUN` | 0.0s | Dry-run plan only; no binary was executed |
+| [Hacker News](https://news.ycombinator.com) | Table Layout / Lightweight Dynamic | `NOT_RUN` | 0.0s | Dry-run plan only; no binary was executed |
+| [Wikipedia Main Page](https://en.wikipedia.org/wiki/Main_Page) | Complex Content / Media Queries / SVG | `NOT_RUN` | 0.0s | Dry-run plan only; no binary was executed |
+| [DuckDuckGo Lite](https://lite.duckduckgo.com) | Forms / Query Parameters | `NOT_RUN` | 0.0s | Dry-run plan only; no binary was executed |
+| [Httpbin JSON](https://httpbin.org/get) | Network / Headers / HTTPS | `NOT_RUN` | 0.0s | Dry-run plan only; no binary was executed |
 
 ## Root Cause Triage & Findings
 
-### Example Domain (PLANNED)
+### Example Domain (NOT_RUN)
 - **URL:** `https://example.com`
 - **Category:** Basic HTML5 / Static Document
-- **Root Cause:** Awaiting binary build on runner
+- **Root Cause:** Dry-run plan only; no binary was executed
 
-### Hacker News (PLANNED)
+### Hacker News (NOT_RUN)
 - **URL:** `https://news.ycombinator.com`
 - **Category:** Table Layout / Lightweight Dynamic
-- **Root Cause:** Awaiting binary build on runner
+- **Root Cause:** Dry-run plan only; no binary was executed
 
-### Wikipedia Main Page (PLANNED)
+### Wikipedia Main Page (NOT_RUN)
 - **URL:** `https://en.wikipedia.org/wiki/Main_Page`
 - **Category:** Complex Content / Media Queries / SVG
-- **Root Cause:** Awaiting binary build on runner
+- **Root Cause:** Dry-run plan only; no binary was executed
 
-### DuckDuckGo Lite (PLANNED)
+### DuckDuckGo Lite (NOT_RUN)
 - **URL:** `https://lite.duckduckgo.com`
 - **Category:** Forms / Query Parameters
-- **Root Cause:** Awaiting binary build on runner
+- **Root Cause:** Dry-run plan only; no binary was executed
 
-### Httpbin JSON (PLANNED)
+### Httpbin JSON (NOT_RUN)
 - **URL:** `https://httpbin.org/get`
 - **Category:** Network / Headers / HTTPS
-- **Root Cause:** Awaiting binary build on runner
-
-## Execution Instructions
-
-Run this suite using `etc/ci/site_smoketest.py` against a built `servoshell` binary:
-
-```bash
-# Execute smoke test across target sites (requires compiled servoshell):
-python etc/ci/site_smoketest.py --binary target/release/servoshell --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md --output-json docs/embedding/site_smoketest.json
-
-# Generate placeholder planned status without running:
-python etc/ci/site_smoketest.py --dry-run --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md
-```
+- **Root Cause:** Dry-run plan only; no binary was executed

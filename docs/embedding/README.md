@@ -34,6 +34,8 @@ below.
 | [BROWSERD_PUBLIC_RELEASE_PLAN.md](BROWSERD_PUBLIC_RELEASE_PLAN.md) | Executable tickets and verification gates that implement the public-readiness tracker. |
 | [WPT_STRICT_BASELINE.md](WPT_STRICT_BASELINE.md) | Per-suite WPT baseline from the strict CI run; reports harness `OK` and assertion pass rate separately and does not count `SKIP` as a pass. |
 | [wpt_strict_baseline.json](wpt_strict_baseline.json) | Machine-readable version of that baseline, including the source run id and revision. |
+| [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) | Fixed real-site smoke set, evidence rules, and triage procedure. Execution is `NOT_RUN`. |
+| [SITE_SMOKETEST_REPORT.md](SITE_SMOKETEST_REPORT.md) | Generated status of the fixed smoke set; currently an explicit `NOT_RUN` plan, not results. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |

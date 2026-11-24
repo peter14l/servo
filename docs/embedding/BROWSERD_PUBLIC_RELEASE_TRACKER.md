@@ -76,7 +76,7 @@ they provide a prerequisite.
 | **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `PASSED` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
 | **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
-| **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (baseline `DONE`) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); real-site runbook pending |
+| **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (steps 1–2 prepared; real-site runs `NOT_RUN`) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); `SITE_SMOKE_RUNBOOK.md` |
 | **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `NOT_CONFIRMED` | REL-0, W5.6/W5.7 | Perf analysis job + baseline comparison |
 | **REL-6** | Distribution (signed artifacts, installers, update story) | L | `NOT_CONFIRMED` | REL-1, REL-2, W5.3/W3.4 | Release workflow artifacts from successful runs only |
@@ -146,8 +146,17 @@ other multiplatform work is additive and must not regress the Windows path. A ga
     (WPT webdriver harness behaviour). Harness `OK` is therefore **not** a conformance pass;
     the two dimensions are reported separately. This is the executed subset, not the full WPT
     tree, and is not to be conflated with `wpt_baseline.json` (static expectations).
-- **Next action:** run a fixed top-site list and triage blockers into tickets; then fix engine
-  behaviour, not expectations, and re-run WPT to measure the delta.
+- **Step 2 — real-site runbook: `DONE` (preparation); execution `NOT_RUN`.**
+  `SITE_SMOKE_RUNBOOK.md` fixes a five-site smoke set, the required evidence (binary from a
+  successful CI artifact, run id, artifact sha256, screenshots), and the triage/ticket
+  template. `etc/ci/site_smoketest.py` no longer writes a plausible-looking report when no
+  binary is available: without `--servo-binary` it exits `2` and writes nothing, and
+  `--dry-run` emits explicit `NOT_RUN` rows with a "not test evidence" header.
+  `SITE_SMOKETEST_REPORT.md` regenerated as that `NOT_RUN` plan. No site has been exercised,
+  so this is **not** a compatibility pass.
+- **Next action:** execute the fixed set against a successful CI artifact and record evidence;
+  triage every non-`PASS` into `WPT_TRIAGE.md`; then fix engine behaviour, not expectations,
+  and re-run WPT to measure the delta.
 
 ### REL-4 — Security / stability
 - **State:** `NOT_CONFIRMED`.
@@ -187,3 +196,4 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | REL-2 lifecycle tests on `5881869781f` failed on all 3 platforms (`45434483363`): garbage handle dereferenced at `ffi/capi/lib.rs:882` because registry adoption beyond `ServoOptions` is not in committed code. Reverted tests and over-claiming docs; REL-2 remains `NOT_CONFIRMED`. | Jobs `138588460265/612/962` |
 | 2026-11-24 | REL-3 step 1: published per-suite WPT baseline from strict run `45396797175` (`5461673d1e9`). Reports 88.37% assertion pass rate and 55.04% harness-`OK` rate separately, flags 109 harness-`OK` files with failing assertions, and never counts `SKIP` as a pass. REL-3 → `IN_PROGRESS` (steps 2–3 pending). | `WPT_STRICT_BASELINE.md`, `wpt_strict_baseline.json`, artifact `14924931895` |
 | 2026-11-24 | REL-0 `PASSED` on full Main run `45428660357` (`fd4655eb3b6`): 194 jobs, 0 failures/cancellations, 20/20 strict WPT shards + `Process WPT Results` success, empty `WPT_ALWAYS_SUCCEED_ARG`, `Filtering 0 unexpected results`. The cancelled macOS C API check came from the separate Embedding API run `45428660374`, not the Main run. | Run `45428660357`; jobs `138599103611`, `138604438839` |
+| 2026-11-24 | REL-3 step 2 preparation: fixed five-site smoke set and evidence/triage rules published in `SITE_SMOKE_RUNBOOK.md`. Hardened `site_smoketest.py` so a missing binary is an error (exit 2) and `--dry-run` output is explicitly `NOT_RUN`; regenerated `SITE_SMOKETEST_REPORT.md` as a plan. No site executed — real-site results remain `NOT_RUN`. | `SITE_SMOKE_RUNBOOK.md`, `SITE_SMOKETEST_REPORT.md`; dry-run verified locally |

@@ -153,13 +153,17 @@ def run_site_test(
     )
 
 
-def generate_site_report(results: List[SiteTestResult]) -> str:
+def generate_site_report(results: List[SiteTestResult], header: str = "") -> str:
     lines = [
         "# Real-World Website Conformance Smoke Report",
         "",
+    ]
+    if header:
+        lines.extend([header, ""])
+    lines.extend([
         "| Site | Category | Status | Time | Root Cause |",
         "|---|---|---|---:|---|",
-    ]
+    ])
     for r in results:
         status_badge = f"**{r.status}**" if r.status == "PASS" else f"`{r.status}`"
         cause = r.root_cause or "Clean exit"
@@ -190,6 +194,11 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=15, help="Timeout per site in seconds")
     parser.add_argument("--output-json", help="Path to write JSON results")
     parser.add_argument("--output-markdown", help="Path to write Markdown summary")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Emit an explicit NOT_RUN plan; never treat this as test evidence",
+    )
     args = parser.parse_args()
 
     # If no binary is passed, search common target paths
@@ -208,29 +217,53 @@ def main() -> int:
                 binary = c
                 break
 
-    if not binary or not os.path.exists(binary):
-        print("Note: Servoshell binary not found at candidate paths. Smoke harness created and ready.", file=sys.stderr)
-        # Produce document of curated test suite
-        mock_results = [
+    if args.dry_run:
+        # A plan is not a result. It is only written when explicitly requested,
+        # and every row is labelled NOT_RUN so it cannot be mistaken for evidence.
+        planned = [
             SiteTestResult(
                 name=s["name"],
                 url=s["url"],
                 category=s["category"],
                 exit_code=None,
-                status="PLANNED",
+                status="NOT_RUN",
                 elapsed_seconds=0.0,
-                root_cause="Awaiting binary build on runner",
+                root_cause="Dry-run plan only; no binary was executed",
                 error_summary=None,
             )
             for s in DEFAULT_TARGET_SITES
         ]
-        report = generate_site_report(mock_results)
+        report = generate_site_report(
+            planned,
+            "> **NOT_RUN plan.** No servoshell binary was executed. This is not test evidence. "
+            "See [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) for the execution and triage procedure.",
+        )
         if args.output_markdown:
             with open(args.output_markdown, "w", encoding="utf-8") as fh:
                 fh.write(report)
+            print(f"Wrote NOT_RUN plan to {args.output_markdown}")
+        else:
+            print(report)
+        if args.output_json:
+            with open(args.output_json, "w", encoding="utf-8") as fh:
+                json.dump([asdict(r) for r in planned], fh, indent=2)
         return 0
 
+    if not binary or not os.path.exists(binary):
+        # Never silently generate a report that could be read as real results.
+        print(
+            "ERROR: no servoshell binary found. Pass --servo-binary with a binary "
+            "extracted from a successful CI artifact, or use --dry-run to write an "
+            "explicit NOT_RUN plan.",
+            file=sys.stderr,
+        )
+        return 2
+
     print(f"Running site smoke tests using binary: {binary}")
+    run_header = (
+        f"> **Executed smoke run.** Binary: `{binary}`. Record the source CI run id "
+        "and artifact hash next to this report before treating it as evidence."
+    )
     results = []
     for site in DEFAULT_TARGET_SITES:
         print(f"Testing {site['name']} ({site['url']})...")
@@ -238,7 +271,7 @@ def main() -> int:
         results.append(res)
         print(f"  -> {res.status} in {res.elapsed_seconds}s")
 
-    report = generate_site_report(results)
+    report = generate_site_report(results, run_header)
     if args.output_markdown:
         with open(args.output_markdown, "w", encoding="utf-8") as fh:
             fh.write(report)

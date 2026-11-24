@@ -213,7 +213,10 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
      `45396797175` / revision `5461673d1e9` via `etc/ci/wpt_pass_rate.py`. Reports assertion
      pass rate (88.37%) and harness `OK` rate (55.04%) separately; `SKIP` is not a pass, and
      the 109 harness-`OK` files with failing assertions are called out explicitly.
-  2. Run a fixed top-site list; triage each blocker into a ticket.
+  2. `DONE` (preparation) — fixed the smoke set and evidence rules in
+     `docs/embedding/SITE_SMOKE_RUNBOOK.md`; `etc/ci/site_smoketest.py` now refuses to emit a
+     report without a binary (exit 2) and labels `--dry-run` output `NOT_RUN`.
+     **Execution is `NOT_RUN`**; `SITE_SMOKETEST_REPORT.md` contains no results.
   3. Fix engine behaviour, never expectations; re-run WPT to measure delta.
 - **Acceptance:** baseline published with run id (`DONE` for step 1); blocker list has owners;
   no unexplained site-specific hacks. Overall gate still `NOT_CONFIRMED` until steps 2–3.

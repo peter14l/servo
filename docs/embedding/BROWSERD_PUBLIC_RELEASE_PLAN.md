@@ -198,15 +198,19 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-3 — Real-world compatibility
 
-- **State:** `NOT_CONFIRMED`.
+- **State:** `IN_PROGRESS` (step 1 `DONE`; steps 2–3 pending).
 - **Prerequisites:** REL-0; W1 (WPT) workstream.
 - **Touch points:** WPT baseline report, real-site runbook, `docs/embedding/PARITY_MATRIX.md`.
 - **Steps:**
-  1. Publish a per-suite WPT pass-rate baseline from the strict run.
+  1. `DONE` — Publish a per-suite WPT pass-rate baseline from the strict run:
+     `docs/embedding/WPT_STRICT_BASELINE.md` + `wpt_strict_baseline.json`, generated from run
+     `45396797175` / revision `5461673d1e9` via `etc/ci/wpt_pass_rate.py`. Reports assertion
+     pass rate (88.37%) and harness `OK` rate (55.04%) separately; `SKIP` is not a pass, and
+     the 109 harness-`OK` files with failing assertions are called out explicitly.
   2. Run a fixed top-site list; triage each blocker into a ticket.
   3. Fix engine behaviour, never expectations; re-run WPT to measure delta.
-- **Acceptance:** baseline published with run id; blocker list has owners; no unexplained
-  site-specific hacks.
+- **Acceptance:** baseline published with run id (`DONE` for step 1); blocker list has owners;
+  no unexplained site-specific hacks. Overall gate still `NOT_CONFIRMED` until steps 2–3.
 - **Tests:** strict WPT delta + real-site results in the tracker.
 - **Gotchas:** W1 is measured in years; this gate tracks progress honestly, it is not a
   single-session "completion".

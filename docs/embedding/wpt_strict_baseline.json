@@ -1,0 +1,213 @@
+{
+  "source": "wpt_reports",
+  "timestamp": "2026-11-24T16:59:18.202511+00:00",
+  "reports": 20,
+  "revision": "5461673d1e96d5db8ab22020f96112b51a0ae42c",
+  "run_id": "45396797175",
+  "harness": {
+    "pass_statuses": [
+      "OK",
+      "PASS"
+    ],
+    "total_results": 407,
+    "pass_count": 224,
+    "pass_rate_percent": 55.04,
+    "counts": {
+      "OK": 224,
+      "SKIP": 182,
+      "TIMEOUT": 1
+    }
+  },
+  "assertions": {
+    "pass_statuses": [
+      "PASS",
+      "OK"
+    ],
+    "total_results": 3749,
+    "pass_count": 3313,
+    "pass_rate_percent": 88.37,
+    "counts": {
+      "PASS": 3313,
+      "FAIL": 351,
+      "ERROR": 85
+    }
+  },
+  "ok_harness_results_with_failing_assertions": 109,
+  "per_suite": {
+    "webdriver": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 224,
+        "pass_count": 223,
+        "pass_rate_percent": 99.55,
+        "counts": {
+          "OK": 223,
+          "TIMEOUT": 1
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 3748,
+        "pass_count": 3312,
+        "pass_rate_percent": 88.37,
+        "counts": {
+          "PASS": 3312,
+          "FAIL": 351,
+          "ERROR": 85
+        }
+      }
+    },
+    "html": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 91,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {
+          "SKIP": 91
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 0,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {}
+      }
+    },
+    "wasm": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 78,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {
+          "SKIP": 78
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 0,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {}
+      }
+    },
+    "css": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 8,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {
+          "SKIP": 8
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 0,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {}
+      }
+    },
+    "fetch": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 4,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {
+          "SKIP": 4
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 0,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {}
+      }
+    },
+    "infrastructure": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 1,
+        "pass_count": 1,
+        "pass_rate_percent": 100.0,
+        "counts": {
+          "OK": 1
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 1,
+        "pass_count": 1,
+        "pass_rate_percent": 100.0,
+        "counts": {
+          "PASS": 1
+        }
+      }
+    },
+    "encoding": {
+      "harness": {
+        "pass_statuses": [
+          "OK",
+          "PASS"
+        ],
+        "total_results": 1,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {
+          "SKIP": 1
+        }
+      },
+      "assertions": {
+        "pass_statuses": [
+          "PASS",
+          "OK"
+        ],
+        "total_results": 0,
+        "pass_count": 0,
+        "pass_rate_percent": 0.0,
+        "counts": {}
+      }
+    }
+  }
+}

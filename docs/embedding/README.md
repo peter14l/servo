@@ -30,6 +30,8 @@ below.
 | Document | What it covers |
 | --- | --- |
 | [PRODUCTION_REPORT.md](../../PRODUCTION_REPORT.md) | Top-level report: the production-readiness verdict with measured evidence, and the complete prioritised work list across conformance, security, platforms and distribution. |
+| [BROWSERD_PUBLIC_RELEASE_TRACKER.md](BROWSERD_PUBLIC_RELEASE_TRACKER.md) | Gate-by-gate status tracker for public `browserd` readiness; separates green CI/WPT (beta) from public sign-off. |
+| [BROWSERD_PUBLIC_RELEASE_PLAN.md](BROWSERD_PUBLIC_RELEASE_PLAN.md) | Executable tickets and verification gates that implement the public-readiness tracker. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |

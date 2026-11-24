@@ -22,10 +22,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Print ktfmt CLI formatted output
+      - name: Print ktfmt plugin-equivalent formatted output
         run: |
+          cat > /tmp/.editorconfig <<'EOF'
+          root = true
+
+          [*.kts]
+          ktfmt_trailing_comma_management_strategy = complete
+          EOF
           curl -fsSL -o /tmp/ktfmt.jar https://github.com/Kotlin/ktfmt/releases/download/v0.64/ktfmt-0.64-with-dependencies.jar
           cp servoview/build.gradle.kts /tmp/build.gradle.kts
-          java -jar /tmp/ktfmt.jar --kotlinlang-style /tmp/build.gradle.kts
-          printf '\n--- ktfmt-0.64 formatted servoview/build.gradle.kts ---\n'
+          java -jar /tmp/ktfmt.jar --kotlinlang-style --enable-editorconfig /tmp/build.gradle.kts
+          printf '\n--- ktfmt 0.64 kotlinLangStyle + COMPLETE output ---\n'
           cat /tmp/build.gradle.kts

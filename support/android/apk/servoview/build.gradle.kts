@@ -7,11 +7,8 @@ plugins {
 
 // Android libraries have no AGP `versionName` property (removed in AGP 4.1 and absent from
 // the AGP 9 DSL). Keep the CI-provided value as the Gradle project version instead.
-val servoVersion =
-    project.findProperty("servoVersion")?.toString()
-        ?: System.getenv("SERVO_VERSION")
-        ?: "0.0.1"
-version = servoVersion
+version = System.getenv("SERVO_VERSION") ?: "0.0.1"
+project.findProperty("servoVersion")?.toString()?.let { version = it }
 
 android {
     compileSdk = 37

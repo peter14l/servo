@@ -38,8 +38,7 @@ pub const DEFAULT_SEARCH_DOMAINS: &[&str] = &[
 
 /// A stable, low-entropy user agent used for search requests. It contains no
 /// platform, architecture, locale or engine-version tokens.
-pub const GENERIC_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+pub const GENERIC_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
 /// A single, fixed language. Servo already reduces locale fingerprinting to a
 /// single language; search requests use a fixed value regardless of host OS.
@@ -69,7 +68,10 @@ impl Default for SearchOriginPolicy {
     fn default() -> Self {
         Self {
             enabled: true,
-            domains: DEFAULT_SEARCH_DOMAINS.iter().map(|s| (*s).to_owned()).collect(),
+            domains: DEFAULT_SEARCH_DOMAINS
+                .iter()
+                .map(|s| (*s).to_owned())
+                .collect(),
             user_agent: GENERIC_USER_AGENT.to_owned(),
             accept_language: GENERIC_ACCEPT_LANGUAGE.to_owned(),
         }
@@ -84,7 +86,10 @@ impl SearchOriginPolicy {
     pub fn from_prefs() -> Self {
         let domains = servo_config::pref!(privacy_private_search_domains);
         let domains: Vec<String> = if domains.trim().is_empty() {
-            DEFAULT_SEARCH_DOMAINS.iter().map(|s| (*s).to_owned()).collect()
+            DEFAULT_SEARCH_DOMAINS
+                .iter()
+                .map(|s| (*s).to_owned())
+                .collect()
         } else {
             domains
                 .split(',')

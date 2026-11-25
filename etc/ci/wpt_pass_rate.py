@@ -214,19 +214,13 @@ def analyze_wpt_reports(
     if len(revisions) > 1:
         raise ValueError(f"Reports mix revisions; refusing to publish: {sorted(revisions)}")
     if expected_revision and revisions and expected_revision not in revisions:
-        raise ValueError(
-            f"Revision mismatch: expected {expected_revision}, got {sorted(revisions)}"
-        )
+        raise ValueError(f"Revision mismatch: expected {expected_revision}, got {sorted(revisions)}")
 
     suites: Dict[str, Dict[str, Any]] = {}
     for suite in set(per_suite_harness) | set(per_suite_assertions):
         suites[suite] = {
-            "harness": _summarize_counts(
-                per_suite_harness.get(suite, Counter()), ("OK", "PASS")
-            ),
-            "assertions": _summarize_counts(
-                per_suite_assertions.get(suite, Counter()), ("PASS", "OK")
-            ),
+            "harness": _summarize_counts(per_suite_harness.get(suite, Counter()), ("OK", "PASS")),
+            "assertions": _summarize_counts(per_suite_assertions.get(suite, Counter()), ("PASS", "OK")),
         }
 
     return {
@@ -242,10 +236,7 @@ def analyze_wpt_reports(
             suite: suites[suite]
             for suite in sorted(
                 suites,
-                key=lambda s: -(
-                    suites[s]["harness"]["total_results"]
-                    + suites[s]["assertions"]["total_results"]
-                ),
+                key=lambda s: -(suites[s]["harness"]["total_results"] + suites[s]["assertions"]["total_results"]),
             )
         },
     }
@@ -286,8 +277,7 @@ def generate_markdown_report(data: Dict[str, Any]) -> str:
                 "## Strict CI run baseline (executed tests only)",
                 "",
                 f"- **Revision:** `{data.get('revision', 'unknown')}`",
-                f"- **Source run:** `{data.get('run_id', 'unknown')}` "
-                f"(artifact `wpt-full-logs-linux`)",
+                f"- **Source run:** `{data.get('run_id', 'unknown')}` (artifact `wpt-full-logs-linux`)",
                 f"- **Shards reported:** {data.get('reports', 0)}",
                 f"- **Assertion pass rate (headline):** "
                 f"**{assertions.get('pass_rate_percent', 0.0)}%** "
@@ -345,9 +335,7 @@ def generate_markdown_report(data: Dict[str, Any]) -> str:
             h = stats.get("harness", {})
             a = stats.get("assertions", {})
             assertion_total = a.get("total_results", 0)
-            rate = (
-                f"{a.get('pass_rate_percent', 0.0)}%" if assertion_total else "n/a (all skipped)"
-            )
+            rate = f"{a.get('pass_rate_percent', 0.0)}%" if assertion_total else "n/a (all skipped)"
             lines.append(
                 f"| `{suite}` | {h.get('pass_count', 0):,} | "
                 f"{h.get('total_results', 0):,} | {a.get('pass_count', 0):,} | "
@@ -393,9 +381,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="WPT Pass Rate Baseline Tool")
     parser.add_argument("--meta-dir", default="tests/wpt/meta", help="Path to tests/wpt/meta directory")
     parser.add_argument("--logs-dir", help="Path to directory containing WPT run logs")
-    parser.add_argument(
-        "--reports-dir", help="Path to directory containing per-shard wptreport JSON files"
-    )
+    parser.add_argument("--reports-dir", help="Path to directory containing per-shard wptreport JSON files")
     parser.add_argument(
         "--expected-revision",
         help="Refuse to publish unless every report has this revision (CI commit sha)",

@@ -146,8 +146,6 @@ pub struct Preferences {
     pub dom_credential_management_enabled: bool,
     // feature: WebCrypto API | #40687 | Web/API/Web_Crypto_API
     pub dom_crypto_subtle_enabled: bool,
-    // feature: Encrypted Media Extensions | Web/API/Encrypted_Media_Extensions_API
-    pub dom_eme_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
     // feature: File and Directory Entries API | #45653 | Web/API/File_and_Directory_Entries_API
@@ -447,7 +445,6 @@ impl Preferences {
             dom_cookiestore_enabled: false,
             dom_credential_management_enabled: false,
             dom_crypto_subtle_enabled: true,
-            dom_eme_enabled: false,
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
             dom_entries_api_enabled: false,
@@ -498,7 +495,7 @@ impl Preferences {
             dom_transient_activation_duration_ms: 5000,
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
-            dom_webgpu_enabled: true,
+            dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
             dom_webrtc_enabled: true,
             dom_webrtc_transceiver_enabled: true,

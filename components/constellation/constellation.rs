@@ -3440,7 +3440,8 @@ where
         if self.webviews.is_empty() {
             self.public_resource_threads.purge_ephemeral_cookies();
             self.public_storage_threads.purge_ephemeral_search_storage();
-            self.private_storage_threads.purge_ephemeral_search_storage();
+            self.private_storage_threads
+                .purge_ephemeral_search_storage();
         }
 
         // Drop the font keys the service pre-allocated for this painter. They

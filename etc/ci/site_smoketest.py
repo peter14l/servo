@@ -175,10 +175,12 @@ def generate_site_report(results: List[SiteTestResult], header: str = "") -> str
     ]
     if header:
         lines.extend([header, ""])
-    lines.extend([
-        "| Site | Category | Status | Time | Screenshot | Root Cause |",
-        "|---|---|---|---:|---|---|",
-    ])
+    lines.extend(
+        [
+            "| Site | Category | Status | Time | Screenshot | Root Cause |",
+            "|---|---|---|---:|---|---|",
+        ]
+    )
     for r in results:
         status_badge = f"**{r.status}**" if r.status == "PASS" else f"`{r.status}`"
         cause = r.root_cause or "Clean exit"
@@ -298,9 +300,7 @@ def main() -> int:
         extra_args: List[str] = []
         screenshot_path = None
         if screenshot_dir:
-            screenshot_path = os.path.join(
-                screenshot_dir, f"{index + 1:02d}-{site_slug(site['name'])}.png"
-            )
+            screenshot_path = os.path.join(screenshot_dir, f"{index + 1:02d}-{site_slug(site['name'])}.png")
             extra_args.extend(["-o", screenshot_path])
 
         res = run_site_test(binary, site, timeout_seconds=args.timeout, extra_args=extra_args)

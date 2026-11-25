@@ -7,7 +7,6 @@ use std::sync::Arc;
 use log::{info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OpenFlags, OptionalExtension, params};
-use uuid::Uuid;
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_base::threadpool::ThreadPool;
@@ -16,6 +15,7 @@ use storage_traits::indexeddb::{
     BackendError, CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBTxnMode, KeyPath, PutItemResult,
 };
+use uuid::Uuid;
 
 use crate::indexeddb::IndexedDBDescription;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};

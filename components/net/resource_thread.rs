@@ -466,6 +466,10 @@ impl ResourceChannelManager {
                 http_state.cookie_jar.write().clear_session_cookies();
                 let _ = sender.send(());
             },
+            CoreResourceMsg::PurgeEphemeralCookies(sender) => {
+                http_state.cookie_jar.write().purge_ephemeral_cookies();
+                let _ = sender.send(());
+            },
             CoreResourceMsg::DeleteCookies(request, sender) => {
                 http_state
                     .cookie_jar
@@ -641,9 +645,11 @@ impl ResourceChannelManager {
                     cookies.push(Serde(cookie.cookie.clone()));
                 }
                 sender.send_or_ignore(cookies);
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::VisitCookiesForUrl(url, source, sender) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -662,9 +668,11 @@ impl ResourceChannelManager {
                     cookies.push(Serde(cookie));
                 }
                 sender.send_or_ignore(cookies);
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::DeleteAllCookies(
                 url_opt,
@@ -683,7 +691,14 @@ impl ResourceChannelManager {
                     let domain = net_traits::pub_domains::reg_host(url.host_str().unwrap_or(""));
                     if let Some(cookies) = cookie_jar.cookies_for_domain_mut(&domain) {
                         for cookie in cookies {
-                            if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                            if matches_filter(
+                                cookie,
+                                &name_opt,
+                                &domain_opt,
+                                &path_opt,
+                                secure_opt,
+                                session_opt,
+                            ) {
                                 cookie.set_expiry_time_in_past();
                                 deleted += 1;
                             }
@@ -692,7 +707,14 @@ impl ResourceChannelManager {
                 } else {
                     // Delete all matching cookies
                     for cookie in cookie_jar.all_cookies_mut() {
-                        if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                        if matches_filter(
+                            cookie,
+                            &name_opt,
+                            &domain_opt,
+                            &path_opt,
+                            secure_opt,
+                            session_opt,
+                        ) {
                             cookie.set_expiry_time_in_past();
                             deleted += 1;
                         }
@@ -720,7 +742,14 @@ impl ResourceChannelManager {
                     let domain = net_traits::pub_domains::reg_host(url.host_str().unwrap_or(""));
                     if let Some(cookies) = cookie_jar.cookies_for_domain_mut(&domain) {
                         for cookie in cookies {
-                            if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                            if matches_filter(
+                                cookie,
+                                &name_opt,
+                                &domain_opt,
+                                &path_opt,
+                                secure_opt,
+                                session_opt,
+                            ) {
                                 cookie.set_expiry_time_in_past();
                                 deleted += 1;
                             }
@@ -729,7 +758,14 @@ impl ResourceChannelManager {
                 } else {
                     // Delete all matching cookies
                     for cookie in cookie_jar.all_cookies_mut() {
-                        if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                        if matches_filter(
+                            cookie,
+                            &name_opt,
+                            &domain_opt,
+                            &path_opt,
+                            secure_opt,
+                            session_opt,
+                        ) {
                             cookie.set_expiry_time_in_past();
                             deleted += 1;
                         }
@@ -737,9 +773,11 @@ impl ResourceChannelManager {
                 }
                 cookie_jar.remove_all_expired_cookies();
                 sender.send_or_ignore(deleted);
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::DeleteCookiesForUrl(url, sender_opt) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -756,9 +794,11 @@ impl ResourceChannelManager {
                 cookie_jar.clear_storage(Some(&url));
                 cookie_jar.remove_all_expired_cookies();
                 sender.send_or_ignore(0); // We don't track exact count here
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::EmbedderDeleteCookie(url, name, sender_opt) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -771,9 +811,11 @@ impl ResourceChannelManager {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.delete_cookie_with_name(&url, name);
                 sender.send_or_ignore(1);
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::FlushCookieStore(sender_opt) => {
                 // The cookie store is persisted automatically on exit.
@@ -784,9 +826,11 @@ impl ResourceChannelManager {
             },
             CoreResourceMsg::FlushCookieStoreAsync(operation_id, sender) => {
                 sender.send_or_ignore(());
-                http_state.embedder_proxy.send(
-                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
-                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
             },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();
@@ -1138,28 +1182,28 @@ fn matches_filter(
     secure_opt: Option<bool>,
     session_opt: Option<bool>,
 ) -> bool {
-    if let Some(name) = name_opt
-        && cookie.cookie.name() != name
+    if let Some(name) = name_opt &&
+        cookie.cookie.name() != name
     {
         return false;
     }
-    if let Some(domain) = domain_opt
-        && cookie.cookie.domain() != Some(domain.as_str())
+    if let Some(domain) = domain_opt &&
+        cookie.cookie.domain() != Some(domain.as_str())
     {
         return false;
     }
-    if let Some(path) = path_opt
-        && cookie.cookie.path() != Some(path.as_str())
+    if let Some(path) = path_opt &&
+        cookie.cookie.path() != Some(path.as_str())
     {
         return false;
     }
-    if let Some(secure) = secure_opt
-        && cookie.cookie.secure().unwrap_or(false) != secure
+    if let Some(secure) = secure_opt &&
+        cookie.cookie.secure().unwrap_or(false) != secure
     {
         return false;
     }
-    if let Some(session) = session_opt
-        && cookie.persistent == session
+    if let Some(session) = session_opt &&
+        cookie.persistent == session
     {
         // session=true means session cookie (non-persistent)
         // session=false means persistent cookie

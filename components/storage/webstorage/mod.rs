@@ -14,6 +14,7 @@ use std::thread;
 use log::warn;
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use net_traits::pub_domains::registered_domain_name;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
@@ -33,6 +34,14 @@ use crate::webstorage::engines::WebStorageEngine;
 use crate::webstorage::engines::sqlite::SqliteEngine;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+
+/// Whether a serialized origin belongs to a search engine. Search origins get
+/// an in-memory SQLite engine and are never listed in `localstorage.json`.
+fn is_search_storage_origin(origin: &ImmutableOrigin) -> bool {
+    ServoUrl::parse(&origin.ascii_serialization())
+        .ok()
+        .is_some_and(|url| is_search_origin(&url))
+}
 
 pub trait WebStorageThreadFactory {
     fn new(
@@ -314,9 +323,23 @@ impl WebStorageManager {
     }
 
     fn save_local_storage_origins(&self) {
-        if let Some(ref config_dir) = self.config_dir {
-            write_json_to_file(&self.local_storage_origins, config_dir, "localstorage.json");
+        let Some(ref config_dir) = self.config_dir else {
+            return;
+        };
+
+        // Search-origin storage is ephemeral: it must never appear in the
+        // on-disk origin registry, even though it still works during the
+        // lifetime of the browsing context.
+        let mut persisted = StorageOrigins::new();
+        for (name, descriptor) in &self.local_storage_origins.origin_descriptors {
+            if ServoUrl::parse(name).ok().is_some_and(|url| is_search_origin(&url)) {
+                continue;
+            }
+            persisted
+                .origin_descriptors
+                .insert(name.clone(), descriptor.clone());
         }
+        write_json_to_file(&persisted, config_dir, "localstorage.json");
     }
 
     fn get_origin_location(&self, origin: &ImmutableOrigin) -> Option<PathBuf> {
@@ -337,7 +360,11 @@ impl WebStorageManager {
     }
 
     fn add_new_environment(&mut self, origin: &ImmutableOrigin) -> Result<(), rusqlite::Error> {
-        let origin_location = self.get_origin_location(origin);
+        let origin_location = if is_search_storage_origin(origin) {
+            None
+        } else {
+            self.get_origin_location(origin)
+        };
 
         let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone())?;
         let environment = WebStorageEnvironment::new(engine);

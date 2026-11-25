@@ -16,6 +16,7 @@ use http::header::{self, HeaderValue};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::private_search::spoofed_hardware_concurrency;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
@@ -76,6 +77,12 @@ pub(crate) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
 
     *CPUS
+}
+
+/// Return a standardized hardware concurrency value for search origins and the
+/// real value for every other origin.
+pub(crate) fn hardware_concurrency_for_url(url: &ServoUrl) -> u64 {
+    spoofed_hardware_concurrency(url).unwrap_or_else(hardware_concurrency)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#safelisted-scheme>
@@ -514,7 +521,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
-        hardware_concurrency()
+        hardware_concurrency_for_url(&self.global().get_url())
     }
 
     /// <https://w3c.github.io/clipboard-apis/#h-navigator-clipboard>

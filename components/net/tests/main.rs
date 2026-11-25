@@ -18,6 +18,7 @@ mod file_loader;
 mod filemanager_thread;
 mod hsts;
 mod http_cache;
+mod private_search;
 mod http_loader;
 mod image_cache;
 mod resource_thread;

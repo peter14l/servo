@@ -158,14 +158,14 @@ use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
-    EmbedderToConstellationMessage, FindNextRequest, FindRequest, FindResult, HistoryTraversalSource,
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg,
-    NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, PortTransferInfo,
-    RemoteFocusOperation, SWManagerSenders, ScreenshotReadinessResponse,
+    EmbedderToConstellationMessage, FindNextRequest, FindRequest, FindResult,
+    HistoryTraversalSource, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, LoadData,
+    LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask,
+    PortTransferInfo, RemoteFocusOperation, SWManagerSenders, ScreenshotReadinessResponse,
     ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerAlgorithm,
     ServiceWorkerManagerFactory, ServiceWorkerMsg, SessionHistoryTraversalRequest,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
-    UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
+    WindowSizeType, WorkerAnimationFrameTick,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1227,8 +1227,8 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
         warn!("Component hang alert: {:?}", message);
-        if let HangAlert::Permanent(ref component_id, _, _) = message
-            && opts::get().hang_monitor_kill_script
+        if let HangAlert::Permanent(ref component_id, _, _) = message &&
+            opts::get().hang_monitor_kill_script
         {
             warn!("Terminating permanently hung component {component_id:?}");
             self.send_message_to_all_background_hang_monitors(
@@ -3258,10 +3258,8 @@ where
             number_of_matches: 0,
             selection_rect: None,
         };
-        self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
-            webview_id,
-            result,
-        ));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::FindResult(webview_id, result));
     }
 
     fn handle_find_next(&mut self, webview_id: WebViewId, request: FindNextRequest) {
@@ -3273,10 +3271,8 @@ where
             number_of_matches: 0,
             selection_rect: None,
         };
-        self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
-            webview_id,
-            result,
-        ));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::FindResult(webview_id, result));
     }
 
     fn handle_clear_find(&mut self, webview_id: WebViewId) {
@@ -3426,6 +3422,13 @@ where
             for request in webview.session_history_traversal_request_queue.drain(..) {
                 self.notify_embedder_of_completed_session_history_traversal_request(&request);
             }
+        }
+
+        // Search-origin cookies live in a single in-memory partition shared by
+        // the network state. Drop them when the last top-level browsing context
+        // closes, so closing one tab cannot invalidate another tab's session.
+        if self.webviews.is_empty() {
+            self.public_resource_threads.purge_ephemeral_cookies();
         }
 
         // Drop the font keys the service pre-allocated for this painter. They

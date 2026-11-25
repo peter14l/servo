@@ -22,6 +22,7 @@ use hyper_util::client::legacy::connect::{
 };
 use hyper_util::rt::{TokioIo, TokioTimer};
 use log::warn;
+use net_traits::private_search::{SearchOriginPolicy, is_search_host};
 use parking_lot::Mutex;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::client::{ClientConnection, EchStatus};
@@ -599,6 +600,9 @@ pub struct ProxyConnector {
     client: ServoHttpConnector,
     /// Matcher to see if we should forward to the proxy or not.
     matcher: std::sync::Arc<hyper_util::client::proxy::matcher::Matcher>,
+    /// Dedicated matcher for search origins. `None` means search traffic uses
+    /// the regular proxy configuration.
+    search_matcher: Option<std::sync::Arc<hyper_util::client::proxy::matcher::Matcher>>,
 }
 
 impl ProxyConnector {
@@ -607,10 +611,40 @@ impl ProxyConnector {
             .http(servo_config::pref!(network_http_proxy_uri))
             .https(servo_config::pref!(network_https_proxy_uri))
             .no(servo_config::pref!(network_http_no_proxy));
+
+        // A dedicated proxy for search traffic lets embedders route these
+        // requests through an independent gateway (for example a local OHTTP
+        // or SOCKS5-terminating proxy) without changing the global proxy setup.
+        let search_proxy_uri = SearchOriginPolicy::search_proxy_uri();
+        let search_matcher = if search_proxy_uri.trim().is_empty() {
+            None
+        } else {
+            Some(std::sync::Arc::new(
+                hyper_util::client::proxy::matcher::Matcher::builder()
+                    .http(search_proxy_uri.clone())
+                    .https(search_proxy_uri)
+                    .build(),
+            ))
+        };
+
         ProxyConnector {
             client: ServoHttpConnector::new(),
             matcher: std::sync::Arc::new(matcher_builder.build()),
+            search_matcher,
         }
+    }
+
+    /// Select the proxy matcher for a destination. Search origins prefer the
+    /// dedicated matcher when one is configured.
+    fn matcher_for(&self, destination: &Destination) -> &std::sync::Arc<
+        hyper_util::client::proxy::matcher::Matcher,
+    > {
+        if destination.host().is_some_and(is_search_host) {
+            if let Some(ref matcher) = self.search_matcher {
+                return matcher;
+            }
+        }
+        &self.matcher
     }
 }
 
@@ -628,7 +662,8 @@ impl Service<Destination> for ProxyConnector {
     }
 
     fn call(&mut self, req: Destination) -> Self::Future {
-        match self.matcher.intercept(&req) {
+        let matcher = self.matcher_for(&req);
+        match matcher.intercept(&req) {
             Some(intercept) => {
                 let mut tunnel = Tunnel::new(intercept.uri().clone(), self.client.clone());
                 let final_tunnel = if let Some(auth) = intercept.basic_auth() {

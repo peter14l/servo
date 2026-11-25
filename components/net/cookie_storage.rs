@@ -15,6 +15,7 @@ use cookie::Cookie;
 use itertools::Itertools;
 use log::trace;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::{CookieSource, SiteDescriptor};
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,12 @@ pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
+    /// Cookies belonging to search-engine origins. The `serde(skip)` attribute
+    /// makes it structurally impossible for these cookies to be written to
+    /// `cookie_jar.json`, and the partition is dropped when its browsing
+    /// context is closed via [`CookieStorage::purge_ephemeral_cookies`].
+    #[serde(skip)]
+    ephemeral_cookies_map: HashMap<String, Vec<ServoCookie>>,
 }
 
 #[derive(Debug)]
@@ -41,7 +48,34 @@ impl CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
+            ephemeral_cookies_map: HashMap::new(),
         }
+    }
+
+    /// Return the mutable partition for a URL. Search origins are isolated in
+    /// the ephemeral, non-serialized partition.
+    fn map_for_url_mut(&mut self, url: &ServoUrl) -> &mut HashMap<String, Vec<ServoCookie>> {
+        if is_search_origin(url) {
+            &mut self.ephemeral_cookies_map
+        } else {
+            &mut self.cookies_map
+        }
+    }
+
+    /// Both partitions, for operations that intentionally span all cookies.
+    fn maps(&self) -> [&HashMap<String, Vec<ServoCookie>>; 2] {
+        [&self.cookies_map, &self.ephemeral_cookies_map]
+    }
+
+    /// Mutable counterpart of [`CookieStorage::maps`].
+    fn maps_mut(&mut self) -> [&mut HashMap<String, Vec<ServoCookie>>; 2] {
+        [&mut self.cookies_map, &mut self.ephemeral_cookies_map]
+    }
+
+    /// Drop every cookie in the ephemeral partition. Called when the browsing
+    /// context or tab that owned the search session is closed.
+    pub fn purge_ephemeral_cookies(&mut self) {
+        self.ephemeral_cookies_map.clear();
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
@@ -52,7 +86,7 @@ impl CookieStorage {
         source: CookieSource,
     ) -> Result<Option<ServoCookie>, RemoveCookieError> {
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
-        let cookies = self.cookies_map.entry(domain).or_default();
+        let cookies = self.map_for_url_mut(url).entry(domain).or_default();
 
         // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 2
         if !cookie.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
@@ -111,38 +145,42 @@ impl CookieStorage {
             // This is safe because higher-level cookie accessors always call
             // `remove_expired_cookies_for_url` / `remove_all_expired_cookies`.
             // Consider whether we should instead delete the entries directly.
-            if let Some(cookies) = self.cookies_map.get_mut(site) {
-                for cookie in cookies.iter_mut() {
-                    cookie.set_expiry_time_in_past();
+            for map in self.maps_mut() {
+                if let Some(cookies) = map.get_mut(site) {
+                    for cookie in cookies.iter_mut() {
+                        cookie.set_expiry_time_in_past();
+                    }
                 }
             }
         }
     }
 
     pub fn clear_session_cookies(&mut self) {
-        self.cookies_map
-            .values_mut()
-            .flat_map(|cookies| cookies.iter_mut())
-            .filter(|cookie| !cookie.persistent)
-            .for_each(|cookie| cookie.set_expiry_time_in_past());
+        for map in self.maps_mut() {
+            map.values_mut()
+                .flat_map(|cookies| cookies.iter_mut())
+                .filter(|cookie| !cookie.persistent)
+                .for_each(|cookie| cookie.set_expiry_time_in_past());
+        }
     }
 
     pub fn clear_storage(&mut self, url: Option<&ServoUrl>) {
         if let Some(url) = url {
             let domain = reg_host(url.host_str().unwrap_or(""));
-            if let Some(cookies) = self.cookies_map.get_mut(&domain) {
+            if let Some(cookies) = self.map_for_url_mut(url).get_mut(&domain) {
                 for cookie in cookies.iter_mut() {
                     cookie.set_expiry_time_in_past();
                 }
             }
         } else {
             self.cookies_map.clear();
+            self.ephemeral_cookies_map.clear();
         }
     }
 
     pub fn delete_cookie_with_name(&mut self, url: &ServoUrl, name: String) {
         let domain = reg_host(url.host_str().unwrap_or(""));
-        if let Some(cookies) = self.cookies_map.get_mut(&domain) {
+        if let Some(cookies) = self.map_for_url_mut(url).get_mut(&domain) {
             for cookie in cookies.iter_mut() {
                 if cookie.cookie.name() == name {
                     cookie.set_expiry_time_in_past();
@@ -172,9 +210,10 @@ impl CookieStorage {
 
         // Step 12
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
-        let cookies = self.cookies_map.entry(domain).or_default();
+        let max_per_host = self.max_per_host;
+        let cookies = self.map_for_url_mut(url).entry(domain).or_default();
 
-        if cookies.len() == self.max_per_host {
+        if cookies.len() == max_per_host {
             let old_len = cookies.len();
             cookies.retain(|c| !is_cookie_expired(c));
             let new_len = cookies.len();
@@ -202,7 +241,7 @@ impl CookieStorage {
 
     pub fn remove_expired_cookies_for_url(&mut self, url: &ServoUrl) {
         let domain = reg_host(url.host_str().unwrap_or(""));
-        if let Entry::Occupied(mut entry) = self.cookies_map.entry(domain) {
+        if let Entry::Occupied(mut entry) = self.map_for_url_mut(url).entry(domain) {
             let cookies = entry.get_mut();
             cookies.retain(|c| !is_cookie_expired(c));
             if cookies.is_empty() {
@@ -212,10 +251,12 @@ impl CookieStorage {
     }
 
     pub fn remove_all_expired_cookies(&mut self) {
-        self.cookies_map.retain(|_, cookies| {
-            cookies.retain(|c| !is_cookie_expired(c));
-            !cookies.is_empty()
-        });
+        for map in self.maps_mut() {
+            map.retain(|_, cookies| {
+                cookies.retain(|c| !is_cookie_expired(c));
+                !cookies.is_empty()
+            });
+        }
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.4
@@ -297,7 +338,7 @@ impl CookieStorage {
         context: SameSiteContext,
     ) -> impl Iterator<Item = cookie::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
-        let cookies = self.cookies_map.entry(domain).or_default();
+        let cookies = self.map_for_url_mut(url).entry(domain).or_default();
 
         cookies
             .iter_mut()
@@ -314,8 +355,9 @@ impl CookieStorage {
     }
 
     pub fn cookie_site_descriptors(&self) -> Vec<SiteDescriptor> {
-        self.cookies_map
-            .keys()
+        self.maps()
+            .iter()
+            .flat_map(|map| map.keys())
             .cloned()
             .map(SiteDescriptor::new)
             .collect()
@@ -323,17 +365,35 @@ impl CookieStorage {
 
     /// Returns all cookies in the store (for visitor pattern).
     pub fn all_cookies(&self) -> Vec<&ServoCookie> {
-        self.cookies_map.values().flat_map(|v| v.iter()).collect()
+        self.maps()
+            .iter()
+            .flat_map(|map| map.values())
+            .flat_map(|v| v.iter())
+            .collect()
     }
 
     /// Returns all cookies in the store mutably (for deletion).
     pub fn all_cookies_mut(&mut self) -> Vec<&mut ServoCookie> {
-        self.cookies_map.values_mut().flat_map(|v| v.iter_mut()).collect()
+        self.maps_mut()
+            .into_iter()
+            .flat_map(|map| map.values_mut())
+            .flat_map(|v| v.iter_mut())
+            .collect()
     }
 
     /// Returns cookies for a specific domain mutably.
     pub fn cookies_for_domain_mut(&mut self, domain: &str) -> Option<Vec<&mut ServoCookie>> {
-        self.cookies_map.get_mut(domain).map(|v| v.iter_mut().collect())
+        let result: Vec<&mut ServoCookie> = self
+            .maps_mut()
+            .into_iter()
+            .filter_map(|map| map.get_mut(domain))
+            .flat_map(|v| v.iter_mut())
+            .collect();
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
 

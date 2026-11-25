@@ -12,6 +12,7 @@ use std::thread;
 
 use log::{debug, error, warn};
 use malloc_size_of::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::mem::{
@@ -22,6 +23,7 @@ use rusqlite::Error as RusqliteError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use servo_base::threadpool::ThreadPool;
+use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::StorageProxyMap;
 use storage_traits::indexeddb::{
@@ -33,6 +35,15 @@ use uuid::Uuid;
 
 use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use crate::shared::is_sqlite_disk_full_error;
+
+/// Whether an IndexedDB origin belongs to a search engine. Such databases are
+/// kept in a shared-cache in-memory SQLite database and never registered with
+/// client storage, so they cannot be written to disk.
+fn is_search_indexeddb_origin(origin: &ImmutableOrigin) -> bool {
+    ServoUrl::parse(&origin.ascii_serialization())
+        .ok()
+        .is_some_and(|url| is_search_origin(&url))
+}
 
 pub trait IndexedDBThreadFactory {
     fn new(mem_profiler_chan: MemProfilerChan, reporter_name: String) -> Self;
@@ -1403,16 +1414,20 @@ impl IndexedDBManager {
                 // Note: ensure db is dropped before deleting directory,
                 // to get around windows file locks.
                 drop(db);
-                let response = proxy_map
-                    .handle
-                    .delete_database(proxy_map.bottle_id, key.name.clone())
-                    .recv();
-                if response.is_err() {
-                    error!("Failed to communicate with client storage.");
-                    return;
-                }
-                if response.unwrap().is_err() {
-                    error!("Failed to delete database {:?}", key.name);
+                // Ephemeral search databases have no client-storage record to
+                // delete; dropping the engine above discards them completely.
+                if !is_search_indexeddb_origin(&key.origin) {
+                    let response = proxy_map
+                        .handle
+                        .delete_database(proxy_map.bottle_id, key.name.clone())
+                        .recv();
+                    if response.is_err() {
+                        error!("Failed to communicate with client storage.");
+                        return;
+                    }
+                    if response.unwrap().is_err() {
+                        error!("Failed to delete database {:?}", key.name);
+                    }
                 }
             }
             return;
@@ -1798,37 +1813,44 @@ impl IndexedDBManager {
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-                let Ok(response) = proxy_map
-                    .handle
-                    .create_database(proxy_map.bottle_id, db_name.clone())
-                    .recv()
-                else {
-                    if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
-                        id: *id,
-                        name: db_name.clone(),
-                        error: BackendError::DbErr(
-                            "Failed to communicate with client storage.".to_string(),
-                        ),
-                    }) {
-                        debug!("Script exit during indexeddb database open {:?}", e);
-                    }
-                    return;
-                };
-                let (path, created) = match response {
-                    Ok((path, created)) => (path, created),
-                    Err(err) => {
+                // Search-origin databases are deliberately kept out of client
+                // storage: no registry row, no directory, and no SQLite file.
+                let is_ephemeral = is_search_indexeddb_origin(&key.origin);
+                let engine_result = if is_ephemeral {
+                    SqliteEngine::new_in_memory(&key, self.thread_pool.clone())
+                } else {
+                    let Ok(response) = proxy_map
+                        .handle
+                        .create_database(proxy_map.bottle_id, db_name.clone())
+                        .recv()
+                    else {
                         if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
                             id: *id,
                             name: db_name.clone(),
-                            error: BackendError::DbErr(format!("{err:?}")),
+                            error: BackendError::DbErr(
+                                "Failed to communicate with client storage.".to_string(),
+                            ),
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
                         return;
-                    },
+                    };
+                    let (path, created) = match response {
+                        Ok((path, created)) => (path, created),
+                        Err(err) => {
+                            if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                                id: *id,
+                                name: db_name.clone(),
+                                error: BackendError::DbErr(format!("{err:?}")),
+                            }) {
+                                debug!("Script exit during indexeddb database open {:?}", e);
+                            }
+                            return;
+                        },
+                    };
+                    SqliteEngine::new(path, created, &key, self.thread_pool.clone())
                 };
-                let engine = match SqliteEngine::new(path, created, &key, self.thread_pool.clone())
-                {
+                let engine = match engine_result {
                     Ok(engine) => engine,
                     Err(err) => {
                         let error = backend_error_from_sqlite_error(err);
@@ -2074,31 +2096,35 @@ impl IndexedDBManager {
             // Step 11: Delete db.
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
-            let Ok(response) = proxy_map
-                .handle
-                .delete_database(proxy_map.bottle_id, db_name.clone())
-                .recv()
-            else {
-                if sender
-                    .send(BackendResult::Err(BackendError::DbErr(
-                        "Failed to communicate with client storage.".to_string(),
-                    )))
-                    .is_err()
-                {
-                    debug!("Script went away during pending database delete.");
+            // Ephemeral search databases are dropped with the engine above;
+            // there is no client-storage record to remove.
+            if !is_search_indexeddb_origin(&key.origin) {
+                let Ok(response) = proxy_map
+                    .handle
+                    .delete_database(proxy_map.bottle_id, db_name.clone())
+                    .recv()
+                else {
+                    if sender
+                        .send(BackendResult::Err(BackendError::DbErr(
+                            "Failed to communicate with client storage.".to_string(),
+                        )))
+                        .is_err()
+                    {
+                        debug!("Script went away during pending database delete.");
+                    }
+                    return;
+                };
+                if let Err(err) = response {
+                    if sender
+                        .send(BackendResult::Err(BackendError::DbErr(format!(
+                            "Client storage error: {err:?}"
+                        ))))
+                        .is_err()
+                    {
+                        debug!("Script went away during pending database delete.");
+                    }
+                    return;
                 }
-                return;
-            };
-            if let Err(err) = response {
-                if sender
-                    .send(BackendResult::Err(BackendError::DbErr(format!(
-                        "Client storage error: {err:?}"
-                    ))))
-                    .is_err()
-                {
-                    debug!("Script went away during pending database delete.");
-                }
-                return;
             }
             version
         } else {

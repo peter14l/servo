@@ -5,6 +5,7 @@
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericSend, GenericSender, SendResult};
+use servo_base::id::WebViewId;
 use servo_url::ImmutableOrigin;
 
 use crate::cache_storage::CacheStorageThreadMessage;
@@ -117,6 +118,16 @@ impl StorageThreads {
                 indexeddb_sender,
             ));
         let _ = indexeddb_receiver.recv();
+    }
+
+    /// Drop one webview's in-memory search sessionStorage. Shared localStorage
+    /// and IndexedDB remain alive until the last webview closes.
+    pub fn purge_ephemeral_search_storage_for_webview(&self, webview_id: WebViewId) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.web_storage_thread.send(
+            WebStorageThreadMsg::PurgeEphemeralSearchStorageForWebView(webview_id, sender),
+        );
+        let _ = receiver.recv();
     }
 }
 

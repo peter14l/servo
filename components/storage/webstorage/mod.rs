@@ -295,6 +295,10 @@ impl WebStorageManager {
                     self.purge_ephemeral_search_storage();
                     let _ = sender.send(());
                 },
+                WebStorageThreadMsg::PurgeEphemeralSearchStorageForWebView(webview_id, sender) => {
+                    self.purge_ephemeral_search_storage_for_webview(webview_id);
+                    let _ = sender.send(());
+                },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
@@ -691,6 +695,20 @@ impl WebStorageManager {
         });
         self.environments
             .retain(|origin, _| !is_search_storage_origin(origin));
+    }
+
+    /// Drop one webview's search-origin sessionStorage when its browsing
+    /// context closes. Global origin descriptors are left in place until the
+    /// last webview closes, so a surviving tab can still enumerate its origins.
+    fn purge_ephemeral_search_storage_for_webview(&mut self, webview_id: WebViewId) {
+        let mut remove_webview = false;
+        if let Some(origins) = self.session_data.get_mut(&webview_id) {
+            origins.retain(|origin, _| !is_search_storage_origin(origin));
+            remove_webview = origins.is_empty();
+        }
+        if remove_webview {
+            self.session_data.remove(&webview_id);
+        }
     }
 
     fn clear_data_for_sites(&mut self, storage_type: WebStorageType, sites: &[String]) {

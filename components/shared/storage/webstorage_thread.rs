@@ -111,6 +111,10 @@ pub enum WebStorageThreadMsg {
     /// memory purge.
     PurgeEphemeralSearchStorage(GenericSender<()>),
 
+    /// Drop in-memory search-origin sessionStorage belonging to one webview
+    /// when that top-level browsing context closes.
+    PurgeEphemeralSearchStorageForWebView(WebViewId, GenericSender<()>),
+
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
 

@@ -3424,6 +3424,15 @@ where
             }
         }
 
+        // sessionStorage is scoped to a top-level browsing context, so close
+        // its search-origin partition with this webview. localStorage, cookies,
+        // and IndexedDB are shared across webviews and are purged below, once
+        // the last webview closes.
+        self.public_storage_threads
+            .purge_ephemeral_search_storage_for_webview(webview_id);
+        self.private_storage_threads
+            .purge_ephemeral_search_storage_for_webview(webview_id);
+
         // Search-origin state lives in in-memory partitions shared by the
         // network and storage threads. Drop it when the last top-level browsing
         // context closes, so closing one tab cannot invalidate another tab's

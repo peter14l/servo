@@ -24,13 +24,13 @@ use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
+use net_traits::private_search::SearchOriginPolicy;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
     Request, RequestBody, RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::private_search::SearchOriginPolicy;
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,

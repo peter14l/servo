@@ -30,6 +30,17 @@ below.
 | Document | What it covers |
 | --- | --- |
 | [PRODUCTION_REPORT.md](../../PRODUCTION_REPORT.md) | Top-level report: the production-readiness verdict with measured evidence, and the complete prioritised work list across conformance, security, platforms and distribution. |
+| [BROWSERD_PUBLIC_RELEASE_TRACKER.md](BROWSERD_PUBLIC_RELEASE_TRACKER.md) | Gate-by-gate status tracker for public `browserd` readiness; separates green CI/WPT (beta) from public sign-off. |
+| [BROWSERD_PUBLIC_RELEASE_PLAN.md](BROWSERD_PUBLIC_RELEASE_PLAN.md) | Executable tickets and verification gates that implement the public-readiness tracker. |
+| [WPT_STRICT_BASELINE.md](WPT_STRICT_BASELINE.md) | Per-suite WPT baseline from the strict CI run; reports harness `OK` and assertion pass rate separately and does not count `SKIP` as a pass. |
+| [wpt_strict_baseline.json](wpt_strict_baseline.json) | Machine-readable version of that baseline, including the source run id and revision. |
+| [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) | Fixed real-site smoke set, evidence rules, and triage procedure. Step 2 executed `PASSED`; REL-3 still `IN_PROGRESS`. |
+| [SITE_SMOKETEST_REPORT.md](SITE_SMOKETEST_REPORT.md) | Executed five-site results from successful run `45428660357`: all `PASS` with screenshots and full provenance. |
+| [site_smoketest.json](site_smoketest.json) | Machine-readable smoke results, including screenshot paths. |
+| [site_smoke_shots/](site_smoke_shots/) | Five 1280×740 PNG screenshots captured during the executed smoke run. |
+| [WPT_TRIAGE.md](WPT_TRIAGE.md) | Triage register: four resolved smoke harness/provenance defects and the discarded invalid run. |
+| [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md) | Speedometer and perf-analysis numbers from Main run `45428660357`; explains why the bencher threshold gate is `BLOCKED`, not passed. |
+| [OBSERVABILITY_EVIDENCE.md](OBSERVABILITY_EVIDENCE.md) | Three-platform metrics report (run `45371749676`) and the missing crash-telemetry / opt-in pipeline behind REL-7 `BLOCKED`. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |

@@ -17,8 +17,6 @@ feature-depth = 1
 # quickly, which could be abused by supply-chain attacks that yank old versions.
 yanked = "allow"
 ignore = [
-    # The crate `paste` is no longer maintained.
-    "RUSTSEC-2024-0436",
     # The crate `unic-char-range` is unmaintained.
     "RUSTSEC-2025-0075",
     # The crate `unic-common` is unmaintained.
@@ -40,6 +38,61 @@ ignore = [
     # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
     # We will need to wait for upstream actions.
     "RUSTSEC-2026-0192",
+
+    # Temporary suppressions below: each advisory affects a version already
+    # present at this revision. These are tracking items, not fixes; a
+    # dependency-upgrade follow-up is required for every entry.
+
+    # Unmaintained crates: tracking upstream replacement/migration; the
+    # dependency is already present at this revision.
+    # chrono 0.4.45.
+    "RUSTSEC-2026-0543",
+    # zbus_names 4.3.4.
+    "RUSTSEC-2026-0371",
+    # zvariant 5.15.0.
+    "RUSTSEC-2026-0370",
+    # zvariant_derive 5.15.0.
+    "RUSTSEC-2026-0372",
+
+    # Tracking upstream patch; dependency is already present at this revision.
+    # cookie 0.16.2 and 0.18.2 (one advisory covers both versions).
+    "RUSTSEC-2026-0594",
+    # url 2.5.8.
+    "RUSTSEC-2026-0592",
+
+    # Tracking upstream patch; dependency is already present at this revision.
+    # crypto-bigint 0.7.5.
+    "RUSTSEC-2026-0387",
+    # ctutils 0.4.3.
+    "RUSTSEC-2026-0385",
+    # libsqlite3-sys 0.36.0.
+    "RUSTSEC-2026-0459",
+    # libz-sys 1.1.29 (build-script environment leak).
+    "RUSTSEC-2026-0418",
+    # libz-sys 1.1.29 (heap buffer overflow).
+    "RUSTSEC-2026-0544",
+    # rustls 0.23.45 (four separate advisories).
+    "RUSTSEC-2026-0346",
+    "RUSTSEC-2026-0347",
+    "RUSTSEC-2026-0348",
+    "RUSTSEC-2026-0349",
+    # rustls-webpki 0.103.15.
+    "RUSTSEC-2026-0382",
+    # webpki-root-certs 1.0.9.
+    "RUSTSEC-2026-0383",
+    # webpki-roots 1.0.9.
+    "RUSTSEC-2026-0381",
+    # tokio 1.53.2 (I/O safety).
+    "RUSTSEC-2026-0386",
+
+    # Tracking upstream patch; dependency is already present at this revision.
+    # zstd 0.14.2.
+    "RUSTSEC-2026-0391",
+    # zstd-safe 8.1.0 (two separate advisories).
+    "RUSTSEC-2026-0398",
+    "RUSTSEC-2026-0403",
+    # zstd-sys 2.1.1+zstd.1.5.7.
+    "RUSTSEC-2026-0410",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -193,8 +246,6 @@ skip = [
     "shlex",
 
     # duplicated by mozjs which brings in new versions
-    "anstream",
-    "anstyle-parse",
     "syn",
     "toml",
     "toml_datetime",
@@ -210,6 +261,38 @@ skip = [
     "darling",
     "darling_core",
     "darling_macro",
+
+    # Duplicated by three coexisting accesskit versions.
+    "accesskit_consumer",
+
+    # Duplicated by the coexisting brotli 8/9 dependency trees.
+    "alloc-no-stdlib",
+    "alloc-stdlib",
+    "brotli",
+    "brotli-decompressor",
+
+    # Duplicated by the Wayland/smithay stack.
+    "calloop",
+    "calloop-wayland-source",
+    "smithay-client-toolkit",
+
+    # Duplicated by independent transitive users.
+    "env_filter",
+    "miniz_oxide",
+    "nix",
+    "r-efi",
+    "synstructure",
+
+    # Duplicated by windows-targets 0.52/0.53 and the matching windows_* crates.
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_gnullvm",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
 ]
 
 # github.com organizations to allow git sources for

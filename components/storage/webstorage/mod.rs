@@ -340,7 +340,10 @@ impl WebStorageManager {
         // lifetime of the browsing context.
         let mut persisted = StorageOrigins::new();
         for (name, descriptor) in &self.local_storage_origins.origin_descriptors {
-            if ServoUrl::parse(name).ok().is_some_and(|url| is_search_origin(&url)) {
+            if ServoUrl::parse(name)
+                .ok()
+                .is_some_and(|url| is_search_origin(&url))
+            {
                 continue;
             }
             persisted

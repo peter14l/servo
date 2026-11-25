@@ -636,15 +636,14 @@ impl ProxyConnector {
 
     /// Select the proxy matcher for a destination. Search origins prefer the
     /// dedicated matcher when one is configured.
-    fn matcher_for(&self, destination: &Destination) -> &std::sync::Arc<
-        hyper_util::client::proxy::matcher::Matcher,
-    > {
-        if destination.host().is_some_and(is_search_host) {
-            if let Some(ref matcher) = self.search_matcher {
-                return matcher;
-            }
+    fn matcher_for(
+        &self,
+        destination: &Destination,
+    ) -> &std::sync::Arc<hyper_util::client::proxy::matcher::Matcher> {
+        match (&self.search_matcher, destination.host()) {
+            (Some(matcher), Some(host)) if is_search_host(host) => matcher,
+            _ => &self.matcher,
         }
-        &self.matcher
     }
 }
 

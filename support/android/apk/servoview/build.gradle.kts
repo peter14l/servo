@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.compose)
 }
 
+// Android libraries have no AGP `versionName` property (removed in AGP 4.1 and absent from
+// the AGP 9 DSL). Keep the CI-provided value as the Gradle project version instead.
+version = System.getenv("SERVO_VERSION") ?: "0.0.1"
+
+project.findProperty("servoVersion")?.toString()?.let { version = it }
+
 android {
     compileSdk = 37
     buildToolsVersion = "36.0.0"
@@ -13,11 +19,7 @@ android {
 
     ndkPath = getNdkDir()
 
-    defaultConfig {
-        minSdk = libs.versions.android.sdk.min.get().toInt()
-        // W3.1: version the embeddable AAR for consumers
-        versionName = project.findProperty("servoVersion")?.toString() ?: System.getenv("SERVO_VERSION") ?: "0.0.1"
-    }
+    defaultConfig { minSdk = libs.versions.android.sdk.min.get().toInt() }
 
     lint { targetSdk = 33 }
 

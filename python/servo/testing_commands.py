@@ -769,19 +769,30 @@ class MachCommands(CommandBase):
         with open(bmf_output, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=4)
 
-    def speedometer_runner(self, binary: str, bmf_output: str | None, profile: str) -> None:
-        output = subprocess.check_output(
-            [
-                binary,
-                "https://servospeedometer.netlify.app?headless=1",
-                "--pref",
-                "dom_allow_scripts_to_close_windows",
-                "--window-size=1100x900",
-                "--headless",
-            ],
-            encoding="utf-8",
-            timeout=120,
-        )
+    def speedometer_runner(self, binary: str, bmf_output: str | None, profile: str, retries: int = 2) -> None:
+        # Speedometer is served from an external site. A transient stall there
+        # can exceed the timeout without indicating a Servo regression, so retry
+        # a bounded number of times. Every attempt must still produce a valid
+        # result; exhausting all attempts fails the command.
+        try:
+            output = subprocess.check_output(
+                [
+                    binary,
+                    "https://servospeedometer.netlify.app?headless=1",
+                    "--pref",
+                    "dom_allow_scripts_to_close_windows",
+                    "--window-size=1100x900",
+                    "--headless",
+                ],
+                encoding="utf-8",
+                timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            if retries == 0:
+                raise
+            print(f"Speedometer timed out; retrying ({retries} attempts left).", flush=True)
+            time.sleep(5)
+            return self.speedometer_runner(binary, bmf_output, profile, retries - 1)
         try:
             speedometer = json.loads(output)
         except json.decoder.JSONDecodeError as e:

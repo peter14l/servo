@@ -130,6 +130,10 @@ jobs:
           mkdir -p perf-analysis-tools/studies/ci
           cp etc/ci/perf-analysis/study.toml perf-analysis-tools/studies/ci/study.toml
           sed -i "s|@SERVO_BINARY@|$SERVO_BINARY|" perf-analysis-tools/studies/ci/study.toml
+          # perf-analysis-tools 838b1187 removed --print-pwm from its native
+          # runner, but benchmark-servo.sh still passes the flag. Current Servo
+          # rejects it, so remove the stale argument from the fetched helper.
+          sed -i 's/ --print-pwm//' perf-analysis-tools/benchmark-servo.sh
       - name: Collect samples
         working-directory: perf-analysis-tools
         run: xvfb-run -a cargo run --release --locked -- collect studies/ci

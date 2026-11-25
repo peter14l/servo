@@ -161,6 +161,8 @@ jobs:
             # to purge the cache, if you believe you're encountering issues.
             echo "SCCACHE_GHA_VERSION=${{ vars.SCCACHE_GHA_VERSION || '1' }}"
             echo "SCCACHE_GHA_ENABLED=true"
+            echo "SCCACHE_CONF=$GITHUB_WORKSPACE/.github/sccache.toml"
+            echo "SCCACHE_SKIP_CACHE_CHECK=on"
             echo "RUSTC_WRAPPER=sccache"
             # sccache cannot cache incremental compilation.
             echo "CARGO_INCREMENTAL=0"
@@ -170,7 +172,7 @@ jobs:
       # coupled to the rustc version, and we may have the wrong version if the
       # commit we are building uses a different rustc version.
       - name: Install crown
-        run: cargo install --path support/crown
+        run: env -u RUSTC_WRAPPER cargo install --path support/crown
 
       - name: Build (${{ inputs.profile }})
         env:

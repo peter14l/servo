@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Example Domain",
+    "url": "https://example.com",
+    "category": "Basic HTML5 / Static Document",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 2.88,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/site_smoke_shots\\01-example-domain.png"
+  },
+  {
+    "name": "Hacker News",
+    "url": "https://news.ycombinator.com",
+    "category": "Table Layout / Lightweight Dynamic",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 4.92,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/site_smoke_shots\\02-hacker-news.png"
+  },
+  {
+    "name": "Wikipedia Main Page",
+    "url": "https://en.wikipedia.org/wiki/Main_Page",
+    "category": "Complex Content / Media Queries / SVG",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 10.12,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/site_smoke_shots\\03-wikipedia-main-page.png"
+  },
+  {
+    "name": "DuckDuckGo Lite",
+    "url": "https://lite.duckduckgo.com",
+    "category": "Forms / Query Parameters",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 2.94,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/site_smoke_shots\\04-duckduckgo-lite.png"
+  },
+  {
+    "name": "Httpbin JSON",
+    "url": "https://httpbin.org/get",
+    "category": "Network / Headers / HTTPS",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 3.94,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/site_smoke_shots\\05-httpbin-json.png"
+  }
+]

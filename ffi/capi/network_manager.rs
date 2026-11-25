@@ -91,7 +91,8 @@ pub unsafe extern "C" fn servo_network_manager_free(
 /// Gets the cache entry keys (URLs) as a JSON array string using the
 /// buffer-query pattern.
 ///
-/// Writes a JSON array of URL strings into `buffer`. Returns the number of bytes required (including the NUL
+/// Writes a JSON array of URL strings, e.g. `["<https://example.com/>", "<https://servo.org/>"]`,
+/// into `buffer`. Returns the number of bytes required (including the NUL
 /// terminator). If `buffer` is `NULL` or `buffer_len` is too small, nothing is
 /// written and the required length is returned.
 ///

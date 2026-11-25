@@ -682,7 +682,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> RootedPromise {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(current_realm, Error::InvalidState(None));
+            p.reject_error(
+                current_realm,
+                Error::InvalidState(Some(
+                    "Cannot create an offer when the connection is closed".into(),
+                )),
+            );
             return p;
         }
         self.offer_promises.borrow_mut().push(p.to_traced());
@@ -698,7 +703,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> RootedPromise {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(current_realm, Error::InvalidState(None));
+            p.reject_error(
+                current_realm,
+                Error::InvalidState(Some(
+                    "Cannot create an answer when the connection is closed".into(),
+                )),
+            );
             return p;
         }
         self.answer_promises.borrow_mut().push(p.to_traced());

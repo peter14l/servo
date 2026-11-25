@@ -122,11 +122,13 @@ pub unsafe extern "C" fn servo_download_item_get_url(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if download.is_null() {
-        return 0;
-    }
-    let download = unsafe { &*download };
-    unsafe { write_c_string(download.url().as_str(), buffer, buffer_len) }
+    ServoError::catch_ffi_usize(|| {
+        if download.is_null() {
+            return 0;
+        }
+        let download = unsafe { &*download };
+        unsafe { write_c_string(download.url().as_str(), buffer, buffer_len) }
+    })
 }
 
 /// Gets the suggested filename of the download item.
@@ -145,11 +147,13 @@ pub unsafe extern "C" fn servo_download_item_get_suggested_filename(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if download.is_null() {
-        return 0;
-    }
-    let download = unsafe { &*download };
-    unsafe { write_c_string(download.suggested_filename(), buffer, buffer_len) }
+    ServoError::catch_ffi_usize(|| {
+        if download.is_null() {
+            return 0;
+        }
+        let download = unsafe { &*download };
+        unsafe { write_c_string(download.suggested_filename(), buffer, buffer_len) }
+    })
 }
 
 /// Gets the number of bytes received so far.
@@ -163,11 +167,13 @@ pub unsafe extern "C" fn servo_download_item_get_suggested_filename(
 pub unsafe extern "C" fn servo_download_item_get_received_bytes(
     download: *const ServoDownloadItem,
 ) -> u64 {
-    if download.is_null() {
-        return 0;
-    }
-    let download = unsafe { &*download };
-    download.received_bytes()
+    ServoError::catch_ffi_u64(|| {
+        if download.is_null() {
+            return 0;
+        }
+        let download = unsafe { &*download };
+        download.received_bytes()
+    })
 }
 
 /// Gets the total number of bytes expected.
@@ -181,11 +187,13 @@ pub unsafe extern "C" fn servo_download_item_get_received_bytes(
 pub unsafe extern "C" fn servo_download_item_get_total_bytes(
     download: *const ServoDownloadItem,
 ) -> u64 {
-    if download.is_null() {
-        return 0;
-    }
-    let download = unsafe { &*download };
-    download.total_bytes()
+    ServoError::catch_ffi_u64(|| {
+        if download.is_null() {
+            return 0;
+        }
+        let download = unsafe { &*download };
+        download.total_bytes()
+    })
 }
 
 /// Gets the current download state.
@@ -198,11 +206,13 @@ pub unsafe extern "C" fn servo_download_item_get_total_bytes(
 /// - `download` must be a valid `ServoDownloadItem` pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_download_item_get_state(download: *const ServoDownloadItem) -> i32 {
-    if download.is_null() {
-        return SERVO_DOWNLOAD_INTERRUPTED;
-    }
-    let download = unsafe { &*download };
-    download.state() as i32
+    ServoError::catch_ffi_i32(|| {
+        if download.is_null() {
+            return SERVO_DOWNLOAD_INTERRUPTED;
+        }
+        let download = unsafe { &*download };
+        download.state() as i32
+    })
 }
 
 /// Cancels the download.

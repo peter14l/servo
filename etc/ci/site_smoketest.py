@@ -122,7 +122,7 @@ def run_site_test(
                 root_cause = f"Non-zero exit code ({exit_code})"
                 error_summary = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
 
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         elapsed = time.monotonic() - start_time
         status = "TIMEOUT"
         root_cause = f"Timed out after {timeout_seconds}s (potential hang or slow resource)"
@@ -201,13 +201,15 @@ def main() -> int:
                 break
 
     if not binary or not os.path.exists(binary):
-        print(f"Note: Servoshell binary not found at candidate paths. Smoke harness created and ready.", file=sys.stderr)
+        print(
+            "Note: Servoshell binary not found at candidate paths. Smoke harness created and ready.", file=sys.stderr
+        )
         # Produce document of curated test suite
         mock_results = [
             SiteTestResult(
-                name=s["name"],
-                url=s["url"],
-                category=s["category"],
+                name=str(s["name"]),
+                url=str(s["url"]),
+                category=str(s["category"]),
                 exit_code=None,
                 status="PLANNED",
                 elapsed_seconds=0.0,

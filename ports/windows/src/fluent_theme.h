@@ -8,6 +8,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <dwmapi.h>
 
 namespace fluent {
 
@@ -37,6 +38,47 @@ namespace icons {
     constexpr const wchar_t* ChromeMaximize = L"\uE922";
     constexpr const wchar_t* ChromeRestore = L"\uE923";
     constexpr const wchar_t* ChromeClose = L"\uE8BB";
+}
+
+// Read the user's real system accent colour (Settings > Personalization >
+// Colours) instead of hard-coding Microsoft blue. DwmGetColorizationColor
+// returns 0xAARRGGBB, which the GetRValue/GetGValue/GetBValue macros decode.
+inline COLORREF GetSystemAccentColor(bool dark) {
+    DWORD colorization = 0;
+    BOOL opaque = FALSE;
+    if (SUCCEEDED(DwmGetColorizationColor(&colorization, &opaque))) {
+        COLORREF accent = RGB(GetRValue(colorization), GetGValue(colorization),
+                              GetBValue(colorization));
+        int sum = GetRValue(accent) + GetGValue(accent) + GetBValue(accent);
+        // Near-black or near-white accents are unreadable as glyph/focus
+        // colours, so fall back to the classic accent in those setups.
+        if (sum > 45 && sum < 690) {
+            return accent;
+        }
+    }
+    return dark ? RGB(96, 205, 255) : RGB(0, 95, 184);
+}
+
+// Honour the OS "Choose your mode" setting (AppsUseLightTheme). The browser
+// can still override this through its own theme setting afterwards.
+inline bool SystemUsesLightTheme() {
+    HKEY key = nullptr;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER,
+                      L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                      0, KEY_READ, &key) == ERROR_SUCCESS) {
+        DWORD value = 0;
+        DWORD size = sizeof(value);
+        DWORD type = 0;
+        bool light = true;
+        if (RegQueryValueExW(key, L"AppsUseLightTheme", nullptr, &type,
+                             reinterpret_cast<LPBYTE>(&value), &size) == ERROR_SUCCESS &&
+            type == REG_DWORD) {
+            light = (value != 0);
+        }
+        RegCloseKey(key);
+        return light;
+    }
+    return true;
 }
 
 // WinUI 3 Fluent Design System Color Tokens
@@ -70,11 +112,11 @@ inline ThemeColors GetDarkColors() {
     c.ControlBackgroundHover = RGB(55, 55, 55);
     c.ControlBackgroundPressed = RGB(40, 40, 40);
     c.ControlBorder = RGB(65, 65, 65);
-    c.ControlBorderFocused = RGB(96, 205, 255);     // WinUI 3 Accent
+    c.Accent = GetSystemAccentColor(true);
+    c.ControlBorderFocused = c.Accent;
     c.TextPrimary = RGB(255, 255, 255);
     c.TextSecondary = RGB(197, 197, 197);
     c.TextTertiary = RGB(140, 140, 140);
-    c.Accent = RGB(96, 205, 255);                   // SystemAccentColorDark
     c.CardBackground = RGB(43, 43, 43);
     c.CardBorder = RGB(60, 60, 60);
     return c;
@@ -91,18 +133,21 @@ inline ThemeColors GetLightColors() {
     c.ControlBackgroundHover = RGB(247, 247, 247);
     c.ControlBackgroundPressed = RGB(240, 240, 240);
     c.ControlBorder = RGB(215, 215, 215);
-    c.ControlBorderFocused = RGB(0, 95, 184);       // WinUI 3 Accent
+    c.Accent = GetSystemAccentColor(false);
+    c.ControlBorderFocused = c.Accent;
     c.TextPrimary = RGB(0, 0, 0);
     c.TextSecondary = RGB(93, 93, 93);
     c.TextTertiary = RGB(150, 150, 150);
-    c.Accent = RGB(0, 95, 184);                     // SystemAccentColorLight
     c.CardBackground = RGB(255, 255, 255);
     c.CardBorder = RGB(229, 229, 229);
     return c;
 }
 
+// "Inter" was never shipped with the browser and is not installed on typical
+// Windows 11 machines, so GDI silently fell back to a legacy face. Segoe UI
+// Variable Text is the Win11 UI font and is present in box.
 inline const wchar_t* GetCurrentFontFamily() {
-    static wchar_t s_fontFamily[64] = L"Inter";
+    static wchar_t s_fontFamily[64] = L"Segoe UI Variable Text";
     return s_fontFamily;
 }
 
@@ -125,7 +170,6 @@ inline HFONT CreateFluentFont(int height, int weight = FW_NORMAL, bool italic = 
 }
 
 inline HFONT CreateFluentIconFont(int height) {
-    // Falls back gracefully: Segoe Fluent Icons (Win 11) -> Segoe MDL2 Assets (Win 10) -> Segoe UI Symbol
     int fontHeight = (height > 0) ? -height : height;
     return CreateFontW(
         fontHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,

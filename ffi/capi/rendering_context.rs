@@ -49,10 +49,17 @@ pub extern "C" fn servo_rendering_context_create_software(
     ServoError::catch_ffi_ptr(|| {
         let size = dpi::PhysicalSize::new(width, height);
         match SoftwareRenderingContext::new(size) {
-            Ok(context) => Box::into_raw(Box::new(RenderingContext {
-                inner: Rc::new(context),
-                window_context: None,
-            })),
+            Ok(context) => {
+                let handle = Box::into_raw(Box::new(RenderingContext {
+                    inner: Rc::new(context),
+                    window_context: None,
+                }));
+                crate::handle_registry::register(
+                    handle,
+                    crate::handle_registry::HandleKind::RenderingContext,
+                );
+                handle
+            },
             Err(error) => {
                 log::error!("Failed to create SoftwareRenderingContext: {error:?}");
                 std::ptr::null_mut()
@@ -109,10 +116,15 @@ pub unsafe extern "C" fn servo_rendering_context_create_window(
         match WindowRenderingContext::new(display_handle, window_handle, size) {
             Ok(context) => {
                 let rc = Rc::new(context);
-                Box::into_raw(Box::new(RenderingContext {
+                let handle = Box::into_raw(Box::new(RenderingContext {
                     inner: rc.clone(),
                     window_context: Some(rc),
-                }))
+                }));
+                crate::handle_registry::register(
+                    handle,
+                    crate::handle_registry::HandleKind::RenderingContext,
+                );
+                handle
             },
             Err(error) => {
                 log::error!("Failed to create WindowRenderingContext: {error:?}");
@@ -154,6 +166,13 @@ pub unsafe extern "C" fn servo_rendering_context_create_offscreen(
             return std::ptr::null_mut();
         }
 
+        if !crate::handle_registry::is_live(
+            parent,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return std::ptr::null_mut();
+        }
+
         let size = dpi::PhysicalSize::new(width, height);
         if size.width == 0 || size.height == 0 {
             log::error!("OffscreenRenderingContext size must be at least 1x1");
@@ -173,10 +192,15 @@ pub unsafe extern "C" fn servo_rendering_context_create_offscreen(
         // Create the offscreen context as a child of the window context.
         let offscreen_ctx = window_ctx.offscreen_context(size);
 
-        Box::into_raw(Box::new(RenderingContext {
+        let handle = Box::into_raw(Box::new(RenderingContext {
             inner: Rc::new(offscreen_ctx),
             window_context: None,
-        }))
+        }));
+        crate::handle_registry::register(
+            handle,
+            crate::handle_registry::HandleKind::RenderingContext,
+        );
+        handle
     })
 }
 
@@ -204,6 +228,13 @@ pub unsafe extern "C" fn servo_rendering_context_free(
     ServoError::catch_ffi(|| {
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -234,6 +265,13 @@ pub unsafe extern "C" fn servo_rendering_context_present(
     ServoError::catch_ffi(|| {
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller guarantees `context` is valid.
@@ -278,7 +316,7 @@ pub unsafe extern "C" fn servo_rendering_context_create_windows_hwnd(
             None => {
                 log::error!("hwnd must be non-zero");
                 return std::ptr::null_mut();
-            }
+            },
         };
 
         let mut win32_handle = raw_window_handle::Win32WindowHandle::new(non_zero_hwnd);
@@ -295,10 +333,15 @@ pub unsafe extern "C" fn servo_rendering_context_create_windows_hwnd(
         match WindowRenderingContext::new(display_handle, window_handle, size) {
             Ok(context) => {
                 let rc = Rc::new(context);
-                Box::into_raw(Box::new(RenderingContext {
+                let handle = Box::into_raw(Box::new(RenderingContext {
                     inner: rc.clone(),
                     window_context: Some(rc),
-                }))
+                }));
+                crate::handle_registry::register(
+                    handle,
+                    crate::handle_registry::HandleKind::RenderingContext,
+                );
+                handle
             },
             Err(error) => {
                 log::error!("Failed to create WindowRenderingContext from HWND: {error:?}");

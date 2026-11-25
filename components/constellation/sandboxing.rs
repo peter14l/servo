@@ -139,8 +139,109 @@ pub fn content_process_sandbox_profile() -> Profile {
     all(target_arch = "aarch64", not(target_os = "macos"))
 ))]
 pub fn content_process_sandbox_profile() {
-    log::error!("Sandboxed multiprocess is not supported on this platform.");
-    process::exit(1);
+    // Sandboxed multiprocess is not implemented on this platform. This used to
+    // hard-exit the process; it is now a no-op so callers can fall back to an
+    // unsandboxed spawn (e.g. the Windows Job Object containment in this module).
+}
+
+/// Windows Job Object containment for unsandboxed content processes.
+///
+/// The browser creates a job with `JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 1` and
+/// `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, then assigns the freshly spawned
+/// content process to it. The job handle is intentionally kept open for the
+/// lifetime of the browser so that the content process is terminated if the
+/// browser process exits.
+#[cfg(target_os = "windows")]
+mod windows_job {
+    use std::ffi::c_void;
+    use std::os::windows::io::AsRawHandle;
+
+    const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x00000008;
+    const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x00002000;
+    const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: i32 = 9;
+
+    #[repr(C)]
+    struct IoCounters {
+        read_operation_count: u64,
+        write_operation_count: u64,
+        other_operation_count: u64,
+        read_transfer_count: u64,
+        write_transfer_count: u64,
+        other_transfer_count: u64,
+    }
+
+    #[repr(C)]
+    struct JobobjectBasicLimitInformation {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+
+    #[repr(C)]
+    struct JobobjectExtendedLimitInformation {
+        basic_limit_information: JobobjectBasicLimitInformation,
+        io_info: IoCounters,
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+
+    unsafe extern "system" {
+        fn CreateJobObjectW(lp_job_attributes: *const c_void, lp_name: *const u16) -> *mut c_void;
+        fn SetInformationJobObject(
+            h_job: *mut c_void,
+            job_object_info_class: i32,
+            lp_job_object_info: *const c_void,
+            cb_job_object_info_length: u32,
+        ) -> i32;
+        fn AssignProcessToJobObject(h_job: *mut c_void, h_process: *mut c_void) -> i32;
+        fn CloseHandle(h_object: *mut c_void) -> i32;
+    }
+
+    /// Assign `child` to a dedicated Job Object that prevents it from spawning
+    /// further processes and terminates it if the browser process exits.
+    pub fn constrain(child: &std::process::Child) {
+        unsafe {
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            if job.is_null() {
+                log::warn!("Windows sandbox: failed to create Job Object for content process");
+                return;
+            }
+
+            let mut info: JobobjectExtendedLimitInformation = std::mem::zeroed();
+            info.basic_limit_information.limit_flags =
+                JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            info.basic_limit_information.active_process_limit = 1;
+
+            if SetInformationJobObject(
+                job,
+                JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                &info as *const _ as *const c_void,
+                std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
+            ) == 0
+            {
+                log::warn!("Windows sandbox: failed to set Job Object limits");
+                CloseHandle(job);
+                return;
+            }
+
+            if AssignProcessToJobObject(job, child.as_raw_handle()) == 0 {
+                log::warn!("Windows sandbox: failed to assign content process to Job Object");
+                CloseHandle(job);
+                return;
+            }
+            // The job handle is deliberately leaked for the lifetime of the
+            // browser: closing it would release the child from the job and,
+            // with KILL_ON_JOB_CLOSE set, immediately terminate it.
+        }
+    }
 }
 
 #[cfg(any(
@@ -170,6 +271,11 @@ pub fn spawn_multiprocess(
     let child = child_process
         .spawn()
         .expect("Failed to start unsandboxed child process!");
+
+    // On Windows, contain the freshly spawned content process in a Job Object
+    // that blocks further process creation and kills it if the browser exits.
+    #[cfg(target_os = "windows")]
+    windows_job::constrain(&child);
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;

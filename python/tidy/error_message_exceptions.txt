@@ -24,7 +24,7 @@
 ./components/script/dom/bindings/structuredclone.rs 2
 ./components/script/dom/bluetooth/bluetooth.rs 6
 ./components/script/dom/bluetooth/bluetoothremotegattserver.rs 1
-./components/script/dom/canvas/2d/canvas_state.rs 26
+./components/script/dom/canvas/2d/canvas_state.rs 25
 ./components/script/dom/canvas/2d/canvasgradient.rs 2
 ./components/script/dom/canvas/2d/path2d.rs 3
 ./components/script/dom/canvas/imagebitmap.rs 25

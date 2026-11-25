@@ -239,11 +239,18 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript_v2(
             match result {
                 Ok(value) => {
                     let servo_value = Box::new(ServoValue::from_jsvalue(&value));
+                    let handle = Box::into_raw(servo_value);
+                    // W2.5: the embedder owns this `ServoValue` and frees it
+                    // with `servo_value_free`, so record it before handing it out.
+                    crate::handle_registry::register(
+                        handle,
+                        crate::handle_registry::HandleKind::Value,
+                    );
                     // SAFETY: The caller is assumed to uphold the safety
                     // requirements for `callback` and `user_data` documented
                     // above. `servo_value` is valid for the duration of the call
                     // and `error_message` is null as part of the contract.
-                    unsafe { callback(Box::into_raw(servo_value), std::ptr::null(), user_data) };
+                    unsafe { callback(handle, std::ptr::null(), user_data) };
                 },
                 Err(error) => {
                     let message = cstring_or_empty(format!("{error:?}"));
@@ -276,11 +283,11 @@ fn write_json_value(value: &JSValue, output: &mut String) {
         JSValue::Boolean(value) => output.push_str(if *value { "true" } else { "false" }),
         JSValue::Number(value) if value.is_finite() => output.push_str(&value.to_string()),
         JSValue::Number(_) => output.push_str("null"),
-        JSValue::String(value)
-        | JSValue::Element(value)
-        | JSValue::ShadowRoot(value)
-        | JSValue::Frame(value)
-        | JSValue::Window(value) => write_json_string(value, output),
+        JSValue::String(value) |
+        JSValue::Element(value) |
+        JSValue::ShadowRoot(value) |
+        JSValue::Frame(value) |
+        JSValue::Window(value) => write_json_string(value, output),
         JSValue::Array(items) => {
             output.push('[');
             for (index, item) in items.iter().enumerate() {

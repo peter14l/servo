@@ -112,21 +112,20 @@ pub use crate::gamepad_delegate::{
 pub use crate::message_router::MessageRouter;
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::request_context::{ProxyConfig, ProxyMode, RequestContext};
+pub use crate::servo::{Servo, ServoBuilder};
 #[cfg(feature = "multiprocess")]
 pub use crate::servo::{create_sandbox, run_content_process};
-pub use crate::servo::{Servo, ServoBuilder};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::user_content_manager::UserContentManager;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
-    CertificateError, CertificateErrorRequest, CertificateErrorResponse,
-    ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, DownloadContinueCallback,
-    DownloadItem, DownloadState, EmbedderControl, FilePicker, InputMethodControl,
-    InterceptedWebResourceLoad, NavigationRequest,
-    PermissionRequest, PromptDialog, ProtocolHandlerRegistration, SelectElement, SimpleDialog,
-    WebResourceLoad, WebViewDelegate,
+    CertificateError, CertificateErrorRequest, CertificateErrorResponse, ColorPicker,
+    ConfirmDialog, ContextMenu, CreateNewWebViewRequest, DownloadContinueCallback, DownloadItem,
+    DownloadState, EmbedderControl, FilePicker, InputMethodControl, InterceptedWebResourceLoad,
+    NavigationRequest, PermissionRequest, PromptDialog, ProtocolHandlerRegistration, SelectElement,
+    SimpleDialog, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webxr")]

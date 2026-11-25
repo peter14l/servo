@@ -14,6 +14,61 @@
 #include "servo_view_utils.h"
 
 class BrowserWindow;
+class ServoViewHost;
+struct ServoValue;
+
+// Optional shell hook for UI and security state that a plain BrowserWindow does
+// not own. Returning true means the shell took ownership of the callback and
+// will invoke it exactly once; returning false makes ServoViewHost fall back to
+// its built-in handling. Keeping the defaults here lets shells adopt this
+// contract incrementally without breaking existing BrowserWindow hosts.
+class IBrowserShell {
+public:
+    virtual ~IBrowserShell() = default;
+
+    virtual bool RequestPermission(
+        ServoViewHost* host,
+        const std::string& origin,
+        int32_t permission,
+        void (*callback)(bool, void*),
+        void* callbackUserData
+    ) { (void)host; (void)origin; (void)permission; (void)callback; (void)callbackUserData; return false; }
+
+    virtual bool RequestAuthentication(
+        ServoViewHost* host,
+        const std::string& hostName,
+        int32_t port,
+        const std::string& realm,
+        void (*callback)(const char*, const char*, void*),
+        void* callbackUserData
+    ) { (void)host; (void)hostName; (void)port; (void)realm; (void)callback; (void)callbackUserData; return false; }
+
+    virtual bool RequestPrompt(
+        ServoViewHost* host,
+        const std::string& message,
+        const std::string& defaultValue,
+        void (*callback)(const char*, void*),
+        void* callbackUserData
+    ) { (void)host; (void)message; (void)defaultValue; (void)callback; (void)callbackUserData; return false; }
+
+    virtual void OnNavigationError(
+        ServoViewHost* host,
+        const std::string& url,
+        int32_t errorCode,
+        const std::string& errorText
+    ) { (void)host; (void)url; (void)errorCode; (void)errorText; }
+
+    virtual void OnNavigationSecurityChanged(
+        ServoViewHost* host,
+        const std::string& url,
+        bool secure
+    ) { (void)host; (void)url; (void)secure; }
+
+    virtual void OnAccessibilityTreeUpdate(ServoViewHost* host, struct ServoValue* treeUpdate) {
+        (void)host;
+        (void)treeUpdate;
+    }
+};
 
 class ServoViewHost {
 public:
@@ -28,6 +83,7 @@ public:
 
     HWND GetHwnd() const { return m_hwnd; }
     struct WebView* GetWebView() const { return m_webview; }
+    void SetBrowserShell(IBrowserShell* shell) { m_browserShell = shell; }
     // True once the popup create request has been handed to a WebView builder
     // (and must therefore not be freed by the Rust delegate callback).
     bool WasRequestConsumed() const { return m_requestConsumed; }
@@ -51,11 +107,18 @@ public:
     void ShowContextMenu(int screenX, int screenY);
     void EvaluateJavaScript(const std::string& script);
 
+    // Kept for existing find-bar callers that predate the match-case option.
+    int Find(const char* text, bool forward, bool matchCase);
+    // wholeWord is accepted for callers that track it, but the C API's
+    // servo_webview_find has no whole-word parameter; it is currently ignored.
+    int Find(const char* text, bool forward, bool matchCase, bool wholeWord);
+
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
     static void OnNewFrameReady(struct WebView* webview, void* userData);
+    static void OnAccessibilityTreeUpdate(struct WebView* webview, struct ServoValue* treeUpdate, void* userData);
     static void OnUrlChanged(struct WebView* webview, const char* url, void* userData);
     static void OnTitleChanged(struct WebView* webview, const char* title, void* userData);
     static void OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData);
@@ -73,7 +136,9 @@ private:
     static void OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData);
     static void OnBeforeDownload(struct WebView* webview, struct ServoDownloadItem* download, void (*callback)(bool, void*), void* userData);
     static void OnDownloadUpdated(struct WebView* webview, struct ServoDownloadItem* download, void* userData);
-    static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* callbackUserData, void* userData);
+    // Matches ServoWebViewDelegate::request_permission in the generated C API.
+    // `userData` is the one-shot Rust responder, not the delegate user_data.
+    static void OnRequestPermission(struct WebView* webview, const char* origin, int32_t permission, void (*callback)(bool, void*), void* userData);
     static void OnNotifyCrashed(struct WebView* webview, const char* reason, const char* backtrace, void* userData);
     static void OnStatusTextChanged(struct WebView* webview, const char* status, void* userData);
     static void OnFindResult(struct WebView* webview, int identifier, int count, const struct ServoFindResult* result, void* userData);
@@ -86,6 +151,20 @@ private:
 
     uint32_t GetServoModifiers() const;
     void InjectPageEnhancements();
+    void MaybeEnableAccessibility();
+    void HandleLoadError(const char* url, int32_t errorCode, const char* errorText);
+    void ReportNavigationSecurity(const std::string& url);
+    void ExecuteContextCommand(int command);
+    void InjectEditShortcut(const char* key, const char* code, uint32_t modifiers);
+    std::string BuildErrorPageUrl(const std::string& url, int32_t errorCode, const char* errorText) const;
+
+    struct CachedContextMenuParams {
+        bool valid = false;
+        ULONGLONG timestampMs = 0;
+        uint32_t flags = 0;
+        std::string linkUrl;
+        std::string imageUrl;
+    };
 
     HWND m_hwnd;
     HWND m_parentHwnd;
@@ -104,4 +183,9 @@ private:
     DWORD m_paintThrottleMs = 0;
     bool m_paintTimerPending = false;
     HCURSOR m_currentCursor;
+    IBrowserShell* m_browserShell = nullptr;
+    bool m_accessibilityActive = false;
+    CachedContextMenuParams m_contextMenu;
+    // Prevents repeated failures for the same URL from stacking error pages.
+    std::string m_lastFailedUrl;
 };

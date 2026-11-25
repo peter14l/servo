@@ -14,6 +14,7 @@ mod multiprocess;
 mod network_manager;
 mod options;
 mod preferences;
+mod printing;
 mod protocol_handler;
 mod rendering_context;
 mod request_context;
@@ -22,7 +23,6 @@ mod servo_delegate;
 mod site_data;
 mod user_content_manager;
 mod value;
-mod printing;
 mod webview;
 mod webview_delegate;
 
@@ -67,44 +67,6 @@ pub(crate) unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len
 }
 
 // Re-export cursor and console constants from webview_delegate
-pub use webview_delegate::{
-    SERVO_CONSOLE_LOG_LEVEL_DEBUG, SERVO_CONSOLE_LOG_LEVEL_ERROR, SERVO_CONSOLE_LOG_LEVEL_INFO,
-    SERVO_CONSOLE_LOG_LEVEL_LOG, SERVO_CONSOLE_LOG_LEVEL_WARN, SERVO_CURSOR_ALIAS,
-    SERVO_CURSOR_AUTO, SERVO_CURSOR_CELL, SERVO_CURSOR_COLUMN_RESIZE, SERVO_CURSOR_CONTEXT_MENU,
-    SERVO_CURSOR_COPY, SERVO_CURSOR_CROSSHAIR, SERVO_CURSOR_CUSTOM, SERVO_CURSOR_EAST_PANNING,
-    SERVO_CURSOR_EAST_RESIZE, SERVO_CURSOR_EAST_WEST_RESIZE, SERVO_CURSOR_GRAB,
-    SERVO_CURSOR_GRABBING, SERVO_CURSOR_HAND, SERVO_CURSOR_HELP, SERVO_CURSOR_IBEAM,
-    SERVO_CURSOR_MIDDLE_PANNING, SERVO_CURSOR_MOVE, SERVO_CURSOR_NO_DROP, SERVO_CURSOR_NONE,
-    SERVO_CURSOR_NORTH_EAST_PANNING, SERVO_CURSOR_NORTH_EAST_RESIZE,
-    SERVO_CURSOR_NORTH_EAST_SOUTH_WEST_RESIZE, SERVO_CURSOR_NORTH_PANNING,
-    SERVO_CURSOR_NORTH_RESIZE, SERVO_CURSOR_NORTH_SOUTH_RESIZE, SERVO_CURSOR_NORTH_WEST_PANNING,
-    SERVO_CURSOR_NORTH_WEST_RESIZE, SERVO_CURSOR_NORTH_WEST_SOUTH_EAST_RESIZE,
-    SERVO_CURSOR_NOT_ALLOWED, SERVO_CURSOR_POINTER, SERVO_CURSOR_PROGRESS, SERVO_CURSOR_ROW_RESIZE,
-    SERVO_CURSOR_SOUTH_EAST_PANNING, SERVO_CURSOR_SOUTH_EAST_RESIZE, SERVO_CURSOR_SOUTH_PANNING,
-    SERVO_CURSOR_SOUTH_RESIZE, SERVO_CURSOR_SOUTH_WEST_PANNING, SERVO_CURSOR_SOUTH_WEST_RESIZE,
-    SERVO_CURSOR_VERTICAL_TEXT, SERVO_CURSOR_WAIT, SERVO_CURSOR_WEST_PANNING,
-    SERVO_CURSOR_WEST_RESIZE, ServoFilePickerCallback,
-    ServoContextMenuAction, ServoContextMenuCallback, ServoContextMenuItem,
-    ServoContextMenuParams, SERVO_CONTEXT_MENU_ACTION_DISMISS,
-    SERVO_CONTEXT_MENU_ACTION_GO_BACK, SERVO_CONTEXT_MENU_ACTION_GO_FORWARD,
-    SERVO_CONTEXT_MENU_ACTION_RELOAD, SERVO_CONTEXT_MENU_ACTION_COPY_LINK,
-    SERVO_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WEBVIEW,
-    SERVO_CONTEXT_MENU_ACTION_COPY_IMAGE_LINK,
-    SERVO_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_VIEW, SERVO_CONTEXT_MENU_ACTION_CUT,
-    SERVO_CONTEXT_MENU_ACTION_COPY, SERVO_CONTEXT_MENU_ACTION_PASTE,
-    SERVO_CONTEXT_MENU_ACTION_SELECT_ALL, SERVO_CONTEXT_MENU_FLAG_LINK,
-    SERVO_CONTEXT_MENU_FLAG_IMAGE, SERVO_CONTEXT_MENU_FLAG_EDITABLE_TEXT,
-    SERVO_CONTEXT_MENU_FLAG_SELECTION,
-};
-
-// Re-export media session constants from webview
-pub use webview::{
-    SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE,
-    SERVO_MEDIA_SESSION_ACTION_PLAY, SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK,
-    SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD, SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD,
-    SERVO_MEDIA_SESSION_ACTION_SKIP_AD, SERVO_MEDIA_SESSION_ACTION_STOP,
-};
-
 // Re-export certificate error types and constants
 pub use cert_error::{
     SERVO_CERT_ERROR_COMMON_NAME_INVALID, SERVO_CERT_ERROR_EXPIRED,
@@ -115,14 +77,19 @@ pub use cert_error::{
     SERVO_CERT_ERROR_WEAK_SIGNATURE_ALGORITHM, ServoCertErrorCallback, ServoCertErrorCode,
     ServoCertificateError, servo_certificate_error_continue,
 };
-
 // Re-export clipboard types
 pub use clipboard::{
     ServoClipboardClearCallback, ServoClipboardDelegate, ServoClipboardGetTextCallback,
     ServoClipboardSetTextCallback, ServoClipboardStringRequest,
     servo_webview_clipboard_request_failure, servo_webview_clipboard_request_success,
 };
-
+// Re-export download constants
+pub use download::{
+    SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE, SERVO_DOWNLOAD_IN_PROGRESS,
+    SERVO_DOWNLOAD_INTERRUPTED,
+};
+// Re-export find types
+pub use find::{ServoFindResult, ServoFindResultCallback};
 // Re-export gamepad types
 pub use gamepad::{
     SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP,
@@ -131,47 +98,6 @@ pub use gamepad::{
     servo_webview_gamepad_haptic_effect_request_info,
     servo_webview_gamepad_haptic_effect_request_succeeded,
 };
-
-// Re-export download constants
-pub use download::{
-    SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE, SERVO_DOWNLOAD_IN_PROGRESS,
-    SERVO_DOWNLOAD_INTERRUPTED,
-};
-
-// Re-export find types
-pub use find::{ServoFindResult, ServoFindResultCallback};
-
-// Re-export site data types
-pub use site_data::{
-    SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
-    ServoCookie, ServoCookieFilter, ServoCookieFilterFlags, ServoCookieVisitor,
-    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteData, ServoSiteDataManager,
-    ServoSiteDataVisitor, ServoSitesVisitor, ServoStorageType,
-};
-
-// Re-export request context types and constants
-pub use request_context::{
-    SERVO_PROXY_AUTO_DETECT, SERVO_PROXY_DIRECT, SERVO_PROXY_FIXED_SERVERS, SERVO_PROXY_PAC_SCRIPT,
-    SERVO_PROXY_SYSTEM, ServoProxyConfig, ServoRequestContext, servo_builder_set_request_context,
-    servo_request_context_create, servo_request_context_free,
-    servo_request_context_set_accept_language, servo_request_context_set_cache_path,
-    servo_request_context_set_cookie_path, servo_request_context_set_proxy_config,
-    servo_webview_builder_set_request_context,
-};
-
-// Re-export value types and constants
-pub use value::{
-    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType,
-    servo_dictionary_create, servo_dictionary_free, servo_dictionary_get_key,
-    servo_dictionary_get_keys, servo_dictionary_get_size, servo_dictionary_has_key,
-    servo_dictionary_set_key, servo_list_create, servo_list_free, servo_list_get_size,
-    servo_list_get_value, servo_list_set_value, servo_value_create, servo_value_free,
-    servo_value_from_json, servo_value_get_binary, servo_value_get_bool, servo_value_get_double,
-    servo_value_get_int, servo_value_get_string, servo_value_get_type, servo_value_set_binary,
-    servo_value_set_bool, servo_value_set_double, servo_value_set_int, servo_value_set_string,
-    servo_value_to_json,
-};
-
 // Re-export JavaScript evaluation types
 // `servo_webview_evaluate_javascript` is deprecated (see its docs); it is still
 // re-exported so cbindgen keeps emitting the symbol for ABI compatibility.
@@ -180,18 +106,6 @@ pub use javascript::{
     ServoJavaScriptCallback, ServoJavaScriptCallbackV2, servo_webview_evaluate_javascript,
     servo_webview_evaluate_javascript_v2,
 };
-
-// Re-export user content manager types
-pub use user_content_manager::{
-    ServoUserContentManager, ServoUserScript, ServoUserStyleSheet,
-    servo_user_content_manager_add_script, servo_user_content_manager_add_style_sheet,
-    servo_user_content_manager_create, servo_user_content_manager_enable_message_router,
-    servo_user_content_manager_free, servo_user_content_manager_remove_script,
-    servo_user_content_manager_remove_style_sheet, servo_user_script_create,
-    servo_user_script_free, servo_user_style_sheet_create, servo_user_style_sheet_free,
-    servo_webview_builder_set_user_content_manager,
-};
-
 // Re-export message router types
 pub use message_router::{
     ServoMessageCallback, ServoScriptMessageCallback, servo_webview_add_message_handler,
@@ -199,7 +113,23 @@ pub use message_router::{
     servo_webview_post_message, servo_webview_remove_message_handler,
     servo_webview_remove_script_message_handler,
 };
-
+// Re-export multiprocess functions
+pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
+// Re-export network manager types and helpers
+pub use network_manager::{
+    ServoNetworkManager, servo_get_network_manager, servo_network_manager_clear_cache,
+    servo_network_manager_free, servo_network_manager_get_cache_entries,
+};
+// Re-export preferences types and helpers
+pub use preferences::{
+    servo_preferences_create, servo_preferences_free, servo_preferences_get_bool,
+    servo_preferences_get_devtools_server_enabled, servo_preferences_get_devtools_server_port,
+    servo_preferences_get_i64, servo_preferences_get_string, servo_preferences_get_u64,
+    servo_preferences_set_bool, servo_preferences_set_devtools_server, servo_preferences_set_i64,
+    servo_preferences_set_string, servo_preferences_set_u64,
+};
+// Re-export printing types and helpers
+pub use printing::{ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf};
 // Re-export protocol handler types
 pub use protocol_handler::{
     ServoProtocolHandler, ServoProtocolHandlerCallback, ServoWebResourceLoad,
@@ -213,29 +143,76 @@ pub use protocol_handler::{
     servo_web_resource_response_set_header, servo_web_resource_response_set_status,
     servo_web_resource_response_set_url,
 };
-
-// Re-export multiprocess functions
-pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
-
-// Re-export network manager types and helpers
-pub use network_manager::{
-    ServoNetworkManager, servo_get_network_manager, servo_network_manager_clear_cache,
-    servo_network_manager_free, servo_network_manager_get_cache_entries,
+// Re-export request context types and constants
+pub use request_context::{
+    SERVO_PROXY_AUTO_DETECT, SERVO_PROXY_DIRECT, SERVO_PROXY_FIXED_SERVERS, SERVO_PROXY_PAC_SCRIPT,
+    SERVO_PROXY_SYSTEM, ServoProxyConfig, ServoRequestContext, servo_builder_set_request_context,
+    servo_request_context_create, servo_request_context_free,
+    servo_request_context_set_accept_language, servo_request_context_set_cache_path,
+    servo_request_context_set_cookie_path, servo_request_context_set_proxy_config,
+    servo_webview_builder_set_request_context,
 };
-
-// Re-export preferences types and helpers
-pub use preferences::{
-    servo_preferences_create, servo_preferences_free,
-    servo_preferences_get_bool, servo_preferences_get_devtools_server_enabled,
-    servo_preferences_get_devtools_server_port, servo_preferences_get_i64,
-    servo_preferences_get_string, servo_preferences_get_u64, servo_preferences_set_bool,
-    servo_preferences_set_devtools_server, servo_preferences_set_i64,
-    servo_preferences_set_string, servo_preferences_set_u64,
+// Re-export site data types
+pub use site_data::{
+    SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
+    ServoCookie, ServoCookieFilter, ServoCookieFilterFlags, ServoCookieVisitor,
+    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteData, ServoSiteDataManager,
+    ServoSiteDataVisitor, ServoSitesVisitor, ServoStorageType,
 };
-
-// Re-export printing types and helpers
-pub use printing::{
-    ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf,
+// Re-export user content manager types
+pub use user_content_manager::{
+    ServoUserContentManager, ServoUserScript, ServoUserStyleSheet,
+    servo_user_content_manager_add_script, servo_user_content_manager_add_style_sheet,
+    servo_user_content_manager_create, servo_user_content_manager_enable_message_router,
+    servo_user_content_manager_free, servo_user_content_manager_remove_script,
+    servo_user_content_manager_remove_style_sheet, servo_user_script_create,
+    servo_user_script_free, servo_user_style_sheet_create, servo_user_style_sheet_free,
+    servo_webview_builder_set_user_content_manager,
+};
+// Re-export value types and constants
+pub use value::{
+    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType, servo_dictionary_create,
+    servo_dictionary_free, servo_dictionary_get_key, servo_dictionary_get_keys,
+    servo_dictionary_get_size, servo_dictionary_has_key, servo_dictionary_set_key,
+    servo_list_create, servo_list_free, servo_list_get_size, servo_list_get_value,
+    servo_list_set_value, servo_value_create, servo_value_free, servo_value_from_json,
+    servo_value_get_binary, servo_value_get_bool, servo_value_get_double, servo_value_get_int,
+    servo_value_get_string, servo_value_get_type, servo_value_set_binary, servo_value_set_bool,
+    servo_value_set_double, servo_value_set_int, servo_value_set_string, servo_value_to_json,
+};
+// Re-export media session constants from webview
+pub use webview::{
+    SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE,
+    SERVO_MEDIA_SESSION_ACTION_PLAY, SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK,
+    SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD, SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD,
+    SERVO_MEDIA_SESSION_ACTION_SKIP_AD, SERVO_MEDIA_SESSION_ACTION_STOP,
+};
+pub use webview_delegate::{
+    SERVO_CONSOLE_LOG_LEVEL_DEBUG, SERVO_CONSOLE_LOG_LEVEL_ERROR, SERVO_CONSOLE_LOG_LEVEL_INFO,
+    SERVO_CONSOLE_LOG_LEVEL_LOG, SERVO_CONSOLE_LOG_LEVEL_WARN, SERVO_CONTEXT_MENU_ACTION_COPY,
+    SERVO_CONTEXT_MENU_ACTION_COPY_IMAGE_LINK, SERVO_CONTEXT_MENU_ACTION_COPY_LINK,
+    SERVO_CONTEXT_MENU_ACTION_CUT, SERVO_CONTEXT_MENU_ACTION_DISMISS,
+    SERVO_CONTEXT_MENU_ACTION_GO_BACK, SERVO_CONTEXT_MENU_ACTION_GO_FORWARD,
+    SERVO_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_VIEW,
+    SERVO_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WEBVIEW, SERVO_CONTEXT_MENU_ACTION_PASTE,
+    SERVO_CONTEXT_MENU_ACTION_RELOAD, SERVO_CONTEXT_MENU_ACTION_SELECT_ALL,
+    SERVO_CONTEXT_MENU_FLAG_EDITABLE_TEXT, SERVO_CONTEXT_MENU_FLAG_IMAGE,
+    SERVO_CONTEXT_MENU_FLAG_LINK, SERVO_CONTEXT_MENU_FLAG_SELECTION, SERVO_CURSOR_ALIAS,
+    SERVO_CURSOR_AUTO, SERVO_CURSOR_CELL, SERVO_CURSOR_COLUMN_RESIZE, SERVO_CURSOR_CONTEXT_MENU,
+    SERVO_CURSOR_COPY, SERVO_CURSOR_CROSSHAIR, SERVO_CURSOR_CUSTOM, SERVO_CURSOR_EAST_PANNING,
+    SERVO_CURSOR_EAST_RESIZE, SERVO_CURSOR_EAST_WEST_RESIZE, SERVO_CURSOR_GRAB,
+    SERVO_CURSOR_GRABBING, SERVO_CURSOR_HAND, SERVO_CURSOR_HELP, SERVO_CURSOR_IBEAM,
+    SERVO_CURSOR_MIDDLE_PANNING, SERVO_CURSOR_MOVE, SERVO_CURSOR_NO_DROP, SERVO_CURSOR_NONE,
+    SERVO_CURSOR_NORTH_EAST_PANNING, SERVO_CURSOR_NORTH_EAST_RESIZE,
+    SERVO_CURSOR_NORTH_EAST_SOUTH_WEST_RESIZE, SERVO_CURSOR_NORTH_PANNING,
+    SERVO_CURSOR_NORTH_RESIZE, SERVO_CURSOR_NORTH_SOUTH_RESIZE, SERVO_CURSOR_NORTH_WEST_PANNING,
+    SERVO_CURSOR_NORTH_WEST_RESIZE, SERVO_CURSOR_NORTH_WEST_SOUTH_EAST_RESIZE,
+    SERVO_CURSOR_NOT_ALLOWED, SERVO_CURSOR_POINTER, SERVO_CURSOR_PROGRESS, SERVO_CURSOR_ROW_RESIZE,
+    SERVO_CURSOR_SOUTH_EAST_PANNING, SERVO_CURSOR_SOUTH_EAST_RESIZE, SERVO_CURSOR_SOUTH_PANNING,
+    SERVO_CURSOR_SOUTH_RESIZE, SERVO_CURSOR_SOUTH_WEST_PANNING, SERVO_CURSOR_SOUTH_WEST_RESIZE,
+    SERVO_CURSOR_VERTICAL_TEXT, SERVO_CURSOR_WAIT, SERVO_CURSOR_WEST_PANNING,
+    SERVO_CURSOR_WEST_RESIZE, ServoContextMenuAction, ServoContextMenuCallback,
+    ServoContextMenuItem, ServoContextMenuParams, ServoFilePickerCallback,
 };
 
 /// Error codes returned by the Servo C API.
@@ -442,6 +419,20 @@ pub(crate) mod handle_registry {
     pub(crate) enum HandleKind {
         /// A `ServoOptions` handle.
         Options,
+        /// A `ServoBuilder` handle.
+        Builder,
+        /// A `RenderingContext` handle.
+        RenderingContext,
+        /// A `ServoValue` handle.
+        Value,
+        /// A `ServoWebViewBuilder` handle.
+        WebViewBuilder,
+        /// A `Servo` handle.
+        Servo,
+        /// A `ServoSiteDataManager` handle.
+        SiteDataManager,
+        /// A `ServoRequestContext` handle.
+        RequestContext,
     }
 
     fn live_handles() -> &'static Mutex<HashSet<(usize, HandleKind)>> {
@@ -610,8 +601,8 @@ pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
 /// This predicate mirrors the platforms where a true sandbox profile is activated.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_is_sandboxing_supported() -> bool {
-    cfg!(feature = "multiprocess")
-        && cfg!(not(any(
+    cfg!(feature = "multiprocess") &&
+        cfg!(not(any(
             target_os = "windows",
             target_os = "ios",
             target_os = "android",
@@ -742,6 +733,29 @@ pub fn ensure_panic_hook_installed() {
     });
 }
 
+mod panic_hook_ctor {
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    extern "C" {
+        fn dispatch_async(...);
+    }
+
+    unsafe fn init() {
+        ensure_panic_hook_installed();
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[unsafe(link_section = ".init_array")]
+    #[used]
+    static PANIC_HOOK_CTOR: unsafe fn() = init;
+
+    #[cfg(target_os = "windows")]
+    #[used]
+    #[unsafe(link_section = ".CRT$XCU")]
+    static PANIC_HOOK_CTOR: unsafe fn() = init;
+}
+
 /// Returns a newly allocated `ServoBuilder` handle. The ownership of
 /// the returned handle is transferred to the caller, who must free it
 /// with [`servo_builder_free`] or consume it by passing it to
@@ -749,7 +763,11 @@ pub fn ensure_panic_hook_installed() {
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_builder_create() -> *mut ServoBuilder {
     ensure_panic_hook_installed();
-    ServoError::catch_ffi_ptr(|| Box::into_raw(Box::new(ServoBuilder::default())))
+    ServoError::catch_ffi_ptr(|| {
+        let handle = Box::into_raw(Box::new(ServoBuilder::default()));
+        crate::handle_registry::register(handle, crate::handle_registry::HandleKind::Builder);
+        handle
+    })
 }
 
 /// Sets the preferences to be used by the `Servo` instance.
@@ -787,6 +805,10 @@ pub unsafe extern "C" fn servo_builder_set_preferences(
         }
         if preferences.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -836,6 +858,10 @@ pub unsafe extern "C" fn servo_builder_set_options(
         }
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
         }
 
         // W2.5: this call consumes the `options` handle, so it must also forget
@@ -892,6 +918,10 @@ pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
+        }
+
         if !is_compatible_struct_size(
             event_loop_waker.struct_size,
             std::mem::size_of::<ServoEventLoopWaker>(),
@@ -946,6 +976,10 @@ pub unsafe extern "C" fn servo_builder_set_delegate(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
+        }
+
         if !is_compatible_struct_size(delegate.struct_size, std::mem::size_of::<ServoDelegate>()) {
             return ServoError::InvalidArgument;
         }
@@ -984,6 +1018,14 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
         if builder.is_null() {
             return std::ptr::null_mut();
         }
+
+        // W2.5: this call consumes the `builder` handle, so it must also forget
+        // it in the handle registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(builder, crate::handle_registry::HandleKind::Builder)
+        {
+            return std::ptr::null_mut();
+        }
+
         let mut rust_builder = servo_api::ServoBuilder::default();
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -1012,7 +1054,17 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
         if let Some(delegate) = builder.delegate.take() {
             servo.set_delegate(delegate);
         }
-        Box::into_raw(Box::new(servo))
+
+        // All of the builder heap-owning fields have been moved into
+        // rust_builder/servo, so release the builder allocation now that
+        // the Servo instance has been created instead of leaking it.
+        drop(builder);
+
+        // W2.5: the returned `Servo` is a new handle; record it before the
+        // embedder can use it.
+        let servo = Box::into_raw(Box::new(servo));
+        crate::handle_registry::register(servo, crate::handle_registry::HandleKind::Servo);
+        servo
     })
 }
 
@@ -1032,6 +1084,11 @@ pub unsafe extern "C" fn servo_builder_free(builder: *mut ServoBuilder) -> Servo
     ServoError::catch_ffi(|| {
         if builder.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::unregister(builder, crate::handle_registry::HandleKind::Builder)
+        {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements

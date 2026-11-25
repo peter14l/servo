@@ -5,13 +5,13 @@
 use std::ffi::{c_char, c_void};
 use std::future::Future;
 use std::pin::Pin;
-use embedder_traits::WebResourceResponse;
-use embedder_traits::WebResourceRequest;
+
+use embedder_traits::{WebResourceRequest, WebResourceResponse};
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 use servo_api::ServoUrl;
 use servo_api::protocol_handler::{
-    DoneChannel, FetchContext, HttpStatus, NetworkError, ProtocolHandler, ProtocolRegistry, Request,
-    ResourceFetchTiming, ResourceTimingType, Response, ResponseBody,
+    DoneChannel, FetchContext, HttpStatus, NetworkError, ProtocolHandler, ProtocolRegistry,
+    Request, ResourceFetchTiming, ResourceTimingType, Response, ResponseBody,
 };
 use url::Url;
 
@@ -111,6 +111,10 @@ pub unsafe extern "C" fn servo_builder_register_protocol_handler(
     ServoError::catch_ffi(|| {
         if builder.is_null() || scheme.is_null() || (callback as *const ()).is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
         }
 
         let scheme_str = match unsafe { std::ffi::CStr::from_ptr(scheme) }.to_str() {
@@ -356,28 +360,52 @@ pub extern "C" fn servo_web_resource_request_get_header(
         std::ptr::copy_nonoverlapping(value_bytes.as_ptr(), buffer as *mut u8, write_len - 1);
         *buffer.add(write_len - 1) = 0;
     }
+    /// Get the request body data.
+    ///
+    /// Returns the number of bytes in the body if `buffer` is NULL or `buffer_len` is too small.
+    /// Otherwise, copies the body into `buffer` and returns the number of bytes written.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn servo_web_resource_request_get_body(
+        request: *const ServoWebResourceRequest,
+        buffer: *mut u8,
+        buffer_len: usize,
+    ) -> usize {
+        if request.is_null() {
+            return 0;
+        }
+
+        let _request = unsafe { &*request };
+        // ServoWebResourceRequest does not currently carry request body bytes.
+        let body: &[u8] = &[];
+        let len = body.len();
+
+        if buffer.is_null() || buffer_len < len {
+            return len;
+        }
+
+        if !body.is_empty() {
+            unsafe {
+                std::ptr::copy_nonoverlapping(body.as_ptr(), buffer, len);
+            }
+        }
+        len
+    }
+    let _request = unsafe { &*request };
+    // ServoWebResourceRequest does not currently carry request body bytes.
+    let body: &[u8] = &[];
+    let len = body.len();
+
+    if buffer.is_null() || buffer_len < len {
+        return len;
+    }
+
+    if !body.is_empty() {
+        unsafe {
+            std::ptr::copy_nonoverlapping(body.as_ptr(), buffer, len);
+        }
+    }
     len
 }
-
-/// Get the request body data.
-///
-/// Returns the number of bytes in the body if `buffer` is NULL or `buffer_len` is 0.
-/// Otherwise, copies up to `buffer_len` bytes into `buffer` and returns the total body length.
-#[unsafe(no_mangle)]
-pub extern "C" fn servo_web_resource_request_get_body(
-    request: *const ServoWebResourceRequest,
-    _buffer: *mut u8,
-    _buffer_len: usize,
-) -> usize {
-    if request.is_null() {
-        return 0;
-    }
-    // Note: The current Request type doesn't expose body directly in a simple way.
-    // This would need to be extended when body access is needed.
-    // For now, return 0.
-    0
-}
-
 /// Set the response URL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_web_resource_response_set_url(
@@ -396,7 +424,7 @@ pub unsafe extern "C" fn servo_web_resource_response_set_url(
         Ok(u) => {
             response.url = u;
             0
-        }
+        },
         Err(_) => -1,
     }
 }
@@ -420,7 +448,7 @@ pub unsafe extern "C" fn servo_web_resource_response_set_status(
                 response.status_message = msg.to_vec();
             }
             0
-        }
+        },
         Err(_) => -1,
     }
 }

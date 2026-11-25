@@ -739,6 +739,7 @@ SettingsDialog::SettingsDialog(HWND parentHwnd, BrowserWindow* browserWindow)
     , m_titleFont(nullptr)
     , m_headerFont(nullptr)
     , m_bodyFont(nullptr)
+    , m_controlBrush(nullptr)
     , m_comboSearchEngine(nullptr)
     , m_editHomePage(nullptr)
     , m_editDownloadDir(nullptr)
@@ -781,7 +782,7 @@ SettingsDialog::SettingsDialog(HWND parentHwnd, BrowserWindow* browserWindow)
         this
     );
 
-    BOOL darkMode = TRUE;
+    BOOL darkMode = fluent::SystemUsesLightTheme() ? FALSE : TRUE;
     DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
     int corner = DWMWCP_ROUND;
     DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
@@ -805,6 +806,7 @@ SettingsDialog::SettingsDialog(HWND parentHwnd, BrowserWindow* browserWindow)
 }
 
 SettingsDialog::~SettingsDialog() {
+    if (m_controlBrush) DeleteObject(m_controlBrush);
     if (m_bodyFont) DeleteObject(m_bodyFont);
     if (m_headerFont) DeleteObject(m_headerFont);
     if (m_titleFont) DeleteObject(m_titleFont);
@@ -843,7 +845,7 @@ void SettingsDialog::CreateControls() {
 
     CreateWindowW(L"STATIC", L"Home / Startup Page:", WS_CHILD | WS_VISIBLE,
         x, y + 4, 160, 20, m_hwnd, nullptr, hInst, nullptr);
-    m_editHomePage = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", m_settings.homePage.c_str(),
+    m_editHomePage = CreateWindowExW(0, L"EDIT", m_settings.homePage.c_str(),
         WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
         x + 160, y, 320, 24, m_hwnd, (HMENU)IDC_EDIT_HOMEPAGE, hInst, nullptr);
     SendMessageW(m_editHomePage, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);
@@ -851,7 +853,7 @@ void SettingsDialog::CreateControls() {
 
     CreateWindowW(L"STATIC", L"Download Location:", WS_CHILD | WS_VISIBLE,
         x, y + 4, 160, 20, m_hwnd, nullptr, hInst, nullptr);
-    m_editDownloadDir = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", m_settings.downloadDir.c_str(),
+    m_editDownloadDir = CreateWindowExW(0, L"EDIT", m_settings.downloadDir.c_str(),
         WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
         x + 160, y, 240, 24, m_hwnd, (HMENU)IDC_EDIT_DOWNLOADS, hInst, nullptr);
     SendMessageW(m_editDownloadDir, WM_SETFONT, (WPARAM)m_bodyFont, TRUE);

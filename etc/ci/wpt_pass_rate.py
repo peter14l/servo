@@ -22,7 +22,7 @@ import os
 import sys
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 def analyze_meta_directory(meta_dir: str) -> Dict[str, Any]:

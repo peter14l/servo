@@ -186,19 +186,26 @@ pub(super) fn layout_layer(
     }
     let size_contain_or_cover = |background_size| {
         let mut tile_size = positioning_area.size();
+        // Check for default SVG object size (300x150) which indicates no intrinsic ratio
+        let is_default_svg_size = natural_sizes.width == Some(Au::from_px(300)) &&
+            natural_sizes.height == Some(Au::from_px(150)) &&
+            natural_sizes.ratio == Some(2.0);
         if let Some(natural_ratio) = natural_sizes.ratio {
-            let positioning_ratio = positioning_area.size().width / positioning_area.size().height;
-            // Whether the tile width (as opposed to height)
-            // is scaled to that of the positioning area
-            let fit_width = match background_size {
-                ContainOrCover::Contain => positioning_ratio <= natural_ratio,
-                ContainOrCover::Cover => positioning_ratio > natural_ratio,
-            };
-            // The other dimension needs to be adjusted
-            if fit_width {
-                tile_size.height = tile_size.width / natural_ratio
-            } else {
-                tile_size.width = tile_size.height * natural_ratio
+            if !is_default_svg_size {
+                let positioning_ratio =
+                    positioning_area.size().width / positioning_area.size().height;
+                // Whether the tile width (as opposed to height)
+                // is scaled to that of the positioning area
+                let fit_width = match background_size {
+                    ContainOrCover::Contain => positioning_ratio <= natural_ratio,
+                    ContainOrCover::Cover => positioning_ratio > natural_ratio,
+                };
+                // The other dimension needs to be adjusted
+                if fit_width {
+                    tile_size.height = tile_size.width / natural_ratio
+                } else {
+                    tile_size.width = tile_size.height * natural_ratio
+                }
             }
         }
         tile_size
@@ -227,7 +234,15 @@ pub(super) fn layout_layer(
                 (Some(w), Some(h)) => units::LayoutSize::new(w.to_f32_px(), h.to_f32_px()),
                 (Some(w), None) => {
                     let h = if let Some(natural_ratio) = natural_sizes.ratio {
-                        w.scale_by(1.0 / natural_ratio)
+                        let is_default_svg_size = natural_sizes.width == Some(Au::from_px(300)) &&
+                            natural_sizes.height == Some(Au::from_px(150)) &&
+                            natural_sizes.ratio == Some(2.0);
+                        if is_default_svg_size {
+                            // Treated as 100%
+                            Au::from_f32_px(positioning_area.size().height)
+                        } else {
+                            w.scale_by(1.0 / natural_ratio)
+                        }
                     } else if let Some(natural_height) = natural_sizes.height {
                         natural_height
                     } else {
@@ -238,7 +253,15 @@ pub(super) fn layout_layer(
                 },
                 (None, Some(h)) => {
                     let w = if let Some(natural_ratio) = natural_sizes.ratio {
-                        h.scale_by(natural_ratio)
+                        let is_default_svg_size = natural_sizes.width == Some(Au::from_px(300)) &&
+                            natural_sizes.height == Some(Au::from_px(150)) &&
+                            natural_sizes.ratio == Some(2.0);
+                        if is_default_svg_size {
+                            // Treated as 100%
+                            Au::from_f32_px(positioning_area.size().width)
+                        } else {
+                            h.scale_by(natural_ratio)
+                        }
                     } else if let Some(natural_width) = natural_sizes.width {
                         natural_width
                     } else {

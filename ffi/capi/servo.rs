@@ -32,6 +32,10 @@ pub unsafe extern "C" fn servo_free(servo: *mut Servo) -> ServoError {
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::unregister(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `servo` documented above.
         unsafe {
@@ -63,6 +67,10 @@ pub unsafe extern "C" fn servo_spin_event_loop(servo: *mut Servo) -> ServoError 
     ServoError::catch_ffi(|| {
         if servo.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -100,6 +108,10 @@ pub unsafe extern "C" fn servo_post_task(
             return ServoError::NullArgument;
         };
 
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
+        }
+
         let servo = unsafe { &*servo };
         let user_data_raw = user_data as usize;
 
@@ -134,6 +146,10 @@ pub unsafe extern "C" fn servo_setup_logging(servo: *mut Servo) -> ServoError {
     ServoError::catch_ffi(|| {
         if servo.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -186,6 +202,10 @@ pub unsafe extern "C" fn servo_set_preference_bool(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `name` documented above.
         let name = match unsafe { CStr::from_ptr(name) }.to_str() {
@@ -229,6 +249,10 @@ pub unsafe extern "C" fn servo_set_preference_i64(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `name` documented above.
         let name = match unsafe { CStr::from_ptr(name) }.to_str() {
@@ -270,6 +294,10 @@ pub unsafe extern "C" fn servo_set_preference_u64(
         }
         if name.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements for
@@ -316,6 +344,10 @@ pub unsafe extern "C" fn servo_set_preference_string(
         }
         if value.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements for

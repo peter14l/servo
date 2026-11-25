@@ -121,9 +121,9 @@ impl SurfmanRenderingContext {
     ) -> Result<Self, Error> {
         let device = connection.create_device(adapter)?;
 
-        let flags = ContextAttributeFlags::ALPHA
-            | ContextAttributeFlags::DEPTH
-            | ContextAttributeFlags::STENCIL;
+        let flags = ContextAttributeFlags::ALPHA |
+            ContextAttributeFlags::DEPTH |
+            ContextAttributeFlags::STENCIL;
         let gl_api = connection.gl_api();
         let version = match &gl_api {
             GLApi::GLES => surfman::GLVersion { major: 3, minor: 0 },
@@ -502,10 +502,12 @@ impl WindowRenderingContext {
         let device = self.surfman_context.device.borrow_mut();
         let mut context = self.surfman_context.context.borrow_mut();
 
-        let native_widget = device.connection().create_native_widget_from_window_handle(
-            window_handle,
-            Size2D::new(size.width as i32, size.height as i32),
-        )?;
+        let native_widget = device
+            .connection()
+            .create_native_widget_from_window_handle(
+                window_handle,
+                Size2D::new(size.width as i32, size.height as i32),
+            )?;
 
         let surface_access = SurfaceAccess::GPUOnly;
         let surface_type = SurfaceType::Widget { native_widget };

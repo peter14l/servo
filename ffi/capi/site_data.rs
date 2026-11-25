@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{c_char, c_void, CString};
+use std::ffi::{CString, c_char, c_void};
 use std::os::raw::c_int;
 
 use cookie::Cookie;
@@ -80,10 +80,14 @@ impl CookieStringStorage {
 
     fn store(&mut self, cookie: &Cookie<'static>) -> ServoCookie {
         // Store all strings as null-terminated CStrings and get their stable pointers
-        self.names.push(CString::new(cookie.name()).unwrap_or_default());
-        self.values.push(CString::new(cookie.value()).unwrap_or_default());
-        self.domains.push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
-        self.paths.push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
+        self.names
+            .push(CString::new(cookie.name()).unwrap_or_default());
+        self.values
+            .push(CString::new(cookie.value()).unwrap_or_default());
+        self.domains
+            .push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
+        self.paths
+            .push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
 
         let idx = self.names.len() - 1;
 
@@ -149,11 +153,19 @@ pub unsafe extern "C" fn servo_get_site_data_manager(
             return std::ptr::null_mut();
         }
 
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return std::ptr::null_mut();
+        }
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `servo` documented above.
         let servo = unsafe { &*servo }.clone();
 
-        Box::into_raw(Box::new(ServoSiteDataManager { servo }))
+        let handle = Box::into_raw(Box::new(ServoSiteDataManager { servo }));
+        crate::handle_registry::register(
+            handle,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        );
+        handle
     })
 }
 
@@ -169,16 +181,25 @@ pub unsafe extern "C" fn servo_get_site_data_manager(
 /// `servo_get_site_data_manager` and has not yet been freed.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_site_data_manager_free(manager: *mut ServoSiteDataManager) {
-    if manager.is_null() {
-        return;
-    }
-
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        // SAFETY: The caller is assumed to uphold the safety requirements.
-        unsafe {
-            let _ = Box::from_raw(manager);
+    ServoError::catch_ffi_void(|| {
+        if manager.is_null() {
+            return;
         }
-    }));
+
+        if !crate::handle_registry::unregister(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return;
+        }
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            unsafe {
+                let _ = Box::from_raw(manager);
+            }
+        }));
+    })
 }
 
 /// Gets cookies for a given URL.
@@ -218,57 +239,172 @@ pub unsafe extern "C" fn servo_site_data_cookies_for_url(
     buffer: *mut ServoCookie,
     buffer_len: usize,
 ) -> usize {
-    if manager.is_null() || url.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_usize(|| {
+        if manager.is_null() || url.is_null() {
+            return 0;
+        }
 
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return 0;
+        }
+
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            let manager = unsafe { &*manager };
+            let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return 0,
+            };
+
+            let url = match Url::parse(url_str) {
+                Ok(u) => u,
+                Err(_) => return 0,
+            };
+
+            // Get cookies from SiteDataManager
+            let cookies = manager
+                .servo
+                .site_data_manager()
+                .cookies_for_url(url, servo_api::CookieSource::HTTP);
+
+            // Store strings in thread-local storage
+            COOKIE_STORAGE.with(|storage| {
+                let mut storage = storage.borrow_mut();
+                storage.clear();
+
+                let count = cookies.len();
+                let write_count = std::cmp::min(count, buffer_len);
+
+                // Store all cookies first (we need to keep all strings alive)
+                let mut stored_cookies = Vec::with_capacity(count);
+                for cookie in &cookies {
+                    stored_cookies.push(storage.store(cookie));
+                }
+
+                // Copy to buffer if provided
+                if !buffer.is_null() && buffer_len > 0 {
+                    for i in 0..write_count {
+                        // SAFETY: buffer points to valid memory for at least buffer_len elements
+                        unsafe {
+                            *buffer.add(i) = stored_cookies[i];
+                        }
+                    }
+                }
+
+                count
+            })
+        }))
+        .unwrap_or(0)
+    })
+}
+
+/// Callback invoked when an asynchronous cookie query completes.
+///
+/// `cookies` points to an array of `count` [`ServoCookie`] values, or is `NULL`
+/// when `count` is 0. The string pointers inside each `ServoCookie` are valid
+/// only for the duration of the callback; the embedder must copy any data it
+/// needs to keep.
+///
+/// `user_data` is the opaque pointer that was passed to
+/// [`servo_site_data_cookies_for_url_async`].
+pub type ServoCookiesForUrlCallback =
+    Option<unsafe extern "C" fn(cookies: *const ServoCookie, count: usize, user_data: *mut c_void)>;
+
+/// Asynchronously gets the cookies for a given URL.
+///
+/// This is the asynchronous counterpart to [`servo_site_data_cookies_for_url`].
+/// Instead of blocking until the cookie store has been queried, the query is
+/// dispatched to the resource thread and `callback` is invoked once the result
+/// is ready. The callback runs on the same thread that created the `Servo`
+/// instance, during a call to `servo_spin_event_loop`.
+///
+/// `manager` is a handle to a `ServoSiteDataManager` object (from
+/// `servo_get_site_data_manager`). The ownership remains with the caller.
+///
+/// `url` is a NUL-terminated UTF-8 string representing the URL to get cookies for.
+///
+/// `callback` is invoked exactly once with the resulting cookies. It must not be
+/// `NULL`.
+///
+/// `user_data` is an opaque pointer forwarded to `callback`.
+///
+/// Returns `ServoError::Ok` if the query was dispatched, or an error code if the
+/// arguments are invalid.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `manager` is a valid `ServoSiteDataManager` from `servo_get_site_data_manager`.
+/// - `url` is a non-null pointer to a valid C string that remains unmodified
+///   for the duration of the call.
+/// - `callback` is a valid function pointer that does not unwind across the FFI
+///   boundary and remains valid until it is invoked.
+/// - `user_data` is either null or remains valid until `callback` is invoked.
+/// - The call is made from the same thread that created the `Servo` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_site_data_cookies_for_url_async(
+    manager: *mut ServoSiteDataManager,
+    url: *const c_char,
+    callback: ServoCookiesForUrlCallback,
+    user_data: *mut c_void,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if manager.is_null() || url.is_null() {
+            return ServoError::NullArgument;
+        }
+        let Some(callback) = callback else {
+            return ServoError::NullArgument;
+        };
+
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let manager = unsafe { &*manager };
         let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
             Ok(s) => s,
-            Err(_) => return 0,
+            Err(_) => return ServoError::InvalidUtf8,
         };
-
         let url = match Url::parse(url_str) {
             Ok(u) => u,
-            Err(_) => return 0,
+            Err(_) => return ServoError::InvalidState,
         };
 
-        // Get cookies from SiteDataManager
-        let cookies = manager
-            .servo
-            .site_data_manager()
-            .cookies_for_url(url, servo_api::CookieSource::HTTP);
+        let user_data = user_data as usize;
+        manager.servo.site_data_manager().cookies_for_url_async(
+            url,
+            servo_api::CookieSource::HTTP,
+            move |cookies| {
+                COOKIE_STORAGE.with(|storage| {
+                    let mut storage = storage.borrow_mut();
+                    storage.clear();
 
-        // Store strings in thread-local storage
-        COOKIE_STORAGE.with(|storage| {
-            let mut storage = storage.borrow_mut();
-            storage.clear();
-
-            let count = cookies.len();
-            let write_count = std::cmp::min(count, buffer_len);
-
-            // Store all cookies first (we need to keep all strings alive)
-            let mut stored_cookies = Vec::with_capacity(count);
-            for cookie in &cookies {
-                stored_cookies.push(storage.store(cookie));
-            }
-
-            // Copy to buffer if provided
-            if !buffer.is_null() && buffer_len > 0 {
-                for i in 0..write_count {
-                    // SAFETY: buffer points to valid memory for at least buffer_len elements
-                    unsafe {
-                        *buffer.add(i) = stored_cookies[i];
+                    let count = cookies.len();
+                    let mut stored_cookies = Vec::with_capacity(count);
+                    for cookie in &cookies {
+                        stored_cookies.push(storage.store(cookie));
                     }
-                }
-            }
 
-            count
-        })
-    }))
-    .unwrap_or(0)
+                    // SAFETY: `callback` is a valid function pointer and
+                    // `stored_cookies` points into `storage`, which is valid for
+                    // the duration of this call.
+                    unsafe {
+                        callback(stored_cookies.as_ptr(), count, user_data as *mut c_void);
+                    }
+                });
+            },
+        );
+
+        ServoError::Ok
+    })
 }
 
 /// Sets a cookie for a given URL.
@@ -301,93 +437,103 @@ pub unsafe extern "C" fn servo_site_data_set_cookie(
     url: *const c_char,
     cookie: *const ServoCookie,
 ) -> c_int {
-    if manager.is_null() || url.is_null() || cookie.is_null() {
-        return -1;
-    }
-
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        // SAFETY: The caller is assumed to uphold the safety requirements.
-        let manager = unsafe { &*manager };
-        let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return -1,
-        };
-
-        let url = match Url::parse(url_str) {
-            Ok(u) => u,
-            Err(_) => return -1,
-        };
-
-        // SAFETY: The caller is assumed to uphold the safety requirements.
-        let cookie_ref = unsafe { &*cookie };
-        if cookie_ref.name.is_null()
-            || cookie_ref.value.is_null()
-            || cookie_ref.domain.is_null()
-            || cookie_ref.path.is_null()
-        {
+    ServoError::catch_ffi_i32(|| {
+        if manager.is_null() || url.is_null() || cookie.is_null() {
             return -1;
         }
 
-        // Validate and extract cookie data
-        let name = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.name) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return -1,
-        };
-        let value = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.value) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return -1,
-        };
-        let domain = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.domain) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return -1,
-        };
-        let path = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.path) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return -1,
-        };
-
-        // Build the cookie
-        let mut rust_cookie = Cookie::new(name, value);
-
-        if !domain.is_empty() {
-            rust_cookie.set_domain(domain);
-        }
-        if !path.is_empty() {
-            rust_cookie.set_path(path);
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return -1;
         }
 
-        // Handle expiration
-        if cookie_ref.expires > 0 {
-            use cookie::time::OffsetDateTime;
-            match OffsetDateTime::from_unix_timestamp(cookie_ref.expires) {
-                Ok(dt) => rust_cookie.set_expires(dt),
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            let manager = unsafe { &*manager };
+            let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
+                Ok(s) => s,
                 Err(_) => return -1,
+            };
+
+            let url = match Url::parse(url_str) {
+                Ok(u) => u,
+                Err(_) => return -1,
+            };
+
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            let cookie_ref = unsafe { &*cookie };
+            if cookie_ref.name.is_null() ||
+                cookie_ref.value.is_null() ||
+                cookie_ref.domain.is_null() ||
+                cookie_ref.path.is_null()
+            {
+                return -1;
             }
-        } else {
-            rust_cookie.set_expires(None); // Session cookie
-        }
 
-        rust_cookie.set_secure(cookie_ref.secure);
-        rust_cookie.set_http_only(cookie_ref.http_only);
+            // Validate and extract cookie data
+            let name = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.name) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
+            let value = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.value) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
+            let domain = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.domain) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
+            let path = match unsafe { std::ffi::CStr::from_ptr(cookie_ref.path) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
 
-        // Handle SameSite
-        let same_site = match cookie_ref.same_site {
-            SERVO_COOKIE_SAME_SITE_LAX => cookie::SameSite::Lax,
-            SERVO_COOKIE_SAME_SITE_STRICT => cookie::SameSite::Strict,
-            SERVO_COOKIE_SAME_SITE_NONE => cookie::SameSite::None,
-            _ => return -1, // Invalid SameSite value
-        };
-        rust_cookie.set_same_site(same_site);
+            // Build the cookie
+            let mut rust_cookie = Cookie::new(name, value);
 
-        // Call SiteDataManager to set the cookie (synchronous)
-        manager
-            .servo
-            .site_data_manager()
-            .set_cookie_for_url(url, rust_cookie.into_owned(), None);
+            if !domain.is_empty() {
+                rust_cookie.set_domain(domain);
+            }
+            if !path.is_empty() {
+                rust_cookie.set_path(path);
+            }
 
-        0
-    }))
-    .unwrap_or(-1)
+            // Handle expiration
+            if cookie_ref.expires > 0 {
+                use cookie::time::OffsetDateTime;
+                match OffsetDateTime::from_unix_timestamp(cookie_ref.expires) {
+                    Ok(dt) => rust_cookie.set_expires(dt),
+                    Err(_) => return -1,
+                }
+            } else {
+                rust_cookie.set_expires(None); // Session cookie
+            }
+
+            rust_cookie.set_secure(cookie_ref.secure);
+            rust_cookie.set_http_only(cookie_ref.http_only);
+
+            // Handle SameSite
+            let same_site = match cookie_ref.same_site {
+                SERVO_COOKIE_SAME_SITE_LAX => cookie::SameSite::Lax,
+                SERVO_COOKIE_SAME_SITE_STRICT => cookie::SameSite::Strict,
+                SERVO_COOKIE_SAME_SITE_NONE => cookie::SameSite::None,
+                _ => return -1, // Invalid SameSite value
+            };
+            rust_cookie.set_same_site(same_site);
+
+            // Call SiteDataManager to set the cookie (synchronous)
+            manager.servo.site_data_manager().set_cookie_for_url(
+                url,
+                rust_cookie.into_owned(),
+                None,
+            );
+
+            0
+        }))
+        .unwrap_or(-1)
+    })
 }
 
 /// Clears all cookies (both persistent and session) from both public and
@@ -406,15 +552,24 @@ pub unsafe extern "C" fn servo_site_data_set_cookie(
 /// - The call is made from the same thread that created the `Servo` instance.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_site_data_clear_cookies(manager: *mut ServoSiteDataManager) {
-    if manager.is_null() {
-        return;
-    }
+    ServoError::catch_ffi_void(|| {
+        if manager.is_null() {
+            return;
+        }
 
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        // SAFETY: The caller is assumed to uphold the safety requirements.
-        let manager = unsafe { &*manager };
-        manager.servo.site_data_manager().clear_cookies(None);
-    }));
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return;
+        }
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            let manager = unsafe { &*manager };
+            manager.servo.site_data_manager().clear_cookies(None);
+        }));
+    })
 }
 
 /// Clears all session cookies (cookies with no expiry/max-age) from both
@@ -433,18 +588,27 @@ pub unsafe extern "C" fn servo_site_data_clear_cookies(manager: *mut ServoSiteDa
 /// - The call is made from the same thread that created the `Servo` instance.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_site_data_clear_session_cookies(manager: *mut ServoSiteDataManager) {
-    if manager.is_null() {
-        return;
-    }
+    ServoError::catch_ffi_void(|| {
+        if manager.is_null() {
+            return;
+        }
 
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        // SAFETY: The caller is assumed to uphold the safety requirements.
-        let manager = unsafe { &*manager };
-        manager
-            .servo
-            .site_data_manager()
-            .clear_session_cookies(None);
-    }));
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return;
+        }
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // SAFETY: The caller is assumed to uphold the safety requirements.
+            let manager = unsafe { &*manager };
+            manager
+                .servo
+                .site_data_manager()
+                .clear_session_cookies(None);
+        }));
+    })
 }
 
 /// Storage types for site data enumeration and clearing.
@@ -524,6 +688,14 @@ pub unsafe extern "C" fn servo_site_data_visit_sites(
         if manager.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         let Some(visitor) = visitor else {
             return ServoError::NullArgument;
         };
@@ -541,7 +713,10 @@ pub unsafe extern "C" fn servo_site_data_visit_sites(
             rust_storage_types |= servo_api::StorageType::Session;
         }
 
-        let sites = manager.servo.site_data_manager().site_data(rust_storage_types);
+        let sites = manager
+            .servo
+            .site_data_manager()
+            .site_data(rust_storage_types);
         let total = sites.len();
 
         for (count, site_entry) in sites.into_iter().enumerate() {
@@ -603,6 +778,14 @@ pub unsafe extern "C" fn servo_site_data_clear_site_data(
         if manager.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(
+            manager,
+            crate::handle_registry::HandleKind::SiteDataManager,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         if count > 0 && sites.is_null() {
             return ServoError::NullArgument;
         }

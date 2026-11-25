@@ -105,9 +105,9 @@ use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectReq
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
+use crate::request_context::RequestContext;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
-use crate::request_context::RequestContext;
 use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
@@ -512,13 +512,13 @@ impl ServoInner {
                         error_text,
                         certificate_der,
                     );
-                    let certificate_error_request = CertificateErrorRequest::new(
-                        response_sender,
-                        self.servo_errors.sender(),
+                    let certificate_error_request =
+                        CertificateErrorRequest::new(response_sender, self.servo_errors.sender());
+                    webview.delegate().certificate_error(
+                        webview,
+                        certificate_error,
+                        certificate_error_request,
                     );
-                    webview
-                        .delegate()
-                        .certificate_error(webview, certificate_error, certificate_error_request);
                 } else {
                     // No webview found, deny by default
                     let _ = response_sender.send(CertificateErrorResponse::Deny);
@@ -963,7 +963,10 @@ impl Servo {
 
         // Use request context if provided, otherwise fall back to global opts.
         let request_context = builder.request_context.unwrap_or_default();
-        let config_dir = request_context.config_dir.clone().or(opts.config_dir.clone());
+        let config_dir = request_context
+            .config_dir
+            .clone()
+            .or(opts.config_dir.clone());
         let temporary_storage = request_context.temporary_storage || opts.temporary_storage;
 
         // Set the preferences globally.
@@ -1059,11 +1062,8 @@ impl Servo {
                 protocols.clone(),
             );
 
-        let (private_storage_threads, public_storage_threads) = new_storage_threads(
-            mem_profiler_chan.clone(),
-            config_dir,
-            temporary_storage,
-        );
+        let (private_storage_threads, public_storage_threads) =
+            new_storage_threads(mem_profiler_chan.clone(), config_dir, temporary_storage);
 
         create_constellation(
             embedder_to_constellation_receiver,
@@ -1439,7 +1439,7 @@ pub fn run_content_process(token: String) {
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {
-        create_sandbox();
+        let _ = create_sandbox();
     }
 
     let _js_engine_setup = script::init();
@@ -1495,6 +1495,7 @@ pub fn run_content_process(token: String) {
 #[cfg(all(feature = "multiprocess", target_os = "windows"))]
 mod windows_sandbox {
     use std::ffi::c_void;
+
     use log::{info, warn};
 
     #[repr(C)]
@@ -1516,6 +1517,16 @@ mod windows_sandbox {
     #[repr(C)]
     struct ProcessMitigationExtensionPointDisablePolicy {
         flags: u32,
+    }
+
+    #[repr(C)]
+    struct ProcessMitigationSystemCallDisablePolicy {
+        flags: u32,
+    }
+
+    #[repr(C)]
+    struct JobObjectBasicUIRestrictions {
+        ui_restrictions_class: u32,
     }
 
     #[repr(C)]
@@ -1555,7 +1566,14 @@ mod windows_sandbox {
     const PROCESS_ASLR_POLICY: i32 = 1;
     const PROCESS_STRICT_HANDLE_CHECK_POLICY: i32 = 3;
     const PROCESS_EXTENSION_POINT_DISABLE_POLICY: i32 = 6;
+    const PROCESS_SYSTEM_CALL_DISABLE_POLICY: i32 = 4;
     const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x00000008;
+    const JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION: u32 = 0x00000400;
+    const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x00002000;
+    const JOB_OBJECT_BASIC_UI_RESTRICTIONS: i32 = 4;
+    const JOB_OBJECT_UILIMIT_HANDLES: u32 = 0x00000001;
+    const JOB_OBJECT_UILIMIT_GLOBALATOMS: u32 = 0x00000002;
+    const JOB_OBJECT_UILIMIT_DESKTOP: u32 = 0x00000020;
     const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: i32 = 9;
 
     unsafe extern "system" {
@@ -1576,8 +1594,10 @@ mod windows_sandbox {
         fn CloseHandle(h_object: *mut c_void) -> i32;
     }
 
-    pub fn apply_windows_sandbox() {
+    pub fn apply_windows_sandbox() -> Result<(), String> {
         info!("Initializing Windows renderer sandbox PoC mitigation policies...");
+
+        let mut failures: Vec<String> = Vec::new();
 
         // 1. DEP Policy: Enable and disable ATL thunk emulation
         let dep = ProcessMitigationDepPolicy {
@@ -1589,8 +1609,9 @@ mod windows_sandbox {
                 PROCESS_DEP_POLICY,
                 &dep as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationDepPolicy>(),
-            ) == 0 {
-                warn!("Windows sandbox: Failed to apply DEP policy");
+            ) == 0
+            {
+                failures.push("DEP policy".to_owned());
             }
         }
 
@@ -1603,45 +1624,64 @@ mod windows_sandbox {
                 PROCESS_ASLR_POLICY,
                 &aslr as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationAslrPolicy>(),
-            ) == 0 {
-                warn!("Windows sandbox: Failed to apply ASLR policy");
+            ) == 0
+            {
+                failures.push("ASLR policy".to_owned());
             }
         }
 
         // 3. Strict Handle Checking Policy: raise exception on invalid handle reference
-        let strict_handle = ProcessMitigationStrictHandleCheckPolicy {
-            flags: 0x01,
-        };
+        let strict_handle = ProcessMitigationStrictHandleCheckPolicy { flags: 0x01 };
         unsafe {
             if SetProcessMitigationPolicy(
                 PROCESS_STRICT_HANDLE_CHECK_POLICY,
                 &strict_handle as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationStrictHandleCheckPolicy>(),
-            ) == 0 {
-                warn!("Windows sandbox: Failed to apply Strict Handle Check policy");
+            ) == 0
+            {
+                failures.push("Strict Handle Check policy".to_owned());
             }
         }
 
         // 4. Extension Point Disable Policy: block legacy Windows hooks and AppInit DLL injection
-        let ext_point = ProcessMitigationExtensionPointDisablePolicy {
-            flags: 0x01,
-        };
+        let ext_point = ProcessMitigationExtensionPointDisablePolicy { flags: 0x01 };
         unsafe {
             if SetProcessMitigationPolicy(
                 PROCESS_EXTENSION_POINT_DISABLE_POLICY,
                 &ext_point as *const _ as *const c_void,
                 std::mem::size_of::<ProcessMitigationExtensionPointDisablePolicy>(),
-            ) == 0 {
-                warn!("Windows sandbox: Failed to apply Extension Point Disable policy");
+            ) == 0
+            {
+                failures.push("Extension Point Disable policy".to_owned());
             }
         }
 
-        // 5. Job Object Isolation: restrict active process count to 1 to block subprocess creation
+        // 5. Win32k System Call Lockdown: block user32/gdi32 kernel entry points
+        // (NtUser*/NtGdi*), removing the largest historical kernel attack surface.
+        let system_call = ProcessMitigationSystemCallDisablePolicy { flags: 0x01 };
+        unsafe {
+            if SetProcessMitigationPolicy(
+                PROCESS_SYSTEM_CALL_DISABLE_POLICY,
+                &system_call as *const _ as *const c_void,
+                std::mem::size_of::<ProcessMitigationSystemCallDisablePolicy>(),
+            ) == 0
+            {
+                failures.push("Win32k system call lockdown".to_owned());
+            }
+        }
+
+        // 6. Job Object Isolation: restrict active process count to 1 to block subprocess
+        // creation, kill the process when the browser dies, and deny desktop/handle/
+        // global-atom access.
         unsafe {
             let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
-            if !job.is_null() {
+            if job.is_null() {
+                failures.push("Job Object creation".to_owned());
+            } else {
                 let mut info: JobobjectExtendedLimitInformation = std::mem::zeroed();
-                info.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+                info.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+                    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
+                    JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
                 info.basic_limit_information.active_process_limit = 1;
 
                 if SetInformationJobObject(
@@ -1649,23 +1689,53 @@ mod windows_sandbox {
                     JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
                     &info as *const _ as *const c_void,
                     std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
-                ) != 0 {
+                ) == 0
+                {
+                    failures.push("Job Object limits".to_owned());
+                    CloseHandle(job);
+                } else {
+                    let ui_restrictions = JobObjectBasicUIRestrictions {
+                        ui_restrictions_class: JOB_OBJECT_UILIMIT_DESKTOP |
+                            JOB_OBJECT_UILIMIT_HANDLES |
+                            JOB_OBJECT_UILIMIT_GLOBALATOMS,
+                    };
+                    if SetInformationJobObject(
+                        job,
+                        JOB_OBJECT_BASIC_UI_RESTRICTIONS,
+                        &ui_restrictions as *const _ as *const c_void,
+                        std::mem::size_of::<JobObjectBasicUIRestrictions>() as u32,
+                    ) == 0
+                    {
+                        failures.push("Job Object UI restrictions".to_owned());
+                    }
+
                     if AssignProcessToJobObject(job, GetCurrentProcess()) != 0 {
-                        info!("Windows sandbox: Bound process to Job Object with active process limit = 1");
-                        // Keep handle open to preserve Job Object containment for process lifetime
-                        let _ = job;
+                        info!(
+                            "Windows sandbox: Bound process to Job Object (active process limit = 1, kill on job close, UI restrictions)"
+                        );
+                        // Deliberately keep the Job Object handle open for the lifetime of
+                        // this process so that KILL_ON_JOB_CLOSE only fires at exit.
                     } else {
-                        warn!("Windows sandbox: Failed to assign process to Job Object");
+                        failures.push("Job Object assignment".to_owned());
                         CloseHandle(job);
                     }
-                } else {
-                    warn!("Windows sandbox: Failed to configure Job Object limits");
-                    CloseHandle(job);
                 }
             }
         }
 
-        info!("Windows renderer sandbox: Mitigation policies and Job Object successfully applied.");
+        if failures.is_empty() {
+            info!(
+                "Windows renderer sandbox: Mitigation policies and Job Object successfully applied."
+            );
+            return Ok(());
+        }
+
+        let message = format!(
+            "Windows renderer sandbox: failed to apply policies: {}",
+            failures.join(", ")
+        );
+        warn!("{message}");
+        Err(message)
     }
 }
 
@@ -1687,8 +1757,8 @@ pub fn create_sandbox() {
 }
 
 #[cfg(all(feature = "multiprocess", target_os = "windows"))]
-pub fn create_sandbox() {
-    windows_sandbox::apply_windows_sandbox();
+pub fn create_sandbox() -> Result<(), String> {
+    windows_sandbox::apply_windows_sandbox()
 }
 
 #[cfg(all(
@@ -1727,11 +1797,7 @@ pub fn create_sandbox() {
     not(feature = "multiprocess"),
     all(
         feature = "multiprocess",
-        any(
-            target_arch = "riscv32",
-            target_arch = "riscv64",
-            target_env = "ohos"
-        )
+        any(target_arch = "riscv32", target_arch = "riscv64", target_env = "ohos")
     )
 ))]
 pub fn create_sandbox() {

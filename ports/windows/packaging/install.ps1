@@ -40,22 +40,49 @@ Write-Host "[3/4] Creating Start Menu and Desktop shortcuts..." -ForegroundColor
 $ExePath = Join-Path $TargetDir "servo_browser.exe"
 $WshShell = New-Object -ComObject WScript.Shell
 
-# Desktop shortcut
-$DesktopPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
-$DesktopShortcut = $WshShell.CreateShortcut((Join-Path $DesktopPath "Servo Browser.lnk"))
-$DesktopShortcut.TargetPath = $ExePath
-$DesktopShortcut.WorkingDirectory = $TargetDir
-$DesktopShortcut.Description = "Servo Modern Web Browser"
-$DesktopShortcut.Save()
+# CreateShortcut() reopens an existing .lnk and Save() preserves its old
+# explicit IconLocation. Always delete first, then set IconLocation ourselves,
+# otherwise an upgrade keeps showing the icon of a previous build.
+function New-ServoShortcut {
+    param([string]$Path)
+    if (Test-Path $Path) {
+        Remove-Item -Path $Path -Force -ErrorAction SilentlyContinue
+    }
+    $shortcut = $WshShell.CreateShortcut($Path)
+    $shortcut.TargetPath = $ExePath
+    $shortcut.WorkingDirectory = $TargetDir
+    $shortcut.Description = "Servo Modern Web Browser"
+    $shortcut.IconLocation = "$ExePath,0"
+    $shortcut.Save()
+}
 
-# Start Menu shortcut
+$DesktopPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+New-ServoShortcut -Path (Join-Path $DesktopPath "Servo Browser.lnk")
+
 $StartMenuPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Programs)
-$StartShortcut = $WshShell.CreateShortcut((Join-Path $StartMenuPath "Servo Browser.lnk"))
-$StartShortcut.TargetPath = $ExePath
-$StartShortcut.WorkingDirectory = $TargetDir
-$StartShortcut.Description = "Servo Modern Web Browser"
-$StartShortcut.Save()
-Write-Host "      Shortcuts created." -ForegroundColor Green
+New-ServoShortcut -Path (Join-Path $StartMenuPath "Servo Browser.lnk")
+
+# Taskbar pins are separate .lnk files under User Pinned. Repair any of those
+# that target this browser so an existing pin also drops the stale icon.
+$PinnedPath = Join-Path $env:APPDATA "Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
+if (Test-Path $PinnedPath) {
+    Get-ChildItem -Path $PinnedPath -Filter '*.lnk' -ErrorAction SilentlyContinue | ForEach-Object {
+        $existing = $WshShell.CreateShortcut($_.FullName)
+        if ($existing.TargetPath -and ($existing.TargetPath -ieq $ExePath)) {
+            $existing.IconLocation = "$ExePath,0"
+            $existing.Save()
+        }
+    }
+}
+
+# Tell Explorer to refresh icon/association caches immediately.
+Add-Type -Namespace ServoWin32 -Name Shell -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll")]
+public static extern void SHChangeNotify(int eventId, uint flags, System.IntPtr item1, System.IntPtr item2);
+'@
+[ServoWin32.Shell]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+try { & "$env:WINDIR\System32\ie4uinit.exe" -show | Out-Null } catch { }
+Write-Host "      Shortcuts created and icon cache refreshed." -ForegroundColor Green
 
 # 4. Register in Windows Add/Remove Programs
 Write-Host "[4/4] Registering in Windows Add/Remove Programs..." -ForegroundColor Yellow

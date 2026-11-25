@@ -12,8 +12,12 @@
 #include <windowsx.h>
 #include <commdlg.h>
 #include <algorithm>
+#include <cctype>
+#include <cstring>
+#include <cwchar>
 #include <deque>
 #include <memory>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -611,6 +615,95 @@ static const char* s_diagnosticsScript = R"JS(
 })();
 )JS";
 
+static std::string HtmlEscape(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char c : value) {
+        switch (c) {
+        case '&': escaped += "&amp;"; break;
+        case '<': escaped += "&lt;"; break;
+        case '>': escaped += "&gt;"; break;
+        case '"': escaped += "&quot;"; break;
+        case '\'': escaped += "&#39;"; break;
+        default: escaped += c; break;
+        }
+    }
+    return escaped;
+}
+
+static std::string UrlEncode(const std::string& value) {
+    static const char kHex[] = "0123456789ABCDEF";
+    std::string encoded;
+    encoded.reserve(value.size() * 3);
+    for (unsigned char c : value) {
+        bool unreserved =
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9') ||
+            c == '-' || c == '_' || c == '.' || c == '~';
+        if (unreserved) {
+            encoded += static_cast<char>(c);
+        } else {
+            encoded += '%';
+            encoded += kHex[c >> 4];
+            encoded += kHex[c & 0x0f];
+        }
+    }
+    return encoded;
+}
+
+static std::string AsciiLower(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+        return static_cast<char>(::tolower(c));
+    });
+    return value;
+}
+
+// Removes userinfo from a URL before it is displayed or logged. Credentials
+// must never be written to the debug log or embedded in an error page.
+static std::string RedactUrlForDisplay(const std::string& url) {
+    const size_t schemeEnd = url.find("://");
+    if (schemeEnd == std::string::npos) return url;
+    const size_t authorityStart = schemeEnd + 3;
+    const size_t pathStart = url.find_first_of("/?#", authorityStart);
+    const size_t at = url.find('@', authorityStart);
+    if (at == std::string::npos || (pathStart != std::string::npos && at > pathStart)) {
+        return url;
+    }
+    return url.substr(0, authorityStart) + "***@" + url.substr(at + 1);
+}
+
+// Scheme/host-derived only. This is a UI hint, not a TLS or certificate claim:
+// the C API's URL-change callback carries no certificate or security details.
+static bool IsSecureNavigationUrl(const std::string& url) {
+    const size_t schemeEnd = url.find("://");
+    if (schemeEnd == std::string::npos) return false;
+    const std::string scheme = AsciiLower(url.substr(0, schemeEnd));
+    if (scheme == "https") return true;
+    if (scheme != "http" && scheme != "ws" && scheme != "wss") return false;
+
+    size_t hostStart = schemeEnd + 3;
+    size_t hostEnd = url.find_first_of("/?#", hostStart);
+    if (hostEnd == std::string::npos) hostEnd = url.size();
+    std::string authority = url.substr(hostStart, hostEnd - hostStart);
+
+    // Strip userinfo so an attacker cannot use `http://localhost@evil.test`.
+    const size_t at = authority.rfind('@');
+    if (at != std::string::npos) authority = authority.substr(at + 1);
+
+    // Strip the port; IPv6 loopback keeps its brackets.
+    if (!authority.empty() && authority.front() == '[') {
+        const size_t close = authority.find(']');
+        if (close == std::string::npos) return false;
+        authority = authority.substr(0, close + 1);
+    } else {
+        const size_t colon = authority.rfind(':');
+        if (colon != std::string::npos) authority = authority.substr(0, colon);
+    }
+
+    const std::string host = AsciiLower(authority);
+    return host == "localhost" || host == "127.0.0.1" || host == "[::1]";
+}
+
 static void ConfigureUserContentManager(struct Servo* servo, ServoWebViewBuilder* builder) {
     if (!servo || !builder) return;
     auto* ucm = servo_user_content_manager_create(servo);
@@ -796,6 +889,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.struct_size = sizeof(ServoWebViewDelegate);
         delegate.user_data = this;
         delegate.notify_new_frame_ready = OnNewFrameReady;
+        delegate.notify_accessibility_tree_update = OnAccessibilityTreeUpdate;
         delegate.notify_url_changed = OnUrlChanged;
         delegate.notify_page_title_changed = OnTitleChanged;
         delegate.notify_load_status_changed = OnLoadStatusChanged;
@@ -813,6 +907,9 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
+        // The generated C header uses ServoPermissionType (an enum) where this
+        // host uses int32_t; the ABI is identical but C++ function-pointer types
+        // differ, so keep the explicit cast used by the existing delegate setup.
         delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
         delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
         delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
@@ -835,6 +932,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 
         m_webview = servo_webview_builder_build(builder);
         LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
+        MaybeEnableAccessibility();
         if (!m_webview) {
             LogDebug("Servo WebView build failed; the view will be empty until the window is recreated.");
         }
@@ -899,6 +997,7 @@ ServoViewHost::ServoViewHost(
             delegate.struct_size = sizeof(ServoWebViewDelegate);
             delegate.user_data = this;
             delegate.notify_new_frame_ready = OnNewFrameReady;
+            delegate.notify_accessibility_tree_update = OnAccessibilityTreeUpdate;
             delegate.notify_url_changed = OnUrlChanged;
             delegate.notify_page_title_changed = OnTitleChanged;
             delegate.notify_load_status_changed = OnLoadStatusChanged;
@@ -916,6 +1015,9 @@ ServoViewHost::ServoViewHost(
             delegate.show_console_message = reinterpret_cast<decltype(delegate.show_console_message)>(OnConsoleMessage);
             delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
             delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
+            // The generated C header uses ServoPermissionType (an enum) where
+            // this host uses int32_t; the ABI is identical but C++ function
+            // pointer types differ, so keep the explicit cast used above.
             delegate.request_permission = reinterpret_cast<decltype(delegate.request_permission)>(OnRequestPermission);
             delegate.request_create_new = reinterpret_cast<decltype(delegate.request_create_new)>(OnRequestCreateNew);
             delegate.notify_crashed = reinterpret_cast<decltype(delegate.notify_crashed)>(OnNotifyCrashed);
@@ -937,6 +1039,7 @@ ServoViewHost::ServoViewHost(
 
             m_webview = servo_webview_builder_build(builder);
             LogDebug("Popup WebView created: 0x%p", m_webview);
+            MaybeEnableAccessibility();
         }
     }
 }
@@ -1179,7 +1282,11 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 
     case WM_SETFOCUS:
         if (m_webview) {
+            // Keep the WebView focus state in sync with Win32 so Servo's
+            // AccessKit tree reports the correct focused node to the shell's
+            // UIA adapter.
             servo_webview_set_focused(m_webview, true);
+            MaybeEnableAccessibility();
         }
         return 0;
 
@@ -1188,6 +1295,14 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             servo_webview_set_focused(m_webview, false);
         }
         return 0;
+
+    case WM_SETTINGCHANGE:
+        // A screen reader can be started after the view is created, which
+        // makes accessibility cost-effective only at this later point.
+        if (lParam && ::wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"Accessibility") == 0) {
+            MaybeEnableAccessibility();
+        }
+        break;
 
     case WM_SETCURSOR:
         if (LOWORD(lParam) == HTCLIENT && m_currentCursor) {
@@ -1346,11 +1461,13 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         // Only forward true browser chrome shortcuts to the top-level BrowserWindow.
         // Editing keys (Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Ctrl+Y, Enter, etc.)
         // must remain with the active webview for typing, message submission, and text editing.
+        // Ctrl+Tab and Ctrl+Shift+Tab are forwarded as VK_TAB; the parent window
+        // inspects the modifier state to choose the tab direction.
         bool isBrowserShortcut = false;
         if (ctrl) {
             switch (wParam) {
             case 'T': case 'W': case 'R': case 'L': case 'E': case 'K':
-            case 'F': case 'J': case 'P': case 'U': case 'N': case 'H':
+            case 'F': case 'J': case 'P': case 'U': case 'N': case 'H': case 'D':
             case VK_OEM_COMMA: case VK_OEM_PLUS: case VK_OEM_MINUS: case VK_ADD:
             case VK_SUBTRACT: case '0': case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8': case '9': case VK_TAB:
@@ -1431,13 +1548,25 @@ void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    if (url) {
-        LogDebug("[NAV] url changed: %s", url);
+    if (!self || !url) return;
+    LogDebug("[NAV] url changed: %s", RedactUrlForDisplay(url).c_str());
+    std::string displayUrl = SchannelGateway::UnwrapUrl(url);
+    // A real navigation clears the guard so the next failure can show a fresh
+    // error page; loading the error page itself must not clear it.
+    if (displayUrl.compare(0, 29, "data:text/html;charset=utf-8,") != 0) {
+        self->m_lastFailedUrl.clear();
     }
-    if (self && self->m_browserWindow && url) {
-        std::string displayUrl = SchannelGateway::UnwrapUrl(url);
+    if (self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabUrlChanged(displayUrl.c_str());
     }
+    self->ReportNavigationSecurity(displayUrl);
+}
+
+void ServoViewHost::ReportNavigationSecurity(const std::string& url) {
+    if (!m_browserShell) return;
+    // Only scheme/host are available here; do not present this as a validated
+    // TLS state. A shell may upgrade it using its own certificate information.
+    m_browserShell->OnNavigationSecurityChanged(this, url, IsSecureNavigationUrl(url));
 }
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
@@ -1461,26 +1590,51 @@ void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status,
     }
 }
 
-void ServoViewHost::OnLoadError(struct WebView* webview, int32_t errorCode, const char* errorText, void* userData) {
+void ServoViewHost::OnLoadError(struct WebView* /*webview*/, int32_t errorCode, const char* errorText, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
-    std::string url = self ? self->GetUrl() : "";
-    OnLoadError(webview, url.c_str(), errorCode, errorText, userData);
+    if (!self) return;
+    // The 4-argument C callback has no URL parameter, so read it from the
+    // host-owned WebView rather than the temporary callback handle.
+    std::string url = self->GetUrl();
+    self->HandleLoadError(url.c_str(), errorCode, errorText);
 }
 
-void ServoViewHost::OnLoadError(struct WebView* webview, const char* url, int32_t errorCode, const char* errorText, void* userData) {
+void ServoViewHost::OnLoadError(struct WebView* /*webview*/, const char* url, int32_t errorCode, const char* errorText, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (!self) return;
+    self->HandleLoadError(url, errorCode, errorText);
+}
+
+void ServoViewHost::HandleLoadError(const char* url, int32_t errorCode, const char* errorText) {
+    const std::string urlString = url ? url : "";
+    const std::string safeUrl = RedactUrlForDisplay(urlString);
     LogDebug("[NET ERR] Load error url='%s', code=%d, text='%s'",
-             url ? url : "", errorCode, errorText ? errorText : "");
-    if (url && (strncmp(url, "servo://", 8) == 0 || strncmp(url, "servo:", 6) == 0 ||
-                strncmp(url, "chrome://", 9) == 0 || strncmp(url, "edge://", 7) == 0)) {
-        if (self && self->m_browserWindow) {
-            self->m_browserWindow->NavigateUrl(url);
-            return;
+             safeUrl.c_str(), errorCode, errorText ? errorText : "");
+
+    // Internal pages are generated locally; a transient load error must not
+    // replace them with a generic error page.
+    if (urlString.compare(0, 8, "servo://") == 0 || urlString.compare(0, 6, "servo:") == 0 ||
+        urlString.compare(0, 9, "chrome://") == 0 || urlString.compare(0, 7, "edge://") == 0 ||
+        urlString.compare(0, 5, "data:") == 0) {
+        if (m_browserWindow && urlString.compare(0, 5, "data:") != 0) {
+            m_browserWindow->NavigateUrl(urlString);
         }
+        return;
     }
-    if (self && self->m_browserWindow && errorCode < 0) {
-        self->m_browserWindow->OnActiveTabLoadStatusChanged(-1);
+
+    if (m_browserWindow && errorCode < 0) {
+        m_browserWindow->OnActiveTabLoadStatusChanged(-1);
     }
+    if (m_browserShell) {
+        m_browserShell->OnNavigationError(this, safeUrl, errorCode, errorText ? errorText : "");
+    }
+
+    // Build an in-memory error page: this keeps the fix inside the view host
+    // and avoids a dependency on a BrowserData helper that does not exist yet.
+    if (!m_webview || m_lastFailedUrl == urlString) return;
+    const std::string errorPage = BuildErrorPageUrl(urlString, errorCode, errorText);
+    m_lastFailedUrl = urlString;
+    servo_webview_load(m_webview, errorPage.c_str());
 }
 
 void ServoViewHost::OnCursorChanged(struct WebView* webview, int32_t cursorType, void* userData) {
@@ -1499,6 +1653,31 @@ void ServoViewHost::OnFaviconChanged(struct WebView* webview, const char* url, v
     }
 }
 
+static bool LooksLikeEncodedImage(const std::vector<uint8_t>& buffer) {
+    static const uint8_t kPng[] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n' };
+    static const uint8_t kIco[] = { 0x00, 0x00, 0x01, 0x00 };
+    static const uint8_t kCur[] = { 0x00, 0x00, 0x02, 0x00 };
+    static const uint8_t kJpeg[] = { 0xff, 0xd8, 0xff };
+    static const uint8_t kGif87[] = { 'G', 'I', 'F', '8', '7', 'a' };
+    static const uint8_t kGif89[] = { 'G', 'I', 'F', '8', '9', 'a' };
+    static const uint8_t kBmp[] = { 'B', 'M' };
+    static const uint8_t kWebp[] = { 'R', 'I', 'F', 'F' };
+
+    auto startsWith = [&buffer](const uint8_t* magic, size_t count) {
+        return buffer.size() >= count && std::memcmp(buffer.data(), magic, count) == 0;
+    };
+    if (startsWith(kPng, sizeof(kPng)) || startsWith(kIco, sizeof(kIco)) ||
+        startsWith(kCur, sizeof(kCur)) || startsWith(kJpeg, sizeof(kJpeg)) ||
+        startsWith(kGif87, sizeof(kGif87)) || startsWith(kGif89, sizeof(kGif89)) ||
+        startsWith(kBmp, sizeof(kBmp)) || startsWith(kWebp, sizeof(kWebp))) {
+        return true;
+    }
+    // SVG is text; detect both bare and XML-prolog forms.
+    if (buffer.size() >= 4 && std::memcmp(buffer.data(), "<svg", 4) == 0) return true;
+    if (buffer.size() >= 5 && std::memcmp(buffer.data(), "<?xml", 5) == 0) return true;
+    return false;
+}
+
 void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
     if (!m_webview) return;
     uint32_t width = 0;
@@ -1508,12 +1687,14 @@ void ServoViewHost::HandleFaviconChanged(const char* /*url*/) {
     ServoError err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, nullptr, &len);
     if ((err == SERVO_ERROR_CAPACITY || err == SERVO_ERROR_OK) && len > 0 && width > 0 && height > 0) {
         size_t requiredBytes = (size_t)width * height * 4;
-        if (len < requiredBytes) {
-            // Buffer does not contain uncompressed raw RGBA pixels (e.g. encoded ICO/PNG/SVG)
-            return;
-        }
+        // A byte length large enough for raw pixels is not sufficient: encoded
+        // ICO/PNG/SVG payloads can exceed width*height*4. Detect their magic
+        // before treating the buffer as BGRA/RGBA. WIC is not linked in the
+        // Windows shell projects, so decoding is left to a shell-side hook.
+        if (len < requiredBytes) return;
         std::vector<uint8_t> buffer(len);
         err = (ServoError)servo_webview_get_favicon_image(m_webview, &width, &height, &format, buffer.data(), &len);
+        if (LooksLikeEncodedImage(buffer)) return;
         if (err == SERVO_ERROR_OK && buffer.size() >= requiredBytes) {
             BITMAPINFO bmi = {};
             bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -1590,7 +1771,14 @@ void ServoViewHost::OnConfirmDialog(struct WebView* webview, const char* message
 }
 
 void ServoViewHost::OnPromptDialog(struct WebView* webview, const char* message, const char* defaultVal, void (*callback)(const char*, void*), void* userData) {
-    // For prompt, return default value
+    auto self = FromWebView(webview);
+    // `userData` is the one-shot Rust responder, not the delegate user_data.
+    // If a shell owns prompt UI it must call this exactly once; otherwise the
+    // host answers immediately so the responder is always consumed once.
+    if (self && self->m_browserShell &&
+        self->m_browserShell->RequestPrompt(self, message ? message : "", defaultVal ? defaultVal : "", callback, userData)) {
+        return;
+    }
     if (callback) callback(defaultVal ? defaultVal : "", userData);
 }
 
@@ -1621,69 +1809,151 @@ void ServoViewHost::OnFilePicker(struct WebView* webview, bool allowMultiple, vo
     }
 }
 
+static void CopyUtf8ToClipboard(const std::string& text) {
+    const std::wstring wide = Utf8ToWide(text.c_str());
+    if (wide.empty() || !OpenClipboard(nullptr)) return;
+    const size_t bytes = (wide.size() + 1) * sizeof(wchar_t);
+    HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
+    if (!memory) {
+        CloseClipboard();
+        return;
+    }
+    wchar_t* destination = static_cast<wchar_t*>(GlobalLock(memory));
+    if (destination) {
+        std::memcpy(destination, wide.c_str(), bytes);
+        GlobalUnlock(memory);
+        EmptyClipboard();
+        if (!SetClipboardData(CF_UNICODETEXT, memory)) {
+            GlobalFree(memory);
+        }
+    } else {
+        GlobalFree(memory);
+    }
+    CloseClipboard();
+}
+
+void ServoViewHost::InjectEditShortcut(const char* key, const char* code, uint32_t modifiers) {
+    if (!m_webview) return;
+    servo_webview_notify_key_event(
+        m_webview, SERVO_KEY_EVENT_DOWN, key, code, 0, modifiers, false, false
+    );
+    servo_webview_notify_key_event(
+        m_webview, SERVO_KEY_EVENT_UP, key, code, 0, modifiers, false, false
+    );
+}
+
+void ServoViewHost::ExecuteContextCommand(int command) {
+    // Menu IDs 3..10 deliberately match SERVO_CONTEXT_MENU_ACTION_* so the
+    // target actions stay in sync with the engine's enum. Navigation and other
+    // host-only actions use 200+ (and 100+ for page tools); ID 0 is reserved by
+    // TrackPopupMenuEx for dismissal and is never assigned to an item.
+    switch (command) {
+    case 200: GoBack(); break;
+    case 201: GoForward(); break;
+    case 202: Reload(); break;
+    case 3: CopyUtf8ToClipboard(m_contextMenu.linkUrl); break;
+    case 4:
+        if (m_browserWindow && !m_contextMenu.linkUrl.empty()) {
+            m_browserWindow->OpenUrlInNewTab(m_contextMenu.linkUrl);
+        }
+        break;
+    case 5: CopyUtf8ToClipboard(m_contextMenu.imageUrl); break;
+    case 6:
+        if (m_browserWindow && !m_contextMenu.imageUrl.empty()) {
+            m_browserWindow->OpenUrlInNewTab(m_contextMenu.imageUrl);
+        }
+        break;
+    case 7: InjectEditShortcut("x", "KeyX", SERVO_MODIFIER_CONTROL); break;
+    case 8: InjectEditShortcut("c", "KeyC", SERVO_MODIFIER_CONTROL); break;
+    case 9: InjectEditShortcut("v", "KeyV", SERVO_MODIFIER_CONTROL); break;
+    case 10: InjectEditShortcut("a", "KeyA", SERVO_MODIFIER_CONTROL); break;
+    case 100:
+        if (m_browserWindow) m_browserWindow->PrintPage();
+        break;
+    case 101:
+        if (m_browserWindow) {
+            m_browserWindow->OpenUrlInNewTab("view-source:" + GetUrl());
+        }
+        break;
+    case 102:
+        if (m_browserWindow) m_browserWindow->OpenDevTools();
+        break;
+    case 103:
+        if (m_browserWindow) m_browserWindow->OpenSettings();
+        break;
+    default: break;
+    }
+}
+
 void ServoViewHost::ShowContextMenu(int screenX, int screenY) {
     HMENU hMenu = CreatePopupMenu();
     if (!hMenu) return;
 
-    AppendMenuW(hMenu, MF_STRING | (CanGoBack() ? MF_ENABLED : MF_GRAYED), 1, L"Back\tAlt+Left");
-    AppendMenuW(hMenu, MF_STRING | (CanGoForward() ? MF_ENABLED : MF_GRAYED), 2, L"Forward\tAlt+Right");
-    AppendMenuW(hMenu, MF_STRING, 3, L"Reload\tF5");
+    // Servo's context-menu params are only valid during the delegate callback,
+    // so use a short-lived deep copy to decide which target actions to show.
+    const bool haveTarget = m_contextMenu.valid &&
+        (GetTickCount64() - m_contextMenu.timestampMs) <= 2000;
+    // ContextMenuElementInformationFlags: Link=1<<1, Image=1<<2,
+    // EditableText=1<<3, Selection=1<<4.
+    const bool isLink = haveTarget && (m_contextMenu.flags & (1u << 1)) != 0;
+    const bool isImage = haveTarget && (m_contextMenu.flags & (1u << 2)) != 0;
+    const bool isEditable = haveTarget && (m_contextMenu.flags & (1u << 3)) != 0;
+    const bool hasSelection = haveTarget && (m_contextMenu.flags & (1u << 4)) != 0;
+
+    if (isLink && !m_contextMenu.linkUrl.empty()) {
+        AppendMenuW(hMenu, MF_STRING, 3, L"Copy link address");
+        AppendMenuW(hMenu, MF_STRING, 4, L"Open link in new tab");
+    }
+    if (isImage && !m_contextMenu.imageUrl.empty()) {
+        AppendMenuW(hMenu, MF_STRING, 5, L"Copy image address");
+        AppendMenuW(hMenu, MF_STRING, 6, L"Open image in new tab");
+    }
+    if (isEditable || hasSelection) {
+        if (isEditable) AppendMenuW(hMenu, MF_STRING, 7, L"Cut\tCtrl+X");
+        AppendMenuW(hMenu, MF_STRING, 8, L"Copy\tCtrl+C");
+        if (isEditable) AppendMenuW(hMenu, MF_STRING, 9, L"Paste\tCtrl+V");
+        AppendMenuW(hMenu, MF_STRING, 10, L"Select All\tCtrl+A");
+    }
+    if (haveTarget) AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+
+    AppendMenuW(hMenu, MF_STRING | (CanGoBack() ? MF_ENABLED : MF_GRAYED), 200, L"Back\tAlt+Left");
+    AppendMenuW(hMenu, MF_STRING | (CanGoForward() ? MF_ENABLED : MF_GRAYED), 201, L"Forward\tAlt+Right");
+    AppendMenuW(hMenu, MF_STRING, 202, L"Reload\tF5");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(hMenu, MF_STRING, 4, L"Copy\tCtrl+C");
-    AppendMenuW(hMenu, MF_STRING, 6, L"Select All\tCtrl+A");
+    AppendMenuW(hMenu, MF_STRING, 100, L"Print...\tCtrl+P");
+    AppendMenuW(hMenu, MF_STRING, 101, L"View Page Source\tCtrl+U");
+    AppendMenuW(hMenu, MF_STRING, 102, L"Inspect Element\tF12");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(hMenu, MF_STRING, 7, L"View Page Source\tCtrl+U");
-    AppendMenuW(hMenu, MF_STRING, 5, L"Inspect Element\tF12");
-    AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(hMenu, MF_STRING, 8, L"Settings...\tCtrl+,");
+    AppendMenuW(hMenu, MF_STRING, 103, L"Settings...\tCtrl+,");
 
     int cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screenX, screenY, m_hwnd, nullptr);
     DestroyMenu(hMenu);
-
     if (cmd == 0) return;
 
-    switch (cmd) {
-    case 1:
-        if (m_browserWindow) m_browserWindow->NavigateBack();
-        break;
-    case 2:
-        if (m_browserWindow) m_browserWindow->NavigateForward();
-        break;
-    case 3:
-        if (m_browserWindow) m_browserWindow->NavigateReload();
-        break;
-    case 4:
-        SendMessageW(m_hwnd, WM_COPY, 0, 0);
-        break;
-    case 5:
-        if (m_browserWindow) m_browserWindow->OpenDevTools();
-        break;
-    case 6:
-        if (m_webview) {
-            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_DOWN, "a", "KeyA", 0, SERVO_MODIFIER_CONTROL, false, false);
-            servo_webview_notify_key_event(m_webview, SERVO_KEY_EVENT_UP, "a", "KeyA", 0, SERVO_MODIFIER_CONTROL, false, false);
-        }
-        break;
-    case 7:
-        if (m_browserWindow) {
-            std::string srcUrl = "view-source:" + GetUrl();
-            m_browserWindow->OpenUrlInNewTab(srcUrl);
-        }
-        break;
-    case 8:
-        if (m_browserWindow) {
-            m_browserWindow->OpenSettings();
-        }
-        break;
-    }
+    // The popup owns focus while its modal loop runs; give it back to the view
+    // before emulating editing shortcuts.
+    ::SetFocus(m_hwnd);
+    if (m_webview) servo_webview_set_focused(m_webview, true);
+    ExecuteContextCommand(cmd);
 }
 
 void ServoViewHost::OnContextMenu(struct WebView* webview, const struct ServoContextMenuParams* params, void (*callback)(int32_t, void*), void* userData) {
-    (void)webview;
-    (void)params;
-    // -1 is SERVO_CONTEXT_MENU_ACTION_DISMISS. The host already renders its own
-    // menu from WM_RBUTTONUP/WM_CONTEXTMENU, so this control is answered as
-    // dismissed instead of opening a second one.
+    // userData is the one-shot Rust responder, not the delegate user_data.
+    auto self = FromWebView(webview);
+    if (self && params) {
+        // Deep-copy only the fields needed by the host menu; the Rust-owned
+        // strings and item array are invalid once this callback returns.
+        self->m_contextMenu.valid = true;
+        self->m_contextMenu.timestampMs = GetTickCount64();
+        self->m_contextMenu.flags = params->flags;
+        self->m_contextMenu.linkUrl = params->link_url ? params->link_url : "";
+        self->m_contextMenu.imageUrl = params->image_url ? params->image_url : "";
+    }
+    // -1 is SERVO_CONTEXT_MENU_ACTION_DISMISS. The host renders one native
+    // menu from WM_RBUTTONUP/WM_CONTEXTMENU and emulates engine actions itself,
+    // so answering DISMISS here prevents a second menu and a dangling callback.
+    // The C params expose flags/link/image URLs but no selected text and no
+    // save-image action, so those host actions are not offered.
     if (callback) callback(-1, userData);
 }
 
@@ -1719,21 +1989,27 @@ void ServoViewHost::OnDownloadUpdated(struct WebView* webview, struct ServoDownl
 }
 
 void ServoViewHost::OnRequestPermission(
-    struct WebView* /*webview*/,
+    struct WebView* webview,
     const char* origin,
     int32_t permission,
     void (*callback)(bool, void*),
-    void* callbackUserData,
-    void* /*userData*/
+    void* userData
 ) {
-    // No permission UI exists yet. Granting geolocation, camera, microphone,
-    // notifications, etc. silently is a privacy/security bug, so fail closed.
-    // A real per-origin permission prompt is tracked for the feature phase.
-    LogDebug("[PERMISSION] Denied type=%d for origin '%s' (no permission UI yet)",
-             permission, origin ? origin : "");
-    if (callback) {
-        callback(false, callbackUserData);
+    // The C callback's userData is the one-shot responder. Resolve the host
+    // from the webview handle, which is valid for this callback only. The C API
+    // currently supplies an empty origin string, so shells must not rely on it
+    // for an origin-specific decision without extending the API.
+    auto self = FromWebView(webview);
+    if (self && self->m_browserShell &&
+        self->m_browserShell->RequestPermission(self, origin ? origin : "", permission, callback, userData)) {
+        return;
     }
+    // No permission UI is available in the host itself. Granting geolocation,
+    // camera, microphone, notifications, etc. silently would be a privacy bug,
+    // so fail closed unless a shell explicitly grants the request.
+    LogDebug("[PERMISSION] Denied type=%d for origin '%s' (no permission UI)",
+             permission, origin ? origin : "");
+    if (callback) callback(false, userData);
 }
 
 bool ServoViewHost::OnRequestCreateNew(
@@ -1791,7 +2067,7 @@ void ServoViewHost::OnFindResult(
 }
 
 void ServoViewHost::OnRequestAuthentication(
-    struct WebView* /*webview*/,
+    struct WebView* webview,
     const char* host,
     int32_t port,
     const char* realm,
@@ -1804,7 +2080,16 @@ void ServoViewHost::OnRequestAuthentication(
              realm ? realm : "none");
     if (!callback) return;
 
-    // Default to cancelling HTTP auth if user dismisses or no credentials
+    auto self = FromWebView(webview);
+    if (self && self->m_browserShell &&
+        self->m_browserShell->RequestAuthentication(
+            self, host ? host : "", port, realm ? realm : "", callback, userData)) {
+        return;
+    }
+    // C API limitation: the Rust trampoline maps NULL credentials to empty
+    // strings and calls authenticate(), so this is a best-effort cancel rather
+    // than a guaranteed abort. A shell-owned auth dialog should supply real
+    // credentials or extend the C API with an explicit cancel result.
     callback(nullptr, nullptr, userData);
 }
 
@@ -1824,6 +2109,73 @@ void ServoViewHost::EvaluateJavaScript(const std::string& script) {
     if (m_webview && !script.empty()) {
         servo_webview_evaluate_javascript(m_webview, script.c_str(), OnJsEvalCallback, nullptr);
     }
+}
+
+int ServoViewHost::Find(const char* text, bool forward, bool matchCase) {
+    return Find(text, forward, matchCase, false);
+}
+
+int ServoViewHost::Find(const char* text, bool forward, bool matchCase, bool wholeWord) {
+    // servo_webview_find(webview, text, forward, match_case) has no whole-word
+    // flag. Accept it so callers can keep one find-options code path, but do
+    // not pretend the engine honours it.
+    (void)wholeWord;
+    if (!m_webview || !text || !*text) return -1;
+    return servo_webview_find(m_webview, text, forward, matchCase);
+}
+
+void ServoViewHost::MaybeEnableAccessibility() {
+    if (!m_servo || !m_webview || m_accessibilityActive) return;
+
+    // Avoid the cost of an AccessKit tree unless a Windows screen reader is
+    // active. The shell owns the UIA platform adapter; this host owns the
+    // delegate hook and lifecycle of the ServoValue payload.
+    BOOL screenReader = FALSE;
+    if (!SystemParametersInfoW(SPI_GETSCREENREADER, 0, &screenReader, 0) || !screenReader) {
+        return;
+    }
+    servo_set_preference_bool(m_servo, "accessibility_enabled", true);
+    servo_webview_set_accessibility_active(m_webview, true);
+    m_accessibilityActive = true;
+}
+
+void ServoViewHost::OnAccessibilityTreeUpdate(
+    struct WebView* /*webview*/,
+    struct ServoValue* treeUpdate,
+    void* userData
+) {
+    auto self = reinterpret_cast<ServoViewHost*>(userData);
+    if (self && self->m_browserShell && treeUpdate) {
+        self->m_browserShell->OnAccessibilityTreeUpdate(self, treeUpdate);
+    }
+    // The callback owns the payload; the shell must consume it synchronously.
+    if (treeUpdate) {
+        servo_value_free(treeUpdate);
+    }
+}
+
+std::string ServoViewHost::BuildErrorPageUrl(
+    const std::string& url,
+    int32_t errorCode,
+    const char* errorText
+) const {
+    std::ostringstream code;
+    code << errorCode;
+    std::ostringstream html;
+    html << "<!doctype html><html><head><meta charset=\"utf-8\">"
+         << "<title>Navigation error</title><style>"
+         << "body{font:16px 'Segoe UI',sans-serif;background:#1b1b1f;color:#f3f3f3;"
+         << "max-width:720px;margin:10vh auto;padding:24px;line-height:1.5}"
+         << "h1{font-size:24px}a{color:#8ab4f8}</style></head><body>"
+         << "<h1>This page could not be loaded</h1>"
+         << "<p><strong>Address:</strong> " << HtmlEscape(RedactUrlForDisplay(url)) << "</p>"
+         << "<p><strong>Error code:</strong> " << HtmlEscape(code.str()) << "</p>";
+    if (errorText && *errorText) {
+        html << "<p><strong>Details:</strong> " << HtmlEscape(errorText) << "</p>";
+    }
+    html << "<p><a href=\"" << HtmlEscape(RedactUrlForDisplay(url)) << "\">Try again</a></p>"
+         << "</body></html>";
+    return "data:text/html;charset=utf-8," + UrlEncode(html.str());
 }
 
 void ServoViewHost::OnClipboardClear(struct WebView* /*webview*/, void* /*userData*/) {

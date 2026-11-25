@@ -29,10 +29,19 @@
 #define DWMSBT_TABBEDWINDOW 4 // Mica Alt
 #endif
 
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
+#endif
+
+#ifndef DWMWCP_ROUND
+#define DWMWCP_ROUND 2
+#endif
+
 static const wchar_t* BROWSER_WINDOW_CLASS_NAME = L"ServoBrowserMainWindow";
 static const int TAB_STRIP_HEIGHT = 38;
 static const int OMNIBOX_HEIGHT = 44;
 static const int TOP_CHROME_HEIGHT = TAB_STRIP_HEIGHT + OMNIBOX_HEIGHT; // 82px (Tabs + Omnibox)
+static const int VERTICAL_TAB_WIDTH = 220;
 
 void ServoSpinEventLoopOnce(struct Servo* servo) {
     static thread_local bool spinning = false;
@@ -267,6 +276,8 @@ void BrowserWindow::RefreshDwmFrame() {
     DwmSetWindowAttribute(m_hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
     BOOL darkMode = m_isDark ? TRUE : FALSE;
     DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+    int corner = DWMWCP_ROUND;
+    DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
     MARGINS margins = { -1 };
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 }
@@ -283,16 +294,26 @@ void BrowserWindow::ApplyMicaAltTheme() {
     HRESULT hr = DwmSetWindowAttribute(m_hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
     LogDebug("DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_TABBEDWINDOW) returned 0x%08X", hr);
 
-    // 3. Extend frame into client area for seamless titlebar
+    // 3. Rounded window corners - the Win11 look extends to the frame edges.
+    int corner = DWMWCP_ROUND;
+    hr = DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
+    LogDebug("DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND) returned 0x%08X", hr);
+
+    // 4. Extend frame into client area for seamless titlebar
     MARGINS margins = { -1 };
     hr = DwmExtendFrameIntoClientArea(m_hwnd, &margins);
     LogDebug("DwmExtendFrameIntoClientArea returned 0x%08X", hr);
 }
 
 void BrowserWindow::SyncDarkMode() {
-    BOOL darkMode = TRUE; // Default to dark for modern Mica Alt
+    // Follow the OS "Choose your mode" setting instead of forcing dark. The
+    // browser's own theme setting can still override this in ApplySettings().
+    m_isDark = !fluent::SystemUsesLightTheme();
+    BOOL darkMode = m_isDark ? TRUE : FALSE;
     DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
-    m_isDark = darkMode != FALSE;
+    if (m_hwnd) {
+        InvalidateRect(m_hwnd, nullptr, TRUE);
+    }
 
     if (m_tabStrip) {
         m_tabStrip->SetDarkMode(m_isDark);
@@ -317,7 +338,6 @@ void BrowserWindow::LayoutChildren() {
     int width = rc.right;
     int height = rc.bottom;
 
-    const int VERTICAL_TAB_WIDTH = 220;
     // The vertical tab strip is a floating card: keep a small gap so the
     // Mica Alt backdrop is visible around its rounded edges.
     const int FLOAT_GAP = 8;
@@ -368,6 +388,13 @@ void BrowserWindow::LayoutChildren() {
     if (m_downloadManager) {
         m_downloadManager->SetBounds(width - 380, 88, 360, 240);
     }
+
+    // Child chrome windows register with hbrBackground = nullptr, so a geometry
+    // change leaves the parent pixels they vacated stale. Invalidate the whole
+    // client so WM_PAINT can redraw the exposed rail and gutters.
+    if (m_hwnd) {
+        InvalidateRect(m_hwnd, nullptr, TRUE);
+    }
 }
 
 void BrowserWindow::ToggleVerticalTabs() {
@@ -379,7 +406,12 @@ void BrowserWindow::SetVerticalTabs(bool enable) {
         m_verticalTabs = enable;
         LayoutChildren();
         if (m_hwnd) {
-            InvalidateRect(m_hwnd, nullptr, TRUE);
+            // The omnibox and webview move sideways when this toggles. Force a
+            // synchronous repaint of the parent AND every child so the area the
+            // chrome vacated cannot retain stale pixels behind the floating
+            // tab card (the old behaviour that looked like a "glitch").
+            RedrawWindow(m_hwnd, nullptr, nullptr,
+                         RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
         }
     }
 }
@@ -717,6 +749,12 @@ void BrowserWindow::ApplySettings(const BrowserSettings& settings) {
         m_isDark = true;
     } else {
         SyncDarkMode();
+    }
+    // Keep the window frame/caption in sync with an explicit light/dark choice.
+    BOOL darkMode = m_isDark ? TRUE : FALSE;
+    DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+    if (m_hwnd) {
+        InvalidateRect(m_hwnd, nullptr, TRUE);
     }
     if (m_tabStrip) m_tabStrip->SetDarkMode(m_isDark);
     if (m_omnibox) m_omnibox->SetDarkMode(m_isDark);
@@ -1203,8 +1241,29 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         RECT rc;
         GetClientRect(m_hwnd, &rc);
         int width = rc.right;
+        int height = rc.bottom;
 
         auto colors = m_isDark ? fluent::GetDarkColors() : fluent::GetLightColors();
+
+        // In vertical-tabs mode the omnibox and webview start at
+        // VERTICAL_TAB_WIDTH, leaving the left rail below the title bar to the
+        // parent. The children have no background brush, so until now the rail
+        // kept the pixels of the old docked layout behind the floating card.
+        // BeginPaint clips child windows out of the DC, so this fill cannot
+        // paint over live chrome - it only clears the vacated area.
+        if (m_verticalTabs && width > 0 && height > TAB_STRIP_HEIGHT) {
+            RECT rail = { 0, TAB_STRIP_HEIGHT, VERTICAL_TAB_WIDTH, height };
+            HBRUSH railBrush = CreateSolidBrush(colors.LayerBackground);
+            FillRect(hdc, &rail, railBrush);
+            DeleteObject(railBrush);
+
+            HPEN edgePen = CreatePen(PS_SOLID, 1, colors.TabBorder);
+            HGDIOBJ oldEdgePen = SelectObject(hdc, edgePen);
+            MoveToEx(hdc, VERTICAL_TAB_WIDTH - 1, TAB_STRIP_HEIGHT, nullptr);
+            LineTo(hdc, VERTICAL_TAB_WIDTH - 1, height);
+            SelectObject(hdc, oldEdgePen);
+            DeleteObject(edgePen);
+        }
 
         // Render the custom title bar when vertical tabs are active. This is
         // the only place caption controls are drawn now (the native caption

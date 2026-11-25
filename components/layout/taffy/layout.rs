@@ -168,8 +168,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     .layout_style()
                     .content_box_sizes_and_padding_border_margin(&child_containing_block);
                 let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
-                let margin_sum = pbm.margin.auto_is(Au::zero).sum().map(|v| v.to_f32_px());
-                let content_box_inset = pb_sum + margin_sum;
                 let content_box_known_dimensions = taffy::Size {
                     width: inputs
                         .known_dimensions
@@ -203,7 +201,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     let adjusted_available_space = inputs
                         .available_space
                         .width
-                        .map_definite_value(|width| width - content_box_inset.inline);
+                        .map_definite_value(|width| width - pb_sum.inline);
 
                     resolve_content_size(adjusted_available_space, result.sizes)
                 });
@@ -341,7 +339,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
 
             known_dimensions_are_definite: taffy::Size {
                 width: true,
-                height: true,
+                height: content_box_size_override.size.block.to_definite().is_some(),
             },
             known_dimensions: taffy::Size::NONE,
             parent_size: taffy::Size::NONE,
@@ -355,7 +353,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
 
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
-                inline: Au::zero(),
+                inline: SizeConstraint::default(),
                 block: SizeConstraint::default(),
             },
             style,
@@ -458,7 +456,7 @@ impl TaffyContainer {
 
             known_dimensions_are_definite: taffy::Size {
                 width: true,
-                height: true,
+                height: content_box_size_override.size.block.to_definite().is_some(),
             },
             known_dimensions,
             parent_size: taffy_containing_block,

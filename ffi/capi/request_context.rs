@@ -68,7 +68,12 @@ pub struct ServoRequestContext {
 pub extern "C" fn servo_request_context_create() -> *mut ServoRequestContext {
     ServoError::catch_ffi_ptr(|| {
         let ctx = RequestContext::new();
-        Box::into_raw(Box::new(ServoRequestContext { inner: ctx }))
+        let handle = Box::into_raw(Box::new(ServoRequestContext { inner: ctx }));
+        crate::handle_registry::register(
+            handle,
+            crate::handle_registry::HandleKind::RequestContext,
+        );
+        handle
     })
 }
 
@@ -93,6 +98,13 @@ pub unsafe extern "C" fn servo_request_context_free(
     ServoError::catch_ffi(|| {
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -134,6 +146,13 @@ pub unsafe extern "C" fn servo_request_context_set_cache_path(
     ServoError::catch_ffi(|| {
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         let cache_path = if path.is_null() {
@@ -186,6 +205,13 @@ pub unsafe extern "C" fn servo_request_context_set_cookie_path(
     ServoError::catch_ffi(|| {
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         let cookie_path = if path.is_null() {
@@ -247,6 +273,13 @@ pub unsafe extern "C" fn servo_request_context_set_proxy_config(
         }
         if config.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -337,6 +370,13 @@ pub unsafe extern "C" fn servo_request_context_set_accept_language(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         let accept_language = if lang.is_null() {
             None
         } else {
@@ -395,6 +435,19 @@ pub unsafe extern "C" fn servo_builder_set_request_context(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::is_live(builder, crate::handle_registry::HandleKind::Builder) {
+            return ServoError::InvalidArgument;
+        }
+
+        // W2.5: this call consumes the `context` handle, so forget it in the
+        // registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `builder` and `context` documented above.
         unsafe {
@@ -444,6 +497,22 @@ pub unsafe extern "C" fn servo_webview_builder_set_request_context(
         }
         if context.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
+        // W2.5: this call consumes the `context` handle, so forget it in the
+        // registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RequestContext,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements

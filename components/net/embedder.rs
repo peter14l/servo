@@ -48,8 +48,8 @@ pub enum NetToEmbedderMsg {
     RequestCertificateError(
         WebViewId,
         ServoUrl,
-        i32, /* error_code */
-        String, /* error_text */
+        i32,     /* error_code */
+        String,  /* error_text */
         Vec<u8>, /* certificate_der */
         TokioOneshotSender<CertificateErrorResponse>,
     ),

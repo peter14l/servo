@@ -67,10 +67,8 @@ impl InputEvent {
     }
 
     pub(crate) fn set_target_ranges(&self, target_ranges: Vec<DomRoot<StaticRange>>) {
-        *self.target_ranges.borrow_mut() = target_ranges
-            .iter()
-            .map(|r| Dom::from_ref(&**r))
-            .collect();
+        *self.target_ranges.borrow_mut() =
+            target_ranges.iter().map(|r| Dom::from_ref(&**r)).collect();
     }
 }
 

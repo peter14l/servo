@@ -47,7 +47,13 @@ def parse_memory_report(lines):
             while parents and parents[-1][1] >= separator_index:
                 parents.pop()
 
-        amount, unit, _, name = line.split()
+        try:
+            parts = line.split(None, 3)
+            if len(parts) < 4:
+                continue
+            amount, unit, _, name = parts
+        except Exception:
+            continue
 
         dest_report = reports
         for parent, index in parents:

@@ -6,7 +6,8 @@ use std::ffi::c_char;
 
 use servo_api::Servo;
 
-use crate::{ServoError, value::write_json_string, write_c_string};
+use crate::value::write_json_string;
+use crate::{ServoError, write_c_string};
 
 /// Opaque handle for the NetworkManager.
 ///
@@ -40,11 +41,13 @@ pub struct ServoNetworkManager {
 ///   returned by `servo_builder_build` and has not yet been freed.
 /// - The call is made from the same thread that created the `Servo` instance.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_get_network_manager(
-    servo: *mut Servo,
-) -> *mut ServoNetworkManager {
+pub unsafe extern "C" fn servo_get_network_manager(servo: *mut Servo) -> *mut ServoNetworkManager {
     ServoError::catch_ffi_ptr(|| {
         if servo.is_null() {
+            return std::ptr::null_mut();
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
             return std::ptr::null_mut();
         }
 
@@ -88,8 +91,7 @@ pub unsafe extern "C" fn servo_network_manager_free(
 /// Gets the cache entry keys (URLs) as a JSON array string using the
 /// buffer-query pattern.
 ///
-/// Writes a JSON array of strings, e.g. `["https://example.com/","https://servo.org/"]`,
-/// into `buffer`. Returns the number of bytes required (including the NUL
+/// Writes a JSON array of URL strings into `buffer`. Returns the number of bytes required (including the NUL
 /// terminator). If `buffer` is `NULL` or `buffer_len` is too small, nothing is
 /// written and the required length is returned.
 ///
@@ -111,30 +113,32 @@ pub unsafe extern "C" fn servo_network_manager_get_cache_entries(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if manager.is_null() {
-        return 0;
-    }
-
-    // SAFETY: The caller is assumed to uphold the safety requirements above.
-    let manager = unsafe { &*manager };
-
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let entries = manager.servo.network_manager().cache_entries();
-
-        let mut output = String::new();
-        output.push('[');
-        for (index, entry) in entries.iter().enumerate() {
-            if index > 0 {
-                output.push(',');
-            }
-            write_json_string(entry.key(), &mut output);
+    ServoError::catch_ffi_usize(|| {
+        if manager.is_null() {
+            return 0;
         }
-        output.push(']');
 
         // SAFETY: The caller is assumed to uphold the safety requirements above.
-        unsafe { write_c_string(&output, buffer, buffer_len) }
-    }))
-    .unwrap_or(0)
+        let manager = unsafe { &*manager };
+
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let entries = manager.servo.network_manager().cache_entries();
+
+            let mut output = String::new();
+            output.push('[');
+            for (index, entry) in entries.iter().enumerate() {
+                if index > 0 {
+                    output.push(',');
+                }
+                write_json_string(entry.key(), &mut output);
+            }
+            output.push(']');
+
+            // SAFETY: The caller is assumed to uphold the safety requirements above.
+            unsafe { write_c_string(&output, buffer, buffer_len) }
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Clears the network (HTTP) cache.

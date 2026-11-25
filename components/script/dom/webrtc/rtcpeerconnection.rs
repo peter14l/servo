@@ -268,11 +268,12 @@ impl RTCPeerConnection {
             crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCRtcpMuxPolicy::Negotiate => RtcpMuxPolicy::Negotiate,
             crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCRtcpMuxPolicy::Require => RtcpMuxPolicy::Require,
         };
-        this.controller
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .configure(ice_servers, bundle_policy, ice_transport_policy, rtcp_mux_policy);
+        this.controller.borrow().as_ref().unwrap().configure(
+            ice_servers,
+            bundle_policy,
+            ice_transport_policy,
+            rtcp_mux_policy,
+        );
         Ok(this)
     }
 
@@ -342,7 +343,9 @@ impl RTCPeerConnection {
         );
 
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
 
         let event = RTCTrackEvent::new(
             cx,
@@ -878,14 +881,18 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _streams: &[&MediaStream],
     ) -> Fallible<DomRoot<RTCRtpSender>> {
         if self.closed.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "The RTCPeerConnection's signalingState is 'closed'.".into(),
+            )));
         }
 
         for sender in self.senders.borrow().iter() {
-            if let Some(existing_track) = sender.GetTrack()
-                && existing_track.id() == track.id()
+            if let Some(existing_track) = sender.GetTrack() &&
+                existing_track.id() == track.id()
             {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "A sender already exists for this track.".into(),
+                )));
             }
         }
 
@@ -902,7 +909,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
 
         self.senders.borrow_mut().push(Dom::from_ref(&*sender));
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
 
         if let Some(ref controller) = *self.controller.borrow() {
             controller.add_stream(&track.id());
@@ -914,11 +923,19 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-removetrack>
     fn RemoveTrack(&self, sender: &RTCRtpSender) -> Fallible<()> {
         if self.closed.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "The RTCPeerConnection's signalingState is 'closed'.".into(),
+            )));
         }
-        let found = self.senders.borrow().iter().any(|s| std::ptr::eq(&**s, sender));
+        let found = self
+            .senders
+            .borrow()
+            .iter()
+            .any(|s| std::ptr::eq(&**s, sender));
         if !found {
-            return Err(Error::InvalidAccess(None));
+            return Err(Error::InvalidAccess(Some(
+                "The sender was not created by this RTCPeerConnection.".into(),
+            )));
         }
         sender.set_track(None);
         Ok(())
@@ -959,21 +976,18 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             MediaStreamTrack::new(cx, &self.global(), dummy_id, kind)
         };
         let receiver = RTCRtpReceiver::new(cx, &self.global(), &receiver_track);
-        let transceiver = RTCRtpTransceiver::new(
-            cx,
-            &self.global(),
-            init.direction,
-            &sender,
-            &receiver,
-        );
+        let transceiver =
+            RTCRtpTransceiver::new(cx, &self.global(), init.direction, &sender, &receiver);
 
-        if let Some(t) = track
-            && let Some(ref controller) = *self.controller.borrow()
+        if let Some(t) = track &&
+            let Some(ref controller) = *self.controller.borrow()
         {
             controller.add_stream(&t.id());
         }
 
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
         self.senders.borrow_mut().push(Dom::from_ref(&*sender));
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
 

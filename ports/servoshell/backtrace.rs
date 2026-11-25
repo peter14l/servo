@@ -24,6 +24,30 @@ pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {
     )
 }
 
+/// Best-effort symbolication of an address against the current binary's debug info.
+///
+/// Used by the crash handler to annotate the faulting instruction address with
+/// a human-readable symbol name in addition to the raw address. This allocates
+/// and is not async-signal-safe, so it must not be called from a POSIX signal
+/// handler.
+#[allow(dead_code)]
+pub(crate) fn symbolicate_address(addr: usize) -> String {
+    let mut output = format!("{addr:#x}");
+    backtrace::resolve(addr as *mut std::ffi::c_void, |symbol| {
+        if let Some(name) = symbol.name() {
+            output = format!("{addr:#x} - {name:#}");
+        }
+        if let Some(filename) = symbol.filename() {
+            if let Some(line) = symbol.lineno() {
+                output.push_str(&format!(" ({}:{line})", filename.display()));
+            } else {
+                output.push_str(&format!(" ({})", filename.display()));
+            }
+        }
+    });
+    output
+}
+
 #[cfg(target_env = "ohos")]
 pub(crate) fn print_ohos() {
     // Print to `hilog`

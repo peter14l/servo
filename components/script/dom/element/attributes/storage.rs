@@ -383,7 +383,9 @@ impl AttributeStorage {
             entries.reserve_exact(additional);
         } else {
             unsafe {
-                self.0.borrow_for_script_deallocation().reserve_exact(additional);
+                self.0
+                    .borrow_for_script_deallocation()
+                    .reserve_exact(additional);
             }
         }
     }
@@ -395,7 +397,9 @@ impl AttributeStorage {
             entries.push(AttributeEntry::Raw(data));
         } else {
             unsafe {
-                self.0.borrow_for_script_deallocation().push(AttributeEntry::Raw(data));
+                self.0
+                    .borrow_for_script_deallocation()
+                    .push(AttributeEntry::Raw(data));
             }
         }
     }
@@ -420,9 +424,7 @@ impl AttributeStorage {
         if let Ok(mut entries) = self.0.try_borrow_mut() {
             entries.remove(index)
         } else {
-            unsafe {
-                self.0.borrow_for_script_deallocation().remove(index)
-            }
+            unsafe { self.0.borrow_for_script_deallocation().remove(index) }
         }
     }
 
@@ -457,8 +459,8 @@ impl AttributeStorage {
         element: &Element,
     ) -> DomRoot<Attr> {
         // Fast path: already materialized.
-        if let Ok(entries) = self.0.try_borrow()
-            && let Some(AttributeEntry::Dom(attr)) = entries.get(index)
+        if let Ok(entries) = self.0.try_borrow() &&
+            let Some(AttributeEntry::Dom(attr)) = entries.get(index)
         {
             return DomRoot::from_ref(&**attr);
         }
@@ -494,8 +496,8 @@ impl AttributeStorage {
         // Store materialized Dom<Attr> back into storage.
         // If storage is currently borrowed by layout or script, skip caching in this cycle;
         // it will be safely materialized or cached on subsequent access.
-        if let Ok(mut entries) = self.0.try_borrow_mut()
-            && index < entries.len()
+        if let Ok(mut entries) = self.0.try_borrow_mut() &&
+            index < entries.len()
         {
             entries[index] = AttributeEntry::Dom(Dom::from_ref(&*attr));
         }

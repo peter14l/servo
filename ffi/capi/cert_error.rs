@@ -5,6 +5,8 @@
 use std::ffi::{c_char, c_void};
 use std::os::raw::c_int;
 
+use crate::ServoError;
+
 /// Certificate error codes matching CEF's `cef_cert_error_t` and net_traits error codes.
 ///
 /// These correspond to common SSL/TLS certificate validation errors.
@@ -71,9 +73,9 @@ impl ServoCertErrorCode {
             ServoCertErrorCode::SelfSigned
         } else if text_lower.contains("unknown") && text_lower.contains("authority") {
             ServoCertErrorCode::UnknownCA
-        } else if text_lower.contains("common name")
-            || text_lower.contains("hostname")
-            || text_lower.contains("subject alternative")
+        } else if text_lower.contains("common name") ||
+            text_lower.contains("hostname") ||
+            text_lower.contains("subject alternative")
         {
             ServoCertErrorCode::CommonNameInvalid
         } else if text_lower.contains("revoked") {
@@ -81,14 +83,14 @@ impl ServoCertErrorCode {
         } else if text_lower.contains("incomplete chain") || text_lower.contains("chain incomplete")
         {
             ServoCertErrorCode::IncompleteChain
-        } else if text_lower.contains("weak signature")
-            || text_lower.contains("sha1")
-            || text_lower.contains("md5")
+        } else if text_lower.contains("weak signature") ||
+            text_lower.contains("sha1") ||
+            text_lower.contains("md5")
         {
             ServoCertErrorCode::WeakSignatureAlgorithm
-        } else if text_lower.contains("weak key")
-            || text_lower.contains("key size")
-            || text_lower.contains("rsa.*1024")
+        } else if text_lower.contains("weak key") ||
+            text_lower.contains("key size") ||
+            text_lower.contains("rsa.*1024")
         {
             ServoCertErrorCode::WeakKey
         } else if text_lower.contains("transparency") || text_lower.contains("ct log") {
@@ -167,13 +169,15 @@ pub unsafe extern "C" fn servo_certificate_error_continue(
     allow: bool,
     user_data: *mut c_void,
 ) {
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if let Some(cb) = callback {
-            // SAFETY: The caller is responsible for ensuring the callback and user_data
-            // are valid and that the callback doesn't unwind.
-            unsafe { cb(allow, user_data) };
-        }
-    }));
+    ServoError::catch_ffi_any_thread((), || {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if let Some(cb) = callback {
+                // SAFETY: The caller is responsible for ensuring the callback and user_data
+                // are valid and that the callback doesn't unwind.
+                unsafe { cb(allow, user_data) };
+            }
+        }));
+    })
 }
 
 impl From<ServoCertErrorCode> for i32 {

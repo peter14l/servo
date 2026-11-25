@@ -7,8 +7,8 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
 use accesskit::{
-    Affine as AccesskitAffine, Node as AccesskitNode, NodeId, Rect as AccesskitRect, Role, Tree,
-    TreeId, TreeUpdate, Uuid as AccesskitUuid,
+    Action, ActionRequest, Affine as AccesskitAffine, Node as AccesskitNode, NodeId,
+    Rect as AccesskitRect, Role, Tree, TreeId, TreeUpdate, Uuid as AccesskitUuid,
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -44,8 +44,8 @@ use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
-    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, RequestContext, SelectElement, Servo,
-    UserContentManager, WebRenderDebugOption,
+    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, RequestContext, SelectElement,
+    Servo, UserContentManager, WebRenderDebugOption,
 };
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
@@ -109,14 +109,14 @@ pub(crate) struct WebViewInner {
     /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
     /// [`EmbedderToConstellationMessage::SetAccessibilityActive`].
     pub(crate) accesskit_tree_id: Option<TreeId>,
-    /// [`TreeId`] of the web contents of this [`WebView`]’s active top-level pipeline,
+    /// [`TreeId`] of the web contents of this [`WebView`]Ã¢â‚¬â„¢s active top-level pipeline,
     /// which is grafted into the tree for this [`WebView`].
     pub(crate) grafted_accesskit_tree_id: Option<TreeId>,
     /// A counter for changes to the grafted accesskit tree for this webview.
     /// See [`Self::grafted_accesskit_tree_id`].
     grafted_accesskit_tree_epoch: Option<Epoch>,
     /// Set when the paint layer applies a change to this [`WebView`]'s accessibility viewport
-    /// geometry — its size, page or pinch zoom, or HiDPI scale — via
+    /// geometry Ã¢â‚¬â€ its size, page or pinch zoom, or HiDPI scale Ã¢â‚¬â€ via
     /// [`WebViewTrait::notify_viewport_updated()`]. The root accessibility node is re-sent from
     /// [`Servo`]'s event loop rather than from there, so that nothing calls into the
     /// [`WebViewDelegate`] while the paint `RefCell` (or an embedder-facing method) is on the stack,
@@ -128,8 +128,6 @@ pub(crate) struct WebViewInner {
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
-    /// Whether the current load status has been forwarded to the delegate at least once.
-    load_status_notified: bool,
     status_text: Option<String>,
     page_title: Option<String>,
     favicon: Option<Image>,
@@ -149,7 +147,7 @@ pub(crate) struct WebViewInner {
     #[expect(dead_code)]
     request_context: Option<RequestContext>,
 
-    /// The message router for bidirectional native ↔ JavaScript messaging.
+    /// The message router for bidirectional native Ã¢â€ â€ JavaScript messaging.
     message_router: MessageRouter,
 
     /// Whether this WebView is running in private browsing (incognito) mode.
@@ -190,8 +188,7 @@ impl WebView {
             grafted_accesskit_tree_epoch: None,
             accessibility_viewport_changed: Cell::new(false),
             hidpi_scale_factor: builder.hidpi_scale_factor,
-            load_status: LoadStatus::Started,
-            load_status_notified: false,
+            load_status: LoadStatus::Complete,
             status_text: None,
             page_title: None,
             favicon: None,
@@ -349,19 +346,11 @@ impl WebView {
     }
 
     pub(crate) fn set_load_status(self, new_value: LoadStatus) {
-        let should_notify = {
-            let mut inner = self.inner_mut();
-            if inner.load_status == new_value && inner.load_status_notified {
-                false
-            } else {
-                inner.load_status = new_value;
-                inner.load_status_notified = true;
-                true
-            }
-        };
-        if should_notify {
-            self.delegate().notify_load_status_changed(self, new_value);
+        if self.inner().load_status == new_value {
+            return;
         }
+        self.inner_mut().load_status = new_value;
+        self.delegate().notify_load_status_changed(self, new_value);
     }
 
     /// Get the URL of the currently active page in this [`WebView`]'s navigation history.
@@ -776,7 +765,8 @@ impl WebView {
     /// The embedder should call this when the containing window's size changes.
     /// This will notify the delegate via `WebViewDelegate::notify_window_resized`.
     pub fn was_resized(&self, width: u32, height: u32) {
-        self.delegate().notify_window_resized(self.clone(), width, height);
+        self.delegate()
+            .notify_window_resized(self.clone(), width, height);
     }
 
     /// Notify Servo that the window containing this [`WebView`] has been moved.
@@ -887,6 +877,23 @@ impl WebView {
         self.servo().paint().capture_webrender(self.id());
     }
 
+    /// Opens the DevTools for this [`WebView`].
+    ///
+    /// Servo exposes DevTools as a remote debugging server (the DevTools
+    /// Protocol). The server is created when the `devtools_server_enabled`
+    /// preference is set before the owning [`Servo`] instance is built, and its
+    /// port and access token are reported through
+    /// [`crate::ServoDelegate::notify_devtools_server_started`].
+    ///
+    /// This method enables that preference. Because the server is created during
+    /// [`Servo`] construction, enabling it here takes effect for `Servo`
+    /// instances created afterwards; embedders that need DevTools for the
+    /// current instance must set the preference before building `Servo`.
+    pub fn open_devtools(&self) {
+        self.servo()
+            .set_preference("devtools_server_enabled", true.into());
+    }
+
     /// Paint the contents of this [`WebView`] into its [`RenderingContext`].
     pub fn paint(&self) {
         self.servo().paint().render(self.id());
@@ -913,7 +920,7 @@ impl WebView {
 
     /// Get the [`MessageRouter`] associated with this [`WebView`].
     ///
-    /// The router is used for bidirectional native ↔ JavaScript messaging. In
+    /// The router is used for bidirectional native Ã¢â€ â€ JavaScript messaging. In
     /// order for JavaScript to use the router, the
     /// [`MessageRouter::bootstrap_script`] must have been injected via
     /// [`UserContentManager::inject_message_router`].
@@ -926,7 +933,7 @@ impl WebView {
         self.message_router().remove_message_handler(name);
     }
 
-    /// Send a message from native code to JavaScript (native → JS).
+    /// Send a message from native code to JavaScript (native Ã¢â€ â€™ JS).
     ///
     /// This dispatches the message to in-page JavaScript listeners registered via
     /// `window.servo.addEventListener("message", handler)` (receiving an event object
@@ -941,7 +948,7 @@ impl WebView {
         self.evaluate_javascript(script, |_| {});
     }
 
-    /// Poll for pending messages sent from JavaScript (JS → native) and dispatch
+    /// Poll for pending messages sent from JavaScript (JS Ã¢â€ â€™ native) and dispatch
     /// them to the registered handlers and the delegate.
     ///
     /// This should be called periodically while spinning the event loop.
@@ -1106,11 +1113,11 @@ impl WebView {
     /// AccessKit subtree id if accessibility is now active.
     ///
     /// After accessibility is activated, you must [graft] (with [`set_tree_id()`]) the returned
-    /// [`TreeId`] into your application’s main AccessKit tree as soon as possible, *before*
+    /// [`TreeId`] into your applicationÃ¢â‚¬â„¢s main AccessKit tree as soon as possible, *before*
     /// sending any tree updates from the webview to your AccessKit adapter. Otherwise you may
-    /// violate AccessKit’s subtree invariants and **panic**.
+    /// violate AccessKitÃ¢â‚¬â„¢s subtree invariants and **panic**.
     ///
-    /// If your impl for [`WebViewDelegate::notify_accessibility_tree_update()`] can’t create the
+    /// If your impl for [`WebViewDelegate::notify_accessibility_tree_update()`] canÃ¢â‚¬â„¢t create the
     /// graft node (and send *that* update to AccessKit) before sending any updates from this
     /// webview to AccessKit, then it must queue those updates until it can guarantee that.
     ///
@@ -1139,6 +1146,24 @@ impl WebView {
         );
 
         self.accesskit_tree_id()
+    }
+
+    /// Forward an accessibility action request to the document that owns the target node.
+    ///
+    /// This should be called when the embedder receives an action request from an AccessKit
+    /// adapter (e.g., from a screen reader). The action will be routed to the appropriate
+    /// document and handled as a DOM event (click, focus, scroll, etc.).
+    ///
+    /// The `tree_id` must match the tree ID returned by `accesskit_tree_id()` or
+    /// `set_accessibility_active(true)`, and `node_id` must be a valid node ID within that tree.
+    pub fn forward_accessibility_action(&self, tree_id: TreeId, node_id: NodeId, action: Action) {
+        let action_request = ActionRequest {
+            action,
+            target_tree: tree_id,
+            target_node: node_id,
+            data: None,
+        };
+        self.servo().forward_accessibility_action(action_request);
     }
 
     pub(crate) fn notify_document_accessibility_tree_id(&self, grafted_tree_id: TreeId) {
@@ -1190,7 +1215,7 @@ impl WebView {
         // the document nodes grafted underneath it: CSS pixels relative to the viewport origin.
         //
         // Its transform converts those CSS pixels into device pixels. That scale is everything
-        // which maps a CSS pixel to a device pixel — page zoom, pinch zoom and HiDPI scale factor.
+        // which maps a CSS pixel to a device pixel Ã¢â‚¬â€ page zoom, pinch zoom and HiDPI scale factor.
         //
         // See `update_bounds_from_dom_node()` in
         // `components/layout/accessibility_tree.rs` for how bounds are computed for web contents.
@@ -1301,8 +1326,9 @@ impl WebView {
     /// [`WebViewDelegate::on_find_result`].
     pub fn find(&self, text: &str, forward: bool, match_case: bool) -> i32 {
         let identifier = self.servo().constellation_proxy().next_find_identifier();
-        self.servo().constellation_proxy().send(
-            EmbedderToConstellationMessage::Find(
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::Find(
                 self.id(),
                 FindRequest {
                     identifier,
@@ -1310,19 +1336,21 @@ impl WebView {
                     forward,
                     match_case,
                 },
-            ),
-        );
+            ));
         identifier
     }
 
     /// Find the next match for the given find request identifier.
     pub fn find_next(&self, identifier: i32, forward: bool) {
-        self.servo().constellation_proxy().send(
-            EmbedderToConstellationMessage::FindNext(
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::FindNext(
                 self.id(),
-                FindNextRequest { identifier, forward },
-            ),
-        );
+                FindNextRequest {
+                    identifier,
+                    forward,
+                },
+            ));
     }
 
     /// Clear the find results for the given identifier.

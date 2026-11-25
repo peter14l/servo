@@ -100,6 +100,9 @@ jni = { workspace = true }
 # Like Gecko, replace the system allocator with jemalloc.
 servo-allocator = { workspace = true, features = ["use-jemalloc"] }
 
+
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+minidump-writer = "0.10"
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
 

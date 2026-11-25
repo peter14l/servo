@@ -149,32 +149,34 @@ pub unsafe extern "C" fn servo_preferences_get_bool(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> bool {
-    if preferences.is_null() {
-        return false;
-    }
-    if name.is_null() {
-        return false;
-    }
+    ServoError::catch_ffi_bool(|| {
+        if preferences.is_null() {
+            return false;
+        }
+        if name.is_null() {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `name` documented above.
-    let name = match unsafe { CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return false,
-    };
-    if !Preferences::exists(name) {
-        return false;
-    }
-    if Preferences::type_of(name) != "bool" {
-        return false;
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `name` documented above.
+        let name = match unsafe { CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
+        if !Preferences::exists(name) {
+            return false;
+        }
+        if Preferences::type_of(name) != "bool" {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `preferences` documented above.
-    match unsafe { &*preferences }.get_value(name) {
-        PrefValue::Bool(value) => value,
-        _ => false,
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `preferences` documented above.
+        match unsafe { &*preferences }.get_value(name) {
+            PrefValue::Bool(value) => value,
+            _ => false,
+        }
+    })
 }
 
 /// Sets a string preference by name.
@@ -276,32 +278,34 @@ pub unsafe extern "C" fn servo_preferences_get_string(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> *mut c_char {
-    if preferences.is_null() {
-        return std::ptr::null_mut();
-    }
-    if name.is_null() {
-        return std::ptr::null_mut();
-    }
+    ServoError::catch_ffi_ptr(|| {
+        if preferences.is_null() {
+            return std::ptr::null_mut();
+        }
+        if name.is_null() {
+            return std::ptr::null_mut();
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `name` documented above.
-    let name = match unsafe { CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return std::ptr::null_mut(),
-    };
-    if !Preferences::exists(name) {
-        return std::ptr::null_mut();
-    }
-    if Preferences::type_of(name) != "alloc::string::String" {
-        return std::ptr::null_mut();
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `name` documented above.
+        let name = match unsafe { CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return std::ptr::null_mut(),
+        };
+        if !Preferences::exists(name) {
+            return std::ptr::null_mut();
+        }
+        if Preferences::type_of(name) != "alloc::string::String" {
+            return std::ptr::null_mut();
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `preferences` documented above.
-    match unsafe { &*preferences }.get_value(name) {
-        PrefValue::Str(value) => create_libc_string(&value),
-        _ => std::ptr::null_mut(),
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `preferences` documented above.
+        match unsafe { &*preferences }.get_value(name) {
+            PrefValue::Str(value) => create_libc_string(&value),
+            _ => std::ptr::null_mut(),
+        }
+    })
 }
 
 /// Allocates a new NUL-terminated copy of `string` using the system allocator
@@ -417,32 +421,34 @@ pub unsafe extern "C" fn servo_preferences_get_i64(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> i64 {
-    if preferences.is_null() {
-        return 0;
-    }
-    if name.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_i64(|| {
+        if preferences.is_null() {
+            return 0;
+        }
+        if name.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `name` documented above.
-    let name = match unsafe { CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return 0,
-    };
-    if !Preferences::exists(name) {
-        return 0;
-    }
-    if Preferences::type_of(name) != "i64" {
-        return 0;
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `name` documented above.
+        let name = match unsafe { CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return 0,
+        };
+        if !Preferences::exists(name) {
+            return 0;
+        }
+        if Preferences::type_of(name) != "i64" {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `preferences` documented above.
-    match unsafe { &*preferences }.get_value(name) {
-        PrefValue::Int(value) => value,
-        _ => 0,
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `preferences` documented above.
+        match unsafe { &*preferences }.get_value(name) {
+            PrefValue::Int(value) => value,
+            _ => 0,
+        }
+    })
 }
 
 /// Sets a u64 preference by name.
@@ -527,32 +533,34 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
     preferences: *const ServoPreferences,
     name: *const c_char,
 ) -> u64 {
-    if preferences.is_null() {
-        return 0;
-    }
-    if name.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_u64(|| {
+        if preferences.is_null() {
+            return 0;
+        }
+        if name.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `name` documented above.
-    let name = match unsafe { CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return 0,
-    };
-    if !Preferences::exists(name) {
-        return 0;
-    }
-    if Preferences::type_of(name) != "u64" {
-        return 0;
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `name` documented above.
+        let name = match unsafe { CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return 0,
+        };
+        if !Preferences::exists(name) {
+            return 0;
+        }
+        if Preferences::type_of(name) != "u64" {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `preferences` documented above.
-    match unsafe { &*preferences }.get_value(name) {
-        PrefValue::UInt(value) => value,
-        _ => 0,
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `preferences` documented above.
+        match unsafe { &*preferences }.get_value(name) {
+            PrefValue::UInt(value) => value,
+            _ => 0,
+        }
+    })
 }
 
 /// Configures the Chrome DevTools remote debugging server.
@@ -594,10 +602,12 @@ pub unsafe extern "C" fn servo_preferences_set_devtools_server(
 pub unsafe extern "C" fn servo_preferences_get_devtools_server_enabled(
     preferences: *const ServoPreferences,
 ) -> bool {
-    if preferences.is_null() {
-        return false;
-    }
-    unsafe { (*preferences).devtools_server_enabled }
+    ServoError::catch_ffi_bool(|| {
+        if preferences.is_null() {
+            return false;
+        }
+        unsafe { (*preferences).devtools_server_enabled }
+    })
 }
 
 /// Returns the configured port for the DevTools server in `preferences`, or 0 if disabled/invalid.
@@ -605,16 +615,18 @@ pub unsafe extern "C" fn servo_preferences_get_devtools_server_enabled(
 pub unsafe extern "C" fn servo_preferences_get_devtools_server_port(
     preferences: *const ServoPreferences,
 ) -> u16 {
-    if preferences.is_null() {
-        return 0;
-    }
-    let prefs = unsafe { &*preferences };
-    if !prefs.devtools_server_enabled {
-        return 0;
-    }
-    prefs
-        .devtools_server_listen_address
-        .rsplit_once(':')
-        .and_then(|(_, p)| p.parse::<u16>().ok())
-        .unwrap_or(7000)
+    ServoError::catch_ffi_u16(|| {
+        if preferences.is_null() {
+            return 0;
+        }
+        let prefs = unsafe { &*preferences };
+        if !prefs.devtools_server_enabled {
+            return 0;
+        }
+        prefs
+            .devtools_server_listen_address
+            .rsplit_once(':')
+            .and_then(|(_, p)| p.parse::<u16>().ok())
+            .unwrap_or(7000)
+    })
 }

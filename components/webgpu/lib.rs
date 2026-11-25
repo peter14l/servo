@@ -25,9 +25,6 @@ pub fn start_webgpu_thread(
     webrender_external_image_id_manager: WebRenderExternalImageIdManager,
     wgpu_image_map: WebGpuExternalImageMap,
 ) -> Option<(WebGPU, GenericReceiver<WebGPUMsg>)> {
-    if !pref!(dom_webgpu_enabled) {
-        return None;
-    }
     let (sender, receiver) = match generic_channel::channel() {
         Some(sender_and_receiver) => sender_and_receiver,
         None => {

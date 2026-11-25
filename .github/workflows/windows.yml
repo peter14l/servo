@@ -200,7 +200,7 @@ jobs:
         env:
           RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
         run: |
-          .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
+          .\mach build --use-crown --locked --profile ${{ inputs.profile }} --features multiprocess ${{ inputs.build-args }}
           mv C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
@@ -356,6 +356,16 @@ jobs:
       - name: Passive bootstrap
         run: |
           .\mach fetch
+      # `multiprocess` gates the Windows sandbox arm in `components/servo/servo.rs`
+      # and `ffi/capi/multiprocess.rs`. The test build below compiles `servo-capi`
+      # without it (see tests/capi/build.rs), so build it with the feature here to
+      # keep that arm compiled in CI.
+      - name: Compile servo-capi with the multiprocess feature
+        env:
+          CC: "clang-cl.exe"
+          CXX: "clang-cl.exe"
+          MOZTOOLS_PATH : "${{ env.CARGO_TARGET_DIR }}\\dependencies\\moztools\\4.0"
+        run: cargo build -p servo-capi --features multiprocess --locked
       - name: Build and test servo-capi-tests
         env:
           CC: "clang-cl.exe"

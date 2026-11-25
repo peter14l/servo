@@ -28,8 +28,8 @@ use winapi::shared::minwindef::{BOOL, FALSE};
 use winapi::um::wingdi::FW_SEMIBOLD;
 
 use crate::{
-    CBDT, COLR, SBIX, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
-    FractionalPixel, GlyphId, PlatformFontMethods,
+    CBDT, COLR, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
+    FractionalPixel, GlyphId, PlatformFontMethods, SBIX,
 };
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch

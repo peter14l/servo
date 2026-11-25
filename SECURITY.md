@@ -19,16 +19,10 @@ and the affected revision.
 
 ## Response process
 
-These are targets, not contractual terms; a report that needs a large
-architectural change may take longer, in which case the reason is communicated to
-the reporter.
-
-| Stage | Target |
-|---|---|
-| Acknowledge the report | 3 working days |
-| Initial triage: severity, affected revisions/platforms, reproducibility | 10 working days |
-| Fix or documented mitigation for a confirmed issue | 30 days for high/critical, 90 days otherwise |
-| Public advisory | within 14 days of a fix being available, or on the date agreed with the reporter |
+No response-time, remediation, or disclosure deadlines are committed. Reports are
+handled on a best-effort basis by volunteer maintainers, and a report that needs a
+large architectural change may take longer; the reporter is told when a fix is
+expected, and the advisory is coordinated with them.
 
 ## Publishing an advisory
 
@@ -45,8 +39,9 @@ the reporter.
 ## Supported versions
 
 Servo is a prototype engine under active development on `main` and active
-embedding branches. Security fixes are applied to active development branches;
-there are no maintained long-term-support (LTS) releases.
+embedding branches. Security fixes are applied to the active development branch
+on a best-effort basis; there is no backport guarantee and there are no
+maintained long-term-support (LTS) releases.
 
 ## Dependency and supply-chain cadence
 

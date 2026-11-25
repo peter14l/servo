@@ -41,10 +41,12 @@ impl From<ConstellationFindResult> for ServoFindResult {
 /// Returns the identifier that was returned by `servo_webview_find`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_find_result_get_identifier(result: *const ServoFindResult) -> c_int {
-    if result.is_null() {
-        return 0;
-    }
-    unsafe { (*result).identifier }
+    ServoError::catch_ffi_i32(|| {
+        if result.is_null() {
+            return 0;
+        }
+        unsafe { (*result).identifier }
+    })
 }
 
 /// Get the ordinal of the active match (1-based).
@@ -55,10 +57,12 @@ pub unsafe extern "C" fn servo_find_result_get_identifier(result: *const ServoFi
 pub unsafe extern "C" fn servo_find_result_get_active_match_ordinal(
     result: *const ServoFindResult,
 ) -> c_int {
-    if result.is_null() {
-        return 0;
-    }
-    unsafe { (*result).active_match_ordinal }
+    ServoError::catch_ffi_i32(|| {
+        if result.is_null() {
+            return 0;
+        }
+        unsafe { (*result).active_match_ordinal }
+    })
 }
 
 /// Get the total number of matches found.
@@ -68,10 +72,12 @@ pub unsafe extern "C" fn servo_find_result_get_active_match_ordinal(
 pub unsafe extern "C" fn servo_find_result_get_number_of_matches(
     result: *const ServoFindResult,
 ) -> c_int {
-    if result.is_null() {
-        return 0;
-    }
-    unsafe { (*result).number_of_matches }
+    ServoError::catch_ffi_i32(|| {
+        if result.is_null() {
+            return 0;
+        }
+        unsafe { (*result).number_of_matches }
+    })
 }
 
 /// Get the selection rectangle of the active match in CSS pixels.
@@ -89,50 +95,52 @@ pub unsafe extern "C" fn servo_find_result_get_selection_rect(
     width: *mut f32,
     height: *mut f32,
 ) {
-    if result.is_null() {
-        if !x.is_null() {
-            unsafe { *x = 0.0 };
+    ServoError::catch_ffi_void(|| {
+        if result.is_null() {
+            if !x.is_null() {
+                unsafe { *x = 0.0 };
+            }
+            if !y.is_null() {
+                unsafe { *y = 0.0 };
+            }
+            if !width.is_null() {
+                unsafe { *width = 0.0 };
+            }
+            if !height.is_null() {
+                unsafe { *height = 0.0 };
+            }
+            return;
         }
-        if !y.is_null() {
-            unsafe { *y = 0.0 };
-        }
-        if !width.is_null() {
-            unsafe { *width = 0.0 };
-        }
-        if !height.is_null() {
-            unsafe { *height = 0.0 };
-        }
-        return;
-    }
 
-    let result = unsafe { &*result };
-    if let Some(rect) = result.selection_rect {
-        if !x.is_null() {
-            unsafe { *x = rect.origin.x };
+        let result = unsafe { &*result };
+        if let Some(rect) = result.selection_rect {
+            if !x.is_null() {
+                unsafe { *x = rect.origin.x };
+            }
+            if !y.is_null() {
+                unsafe { *y = rect.origin.y };
+            }
+            if !width.is_null() {
+                unsafe { *width = rect.size.width };
+            }
+            if !height.is_null() {
+                unsafe { *height = rect.size.height };
+            }
+        } else {
+            if !x.is_null() {
+                unsafe { *x = 0.0 };
+            }
+            if !y.is_null() {
+                unsafe { *y = 0.0 };
+            }
+            if !width.is_null() {
+                unsafe { *width = 0.0 };
+            }
+            if !height.is_null() {
+                unsafe { *height = 0.0 };
+            }
         }
-        if !y.is_null() {
-            unsafe { *y = rect.origin.y };
-        }
-        if !width.is_null() {
-            unsafe { *width = rect.size.width };
-        }
-        if !height.is_null() {
-            unsafe { *height = rect.size.height };
-        }
-    } else {
-        if !x.is_null() {
-            unsafe { *x = 0.0 };
-        }
-        if !y.is_null() {
-            unsafe { *y = 0.0 };
-        }
-        if !width.is_null() {
-            unsafe { *width = 0.0 };
-        }
-        if !height.is_null() {
-            unsafe { *height = 0.0 };
-        }
-    }
+    })
 }
 
 /// Starts a find-in-page search for the given text.

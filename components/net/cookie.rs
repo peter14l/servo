@@ -42,6 +42,10 @@ pub struct ServoCookie {
     pub last_access: SystemTime,
     pub expiry_time: Option<SystemTime>,
     /// Partition key for CHIPS (RFC 6265bis). If None, the cookie is unpartitioned.
+    ///
+    /// NOTE: CHIPS is currently modeled for storage/selection only; partitioned cookies
+    /// are never sent by the current network stack because request contexts do not
+    /// carry a usable partition key yet.
     pub partition_key: Option<String>,
 }
 
@@ -85,7 +89,8 @@ impl ServoCookie {
             .any(|part| part.trim().eq_ignore_ascii_case("partitioned"));
 
         // Per draft-ietf-httpbis-rfc6265bis, Partitioned cookies MUST have the Secure attribute.
-        if is_partitioned && (!cookie.secure().unwrap_or(false) || !request.is_secure_scheme()) {
+        // Reject Partitioned cookies that lack Secure regardless of URL scheme.
+        if is_partitioned && !cookie.secure().unwrap_or(false) {
             return None;
         }
 
@@ -465,6 +470,8 @@ impl ServoCookie {
         }
 
         // Apply Partitioning (CHIPS) checks per draft-ietf-httpbis-rfc6265bis.
+        // CHIPS storage model only: partitioned cookies are currently never sent,
+        // because request contexts do not provide a matching partition key.
         if let Some(ref cookie_partition) = self.partition_key {
             match &context.partition_key {
                 Some(request_partition) => {

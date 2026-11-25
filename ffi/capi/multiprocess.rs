@@ -5,7 +5,9 @@
 use std::ffi::c_char;
 
 #[cfg(feature = "multiprocess")]
-use servo::{run_content_process, create_sandbox};
+use servo::{create_sandbox, run_content_process};
+
+use crate::ServoError;
 
 /// Runs a content process that this binary was re-executed to create.
 ///
@@ -39,36 +41,38 @@ use servo::{run_content_process, create_sandbox};
 /// - This function is called from the main thread of the content process.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_run_content_process(token: *const c_char) -> i32 {
-    if token.is_null() {
-        return -1;
-    }
-
-    #[cfg(feature = "multiprocess")]
-    {
-        // SAFETY: The caller guarantees token is a valid non-null C string.
-        let token_cstr = unsafe { std::ffi::CStr::from_ptr(token) };
-        let token_str = match token_cstr.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => return -1,
-        };
-
-        // `run_content_process` unwraps its IPC handshake, so a token nobody is
-        // listening on panics. The hook prints the panic before unwinding; what
-        // must not happen is the unwind reaching this `extern "C"` function,
-        // which would abort the process. Catch it and report -1 like every other
-        // refusal, the same way `servo_create_sandbox` below does. CI builds
-        // `servo-capi` without this feature, so this branch is compiled there
-        // but only executed by a real multiprocess embedder.
-        match std::panic::catch_unwind(|| run_content_process(token_str)) {
-            Ok(()) => 0,
-            Err(_) => -1,
+    ServoError::catch_ffi_i32(|| {
+        if token.is_null() {
+            return -1;
         }
-    }
 
-    #[cfg(not(feature = "multiprocess"))]
-    {
-        -1
-    }
+        #[cfg(feature = "multiprocess")]
+        {
+            // SAFETY: The caller guarantees token is a valid non-null C string.
+            let token_cstr = unsafe { std::ffi::CStr::from_ptr(token) };
+            let token_str = match token_cstr.to_str() {
+                Ok(s) => s.to_string(),
+                Err(_) => return -1,
+            };
+
+            // `run_content_process` unwraps its IPC handshake, so a token nobody is
+            // listening on panics. The hook prints the panic before unwinding; what
+            // must not happen is the unwind reaching this `extern "C"` function,
+            // which would abort the process. Catch it and report -1 like every other
+            // refusal, the same way `servo_create_sandbox` below does. CI builds
+            // `servo-capi` without this feature, so this branch is compiled there
+            // but only executed by a real multiprocess embedder.
+            match std::panic::catch_unwind(|| run_content_process(token_str)) {
+                Ok(()) => 0,
+                Err(_) => -1,
+            }
+        }
+
+        #[cfg(not(feature = "multiprocess"))]
+        {
+            -1
+        }
+    })
 }
 
 /// Creates and activates the sandbox for the content process.
@@ -93,30 +97,32 @@ pub unsafe extern "C" fn servo_run_content_process(token: *const c_char) -> i32 
 /// before any other threads are spawned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_create_sandbox() -> bool {
-    #[cfg(feature = "multiprocess")]
-    {
-        // SAFETY: The caller guarantees this is called from the main thread
-        // before other threads are spawned.
-        // On Windows, in-process mitigation policies are applied via create_sandbox(),
-        // but mitigations are not a true OS sandbox, so we report false.
-        #[cfg(target_os = "windows")]
+    ServoError::catch_ffi_bool(|| {
+        #[cfg(feature = "multiprocess")]
         {
-            let _ = std::panic::catch_unwind(|| unsafe { create_sandbox() });
-            return false;
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            if !crate::servo_capi_is_sandboxing_supported() {
+            // SAFETY: The caller guarantees this is called from the main thread
+            // before other threads are spawned.
+            // On Windows, in-process mitigation policies are applied via create_sandbox(),
+            // but mitigations are not a true OS sandbox, so we report false.
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::panic::catch_unwind(|| unsafe { create_sandbox() });
                 return false;
             }
-            let result = std::panic::catch_unwind(|| unsafe { create_sandbox() });
-            result.is_ok()
-        }
-    }
 
-    #[cfg(not(feature = "multiprocess"))]
-    {
-        false
-    }
+            #[cfg(not(target_os = "windows"))]
+            {
+                if !crate::servo_capi_is_sandboxing_supported() {
+                    return false;
+                }
+                let result = std::panic::catch_unwind(|| unsafe { create_sandbox() });
+                result.is_ok()
+            }
+        }
+
+        #[cfg(not(feature = "multiprocess"))]
+        {
+            false
+        }
+    })
 }

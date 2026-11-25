@@ -172,10 +172,10 @@ impl ServoValue {
                 }
             },
             JSValue::String(s) => Self::new(ValueData::String(s.clone())),
-            JSValue::Element(s)
-            | JSValue::ShadowRoot(s)
-            | JSValue::Frame(s)
-            | JSValue::Window(s) => Self::new(ValueData::String(s.clone())),
+            JSValue::Element(s) |
+            JSValue::ShadowRoot(s) |
+            JSValue::Frame(s) |
+            JSValue::Window(s) => Self::new(ValueData::String(s.clone())),
             JSValue::Array(items) => {
                 let list: Vec<ServoValue> = items.iter().map(ServoValue::from_jsvalue).collect();
                 Self::new(ValueData::List(list))
@@ -314,9 +314,7 @@ impl ServoDictionaryValue {
 
 impl ServoListValue {
     fn new() -> Self {
-        Self {
-            list: Vec::new(),
-        }
+        Self { list: Vec::new() }
     }
 
     fn get_list(&self) -> &Vec<ServoValue> {
@@ -352,7 +350,11 @@ pub(crate) fn write_json_string(value: &str, output: &mut String) {
 /// free it with `servo_value_free`. Returns `NULL` on allocation failure.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_value_create() -> *mut ServoValue {
-    ServoError::catch_ffi_ptr(|| Box::into_raw(Box::new(ServoValue::new(ValueData::Null))))
+    ServoError::catch_ffi_ptr(|| {
+        let handle = Box::into_raw(Box::new(ServoValue::new(ValueData::Null)));
+        crate::handle_registry::register(handle, crate::handle_registry::HandleKind::Value);
+        handle
+    })
 }
 
 /// Frees a `ServoValue` and its associated resources.
@@ -371,6 +373,11 @@ pub unsafe extern "C" fn servo_value_free(value: *mut ServoValue) -> ServoError 
         if value.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::unregister(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         unsafe {
             let _ = Box::from_raw(value);
         }
@@ -399,6 +406,11 @@ pub unsafe extern "C" fn servo_value_get_type(
         if out_type.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         unsafe { *out_type = value.get_type().into() };
         ServoError::Ok
@@ -420,6 +432,10 @@ pub unsafe extern "C" fn servo_value_get_bool(
         if out.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         match &value.value {
             ValueData::Bool(b) => {
@@ -446,6 +462,10 @@ pub unsafe extern "C" fn servo_value_get_int(
         if out.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         match &value.value {
             ValueData::Int(i) => {
@@ -472,6 +492,10 @@ pub unsafe extern "C" fn servo_value_get_double(
         if out.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         match &value.value {
             ValueData::Double(d) => {
@@ -495,14 +519,20 @@ pub unsafe extern "C" fn servo_value_get_string(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if value.is_null() {
-        return 0;
-    }
-    let value = unsafe { &*value };
-    match &value.value {
-        ValueData::String(s) => unsafe { write_c_string(s, buffer, buffer_len) },
-        _ => 0,
-    }
+    ServoError::catch_ffi_usize(|| {
+        if value.is_null() {
+            return 0;
+        }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return 0;
+        }
+
+        let value = unsafe { &*value };
+        match &value.value {
+            ValueData::String(s) => unsafe { write_c_string(s, buffer, buffer_len) },
+            _ => 0,
+        }
+    })
 }
 
 /// Gets a binary value from `value` (buffer-query pattern).
@@ -517,23 +547,29 @@ pub unsafe extern "C" fn servo_value_get_binary(
     buffer: *mut u8,
     buffer_len: usize,
 ) -> usize {
-    if value.is_null() {
-        return 0;
-    }
-    let value = unsafe { &*value };
-    match &value.value {
-        ValueData::Binary(data) => {
-            let required = data.len();
-            if buffer.is_null() || buffer_len < required {
-                return required;
-            }
-            unsafe {
-                std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, data.len());
-            }
-            required
-        },
-        _ => 0,
-    }
+    ServoError::catch_ffi_usize(|| {
+        if value.is_null() {
+            return 0;
+        }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return 0;
+        }
+
+        let value = unsafe { &*value };
+        match &value.value {
+            ValueData::Binary(data) => {
+                let required = data.len();
+                if buffer.is_null() || buffer_len < required {
+                    return required;
+                }
+                unsafe {
+                    std::ptr::copy_nonoverlapping(data.as_ptr(), buffer, data.len());
+                }
+                required
+            },
+            _ => 0,
+        }
+    })
 }
 
 /// Gets the dictionary stored in `value`, if it holds one.
@@ -563,6 +599,10 @@ pub unsafe extern "C" fn servo_value_get_dictionary(
         if out_dict.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         let Some(map) = value.as_dictionary() else {
             return ServoError::InvalidState;
@@ -590,6 +630,10 @@ pub unsafe extern "C" fn servo_value_get_list(
         if out_list.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &*value };
         let Some(list) = value.as_list() else {
             return ServoError::InvalidState;
@@ -608,6 +652,10 @@ pub unsafe extern "C" fn servo_value_set_bool(value: *mut ServoValue, val: bool)
         if value.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &mut *value };
         value.set_bool(val);
         ServoError::Ok
@@ -621,6 +669,10 @@ pub unsafe extern "C" fn servo_value_set_int(value: *mut ServoValue, val: i64) -
         if value.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &mut *value };
         value.set_int(val);
         ServoError::Ok
@@ -634,6 +686,10 @@ pub unsafe extern "C" fn servo_value_set_double(value: *mut ServoValue, val: f64
         if value.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &mut *value };
         value.set_double(val);
         ServoError::Ok
@@ -657,6 +713,10 @@ pub unsafe extern "C" fn servo_value_set_string(
             Ok(s) => s.to_string(),
             Err(_) => return ServoError::InvalidUtf8,
         };
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &mut *value };
         value.set_string(s);
         ServoError::Ok
@@ -687,6 +747,10 @@ pub unsafe extern "C" fn servo_value_set_binary(
             // contract, points to at least `len` readable bytes.
             unsafe { std::slice::from_raw_parts(data, len).to_vec() }
         };
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { &mut *value };
         value.set_binary(vec);
         ServoError::Ok
@@ -713,6 +777,11 @@ pub unsafe extern "C" fn servo_value_set_dictionary(
         if dict.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let mut dict = unsafe { Box::from_raw(dict) };
         let map = std::mem::take(dict.get_map_mut());
         let value = unsafe { &mut *value };
@@ -737,6 +806,11 @@ pub unsafe extern "C" fn servo_value_set_list(
         if list.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let mut list = unsafe { Box::from_raw(list) };
         let entries = std::mem::take(list.get_list_mut());
         let value = unsafe { &mut *value };
@@ -786,10 +860,20 @@ pub unsafe extern "C" fn servo_dictionary_set_key(
         if value.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let key_str = match unsafe { CStr::from_ptr(key) }.to_str() {
             Ok(s) => s.to_string(),
             Err(_) => return ServoError::InvalidUtf8,
         };
+
+        if !crate::handle_registry::unregister(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         // Take ownership of the value
         let value = unsafe { Box::from_raw(value) };
         let dict = unsafe { &mut *dict };
@@ -828,7 +912,9 @@ pub unsafe extern "C" fn servo_dictionary_get_key(
         match map.get(&key_str) {
             Some(value) => {
                 let new_value = Box::new(value.clone());
-                unsafe { *out_value = Box::into_raw(new_value) };
+                let handle = Box::into_raw(new_value);
+                crate::handle_registry::register(handle, crate::handle_registry::HandleKind::Value);
+                unsafe { *out_value = handle };
                 ServoError::Ok
             },
             None => ServoError::NotFound,
@@ -893,22 +979,24 @@ pub unsafe extern "C" fn servo_dictionary_get_keys(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if dict.is_null() {
-        return 0;
-    }
-    let dict = unsafe { &*dict };
-    let map = dict.get_map();
-    let keys: Vec<&String> = map.keys().collect();
-    let mut output = String::new();
-    output.push('[');
-    for (index, key) in keys.iter().enumerate() {
-        if index > 0 {
-            output.push(',');
+    ServoError::catch_ffi_usize(|| {
+        if dict.is_null() {
+            return 0;
         }
-        write_json_string(key, &mut output);
-    }
-    output.push(']');
-    unsafe { write_c_string(&output, buffer, buffer_len) }
+        let dict = unsafe { &*dict };
+        let map = dict.get_map();
+        let keys: Vec<&String> = map.keys().collect();
+        let mut output = String::new();
+        output.push('[');
+        for (index, key) in keys.iter().enumerate() {
+            if index > 0 {
+                output.push(',');
+            }
+            write_json_string(key, &mut output);
+        }
+        output.push(']');
+        unsafe { write_c_string(&output, buffer, buffer_len) }
+    })
 }
 
 /// Creates a new empty list value.
@@ -948,6 +1036,15 @@ pub unsafe extern "C" fn servo_list_set_value(
         if value.is_null() {
             return ServoError::NullArgument;
         }
+
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
+        if !crate::handle_registry::unregister(value, crate::handle_registry::HandleKind::Value) {
+            return ServoError::InvalidArgument;
+        }
+
         let value = unsafe { Box::from_raw(value) };
         let list = unsafe { &mut *list };
         let vec = list.get_list_mut();
@@ -983,7 +1080,9 @@ pub unsafe extern "C" fn servo_list_get_value(
             return ServoError::NotFound;
         }
         let new_value = Box::new(vec[index].clone());
-        unsafe { *out_value = Box::into_raw(new_value) };
+        let handle = Box::into_raw(new_value);
+        crate::handle_registry::register(handle, crate::handle_registry::HandleKind::Value);
+        unsafe { *out_value = handle };
         ServoError::Ok
     })
 }
@@ -1023,7 +1122,11 @@ pub unsafe extern "C" fn servo_value_from_json(json_str: *const c_char) -> *mut 
             Err(_) => return std::ptr::null_mut(),
         };
         match ServoValue::from_json_string(json) {
-            Ok(value) => Box::into_raw(Box::new(value)),
+            Ok(value) => {
+                let handle = Box::into_raw(Box::new(value));
+                crate::handle_registry::register(handle, crate::handle_registry::HandleKind::Value);
+                handle
+            },
             Err(_) => std::ptr::null_mut(),
         }
     })
@@ -1040,10 +1143,16 @@ pub unsafe extern "C" fn servo_value_to_json(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if value.is_null() {
-        return 0;
-    }
-    let value = unsafe { &*value };
-    let json = value.to_json_string();
-    unsafe { write_c_string(&json, buffer, buffer_len) }
+    ServoError::catch_ffi_usize(|| {
+        if value.is_null() {
+            return 0;
+        }
+        if !crate::handle_registry::is_live(value, crate::handle_registry::HandleKind::Value) {
+            return 0;
+        }
+
+        let value = unsafe { &*value };
+        let json = value.to_json_string();
+        unsafe { write_c_string(&json, buffer, buffer_len) }
+    })
 }

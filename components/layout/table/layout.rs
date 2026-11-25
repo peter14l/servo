@@ -1525,7 +1525,7 @@ impl<'a> TableLayout<'a> {
     ) -> BoxFragment {
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
-                inline: self.table_width + self.pbm.padding_border_sums.inline,
+                inline: self.table_width - self.pbm.padding_border_sums.inline,
                 block: SizeConstraint::default(),
             },
             style: &self.table.style,

@@ -384,13 +384,13 @@ fn map_debug_options(arg: String) -> Vec<String> {
 #[bpaf(options, version(VERSION), usage("servoshell [OPTIONS] URL"))]
 // Newlines in comments are intentional to have the right formatting for the help message.
 struct CmdArgs {
-    /// Background Hang Monitor enabled.
-    #[bpaf(short('B'), long("bhm"))]
-    background_hang_monitor: bool,
+    /// Disable the Background Hang Monitor.
+    #[bpaf(long("no-bhm"))]
+    no_background_hang_monitor: bool,
 
-    /// Automatically terminate permanently hung scripts detected by the Background Hang Monitor.
-    #[bpaf(long("bhm-kill-hung-scripts"))]
-    hang_monitor_kill_script: bool,
+    /// Do not automatically terminate permanently hung scripts detected by the Background Hang Monitor.
+    #[bpaf(long("no-bhm-kill-hung-scripts"))]
+    no_hang_monitor_kill_script: bool,
 
     ///
     ///  Path to find SSL certificates.
@@ -784,8 +784,8 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .map(|p| p.to_string_lossy().into_owned()),
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
-        background_hang_monitor: cmd_args.background_hang_monitor,
-        hang_monitor_kill_script: cmd_args.hang_monitor_kill_script,
+        background_hang_monitor: !cmd_args.no_background_hang_monitor,
+        hang_monitor_kill_script: !cmd_args.no_hang_monitor_kill_script,
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,

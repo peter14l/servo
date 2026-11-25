@@ -387,8 +387,8 @@ impl ServoShellWindow {
                     }
                 },
                 UserInterfaceCommand::BookmarkCurrentPage => {
-                    if let Some(active_webview) = self.active_webview()
-                        && let Some(url) = active_webview.url()
+                    if let Some(active_webview) = self.active_webview() &&
+                        let Some(url) = active_webview.url()
                     {
                         let title = active_webview
                             .page_title()

@@ -7,15 +7,16 @@ use std::os::raw::{c_char, c_int};
 use std::rc::Rc;
 use std::str::FromStr;
 
-use keyboard_types::{Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey};
-use servo_api::{Servo, WebView, WebViewBuilder};
-
-use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
 use embedder_traits::input_events::{
     ImeEvent, InputEvent, KeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseMoveEvent, TouchEvent, TouchEventType, TouchId, TouchPointerType, WheelDelta, WheelEvent,
     WheelMode,
 };
+use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
+use keyboard_types::{
+    Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
+};
+use servo_api::{Servo, WebView, WebViewBuilder};
 
 use crate::{ServoError, write_c_string};
 
@@ -153,6 +154,26 @@ pub unsafe extern "C" fn servo_webview_builder_create(
             return std::ptr::null_mut();
         }
 
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
+            return std::ptr::null_mut();
+        }
+
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return std::ptr::null_mut();
+        }
+
+        // W2.5: this call consumes the `context` handle, so forget it in the
+        // registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return std::ptr::null_mut();
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `servo` documented above.
         let servo = unsafe { &*servo };
@@ -161,7 +182,7 @@ pub unsafe extern "C" fn servo_webview_builder_create(
         // for `context` documented above. We take ownership here.
         let boxed_c_context = unsafe { Box::from_raw(context) };
 
-        Box::into_raw(Box::new(ServoWebViewBuilder {
+        let handle = Box::into_raw(Box::new(ServoWebViewBuilder {
             servo: Some(servo.clone()),
             rendering_context: boxed_c_context.inner,
             url: None,
@@ -173,7 +194,12 @@ pub unsafe extern "C" fn servo_webview_builder_create(
             hidpi_scale_factor: None,
             create_new_request: None,
             is_private: false,
-        }))
+        }));
+        crate::handle_registry::register(
+            handle,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        );
+        handle
     })
 }
 
@@ -210,6 +236,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_url(
         }
         if url.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -269,6 +302,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_delegate(
         if builder.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         if !crate::is_compatible_struct_size(
             delegate.struct_size,
             std::mem::size_of::<ServoWebViewDelegate>(),
@@ -318,6 +358,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_clipboard_delegate(
         if builder.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         if !crate::is_compatible_struct_size(
             delegate.struct_size,
             std::mem::size_of::<ServoClipboardDelegate>(),
@@ -371,6 +418,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_gamepad_delegate(
         if builder.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         if !crate::is_compatible_struct_size(
             delegate.struct_size,
             std::mem::size_of::<ServoGamepadDelegate>(),
@@ -400,10 +454,19 @@ pub unsafe extern "C" fn servo_webview_builder_set_hidpi_scale_factor(
         if builder.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         if scale <= 0.0 || !scale.is_finite() {
             return ServoError::InvalidState;
         }
-        unsafe { (*builder).hidpi_scale_factor = Some(scale); }
+        unsafe {
+            (*builder).hidpi_scale_factor = Some(scale);
+        }
         ServoError::Ok
     })
 }
@@ -421,6 +484,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_private_browsing(
         if builder.is_null() {
             return ServoError::NullArgument;
         }
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         unsafe {
             (*builder).is_private = is_private;
         }
@@ -452,6 +522,15 @@ pub unsafe extern "C" fn servo_webview_builder_build(
 ) -> *mut WebView {
     ServoError::catch_ffi_ptr(|| {
         if builder.is_null() {
+            return std::ptr::null_mut();
+        }
+
+        // W2.5: this call consumes the `builder` handle, so forget it in the
+        // registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
             return std::ptr::null_mut();
         }
 
@@ -544,6 +623,13 @@ pub unsafe extern "C" fn servo_webview_builder_free(
             return ServoError::NullArgument;
         }
 
+        if !crate::handle_registry::unregister(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `builder` documented above.
         unsafe {
@@ -608,6 +694,22 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             return std::ptr::null_mut();
         }
 
+        if !crate::handle_registry::is_live(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return std::ptr::null_mut();
+        }
+
+        // W2.5: this call consumes the `context` handle, so forget it in the
+        // registry before taking ownership of the allocation.
+        if !crate::handle_registry::unregister(
+            context,
+            crate::handle_registry::HandleKind::RenderingContext,
+        ) {
+            return std::ptr::null_mut();
+        }
+
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `context` documented above. We take ownership here.
         let boxed_c_context = unsafe { Box::from_raw(context) };
@@ -619,7 +721,7 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             return std::ptr::null_mut();
         };
 
-        Box::into_raw(Box::new(ServoWebViewBuilder {
+        let handle = Box::into_raw(Box::new(ServoWebViewBuilder {
             servo: None,
             rendering_context: boxed_c_context.inner,
             url: None,
@@ -631,7 +733,12 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             hidpi_scale_factor: None,
             create_new_request: Some(inner),
             is_private: false,
-        }))
+        }));
+        crate::handle_registry::register(
+            handle,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        );
+        handle
     })
 }
 
@@ -890,6 +997,45 @@ pub unsafe extern "C" fn servo_webview_take_screenshot(
     })
 }
 
+/// Opens the DevTools for `webview`.
+///
+/// Servo exposes DevTools as a remote debugging server (the DevTools Protocol).
+/// This enables the `devtools_server_enabled` preference so that the DevTools
+/// server is available. The server is created when the owning `Servo` instance
+/// is built, and its port and access token are delivered through the
+/// `notify_devtools_server_started` callback of the `ServoDelegate` passed to
+/// `servo_builder_set_delegate`.
+///
+/// Because the server is created during `Servo` construction, enabling it here
+/// only takes effect for `Servo` instances created afterwards; embedders that
+/// need DevTools for the current instance must set the preference before calling
+/// `servo_builder_build`.
+///
+/// `webview` is a handle to a `WebView` object. The ownership of `webview`
+/// remains with the caller after the call.
+///
+/// Returns `ServoError::Ok` on success, or `ServoError::NullArgument` if
+/// `webview` is null.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for the safety requirements, which apply
+/// identically here.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_open_devtools(webview: *mut WebView) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.open_devtools();
+
+        ServoError::Ok
+    })
+}
+
 /// Destroys the `WebView` instance and frees its memory.
 ///
 /// `webview` is a handle to a `WebView` object.
@@ -944,18 +1090,20 @@ pub unsafe extern "C" fn servo_webview_get_url(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if webview.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_usize(|| {
+        if webview.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    let webview = unsafe { &*webview };
-    let url = webview.url().map(|url| url.to_string()).unwrap_or_default();
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let webview = unsafe { &*webview };
+        let url = webview.url().map(|url| url.to_string()).unwrap_or_default();
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `buffer` documented above.
-    unsafe { write_c_string(&url, buffer, buffer_len) }
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `buffer` documented above.
+        unsafe { write_c_string(&url, buffer, buffer_len) }
+    })
 }
 
 /// Writes the title of the page loaded in `webview` into `buffer` as a NUL
@@ -975,18 +1123,20 @@ pub unsafe extern "C" fn servo_webview_get_title(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if webview.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_usize(|| {
+        if webview.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    let webview = unsafe { &*webview };
-    let title = webview.page_title().unwrap_or_default();
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let webview = unsafe { &*webview };
+        let title = webview.page_title().unwrap_or_default();
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `buffer` documented above.
-    unsafe { write_c_string(&title, buffer, buffer_len) }
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `buffer` documented above.
+        unsafe { write_c_string(&title, buffer, buffer_len) }
+    })
 }
 
 /// Writes the status text of the `WebView` (for example the target of the link
@@ -1006,18 +1156,20 @@ pub unsafe extern "C" fn servo_webview_get_status_text(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if webview.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_usize(|| {
+        if webview.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    let webview = unsafe { &*webview };
-    let status = webview.status_text().unwrap_or_default();
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let webview = unsafe { &*webview };
+        let status = webview.status_text().unwrap_or_default();
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `buffer` documented above.
-    unsafe { write_c_string(&status, buffer, buffer_len) }
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `buffer` documented above.
+        unsafe { write_c_string(&status, buffer, buffer_len) }
+    })
 }
 
 /// Copies the favicon image data of the `WebView` into `buffer`.
@@ -1091,13 +1243,15 @@ pub unsafe extern "C" fn servo_webview_get_favicon_image(
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_get_load_status(webview: *const WebView) -> c_int {
-    if webview.is_null() {
-        return 0;
-    }
+    ServoError::catch_ffi_i32(|| {
+        if webview.is_null() {
+            return 0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.load_status() as c_int
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.load_status() as c_int
+    })
 }
 
 /// Returns whether `webview` operates in private browsing / incognito mode.
@@ -1162,13 +1316,15 @@ pub unsafe extern "C" fn servo_webview_get_size(
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_can_go_back(webview: *const WebView) -> bool {
-    if webview.is_null() {
-        return false;
-    }
+    ServoError::catch_ffi_bool(|| {
+        if webview.is_null() {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.can_go_back()
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.can_go_back()
+    })
 }
 
 /// Returns `true` if `webview` can navigate forwards in its session history.
@@ -1179,13 +1335,15 @@ pub unsafe extern "C" fn servo_webview_can_go_back(webview: *const WebView) -> b
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_can_go_forward(webview: *const WebView) -> bool {
-    if webview.is_null() {
-        return false;
-    }
+    ServoError::catch_ffi_bool(|| {
+        if webview.is_null() {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.can_go_forward()
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.can_go_forward()
+    })
 }
 
 /// Navigates `webview` backwards by `amount` entries in its session history.
@@ -1413,13 +1571,15 @@ pub unsafe extern "C" fn servo_webview_set_page_zoom(
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_page_zoom(webview: *const WebView) -> f32 {
-    if webview.is_null() {
-        return 1.0;
-    }
+    ServoError::catch_ffi_f32(|| {
+        if webview.is_null() {
+            return 1.0;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.page_zoom()
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.page_zoom()
+    })
 }
 
 /// Resizes the `WebView` viewport to `width` by `height` device pixels.
@@ -1482,13 +1642,15 @@ pub unsafe extern "C" fn servo_webview_set_focused(
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_focused(webview: *const WebView) -> bool {
-    if webview.is_null() {
-        return false;
-    }
+    ServoError::catch_ffi_bool(|| {
+        if webview.is_null() {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.focused()
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.focused()
+    })
 }
 
 /// Turns accessibility on or off for `webview`.
@@ -1526,6 +1688,89 @@ pub unsafe extern "C" fn servo_webview_set_accessibility_active(
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `webview` documented above.
         let _ = unsafe { &*webview }.set_accessibility_active(active);
+
+        ServoError::Ok
+    })
+}
+
+/// Converts an AccessKit [`Action`](servo_api::accesskit::Action) discriminant received across
+/// the C ABI back into the corresponding enum value, or `None` if it is not a known action.
+fn accesskit_action_from_u8(value: u8) -> Option<servo_api::accesskit::Action> {
+    use servo_api::accesskit::Action;
+    Some(match value {
+        0 => Action::Click,
+        1 => Action::Focus,
+        2 => Action::Blur,
+        3 => Action::Collapse,
+        4 => Action::Expand,
+        5 => Action::CustomAction,
+        6 => Action::Decrement,
+        7 => Action::Increment,
+        8 => Action::HideTooltip,
+        9 => Action::ShowTooltip,
+        10 => Action::ReplaceSelectedText,
+        11 => Action::ScrollDown,
+        12 => Action::ScrollLeft,
+        13 => Action::ScrollRight,
+        14 => Action::ScrollUp,
+        15 => Action::ScrollIntoView,
+        16 => Action::ScrollToPoint,
+        17 => Action::SetScrollOffset,
+        18 => Action::SetTextSelection,
+        19 => Action::SetSequentialFocusNavigationStartingPoint,
+        20 => Action::SetValue,
+        21 => Action::ShowContextMenu,
+        _ => return None,
+    })
+}
+
+/// Forwards an accessibility action request to the document that owns the target node.
+///
+/// This is the C counterpart of `WebView::forward_accessibility_action` and
+/// `Servo::forward_accessibility_action`. A host that receives an action request from its
+/// AccessKit adapter (for example a screen reader asking for a click, focus change, or scroll)
+/// calls this to deliver the action to the page, where it is handled as the corresponding DOM
+/// event.
+///
+/// `webview` is a handle to a `WebView` object. The ownership of `webview` remains with the
+/// caller after the call.
+///
+/// `tree_id` is the AccessKit `TreeId` of the tree that contains the target node, encoded as a
+/// 64-bit integer (`0` is `TreeId::ROOT`), and `node_id` is the AccessKit `NodeId` of the
+/// target node within that tree. `action` is the AccessKit `Action` discriminant (0 = `Click`,
+/// 1 = `Focus`, ... 21 = `ShowContextMenu`).
+///
+/// Returns `ServoError::Ok` on success, `ServoError::NullArgument` if `webview` is NULL, or
+/// `ServoError::InvalidArgument` if `action` is not a valid AccessKit `Action` discriminant.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for the safety requirements, which apply identically here.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_forward_accessibility_action(
+    webview: *mut WebView,
+    tree_id: u64,
+    node_id: u64,
+    action: u8,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let Some(action) = accesskit_action_from_u8(action) else {
+            return ServoError::InvalidArgument;
+        };
+
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let webview = unsafe { &*webview };
+
+        webview.forward_accessibility_action(
+            servo_api::accesskit::TreeId(servo_api::accesskit::Uuid::from_u128(tree_id as u128)),
+            servo_api::accesskit::NodeId(node_id),
+            action,
+        );
 
         ServoError::Ok
     })
@@ -1640,65 +1885,69 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
     repeat: bool,
     is_composing: bool,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() || key.is_null() || code.is_null() {
-            return 0;
-        }
-
-        let key_str = match unsafe { CStr::from_ptr(key) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return 0,
-        };
-        let code_str = match unsafe { CStr::from_ptr(code) }.to_str() {
-            Ok(s) => s,
-            Err(_) => return 0,
-        };
-
-        let state = match event_type {
-            SERVO_KEY_EVENT_DOWN => KeyState::Down,
-            SERVO_KEY_EVENT_UP => KeyState::Up,
-            _ => {
-                log::warn!("Invalid key event type: {event_type}");
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() || key.is_null() || code.is_null() {
                 return 0;
-            },
-        };
+            }
 
-        let location = match location {
-            0 => Location::Standard,
-            1 => Location::Left,
-            2 => Location::Right,
-            3 => Location::Numpad,
-            _ => {
-                log::warn!("Invalid key location: {location}");
-                Location::Standard
-            },
-        };
+            let key_str = match unsafe { CStr::from_ptr(key) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return 0,
+            };
+            let code_str = match unsafe { CStr::from_ptr(code) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return 0,
+            };
 
-        let modifiers = Modifiers::from_bits_truncate(modifiers);
+            let state = match event_type {
+                SERVO_KEY_EVENT_DOWN => KeyState::Down,
+                SERVO_KEY_EVENT_UP => KeyState::Up,
+                _ => {
+                    log::warn!("Invalid key event type: {event_type}");
+                    return 0;
+                },
+            };
 
-        let key = if key_str.chars().count() == 1 && key_str.chars().next().is_some_and(|c| !c.is_control()) {
-            Key::Character(key_str.to_string())
-        } else {
-            Key::Named(NamedKey::from_str(key_str).unwrap_or(NamedKey::Unidentified))
-        };
+            let location = match location {
+                0 => Location::Standard,
+                1 => Location::Left,
+                2 => Location::Right,
+                3 => Location::Numpad,
+                _ => {
+                    log::warn!("Invalid key location: {location}");
+                    Location::Standard
+                },
+            };
 
-        let code = Code::from_str(code_str).unwrap_or(Code::Unidentified);
+            let modifiers = Modifiers::from_bits_truncate(modifiers);
 
-        let keyboard_event = keyboard_types::KeyboardEvent {
-            state,
-            key,
-            code,
-            location,
-            modifiers,
-            repeat,
-            is_composing,
-        };
+            let key = if key_str.chars().count() == 1 &&
+                key_str.chars().next().is_some_and(|c| !c.is_control())
+            {
+                Key::Character(key_str.to_string())
+            } else {
+                Key::Named(NamedKey::from_str(key_str).unwrap_or(NamedKey::Unidentified))
+            };
 
-        let event = InputEvent::Keyboard(KeyboardEvent::new(keyboard_event));
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let code = Code::from_str(code_str).unwrap_or(Code::Unidentified);
+
+            let keyboard_event = keyboard_types::KeyboardEvent {
+                state,
+                key,
+                code,
+                location,
+                modifiers,
+                repeat,
+                is_composing,
+            };
+
+            let event = InputEvent::Keyboard(KeyboardEvent::new(keyboard_event));
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` of a mouse button event.
@@ -1717,37 +1966,39 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
     y: f64,
     _modifiers: u32,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() {
-            return 0;
-        }
-
-        let action = match event_type {
-            SERVO_MOUSE_EVENT_DOWN => MouseButtonAction::Down,
-            SERVO_MOUSE_EVENT_UP => MouseButtonAction::Up,
-            _ => {
-                log::warn!("Invalid mouse button event type: {event_type}");
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() {
                 return 0;
-            },
-        };
+            }
 
-        let button = match button {
-            SERVO_MOUSE_BUTTON_NONE => MouseButton::None,
-            SERVO_MOUSE_BUTTON_PRIMARY => MouseButton::Primary,
-            SERVO_MOUSE_BUTTON_AUXILIARY => MouseButton::Auxiliary,
-            SERVO_MOUSE_BUTTON_SECONDARY => MouseButton::Secondary,
-            SERVO_MOUSE_BUTTON_BACK => MouseButton::Back,
-            SERVO_MOUSE_BUTTON_FORWARD => MouseButton::Forward,
-            other => MouseButton::Other(other as u16),
-        };
+            let action = match event_type {
+                SERVO_MOUSE_EVENT_DOWN => MouseButtonAction::Down,
+                SERVO_MOUSE_EVENT_UP => MouseButtonAction::Up,
+                _ => {
+                    log::warn!("Invalid mouse button event type: {event_type}");
+                    return 0;
+                },
+            };
 
-        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+            let button = match button {
+                SERVO_MOUSE_BUTTON_NONE => MouseButton::None,
+                SERVO_MOUSE_BUTTON_PRIMARY => MouseButton::Primary,
+                SERVO_MOUSE_BUTTON_AUXILIARY => MouseButton::Auxiliary,
+                SERVO_MOUSE_BUTTON_SECONDARY => MouseButton::Secondary,
+                SERVO_MOUSE_BUTTON_BACK => MouseButton::Back,
+                SERVO_MOUSE_BUTTON_FORWARD => MouseButton::Forward,
+                other => MouseButton::Other(other as u16),
+            };
 
-        let event = InputEvent::MouseButton(MouseButtonEvent::new(action, button, point));
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+
+            let event = InputEvent::MouseButton(MouseButtonEvent::new(action, button, point));
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` of a mouse move event.
@@ -1764,18 +2015,20 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_move_event(
     y: f64,
     _modifiers: u32,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() {
-            return 0;
-        }
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() {
+                return 0;
+            }
 
-        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+            let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
-        let event = InputEvent::MouseMove(MouseMoveEvent::new(point));
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let event = InputEvent::MouseMove(MouseMoveEvent::new(point));
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` that the mouse left the viewport.
@@ -1790,20 +2043,22 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_leave_event(
     webview: *mut WebView,
     focus_moving_to_another_iframe: bool,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() {
-            return 0;
-        }
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() {
+                return 0;
+            }
 
-        let event = InputEvent::MouseLeftViewport(
-            embedder_traits::input_events::MouseLeftViewportEvent {
-                focus_moving_to_another_iframe,
-            },
-        );
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let event = InputEvent::MouseLeftViewport(
+                embedder_traits::input_events::MouseLeftViewportEvent {
+                    focus_moving_to_another_iframe,
+                },
+            );
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` of a touch event.
@@ -1822,43 +2077,45 @@ pub unsafe extern "C" fn servo_webview_notify_touch_event(
     y: f64,
     pointer_type: c_int,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() {
-            return 0;
-        }
-
-        let event_type = match event_type {
-            SERVO_TOUCH_EVENT_DOWN => TouchEventType::Down,
-            SERVO_TOUCH_EVENT_MOVE => TouchEventType::Move,
-            SERVO_TOUCH_EVENT_UP => TouchEventType::Up,
-            SERVO_TOUCH_EVENT_CANCEL => TouchEventType::Cancel,
-            _ => {
-                log::warn!("Invalid touch event type: {event_type}");
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() {
                 return 0;
-            },
-        };
+            }
 
-        let pointer_type = match pointer_type {
-            SERVO_TOUCH_POINTER_TYPE_TOUCH => TouchPointerType::Touch,
-            SERVO_TOUCH_POINTER_TYPE_PEN => TouchPointerType::Pen,
-            _ => {
-                log::warn!("Invalid touch pointer type: {pointer_type}");
-                TouchPointerType::Touch
-            },
-        };
+            let event_type = match event_type {
+                SERVO_TOUCH_EVENT_DOWN => TouchEventType::Down,
+                SERVO_TOUCH_EVENT_MOVE => TouchEventType::Move,
+                SERVO_TOUCH_EVENT_UP => TouchEventType::Up,
+                SERVO_TOUCH_EVENT_CANCEL => TouchEventType::Cancel,
+                _ => {
+                    log::warn!("Invalid touch event type: {event_type}");
+                    return 0;
+                },
+            };
 
-        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+            let pointer_type = match pointer_type {
+                SERVO_TOUCH_POINTER_TYPE_TOUCH => TouchPointerType::Touch,
+                SERVO_TOUCH_POINTER_TYPE_PEN => TouchPointerType::Pen,
+                _ => {
+                    log::warn!("Invalid touch pointer type: {pointer_type}");
+                    TouchPointerType::Touch
+                },
+            };
 
-        let event = InputEvent::Touch(TouchEvent::new(
-            event_type,
-            TouchId(touch_id),
-            point,
-            pointer_type,
-        ));
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+
+            let event = InputEvent::Touch(TouchEvent::new(
+                event_type,
+                TouchId(touch_id),
+                point,
+                pointer_type,
+            ));
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` of a wheel event.
@@ -1878,35 +2135,37 @@ pub unsafe extern "C" fn servo_webview_notify_wheel_event(
     x: f64,
     y: f64,
 ) -> u64 {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if webview.is_null() {
-            return 0;
-        }
+    ServoError::catch_ffi_u64(|| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if webview.is_null() {
+                return 0;
+            }
 
-        let mode = match delta_mode {
-            SERVO_WHEEL_DELTA_PIXEL => WheelMode::DeltaPixel,
-            SERVO_WHEEL_DELTA_LINE => WheelMode::DeltaLine,
-            SERVO_WHEEL_DELTA_PAGE => WheelMode::DeltaPage,
-            _ => {
-                log::warn!("Invalid wheel delta mode: {delta_mode}");
-                WheelMode::DeltaPixel
-            },
-        };
+            let mode = match delta_mode {
+                SERVO_WHEEL_DELTA_PIXEL => WheelMode::DeltaPixel,
+                SERVO_WHEEL_DELTA_LINE => WheelMode::DeltaLine,
+                SERVO_WHEEL_DELTA_PAGE => WheelMode::DeltaPage,
+                _ => {
+                    log::warn!("Invalid wheel delta mode: {delta_mode}");
+                    WheelMode::DeltaPixel
+                },
+            };
 
-        let delta = WheelDelta {
-            x: delta_x,
-            y: delta_y,
-            z: delta_z,
-            mode,
-        };
+            let delta = WheelDelta {
+                x: delta_x,
+                y: delta_y,
+                z: delta_z,
+                mode,
+            };
 
-        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
+            let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
-        let event = InputEvent::Wheel(WheelEvent::new(delta, point));
-        let event_id = unsafe { &*webview }.notify_input_event(event);
-        event_id.0 as u64
-    }))
-    .unwrap_or(0)
+            let event = InputEvent::Wheel(WheelEvent::new(delta, point));
+            let event_id = unsafe { &*webview }.notify_input_event(event);
+            event_id.0 as u64
+        }))
+        .unwrap_or(0)
+    })
 }
 
 /// Notifies `webview` that an input event has been handled by the embedder.
@@ -2214,13 +2473,15 @@ pub unsafe extern "C" fn servo_webview_set_fullscreen(
 /// identically here.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_is_fullscreen(webview: *const WebView) -> bool {
-    if webview.is_null() {
-        return false;
-    }
+    ServoError::catch_ffi_bool(|| {
+        if webview.is_null() {
+            return false;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    unsafe { &*webview }.is_fullscreen()
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.is_fullscreen()
+    })
 }
 
 /// Gets the window bounds (position and size) of the window containing `webview`.
@@ -2247,27 +2508,29 @@ pub unsafe extern "C" fn servo_webview_get_window_bounds(
     width: *mut u32,
     height: *mut u32,
 ) {
-    if webview.is_null() {
-        return;
-    }
+    ServoError::catch_ffi_void(|| {
+        if webview.is_null() {
+            return;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements for
-    // `webview` documented above.
-    let webview = unsafe { &*webview };
-    if let Some((wx, wy, ww, wh)) = webview.window_bounds() {
-        if !x.is_null() {
-            unsafe { *x = wx };
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let webview = unsafe { &*webview };
+        if let Some((wx, wy, ww, wh)) = webview.window_bounds() {
+            if !x.is_null() {
+                unsafe { *x = wx };
+            }
+            if !y.is_null() {
+                unsafe { *y = wy };
+            }
+            if !width.is_null() {
+                unsafe { *width = ww };
+            }
+            if !height.is_null() {
+                unsafe { *height = wh };
+            }
         }
-        if !y.is_null() {
-            unsafe { *y = wy };
-        }
-        if !width.is_null() {
-            unsafe { *width = ww };
-        }
-        if !height.is_null() {
-            unsafe { *height = wh };
-        }
-    }
+    })
 }
 
 /// Updates the HiDPI scale factor for `webview`.
@@ -2309,7 +2572,9 @@ pub unsafe extern "C" fn servo_webview_get_hidpi_scale_factor(
         if webview.is_null() || out_scale.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_scale = (&*webview).hidpi_scale_factor().get(); }
+        unsafe {
+            *out_scale = (&*webview).hidpi_scale_factor().get();
+        }
         ServoError::Ok
     })
 }
@@ -2328,7 +2593,9 @@ pub unsafe extern "C" fn servo_webview_is_animating(
         if webview.is_null() || out_animating.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_animating = (&*webview).animating(); }
+        unsafe {
+            *out_animating = (&*webview).animating();
+        }
         ServoError::Ok
     })
 }
@@ -2345,7 +2612,9 @@ pub unsafe extern "C" fn servo_webview_get_pinch_zoom(
         if webview.is_null() || out_zoom.is_null() {
             return ServoError::NullArgument;
         }
-        unsafe { *out_zoom = (&*webview).pinch_zoom(); }
+        unsafe {
+            *out_zoom = (&*webview).pinch_zoom();
+        }
         ServoError::Ok
     })
 }
@@ -2487,9 +2756,7 @@ pub unsafe extern "C" fn servo_webview_scroll_by(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_scroll_to_start(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_scroll_to_start(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2514,9 +2781,7 @@ pub unsafe extern "C" fn servo_webview_scroll_to_start(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_scroll_to_end(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_scroll_to_end(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2549,12 +2814,10 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_start(
             return ServoError::NullArgument;
         }
 
-        let event = InputEvent::Ime(ImeEvent::Composition(
-            CompositionEvent {
-                state: CompositionState::Start,
-                data: String::new(),
-            },
-        ));
+        let event = InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Start,
+            data: String::new(),
+        }));
         unsafe { &*webview }.notify_input_event(event);
 
         ServoError::Ok
@@ -2587,12 +2850,10 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_update(
             Err(_) => return ServoError::InvalidUtf8,
         };
 
-        let event = InputEvent::Ime(ImeEvent::Composition(
-            CompositionEvent {
-                state: CompositionState::Update,
-                data: text_str,
-            },
-        ));
+        let event = InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Update,
+            data: text_str,
+        }));
         unsafe { &*webview }.notify_input_event(event);
 
         ServoError::Ok
@@ -2626,22 +2887,14 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_end(
         };
 
         let wv = unsafe { &*webview };
-        wv.notify_input_event(InputEvent::Ime(
-            ImeEvent::Composition(
-                CompositionEvent {
-                    state: CompositionState::Update,
-                    data: text_str.clone(),
-                },
-            ),
-        ));
-        wv.notify_input_event(InputEvent::Ime(
-            ImeEvent::Composition(
-                CompositionEvent {
-                    state: CompositionState::End,
-                    data: text_str,
-                },
-            ),
-        ));
+        wv.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Update,
+            data: text_str.clone(),
+        })));
+        wv.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::End,
+            data: text_str,
+        })));
 
         ServoError::Ok
     })
@@ -2657,9 +2910,7 @@ pub unsafe extern "C" fn servo_webview_notify_ime_composition_end(
 ///
 /// Returns `ServoError::NullArgument` if `webview` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_webview_notify_ime_dismissed(
-    webview: *mut WebView,
-) -> ServoError {
+pub unsafe extern "C" fn servo_webview_notify_ime_dismissed(webview: *mut WebView) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
@@ -2697,18 +2948,10 @@ pub unsafe extern "C" fn servo_webview_notify_media_session_action(
         let action_type = match action {
             SERVO_MEDIA_SESSION_ACTION_PLAY => MediaSessionActionType::Play,
             SERVO_MEDIA_SESSION_ACTION_PAUSE => MediaSessionActionType::Pause,
-            SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD => {
-                MediaSessionActionType::SeekBackward
-            },
-            SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD => {
-                MediaSessionActionType::SeekForward
-            },
-            SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK => {
-                MediaSessionActionType::PreviousTrack
-            },
-            SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK => {
-                MediaSessionActionType::NextTrack
-            },
+            SERVO_MEDIA_SESSION_ACTION_SEEK_BACKWARD => MediaSessionActionType::SeekBackward,
+            SERVO_MEDIA_SESSION_ACTION_SEEK_FORWARD => MediaSessionActionType::SeekForward,
+            SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK => MediaSessionActionType::PreviousTrack,
+            SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK => MediaSessionActionType::NextTrack,
             SERVO_MEDIA_SESSION_ACTION_SKIP_AD => MediaSessionActionType::SkipAd,
             SERVO_MEDIA_SESSION_ACTION_STOP => MediaSessionActionType::Stop,
             _ => return ServoError::InvalidArgument,

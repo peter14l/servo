@@ -1894,6 +1894,14 @@ struct PlacementState<'container> {
     /// The [`ContainingBlock`] of the container into which this [`PlacementState`] is laying out
     /// fragments. This is used to convert between physical and logical geometry.
     containing_block: &'container ContainingBlock<'container>,
+
+    /// The block-axis gap between in-flow block-level siblings from the parent's `row-gap`.
+    /// Gaps do not collapse with margins.
+    block_gap: Au,
+
+    /// Whether an in-flow block-level child has already been placed. Used to avoid adding a
+    /// gap before the first child.
+    placed_in_flow_block_child: bool,
 }
 
 impl<'container> PlacementState<'container> {
@@ -1903,6 +1911,12 @@ impl<'container> PlacementState<'container> {
     ) -> PlacementState<'container> {
         let is_inline_block_context =
             containing_block.style.get_box().get_display() == &Display::InlineBlock;
+        let block_gap = match containing_block.style.get_position().row_gap {
+            style::values::generics::length::LengthPercentageOrNormal::LengthPercentage(lp) => {
+                lp.to_used_value(Au::zero())
+            },
+            style::values::generics::length::LengthPercentageOrNormal::Normal => Au::zero(),
+        };
         PlacementState {
             next_in_flow_margin_collapses_with_parent_start_margin:
                 collapsible_with_parent_start_margin.0,
@@ -1914,6 +1928,8 @@ impl<'container> PlacementState<'container> {
             is_inline_block_context,
             marker_block_size: None,
             containing_block,
+            block_gap,
+            placed_in_flow_block_child: false,
         }
     }
 
@@ -2035,6 +2051,11 @@ impl<'container> PlacementState<'container> {
                     }
                     self.next_in_flow_margin_collapses_with_parent_start_margin = false;
                 } else {
+                    if self.placed_in_flow_block_child && !self.block_gap.is_zero() {
+                        self.current_block_direction_position +=
+                            self.current_margin.solve() + self.block_gap;
+                        self.current_margin = CollapsedMargin::zero();
+                    }
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.start);
                 }
@@ -2057,6 +2078,7 @@ impl<'container> PlacementState<'container> {
                     self.current_block_direction_position +=
                         self.current_margin.solve() + fragment_block_size;
                     self.current_margin = fragment_block_margins.end;
+                    self.placed_in_flow_block_child = true;
                 }
             },
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {

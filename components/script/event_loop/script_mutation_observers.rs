@@ -5,15 +5,17 @@
 use std::cell::Cell;
 
 use js::context::JSContext;
+use malloc_size_of::MallocSizeOf;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
+use crate::JSTraceable;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
-use crate::runtime::job_queue::NotifyMutationObserversMicrotask;
+use crate::runtime::job_queue::{MicrotaskRunnable, NotifyMutationObserversMicrotask, enqueue};
 
-/// A helper struct for mutation observers used in `ScriptThread`
+/// A helper struct for mutation observers used in ScriptThread
 /// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.
 #[derive(JSTraceable, Default)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
@@ -38,35 +40,35 @@ impl ScriptMutationObservers {
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub(crate) fn notify_mutation_observers(&self, cx: &mut JSContext) {
-        // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
+        // Step 1. Set the surrounding agent's mutation observer microtask queued to false.
         self.mutation_observer_microtask_queued.set(false);
 
-        // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
-        // Step 3. Empty the surrounding agent’s pending mutation observers.
+        // Step 2. Let notifySet be a clone of the surrounding agent's pending mutation observers.
+        // Step 3. Empty the surrounding agent's pending mutation observers.
         let notify_list = self.take_mutation_observers();
 
-        // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
-        // Step 5. Empty the surrounding agent’s signal slots.
+        // Step 4. Let signalSet be a clone of the surrounding agent's signal slots.
+        // Step 5. Empty the surrounding agent's signal slots.
         let signal_set: Vec<DomRoot<HTMLSlotElement>> = self.take_signal_slots();
 
         // Step 6. For each mo of notifySet:
         for mo in notify_list.iter() {
             let record_queue = mo.record_queue();
 
-            // Step 6.1 Let records be a clone of mo’s record queue.
+            // Step 6.1 Let records be a clone of mo's record queue.
             let queue: Vec<DomRoot<MutationRecord>> = record_queue
                 .borrow()
                 .iter()
                 .map(|record| record.as_rooted())
                 .collect();
 
-            // Step 6.2 Empty mo’s record queue.
+            // Step 6.2 Empty mo's record queue.
             record_queue.borrow_mut().clear();
 
-            // TODO Step 6.3 For each node of mo’s node list, remove all transient registered observers
-            // whose observer is mo from node’s registered observer list.
+            // TODO Step 6.3 For each node of mo's node list, remove all transient registered observers
+            // whose observer is mo from node's registered observer list.
 
-            // Step 6.4 If records is not empty, then invoke mo’s callback with « records,
+            // Step 6.4 If records is not empty, then invoke mo's callback with « records,
             // mo » and "report", and with callback this value mo.
             if !queue.is_empty() {
                 let _ = mo
@@ -77,20 +79,21 @@ impl ScriptMutationObservers {
 
         // Step 6. For each slot of signalSet, fire an event named slotchange,
         // with its bubbles attribute set to true, at slot.
-        for slot in signal_set {
-            slot.upcast::<EventTarget>()
-                .fire_bubbling_event(cx, atom!("slotchange"));
+        // Slotchange events are dispatched in a separate microtask so they run
+        // at the end of the microtask queue, after mutation observers have run.
+        if !signal_set.is_empty() {
+            enqueue(cx, Box::new(SlotChangeMicrotask::new(signal_set)));
         }
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
     pub(crate) fn queue_mutation_observer_microtask(&self, cx: &JSContext) {
-        // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
+        // Step 1. If the surrounding agent's mutation observer microtask queued is true, then return.
         if self.mutation_observer_microtask_queued.get() {
             return;
         }
 
-        // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
+        // Step 2. Set the surrounding agent's mutation observer microtask queued to true.
         self.mutation_observer_microtask_queued.set(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
@@ -118,5 +121,29 @@ impl ScriptMutationObservers {
             .iter()
             .map(|mo| mo.as_rooted())
             .collect()
+    }
+}
+
+/// A microtask that fires slotchange events for slots that were signaled
+/// during mutation observer notification. This runs as a separate microtask
+/// so that slotchange events fire at the end of the microtask queue, after
+/// mutation observers have run.
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct SlotChangeMicrotask {
+    signal_set: Vec<DomRoot<HTMLSlotElement>>,
+}
+
+impl SlotChangeMicrotask {
+    pub(crate) fn new(signal_set: Vec<DomRoot<HTMLSlotElement>>) -> Self {
+        Self { signal_set }
+    }
+}
+
+impl MicrotaskRunnable for SlotChangeMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        for slot in &self.signal_set {
+            slot.upcast::<EventTarget>()
+                .fire_bubbling_event(cx, atom!("slotchange"));
+        }
     }
 }

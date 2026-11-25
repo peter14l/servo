@@ -1,16 +1,16 @@
-# Graph Report - servo  (2026-11-09)
+# Graph Report - servo  (2026-11-25)
 
 ## Corpus Check
-- 2139 files · ~2,599,289 words
+- 2155 files · ~2,685,076 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 65831 nodes · 150464 edges · 4707 communities (2192 shown, 2515 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 8013 edges (avg confidence: 0.57)
+- 66249 nodes · 151501 edges · 4675 communities (2179 shown, 2496 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 8037 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `461286cb`
+- Built from commit: `6212a8a8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -41,7 +41,6 @@
 - [[_COMMUNITY_Community 23|Community 23]]
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
-- [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
@@ -1018,6 +1017,7 @@
 - [[_COMMUNITY_Community 1000|Community 1000]]
 - [[_COMMUNITY_Community 1001|Community 1001]]
 - [[_COMMUNITY_Community 1002|Community 1002]]
+- [[_COMMUNITY_Community 1003|Community 1003]]
 - [[_COMMUNITY_Community 1004|Community 1004]]
 - [[_COMMUNITY_Community 1005|Community 1005]]
 - [[_COMMUNITY_Community 1006|Community 1006]]
@@ -1744,6 +1744,7 @@
 - [[_COMMUNITY_Community 1729|Community 1729]]
 - [[_COMMUNITY_Community 1730|Community 1730]]
 - [[_COMMUNITY_Community 1731|Community 1731]]
+- [[_COMMUNITY_Community 1732|Community 1732]]
 - [[_COMMUNITY_Community 1733|Community 1733]]
 - [[_COMMUNITY_Community 1734|Community 1734]]
 - [[_COMMUNITY_Community 1735|Community 1735]]
@@ -1782,7 +1783,6 @@
 - [[_COMMUNITY_Community 1768|Community 1768]]
 - [[_COMMUNITY_Community 1769|Community 1769]]
 - [[_COMMUNITY_Community 1770|Community 1770]]
-- [[_COMMUNITY_Community 1771|Community 1771]]
 - [[_COMMUNITY_Community 1772|Community 1772]]
 - [[_COMMUNITY_Community 1773|Community 1773]]
 - [[_COMMUNITY_Community 1774|Community 1774]]
@@ -2126,16 +2126,11 @@
 - [[_COMMUNITY_Community 2121|Community 2121]]
 - [[_COMMUNITY_Community 2122|Community 2122]]
 - [[_COMMUNITY_Community 2123|Community 2123]]
-- [[_COMMUNITY_Community 2124|Community 2124]]
 - [[_COMMUNITY_Community 2125|Community 2125]]
-- [[_COMMUNITY_Community 2126|Community 2126]]
 - [[_COMMUNITY_Community 2127|Community 2127]]
 - [[_COMMUNITY_Community 2128|Community 2128]]
 - [[_COMMUNITY_Community 2129|Community 2129]]
-- [[_COMMUNITY_Community 2130|Community 2130]]
-- [[_COMMUNITY_Community 2131|Community 2131]]
 - [[_COMMUNITY_Community 2132|Community 2132]]
-- [[_COMMUNITY_Community 2133|Community 2133]]
 - [[_COMMUNITY_Community 2134|Community 2134]]
 - [[_COMMUNITY_Community 2135|Community 2135]]
 - [[_COMMUNITY_Community 2136|Community 2136]]
@@ -2152,9 +2147,6 @@
 - [[_COMMUNITY_Community 2147|Community 2147]]
 - [[_COMMUNITY_Community 2148|Community 2148]]
 - [[_COMMUNITY_Community 2149|Community 2149]]
-- [[_COMMUNITY_Community 2150|Community 2150]]
-- [[_COMMUNITY_Community 2151|Community 2151]]
-- [[_COMMUNITY_Community 2152|Community 2152]]
 - [[_COMMUNITY_Community 2153|Community 2153]]
 - [[_COMMUNITY_Community 2154|Community 2154]]
 - [[_COMMUNITY_Community 2155|Community 2155]]
@@ -2172,7 +2164,6 @@
 - [[_COMMUNITY_Community 2167|Community 2167]]
 - [[_COMMUNITY_Community 2168|Community 2168]]
 - [[_COMMUNITY_Community 2169|Community 2169]]
-- [[_COMMUNITY_Community 2170|Community 2170]]
 - [[_COMMUNITY_Community 2171|Community 2171]]
 - [[_COMMUNITY_Community 2172|Community 2172]]
 - [[_COMMUNITY_Community 2173|Community 2173]]
@@ -4441,51 +4432,22 @@
 - [[_COMMUNITY_Community 4665|Community 4665]]
 - [[_COMMUNITY_Community 4666|Community 4666]]
 - [[_COMMUNITY_Community 4667|Community 4667]]
-- [[_COMMUNITY_Community 4668|Community 4668]]
 - [[_COMMUNITY_Community 4669|Community 4669]]
 - [[_COMMUNITY_Community 4670|Community 4670]]
 - [[_COMMUNITY_Community 4671|Community 4671]]
 - [[_COMMUNITY_Community 4672|Community 4672]]
-- [[_COMMUNITY_Community 4673|Community 4673]]
 - [[_COMMUNITY_Community 4674|Community 4674]]
 - [[_COMMUNITY_Community 4675|Community 4675]]
 - [[_COMMUNITY_Community 4676|Community 4676]]
-- [[_COMMUNITY_Community 4677|Community 4677]]
-- [[_COMMUNITY_Community 4678|Community 4678]]
 - [[_COMMUNITY_Community 4679|Community 4679]]
-- [[_COMMUNITY_Community 4680|Community 4680]]
-- [[_COMMUNITY_Community 4681|Community 4681]]
-- [[_COMMUNITY_Community 4682|Community 4682]]
-- [[_COMMUNITY_Community 4683|Community 4683]]
-- [[_COMMUNITY_Community 4684|Community 4684]]
 - [[_COMMUNITY_Community 4686|Community 4686]]
-- [[_COMMUNITY_Community 4687|Community 4687]]
-- [[_COMMUNITY_Community 4688|Community 4688]]
-- [[_COMMUNITY_Community 4689|Community 4689]]
-- [[_COMMUNITY_Community 4690|Community 4690]]
-- [[_COMMUNITY_Community 4691|Community 4691]]
-- [[_COMMUNITY_Community 4693|Community 4693]]
-- [[_COMMUNITY_Community 4694|Community 4694]]
-- [[_COMMUNITY_Community 4695|Community 4695]]
-- [[_COMMUNITY_Community 4696|Community 4696]]
-- [[_COMMUNITY_Community 4698|Community 4698]]
-- [[_COMMUNITY_Community 4699|Community 4699]]
-- [[_COMMUNITY_Community 4700|Community 4700]]
-- [[_COMMUNITY_Community 4701|Community 4701]]
-- [[_COMMUNITY_Community 4702|Community 4702]]
-- [[_COMMUNITY_Community 4703|Community 4703]]
-- [[_COMMUNITY_Community 4704|Community 4704]]
 - [[_COMMUNITY_Community 4705|Community 4705]]
-- [[_COMMUNITY_Community 4706|Community 4706]]
-- [[_COMMUNITY_Community 4707|Community 4707]]
-- [[_COMMUNITY_Community 4708|Community 4708]]
-- [[_COMMUNITY_Community 4709|Community 4709]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Document` - 524 edges
 2. `TestBinding` - 490 edges
-3. `Element` - 373 edges
-4. `Castable` - 329 edges
+3. `Element` - 372 edges
+4. `Castable` - 330 edges
 5. `Window` - 324 edges
 6. `WebGL2RenderingContext` - 269 edges
 7. `WebGLRenderingContext` - 248 edges
@@ -4494,6 +4456,8 @@
 10. `Node` - 223 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `servo_create_sandbox()` --calls--> `create_sandbox()`  [INFERRED]
+  ffi/capi/multiprocess.rs → components/servo/servo.rs
 - `test_create_output_file_with_data_url()` --calls--> `create_output_file()`  [INFERRED]
   tests/unit/script/unminify.rs → components/script/unminify.rs
 - `test_create_output_file_with_query_string()` --calls--> `create_output_file()`  [INFERRED]
@@ -4501,8 +4465,6 @@
 - `test_create_output_file_without_query_string()` --calls--> `create_output_file()`  [INFERRED]
   tests/unit/script/unminify.rs → components/script/unminify.rs
 - `servo_run_content_process()` --calls--> `run_content_process()`  [INFERRED]
-  ffi/capi/multiprocess.rs → components/servo/servo.rs
-- `servo_create_sandbox()` --calls--> `create_sandbox()`  [INFERRED]
   ffi/capi/multiprocess.rs → components/servo/servo.rs
 
 ## Import Cycles
@@ -4527,27 +4489,27 @@
 - 1-file cycle: `components/script/dom/canvas/2d/canvaspattern.rs -> components/script/dom/canvas/2d/canvaspattern.rs`
 - 1-file cycle: `components/script/dom/canvas/2d/canvasrenderingcontext2d.rs -> components/script/dom/canvas/2d/canvasrenderingcontext2d.rs`
 
-## Communities (4707 total, 2515 thin omitted)
+## Communities (4675 total, 2496 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
-Nodes (82): assert_type(), Any, BuiltinLocation, convertExposedAttrToGlobalNameSet(), IDLAsyncIterable, IDLExtendedAttribute, IDLIdentifier, IDLIdentifierPlaceholder (+74 more)
+Nodes (101): getAllTypes(), Generate all the types we're dealing with.  For each type, a tuple     containin, assert_type(), getIdlFileName(), getModuleFromObject(), getTypesFromCallback(), getTypesFromDescriptor(), getTypesFromDictionary() (+93 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.01
-Nodes (113): add_css_properties_attributes(), generate(), main(), Configuration, Parser, main(), Parser, Definitions : ExtendedAttributeList Definition Definitions (+105 more)
+Nodes (127): add_css_properties_attributes(), generate(), main(), Configuration, Parser, main(), Parser, Definition : CallbackOrInterfaceOrMixin                    | Namespace (+119 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.02
-Nodes (105): abc, argument_type(), builtin_return_type(), camel_to_upper_snake(), CGDictionary, CGGeneric, CGIndenter, CGList (+97 more)
+Nodes (91): abc, argument_type(), builtin_return_type(), camel_to_upper_snake(), CGDictionary, CGGeneric, CGIndenter, CGList (+83 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.02
-Nodes (57): AccessibilityData, AnimationManager, AttrRef, ContainerTimingID, CustomHandlersAutomationMode, DetailsNameGroups, DocumentVisibilityState, DomRefCell (+49 more)
+Nodes (58): AccessibilityData, AnimationManager, AttrRef, Cell, ContainerTimingID, CrossProcessInstant, CustomHandlersAutomationMode, DetailsNameGroups (+50 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.01
-Nodes (140): p_abstract_declarator_1(), p_abstract_declarator_3(), p_additive_expression_1(), p_and_expression_1(), p_and_expression_2(), p_assignment_expression_1(), p_assignment_expression_2(), p_compound_statement_2() (+132 more)
+Nodes (230): p_abstract_declarator_2(), p_abstract_declarator_3(), p_abstract_declarator_opt_1(), p_abstract_declarator_opt_2(), p_additive_expression_1(), p_additive_expression_2(), p_additive_expression_3(), p_and_expression_1() (+222 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.02
@@ -4558,36 +4520,36 @@ Cohesion: 0.07
 Nodes (32): AlignItems, ArcRefCell, BaseFragmentInfo, ComputedValues, ContentDistribution, Debug, FlexAxis, FlexDirection (+24 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (16): Argument, callbackGetterName(), callbackSetterName(), CopyLegacyUnforgeablePropertiesToInstance(), isEventHandlerCallback(), methodLength(), Adds a set of imports., A class for outputting the type and name of an argument (+8 more)
+Cohesion: 0.03
+Nodes (29): Argument, callbackGetterName(), callbackSetterName(), CopyLegacyUnforgeablePropertiesToInstance(), FakeArgument, isEventHandlerCallback(), isIDLType(), method_arguments() (+21 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.03
-Nodes (71): Arc, Default, Destination, HeaderName, ImmutableOrigin, InsecureRequestsPolicy, IpcSender, Method (+63 more)
+Cohesion: 0.04
+Nodes (63): Arc, Default, Destination, HeaderName, ImmutableOrigin, InsecureRequestsPolicy, IpcSender, Method (+55 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (32): dump_unmeasured(), enclosing_size_impl(), heap_reports(), HeapReport, jemalloc_stat(), usable_size(), c_long, c_void (+24 more)
+Cohesion: 0.12
+Nodes (19): enclosing_size_impl(), usable_size(), c_long, c_void, c_void, Drop, MallocSizeOf, MallocSizeOfOps (+11 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.04
-Nodes (28): atomic_refcell::AtomicRefCell<T>, Cookie<'a>, euclid::Box2D<T, U>, euclid::Length<T, Unit>, euclid::RigidTransform3D<T, Src, Dst>, euclid::Scale<T, Src, Dst>, euclid::SideOffsets2D<T, U>, euclid::Size2D<T, U> (+20 more)
+Cohesion: 0.09
+Nodes (27): AttributeMutation, AttrRef, AttrValue, BindContext, ChildrenMutation, Document, DomRoot, DOMString (+19 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.09
-Nodes (22): main(), on_javascript_result(), sleep_ms(), ServoValue, RenderingContext, ServoJavaScriptCallback, WebView, servo_rendering_context_create_window() (+14 more)
+Cohesion: 0.06
+Nodes (36): main(), on_javascript_result(), sleep_ms(), ServoValue, RenderingContext, Servo, ServoClipboardDelegate, ServoClipboardStringRequest (+28 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.11
-Nodes (7): DOMString, check_support_for_algorithm(), DecapsulateAlgorithm, GetKeyLengthAlgorithm, GetSharedKeyLengthAlgorithm, ImportKeyAlgorithm, normalize_and_determine_support()
+Cohesion: 0.02
+Nodes (10): IDLObservableArrayType, IDLParametrizedType, IDLUnresolvedType, Returns true if this dictionary can be empty (that is, it has no         require, Returns a boolean indicating whether this type is an 'interface'         type th, Returns a boolean indicating whether this type is an 'interface'         type th, Unresolved types are interface types, The mutually exclusive         clamp/enforceRange/legacyNullToEmptyString/(allow (+2 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
 Nodes (30): From, MutableHandleValue, ToJSValConvertible, Trusted, TryFrom, set_dictionary_property(), SerializableAesKeyAlgorithm, SerializableEcKeyAlgorithm (+22 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.05
-Nodes (63): Arc, AtomicBool, AutoWorkerReset, BrowsingContextId, CredentialsMode, DebuggerGlobalScope, DevtoolScriptControlMsg, Dom (+55 more)
+Cohesion: 0.07
+Nodes (53): Arc, AtomicBool, AutoWorkerReset, BrowsingContextId, CredentialsMode, DebuggerGlobalScope, DevtoolScriptControlMsg, Dom (+45 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.11
@@ -4599,15 +4561,15 @@ Nodes (33): ArcRefCell, Au, BaseFragmentInfo, ComputedValues, ContainingBlock, F
 
 ### Community 17 - "Community 17"
 Cohesion: 0.06
-Nodes (35): AudioInfo, byte_slice_cast, AsRef, AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions, Option, Self (+27 more)
+Nodes (37): AudioInfo, byte_slice_cast, AsRef, AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions, Option, Self (+29 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.09
-Nodes (32): Arc, ArcRefCell, BaseFragmentInfo, BoxSlot, BoxTreeString, ComputedValues, Contents, DisplayGeneratingBox (+24 more)
+Nodes (31): Arc, ArcRefCell, BaseFragmentInfo, BoxSlot, BoxTreeString, ComputedValues, Contents, DisplayGeneratingBox (+23 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.06
-Nodes (43): clear_as_styleclear, Arc, Au, BoxFragment, CollapsedMargin, ComputedValues, ContainingBlock, Contents (+35 more)
+Cohesion: 0.07
+Nodes (37): assertunwindsafe, CrossProcessPaintApi, DeviceIntSize, Drop, FxHashMap, HashMap, HashSet, ImageCacheResponseCallback (+29 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.02
@@ -4619,7 +4581,7 @@ Nodes (67): BroadcastChannels, canvaspaintthread, Arc, AsyncRuntime, BackgroundH
 
 ### Community 22 - "Community 22"
 Cohesion: 0.07
-Nodes (259): CallbackMethod, CGCase, CGClass, CGGeneric, CGThing, AttrDefiner, CallbackMember, CallbackMethod (+251 more)
+Nodes (245): CallbackMethod, CGCase, CGClass, CGGeneric, CGThing, AttrDefiner, CallbackMember, CallbackMethod (+237 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.05
@@ -4627,71 +4589,71 @@ Nodes (42): BluetoothAdapter, BtleplugAdapter, BluetoothDevice, BluetoothDiscove
 
 ### Community 24 - "Community 24"
 Cohesion: 0.03
-Nodes (58): Box, Cell, EmbedderToConstellationMessage, EventLoopWaker, PaintMessage, PaintProxy, ProfilerChan, Rc (+50 more)
+Nodes (83): atomicref, color_as_svgcolor, Box, Cell, EmbedderToConstellationMessage, EventLoopWaker, PaintMessage, PaintProxy (+75 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.07
 Nodes (35): Arc, ArcRefCell, Atom, Au, Baselines, ComputedValues, Debug, DefiniteContainingBlock (+27 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.08
-Nodes (32): actionrequest, ExternalScrollId, FxHashMap, ImmutableOrigin, LayoutVector2D, Option, Rect, Self (+24 more)
+Cohesion: 0.07
+Nodes (34): actionrequest, Debug, ExternalScrollId, Formatter, FxHashMap, ImmutableOrigin, LayoutVector2D, Option (+26 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.07
-Nodes (51): Box, Callback, Cell, CurrentRealm, Data, Dom, DomRefCell, DomRoot (+43 more)
+Nodes (52): Box, Callback, Cell, CurrentRealm, Data, Dom, DomRefCell, DomRoot (+44 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.04
-Nodes (60): AccessibilityTree, AccessibilityActionRequest, AccessibilityDamage, AccessibilityDamageMap, ActionRequest, Arc, Au, AxesOverflow (+52 more)
+Cohesion: 0.03
+Nodes (77): AccessibilityTree, AccessibilityActionRequest, AccessibilityDamage, AccessibilityDamageMap, ActionRequest, Arc, Au, AxesOverflow (+69 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.12
-Nodes (11): F, Float32ArrayOrUnrestrictedFloatSequence, Int32ArrayOrLongSequence, Option, T, Vec, WebGLProgramId, WebGLRenderbuffer (+3 more)
+Cohesion: 0.05
+Nodes (35): Cell, CustomElementDefinition, CustomElementReactionStack, DebuggerGlobalScope, Default, DocumentCollection, DomRefCell, DOMString (+27 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.16
-Nodes (9): ArrayBufferView, ArrayBufferViewOrArrayBuffer, CustomAutoRooterGuard, ErrorResult, Fallible, NoGC, TexImageSource, WebGLResult (+1 more)
+Cohesion: 0.13
+Nodes (10): ArrayBufferView, ArrayBufferViewOrArrayBuffer, CustomAutoRooterGuard, ErrorResult, Fallible, NoGC, TexImageSource, WebGLContextAttributes (+2 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.06
 Nodes (17): BooleanOrImportNodeOptions, Attr, DomRoot, DOMString, Fallible, HTMLCollection, JSContext, LocalName (+9 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.03
-Nodes (26): getAllTypes(), Generate all the types we're dealing with.  For each type, a tuple     containin, getIdlFileName(), getModuleFromObject(), getTypesFromCallback(), getTypesFromDescriptor(), getTypesFromDictionary(), getUnwrappedType() (+18 more)
+Cohesion: 0.11
+Nodes (25): Document, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult, Fallible, HandleObject (+17 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.12
-Nodes (26): Arc, BufferId, CrossProcessPaintApi, DeviceId, E, Error, FxHashMap, GenericReceiver (+18 more)
+Cohesion: 0.11
+Nodes (27): Arc, BufferId, CrossProcessPaintApi, DeviceId, E, Error, FxHashMap, GenericReceiver (+19 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.03
 Nodes (45): AdapterId, BindGroup, BindGroupId, BindGroupLayout, BindGroupLayoutId, CommandBuffer, CommandEncoder, Adapter (+37 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.17
-Nodes (10): (), genericlengthpercentageorauto, Arc<T>, MallocConditionalShallowSizeOf, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf, Rc<T>, refcounted_allocation_base() (+2 more)
+Cohesion: 0.06
+Nodes (43): clear_as_styleclear, Arc, Au, BoxFragment, CollapsedMargin, ComputedValues, ContainingBlock, Contents (+35 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.06
-Nodes (50): AlignFlags, Arc, ArcRefCell, Au, AuOrAuto, BoxFragment, ComputedValues, Contents (+42 more)
+Nodes (52): AlignFlags, Arc, ArcRefCell, Au, AuOrAuto, BoxFragment, ComputedValues, ContainingBlock (+44 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.19
-Nodes (13): GenericSender, Gl, Option, WebGLBufferId, WebGLFramebufferId, WebGLProgramId, WebGLRenderbufferId, WebGLShaderId (+5 more)
+Cohesion: 0.13
+Nodes (17): Default, GenericSender, Gl, NativeVertexArray, Option, WebGLBufferId, WebGLFramebufferId, WebGLProgramId (+9 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.05
-Nodes (66): Arc, AtomicBool, BrowsingContextId, Cell, DebuggerGlobalScope, Destination, DevtoolScriptControlMsg, DomRefCell (+58 more)
+Cohesion: 0.08
+Nodes (42): Arc, AtomicBool, BrowsingContextId, Cell, DebuggerGlobalScope, Destination, DevtoolScriptControlMsg, DomRoot (+34 more)
 
 ### Community 41 - "Community 41"
 Cohesion: 0.03
-Nodes (36): BluetoothExtraPermissionData, BluetoothRequest, CSSErrorReporter, DeviceIndependentIntRect, Dom, DomRefCell, DomTypeHolder, FxBuildHasher (+28 more)
+Nodes (35): BluetoothExtraPermissionData, BluetoothRequest, CSSErrorReporter, DeviceIndependentIntRect, DevicePixel, DomRefCell, DomTypeHolder, Finite (+27 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.05
-Nodes (39): ArrayBufferViewU8, Box, Data, DomRoot, DomTypeHolder, Eq, Fallible, FxHashMap (+31 more)
+Cohesion: 0.06
+Nodes (36): ArrayBufferViewU8, Box, DomRoot, DomTypeHolder, Fallible, Heap, HeapBufferSource, JSContext (+28 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.08
@@ -4699,111 +4661,111 @@ Nodes (30): D, Dom, DomRefCell, DomRoot, Drop, Fallible, Finite, GlobalScope (+2
 
 ### Community 44 - "Community 44"
 Cohesion: 0.03
-Nodes (187): authenticationresponse, authority, blobtokencommunicator, Body, BoxBody, F, Output, Box (+179 more)
+Nodes (172): arc, authenticationresponse, authority, blobtokencommunicator, Body, BoxBody, F, Output (+164 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.18
 Nodes (28): ArcRefCell, BoxFragment, CollapsedMargin, ConstraintSpace, ContainingBlock, ContentSizes, Fragment, IndependentFormattingContextLayoutResult (+20 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.08
-Nodes (20): CanvasInfo, Any, AtomicRef, AtomicRefMut, FnMut, FnOnce, Fragment, ImageInfo (+12 more)
+Cohesion: 0.05
+Nodes (46): CanvasInfo, Any, ArcRefCell, AtomicRef, AtomicRefMut, ComputedValues, Drop, FnMut (+38 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.07
-Nodes (49): Arc, AtomicUsize, Box, BundlePolicy, Caps, DataChannelId, DataChannelInit, DataChannelMessage (+41 more)
+Nodes (51): Arc, AtomicUsize, Box, BundlePolicy, Caps, DataChannelId, DataChannelInit, DataChannelMessage (+43 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.05
 Nodes (28): angleinstancedarraysconstants, Box, DomRefCell, DOMString, F, FxHashMap, FxHashSet, GLenum (+20 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.06
-Nodes (48): Arc, ArcRefCell, AtomicBool, AtomicRef, Au, BaseFragment, BoxAreaType, BoxFragment (+40 more)
+Cohesion: 0.12
+Nodes (19): Arc, ArcRefCell, AtomicRef, BoxAreaType, BoxFragment, ComputedValues, ContainingBlockCalculation, FnMut (+11 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.18
-Nodes (8): Arc, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation, GenericSharedMemory, NativeFontHandle
+Cohesion: 0.03
+Nodes (31): atomic_refcell::AtomicRefCell<T>, bytes::Bytes, bytes::BytesMut, crossbeam_channel::Receiver<T>, crossbeam_channel::Sender<T>, CString, data_url::mime::Mime, euclid::Box2D<T, U> (+23 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.06
-Nodes (20): channel, BackendError, Cell, Dom, DOMException, DomRefCell, DomTypeHolder, Error (+12 more)
+Cohesion: 0.05
+Nodes (35): channel, BackendError, Cell, Dom, DOMException, DomRefCell, DomRoot, DOMString (+27 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.04
-Nodes (16): AttributeStorage, AtomicUsize, Debug, DOMString, DomTypeHolder, GetHTMLOptions, JSContext, MutNullableDom (+8 more)
+Cohesion: 0.05
+Nodes (6): DOMString, GetHTMLOptions, JSContext, Option, reflect_cross_origin_attribute(), set_cross_origin_attribute()
 
 ### Community 53 - "Community 53"
 Cohesion: 0.05
 Nodes (44): BaseRefreshDriver, Cell, CSSPixel, DevicePixel, DevicePoint, DeviceVector2D, FxHashMap, FxHashSet (+36 more)
 
 ### Community 54 - "Community 54"
-Cohesion: 0.06
-Nodes (76): certificateder, CheckResult, Arc, AtomicBool, CACertificates, CallbackSetter, CancellationListener, CorsCache (+68 more)
+Cohesion: 0.05
+Nodes (77): certificateder, CheckResult, Arc, AtomicBool, CACertificates, CallbackSetter, CancellationListener, CorsCache (+69 more)
 
 ### Community 55 - "Community 55"
 Cohesion: 0.03
-Nodes (10): Box, Dom, DomTypeHolder, ID, WebGLContextAttributes, WebGL2RenderingContextMethods, WebGL2RenderingContext, WebGLSampler (+2 more)
+Nodes (10): Box, Dom, DomTypeHolder, ID, T, WebGLCommand, WebGL2RenderingContextMethods, WebGL2RenderingContext (+2 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.04
-Nodes (36): Arc, AtomicRef, BrowsingContextId, ComputedValues, From, GenericLayoutData, HTMLCanvasData, HTMLMediaData (+28 more)
+Cohesion: 0.05
+Nodes (35): Arc, AtomicRef, BrowsingContextId, ComputedValues, From, GenericLayoutData, HTMLCanvasData, HTMLMediaData (+27 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.16
-Nodes (18): Box2D, CSSPixel, DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutPoint, LayoutRect (+10 more)
+Cohesion: 0.14
+Nodes (21): Box2D, CSSPixel, DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, ExternalScrollId, LayoutPoint (+13 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.13
 Nodes (6): AtomicBool, MediaInstance, MediaInstanceError, PlayerError, Result, DummyPlayer
 
 ### Community 59 - "Community 59"
-Cohesion: 0.16
-Nodes (27): CryptoKey, CryptoKeyPair, DomRoot, EcdhKeyDeriveParams, EcKeyGenParams, EcKeyImportParams, Error, ExportedKey (+19 more)
+Cohesion: 0.17
+Nodes (24): C, CryptoKey, CryptoKeyPair, DomRoot, EcKeyGenParams, EcKeyImportParams, Error, ErrorResult (+16 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.05
-Nodes (52): AnimationState, BaseRefreshDriver, Box, Cell, CSSPixel, DeviceIndependentPixel, DevicePixel, DevicePoint (+44 more)
+Cohesion: 0.07
+Nodes (38): AnimationState, BaseRefreshDriver, Box, CSSPixel, DeviceIndependentPixel, DevicePixel, DeviceRect, DocumentId (+30 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.13
-Nodes (20): Attribute, CustomElementReactionStack, Dom, ElementCreator, ElementFlags, ExpandedName, Handle, MutNullableDom (+12 more)
+Cohesion: 0.12
+Nodes (22): Attribute, CustomElementReactionStack, Dom, ElementCreator, ElementFlags, ExpandedName, Handle, MutNullableDom (+14 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.07
-Nodes (19): ActionRequest, ConstellationProxy, GenericCallback, GlApi, GlContext, MemoryReportResult, NativeDisplay, Paint (+11 more)
+Cohesion: 0.04
+Nodes (69): bluetoothrequest, bluetooththreadfactory, builder_as_envloggerbuilder, LayoutFactory, ActionRequest, Arc, AsyncRuntime, Cell (+61 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.05
-Nodes (27): AttributeMutation, BindContext, DomRefCell, DOMString, DomTypeHolder, ErrorResult, FileList, FocusEvent (+19 more)
+Cohesion: 0.06
+Nodes (28): Arc, Fn, FontContext, GlobalScope, ImageCache, ImageCacheResponseCallback, InitiatorType, PendingImage (+20 more)
 
 ### Community 64 - "Community 64"
 Cohesion: 0.03
-Nodes (97): Cell, CurrentRealm, D, Dom, DomRefCell, DomRoot, Drop, Error (+89 more)
+Nodes (98): Cell, CurrentRealm, D, Dom, DomRefCell, DomRoot, Drop, Error (+90 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.05
-Nodes (27): Base, clap_tool_already_installed(), A bootstrap method that is called without explicitly invoking `./mach bootstrap`, Returns true if the tool `name` is already installed and in PATH.     If `minimu, apt_packages(), dnf_packages(), Linux, parse_pkg_file() (+19 more)
+Nodes (31): Base, clap_tool_already_installed(), A bootstrap method that is called without explicitly invoking `./mach bootstrap`, Returns true if the tool `name` is already installed and in PATH.     If `minimu, FreeBSD, get(), host_platform(), host_triple() (+23 more)
 
 ### Community 66 - "Community 66"
 Cohesion: 0.02
-Nodes (91): AndroidTarget, JSONDecodeError, Lint, Command, CommandArgument, CommandArgumentGroup, _MachCommand, Container for mach command metadata.      Mach commands contain lots of attribut (+83 more)
+Nodes (87): AndroidTarget, JSONDecodeError, Command, CommandArgument, CommandArgumentGroup, Decorator for functions or methods that provide a mach command.      The decorat, Decorator for additional arguments to mach subcommands.      This decorator shou, Decorator for additional argument groups to mach commands.      This decorator s (+79 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.03
-Nodes (101): Enum, Any, BaseException, HarmonyDeviceConnector, Namespace, Remote, TracebackType, BaseException (+93 more)
+Cohesion: 0.04
+Nodes (81): Enum, Any, BaseException, HarmonyDeviceConnector, Namespace, Remote, TracebackType, BaseException (+73 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.02
-Nodes (102): atomicusize, click_at_point(), evaluate_javascript(), ServoTest, show_webview_and_wait_for_rendering_to_be_ready(), wait_for_webview_scene_to_be_up_to_date(), WebViewDelegateImpl, Cell (+94 more)
+Nodes (87): atomicusize, click_at_point(), evaluate_javascript(), ServoTest, show_webview_and_wait_for_rendering_to_be_ready(), wait_for_webview_scene_to_be_up_to_date(), WebViewDelegateImpl, Cell (+79 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.07
-Nodes (36): CipherSuite, Arc, CertificateDer, F, HashMap, Option, RefCell, ServoClient (+28 more)
+Cohesion: 0.05
+Nodes (65): CipherSuite, ClientConnection, Arc, CertificateDer, Connection, Context, Debug, Destination (+57 more)
 
 ### Community 70 - "Community 70"
 Cohesion: 0.07
-Nodes (47): AbsolutelyPositionedLineItem, AtomicLineItem, AbsolutelyPositionedBox, Arc, ArcRefCell, Au, BaseFragmentInfo, BoxFragment (+39 more)
+Nodes (49): AbsolutelyPositionedLineItem, AtomicLineItem, baselineshiftkeyword, AbsolutelyPositionedBox, Arc, ArcRefCell, Au, BaseFragmentInfo (+41 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.06
@@ -4814,8 +4776,8 @@ Cohesion: 0.09
 Nodes (17): Cell, DomRoot, Drop, JSContext, Operation, Option, Self, WeakRef (+9 more)
 
 ### Community 73 - "Community 73"
-Cohesion: 0.09
-Nodes (23): JoinHandle, RwLock, Send, Sender, Uuid, error_as_hypererror, AsyncRuntime, BlobTokenRefreshRequest (+15 more)
+Cohesion: 0.11
+Nodes (22): JoinHandle, RwLock, Send, Sender, Uuid, error_as_hypererror, AsyncRuntime, BlobTokenRefreshRequest (+14 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.08
@@ -4830,32 +4792,32 @@ Cohesion: 0.09
 Nodes (41): BlobId, BlobImpl, Box, CryptoKeyId, DomException, DomExceptionId, DomMatrix, DomMatrixId (+33 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.16
-Nodes (15): Au, Direction, F, FnOnce, From, LazyCell, OnceCell, Option (+7 more)
+Cohesion: 0.12
+Nodes (23): Cell, Dom, DomRoot, DOMString, DomTypeHolder, ErrorResult, Fallible, HandleValue (+15 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.08
-Nodes (32): BrowsingContextId, Cell, CurrentRealm, Document, Dom, DomRefCell, DomRoot, DOMString (+24 more)
+Nodes (29): BrowsingContextId, Cell, CurrentRealm, Document, Dom, DomRefCell, DomRoot, DOMString (+21 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.06
-Nodes (58): Cell, CStr, CurrentRealm, CustomElementDefinition, Document, Dom, DomRefCell, DomRoot (+50 more)
+Nodes (60): Cell, CStr, CurrentRealm, CustomElementDefinition, Document, Dom, DomRefCell, DomRoot (+52 more)
 
 ### Community 80 - "Community 80"
 Cohesion: 0.04
-Nodes (22): CanvasState, round_rect_radii(), CanvasCommand, CanvasDirection, CanvasId, CanvasLineCap, CanvasLineJoin, CanvasMsg (+14 more)
+Nodes (20): CanvasState, round_rect_radii(), CanvasId, CanvasLineCap, CanvasLineJoin, CanvasMsg, CorsSettings, DOMMatrix2DInit (+12 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.05
 Nodes (54): Box, Callback, Cell, CurrentRealm, Data, Dom, DomRefCell, DomRoot (+46 more)
 
 ### Community 82 - "Community 82"
-Cohesion: 0.08
-Nodes (27): Error, ExtensionSet, FrameStream, FrameWaiter, Instance, Option, Result, Session (+19 more)
+Cohesion: 0.07
+Nodes (29): Map, Error, ExtensionSet, FrameStream, FrameWaiter, Instance, Option, Result (+21 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.06
-Nodes (27): CustomElementReactionStack, DocumentActivity, DocumentLoader, EmbedderMsg, FetchCanceller, HandleObject, ImageCache, InsecureRequestsPolicy (+19 more)
+Cohesion: 0.07
+Nodes (28): CustomElementReactionStack, DocumentActivity, DocumentLoader, EmbedderMsg, FetchCanceller, HandleObject, Image, ImageCache (+20 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.06
@@ -4871,7 +4833,7 @@ Nodes (10): Option, PipelineId, Ref, RefCell, ScriptEventLoopSender, Self, TaskC
 
 ### Community 87 - "Community 87"
 Cohesion: 0.07
-Nodes (62): c_uint, c_void, Clone, CStr, DOMString, Globals, HandleId, HandleObject (+54 more)
+Nodes (64): c_uint, c_void, Clone, CStr, DOMString, Globals, HandleId, HandleObject (+56 more)
 
 ### Community 88 - "Community 88"
 Cohesion: 0.14
@@ -4887,7 +4849,7 @@ Nodes (124): async_recursion, AuthCache, Authorization, Basic, CertificateErrorO
 
 ### Community 91 - "Community 91"
 Cohesion: 0.08
-Nodes (29): Bluetooth, Bytes, Cell, Clipboard, DomRefCell, DomRoot, DomTypeHolder, GPU (+21 more)
+Nodes (30): Bluetooth, Bytes, Cell, Clipboard, DomRefCell, DomRoot, DomTypeHolder, Gamepad (+22 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.07
@@ -4895,31 +4857,31 @@ Nodes (22): ActionRequest, ConstellationInputEvent, DocumentActivity, Epoch, Foc
 
 ### Community 93 - "Community 93"
 Cohesion: 0.06
-Nodes (23): ActionRequest, EmbedderControlId, EmbedderControlResponse, InputEventAndId, KeyboardEvent, MediaSessionActionType, MouseButtonEvent, NewWebViewDetails (+15 more)
+Nodes (52): BoxedTimerCallback, Cell, Default, DomRefCell, DOMString, Fallible, FxHashMap, GlobalScope (+44 more)
 
 ### Community 94 - "Community 94"
-Cohesion: 0.10
-Nodes (34): Cell, Dom, DomRefCell, DomRoot, DOMString, DOMStringList, DomTypeHolder, Error (+26 more)
+Cohesion: 0.08
+Nodes (39): Cell, Dom, DomRefCell, DomRoot, DOMString, DOMStringList, DomTypeHolder, Error (+31 more)
 
 ### Community 95 - "Community 95"
 Cohesion: 0.11
 Nodes (27): ConnectionMsg, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, Error, Fallible (+19 more)
 
 ### Community 96 - "Community 96"
-Cohesion: 0.11
-Nodes (10): Au, AxesOverflow, CSSPixel, CSSPixelRectVec, HTMLSlotElement, Option, PhysicalSides, PseudoElement (+2 more)
+Cohesion: 0.10
+Nodes (8): CapFlags, Cell, Element, JSContext, MutableHandleValue, WebGLResult, Capabilities, uniform_typed()
 
 ### Community 97 - "Community 97"
-Cohesion: 0.08
-Nodes (24): AtomicRefCell<T>, AtomicRefMutNoGC, AtomicRefMutNoGC<'a, T>, AtomicSafeBorrowMut, AtomicRefMut, Deref, DerefMut, NoGC (+16 more)
+Cohesion: 0.13
+Nodes (14): AtomicRefCell<T>, AtomicRefMutNoGC, AtomicRefMutNoGC<'a, T>, AtomicSafeBorrowMut, AtomicRefMut, Deref, DerefMut, NoGC (+6 more)
 
 ### Community 98 - "Community 98"
 Cohesion: 0.07
 Nodes (33): webgl_channel(), ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, Box, Cell, DomRefCell, DomRoot (+25 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.07
-Nodes (17): Animation, Attr, BindContext, DOMRect, DOMRectList, DomRoot, Fallible, HTMLCollection (+9 more)
+Cohesion: 0.04
+Nodes (41): AttrStrRef, Animation, Au, Cell, CredentialsMode, CSSPixel, CurrentRealm, DOMRect (+33 more)
 
 ### Community 100 - "Community 100"
 Cohesion: 0.16
@@ -4930,16 +4892,16 @@ Cohesion: 0.09
 Nodes (31): Canvas, Canvas, CanvasPaintThread, CanvasCommand, CanvasId, CanvasMsg, CompositionOptions, ConstellationCanvasMsg (+23 more)
 
 ### Community 102 - "Community 102"
-Cohesion: 0.07
-Nodes (29): Cell, DomRefCell, DomRoot, Drop, ImageInfo, JSContext, MutNullableDom, Operation (+21 more)
+Cohesion: 0.10
+Nodes (20): AsRef, Box, BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, Fn, FnOnce (+12 more)
 
 ### Community 103 - "Community 103"
-Cohesion: 0.17
-Nodes (11): BoxFragment, ConstraintSpace, ContainingBlock, IndependentFormattingContextLayoutResult, InlineContentSizesResult, LayoutContext, PositioningContext, SpecificLayoutInfo (+3 more)
+Cohesion: 0.08
+Nodes (33): CellOrTrackMeasure, CollapsedBorders, ColspanToDistribute, Arc, AtomicRef, Baselines, ContentSizes, Option (+25 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.09
-Nodes (21): CaretPlaceholder, Arc, CollapsibleWithParentStartMargin, FontAndScriptInfo, Fragment, IndependentFormattingContextLayoutResult, InlineBox, InlineBoxContainerState (+13 more)
+Cohesion: 0.06
+Nodes (34): AlignmentBaseline, CaretPlaceholder, Au, Baselines, CollapsibleWithParentStartMargin, ContainingBlock, FloatLineItem, Fragment (+26 more)
 
 ### Community 105 - "Community 105"
 Cohesion: 0.06
@@ -4955,39 +4917,39 @@ Nodes (41): AudioContext, AudioContextError, AudioContextOptions, LatencyCategor
 
 ### Community 108 - "Community 108"
 Cohesion: 0.04
-Nodes (62): CheckingFunction, colorama, fnmatch, LineCheckingFunction, LiteralString, Any, Any, GithubAnnotation (+54 more)
+Nodes (60): CheckingFunction, colorama, fnmatch, LineCheckingFunction, LiteralString, Any, Any, GithubAnnotation (+52 more)
 
 ### Community 109 - "Community 109"
-Cohesion: 0.08
-Nodes (31): Box, BrowsingContextId, EventLoopWaker, GenericSender, InputEvent, Option, Preferences, Receiver (+23 more)
+Cohesion: 0.15
+Nodes (13): CanvasCommand, CanvasGradient, CanvasPattern, CanvasRenderingContext2D, DOMMatrix, DomRoot, Fallible, Finite (+5 more)
 
 ### Community 110 - "Community 110"
 Cohesion: 0.04
-Nodes (37): Deleter, commctrl, cstdarg, cstdint, cstdio, dwmapi, T, functional (+29 more)
+Nodes (33): Deleter, cstdint, cstdio, dwmapi, T, functional, HFONT, map (+25 more)
 
 ### Community 111 - "Community 111"
 Cohesion: 0.06
-Nodes (39): AtomicOptionScrollTreeNodeId, Arc, AtomicBool, AtomicRef, AtomicRefCell, AtomicRefMut, AuOrAuto, BaseFragment (+31 more)
+Nodes (40): AtomicOptionScrollTreeNodeId, Arc, AtomicBool, AtomicRef, AtomicRefCell, AtomicRefMut, AuOrAuto, BaseFragment (+32 more)
 
 ### Community 112 - "Community 112"
 Cohesion: 0.11
-Nodes (55): AttrModification, AncestorData, ComputedNodeLayout, CssDatabaseProperty, CSSRuleList, DocumentCollection, Dom, DomRoot (+47 more)
+Nodes (57): AttrModification, AncestorData, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, CSSRuleList, DocumentCollection, Dom (+49 more)
 
 ### Community 113 - "Community 113"
-Cohesion: 0.06
-Nodes (94): servo_create_new_webview_builder_create(), servo_create_new_webview_request_free(), servo_webview_adjust_pinch_zoom(), servo_webview_builder_build(), servo_webview_builder_create(), servo_webview_builder_free(), servo_webview_builder_set_clipboard_delegate(), servo_webview_builder_set_delegate() (+86 more)
+Cohesion: 0.07
+Nodes (81): write_c_string(), servo_webview_adjust_pinch_zoom(), servo_webview_builder_build(), servo_webview_builder_free(), servo_webview_builder_set_clipboard_delegate(), servo_webview_builder_set_delegate(), servo_webview_builder_set_gamepad_delegate(), servo_webview_builder_set_hidpi_scale_factor() (+73 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.10
-Nodes (19): Activatable, AttrValue, CSSStyleDeclaration, Document, DocumentFragment, DomRoot, Element, ElementState (+11 more)
+Cohesion: 0.09
+Nodes (21): BorderStyleColor, ComputedValues, ComputeInlineContentSizes, ConstraintSpace, Eq, IndependentFormattingContextLayoutResult, InlineContentSizesResult, LayoutContext (+13 more)
 
 ### Community 115 - "Community 115"
 Cohesion: 0.06
-Nodes (56): AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth, BluetoothContext, BluetoothContext<T>, BluetoothError, BluetoothExtraPermissionData, canonicalize_bluetooth_data_filter_init() (+48 more)
+Nodes (54): AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth, BluetoothContext, BluetoothContext<T>, BluetoothError, BluetoothExtraPermissionData, canonicalize_bluetooth_data_filter_init() (+46 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.05
-Nodes (49): AlignFlags, Arc, AtomicBool, AtomicRef, AtomicRefCell, AtomicUsize, Au, BaseFragmentInfo (+41 more)
+Nodes (47): AlignFlags, Arc, AtomicBool, AtomicRef, AtomicRefCell, AtomicUsize, Au, BaseFragmentInfo (+39 more)
 
 ### Community 117 - "Community 117"
 Cohesion: 0.08
@@ -4995,71 +4957,71 @@ Nodes (35): BackendResult, Cell, DOMException, DomRoot, DomTypeHolder, Error, Ev
 
 ### Community 118 - "Community 118"
 Cohesion: 0.06
-Nodes (83): aspectratio, BoxAreaInclusion, Arc, Au, AxesOverflow, BoxAreaType, BoxFragment, ComputedValues (+75 more)
+Nodes (81): aspectratio, BoxAreaInclusion, Arc, Au, AxesOverflow, BoxAreaType, BoxFragment, ComputedValues (+73 more)
 
 ### Community 119 - "Community 119"
-Cohesion: 0.15
-Nodes (19): F, FallbackFontSelectionOptions, FontStyle, FontWeight, FontWidth, GenericFontFamily, LowercaseFontFamilyName, Option (+11 more)
+Cohesion: 0.16
+Nodes (18): F, FallbackFontSelectionOptions, FontStyle, FontWeight, FontWidth, GenericFontFamily, LowercaseFontFamilyName, Option (+10 more)
 
 ### Community 120 - "Community 120"
-Cohesion: 0.04
-Nodes (67): Arc, AtomicBool, CacheStorage, CrossProcessInstant, Crypto, CspList, CspViolationsProcessor, DevtoolScriptControlMsg (+59 more)
+Cohesion: 0.03
+Nodes (92): Arc, AtomicBool, Box, Bytes, BytesMut, CacheStorage, CommonScriptMsg, CrossProcessInstant (+84 more)
 
 ### Community 121 - "Community 121"
 Cohesion: 0.03
-Nodes (35): NoGC, ArrayBufferViewOrArrayBuffer, AssociatedMemory, CanvasContext, Capabilities, DomOnceCell, DomRefCell, DomRoot (+27 more)
+Nodes (37): NoGC, ArrayBufferViewOrArrayBuffer, AssociatedMemory, CanvasContext, Capabilities, DomOnceCell, DomRefCell, DomRoot (+29 more)
 
 ### Community 122 - "Community 122"
 Cohesion: 0.02
-Nodes (181): argparse, base64, process_line(), UnicodeBlock, boto3, BufferedIOBase, delta_cell(), format_value() (+173 more)
+Nodes (161): argparse, base64, process_line(), UnicodeBlock, BufferedIOBase, body_span(), main(), Return the ``{...}`` span of the first block after *start*. (+153 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.14
-Nodes (31): ClientStorageErrorr, Connection, Error, ImmutableOrigin, Option, PathBuf, Result, Self (+23 more)
+Cohesion: 0.12
+Nodes (37): ClientStorageErrorr, ClientStorageThreadMessage, Connection, E, Error, GenericReceiver, GenericSender, ImmutableOrigin (+29 more)
 
 ### Community 124 - "Community 124"
-Cohesion: 0.08
-Nodes (56): Script, Clone, Cow, CredentialsMode, CStr, CurrentRealm, Debug, Destination (+48 more)
+Cohesion: 0.05
+Nodes (84): ColumnNumberOneOrigin, Script, Arc, Box, Bytes, BytesMut, Callback, Clone (+76 more)
 
 ### Community 125 - "Community 125"
 Cohesion: 0.04
-Nodes (51): Arc, Atom, BindContext, CachedFrozenArray, Cell, Convert, CSSStyleSheet, CustomElementRegistry (+43 more)
+Nodes (50): Arc, Atom, BindContext, CachedFrozenArray, Cell, Convert, CSSStyleSheet, CustomElementRegistry (+42 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.06
-Nodes (35): Cell, Display, Dom, DomRefCell, DomTypeHolder, EventTarget, F, Finite (+27 more)
+Cohesion: 0.04
+Nodes (56): Cell, Convert, CrossProcessInstant, CurrentRealm, Display, Dom, DomRefCell, DomRoot (+48 more)
 
 ### Community 127 - "Community 127"
-Cohesion: 0.05
-Nodes (57): BuildIdCharVector, c_char, c_void, CompilationType, DOMString, From, GlobalScope, HandleObject (+49 more)
+Cohesion: 0.03
+Nodes (84): BuildIdCharVector, Box, c_void, CompilationType, Deref, DerefMut, DOMString, Drop (+76 more)
 
 ### Community 128 - "Community 128"
 Cohesion: 0.06
 Nodes (64): test_sniff_aiff(), test_sniff_avi(), test_sniff_basic(), test_sniff_bmp(), test_sniff_classification(), test_sniff_classification_sup(), test_sniff_gif87a(), test_sniff_gif89a() (+56 more)
 
 ### Community 129 - "Community 129"
-Cohesion: 0.12
-Nodes (17): AddAssign, Default, Fn, FnOnce, PhysicalVec, Size, T, U (+9 more)
+Cohesion: 0.13
+Nodes (24): FallbackFontSelectionOptions, Fn, FontContext, FontData, FontDescriptor, FontFamilyDescriptor, FontRef, FontStyleStruct (+16 more)
 
 ### Community 130 - "Community 130"
 Cohesion: 0.09
-Nodes (31): Arc, CorsSettings, Destination, Document, From, HeaderMap, ImmutableOrigin, Option (+23 more)
+Nodes (30): Arc, CorsSettings, Destination, Document, From, HeaderMap, ImmutableOrigin, Option (+22 more)
 
 ### Community 131 - "Community 131"
 Cohesion: 0.07
-Nodes (29): AnimationDecoder, codecs, ColorType, Box, CorsStatus, Debug, Formatter, ImageFormat (+21 more)
+Nodes (28): AnimationDecoder, ColorType, Box, CorsStatus, Debug, Formatter, ImageFormat, Option (+20 more)
 
 ### Community 132 - "Community 132"
-Cohesion: 0.08
-Nodes (20): BoxedSliceOfPromises, CurrentRealm, DomTypeHolder, Duration, ErrorResult, Fallible, Finite, LoadBlocker (+12 more)
+Cohesion: 0.09
+Nodes (10): ErrorResult, JSContext, MediaSessionEvent, Metadata, Resource, SeekLock, LoopCondition, PlaybackDirection (+2 more)
 
 ### Community 133 - "Community 133"
 Cohesion: 0.11
-Nodes (25): Cell, CSPViolationReportBody, DomRefCell, DomRoot, DOMString, DomTypeHolder, GlobalScope, HandleObject (+17 more)
+Nodes (26): Cell, CSPViolationReportBody, DomRefCell, DomRoot, DOMString, DomTypeHolder, GlobalScope, HandleObject (+18 more)
 
 ### Community 134 - "Community 134"
-Cohesion: 0.07
-Nodes (36): BufReader, Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler (+28 more)
+Cohesion: 0.08
+Nodes (28): Box, DoneChannel, FetchContext, FxHashMap, Option, Range, Request, Response (+20 more)
 
 ### Community 135 - "Community 135"
 Cohesion: 0.08
@@ -5067,7 +5029,7 @@ Nodes (32): CryptoKeyId, Data, DomRoot, DomTypeHolder, Error, FxHashMap, GlobalS
 
 ### Community 136 - "Community 136"
 Cohesion: 0.06
-Nodes (17): Cell, CommandName, ContainerTimingRecord, CrossProcessInstant, CustomElementRegistry, Element, Finite, HTMLElement (+9 more)
+Nodes (16): CommandName, ContainerTimingRecord, Element, F, Finite, HTMLElement, HTMLHeadElement, LCPCandidate (+8 more)
 
 ### Community 138 - "Community 138"
 Cohesion: 0.16
@@ -5094,16 +5056,16 @@ Cohesion: 0.07
 Nodes (44): AbstractType, Box, Cell, D, Default, DomRoot, HandleObject, Heap (+36 more)
 
 ### Community 144 - "Community 144"
-Cohesion: 0.06
-Nodes (36): AtomicRef, ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange, CSSFontFaceDescriptors, Debug, Default, Deref (+28 more)
+Cohesion: 0.09
+Nodes (21): AtomicRef, CSSFontFaceDescriptors, Debug, Default, Deref, Error, FontDescriptor, FontFaceRuleInfo (+13 more)
 
 ### Community 145 - "Community 145"
 Cohesion: 0.10
-Nodes (11): DomRoot, JSContext, MediaSessionEvent, Metadata, PlayerEvent, SeekLock, TextTrack, TextTrackKind (+3 more)
+Nodes (12): Duration, F, IsInterval, JsTimerTaskData, OneshotTimerHandle, OneshotTimers, PipelineId, RootedInternalTimerCallback (+4 more)
 
 ### Community 146 - "Community 146"
-Cohesion: 0.08
-Nodes (58): compartmentiterresult, c_uint, c_void, CallArgs, ConstantSpec, CStr, From, Globals (+50 more)
+Cohesion: 0.21
+Nodes (30): compartmentiterresult, ConstantSpec, CStr, Globals, Guard, HandleObject, JSContext, JSFunctionSpec (+22 more)
 
 ### Community 147 - "Community 147"
 Cohesion: 0.06
@@ -5111,7 +5073,7 @@ Nodes (39): AlignSetting, Cell, Convert, DocumentFragment, DomRefCell, DomRoot, 
 
 ### Community 148 - "Community 148"
 Cohesion: 0.06
-Nodes (41): AbortSignal, BodyMixin, ByteString, DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible (+33 more)
+Nodes (42): AbortSignal, BodyMixin, ByteString, DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible (+34 more)
 
 ### Community 149 - "Community 149"
 Cohesion: 0.24
@@ -5131,27 +5093,27 @@ Nodes (29): DistanceModelType, PannerNode, &PannerOptions, PanningModelType, Arc
 
 ### Community 153 - "Community 153"
 Cohesion: 0.07
-Nodes (45): Arc, Cow, Debug, Duration, Formatter, GenericSharedMemory, ImageDescriptor, ImageFormat (+37 more)
+Nodes (46): Arc, Cow, Debug, Duration, Formatter, GenericSharedMemory, ImageDescriptor, ImageFormat (+38 more)
 
 ### Community 154 - "Community 154"
 Cohesion: 0.04
-Nodes (15): CanvasRenderingContext2D, CanvasColorType, CanvasRenderingContext2DMethods, AssociatedMemory, CanvasContext, CanvasDirection, CanvasLineCap, CanvasLineJoin (+7 more)
+Nodes (11): CanvasRenderingContext2D, CanvasColorType, CanvasRenderingContext2DMethods, AssociatedMemory, CanvasContext, CanvasLineCap, CanvasTextAlign, DomTypeHolder (+3 more)
 
 ### Community 155 - "Community 155"
-Cohesion: 0.24
-Nodes (5): ConstraintSpace, IndefiniteContainingBlock, InlineContentSizesResult, LayoutStyle, LogicalVec2
+Cohesion: 0.10
+Nodes (9): F, Item, Iterator, NoGC, UnrootedDom, UnrootedFollowingFlatTreeNodesTraversal, FlatTreeParent<'a>, UnrootedAncestorIterator (+1 more)
 
 ### Community 156 - "Community 156"
 Cohesion: 0.05
 Nodes (51): BufferQueue, Cell, Cow, CustomElementReactionStack, Document, Dom, DomRoot, ElementFlags (+43 more)
 
 ### Community 157 - "Community 157"
-Cohesion: 0.06
-Nodes (42): AnonymousTableContent, CollapsedBorderLine, Arc, ArcRefCell, AtomicRef, Au, BaseFragmentInfo, BorderStyleColor (+34 more)
+Cohesion: 0.05
+Nodes (46): CollapsedBorderLine, Arc, ArcRefCell, AtomicRef, Au, BaseFragmentInfo, BorderStyleColor, ComputedValues (+38 more)
 
 ### Community 158 - "Community 158"
-Cohesion: 0.04
-Nodes (61): Adapter, ClipPlanes, Connection, ContextId, DeviceAPI, DiscoveryAPI, Display, Drop (+53 more)
+Cohesion: 0.05
+Nodes (52): Adapter, ClipPlanes, Connection, ContextId, DeviceAPI, DiscoveryAPI, Drop, Error (+44 more)
 
 ### Community 159 - "Community 159"
 Cohesion: 0.07
@@ -5162,8 +5124,8 @@ Cohesion: 0.27
 Nodes (10): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGGeometryElement (+2 more)
 
 ### Community 161 - "Community 161"
-Cohesion: 0.15
-Nodes (27): closeframe, Arc, AtomicBool, CallbackSetter, Error, HttpState, Option, ProfileGenericCallback (+19 more)
+Cohesion: 0.14
+Nodes (29): closeframe, Arc, AtomicBool, CallbackSetter, Error, HttpState, Option, ProfileGenericCallback (+21 more)
 
 ### Community 162 - "Community 162"
 Cohesion: 0.08
@@ -5190,12 +5152,12 @@ Cohesion: 0.09
 Nodes (25): CustomAutoRooterGuard, Dom, DomRoot, DomTypeHolder, ErrorResult, GlobalScope, HandleValue, HasOrigin (+17 more)
 
 ### Community 168 - "Community 168"
-Cohesion: 0.09
-Nodes (26): Alpha, AlphaTreatment, ArrayBufferView, CustomAutoRooterGuard, ErrorResult, Fallible, GenericSharedMemory, GLContextAttributes (+18 more)
+Cohesion: 0.08
+Nodes (27): Alpha, AlphaTreatment, ArrayBufferView, CustomAutoRooterGuard, ErrorResult, Fallible, GenericSharedMemory, GLContextAttributes (+19 more)
 
 ### Community 169 - "Community 169"
-Cohesion: 0.11
-Nodes (18): AbortController, AbortSignal, CurrentRealm, DomRoot, DomTypeHolder, Fallible, GlobalScope, JSContext (+10 more)
+Cohesion: 0.06
+Nodes (52): AbortController, AbortSignal, Box, Callback, Cell, CurrentRealm, Dom, DomRoot (+44 more)
 
 ### Community 170 - "Community 170"
 Cohesion: 0.07
@@ -5210,8 +5172,8 @@ Cohesion: 0.10
 Nodes (38): Emitter, FramerateEmitterReply, HighResolutionStamp, IsRecordingReply, MarkersEmitterReply, MemoryEmitterReply, StartReply, StopReply (+30 more)
 
 ### Community 173 - "Community 173"
-Cohesion: 0.11
-Nodes (30): BrowsingContextId, CSSFloat, Image, ImageKey, LayoutContext, Option, PipelineId, Self (+22 more)
+Cohesion: 0.08
+Nodes (28): Arc, AspectRatio, AtomicBool, Au, BaseFragmentInfo, ComputedValues, ComputeInlineContentSizes, ConstraintSpace (+20 more)
 
 ### Community 174 - "Community 174"
 Cohesion: 0.07
@@ -5222,8 +5184,8 @@ Cohesion: 0.11
 Nodes (26): AttributeMutation, AttrRef, BindContext, Document, Dom, DomRefCell, DomRoot, DomTypeHolder (+18 more)
 
 ### Community 176 - "Community 176"
-Cohesion: 0.07
-Nodes (31): ArrayBufferU8, Blob, BytesMut, Cell, Dom, DomRefCell, DomTypeHolder, FetchCanceller (+23 more)
+Cohesion: 0.05
+Nodes (61): ArrayBufferU8, Atom, Blob, Bytes, BytesMut, ByteString, Cell, Document (+53 more)
 
 ### Community 177 - "Community 177"
 Cohesion: 0.08
@@ -5235,15 +5197,15 @@ Nodes (54): can_transfer_callback(), can_transfer_for_type(), free_transfer_call
 
 ### Community 179 - "Community 179"
 Cohesion: 0.07
-Nodes (32): Au, ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange, Deref, Descriptors, Display, Eq (+24 more)
+Nodes (31): Au, ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange, Deref, Descriptors, Display, Eq (+23 more)
 
 ### Community 180 - "Community 180"
 Cohesion: 0.06
 Nodes (38): CanvasContext, Cell, ContextConfiguration, Dom, DomRoot, DomTypeHolder, Drop, Epoch (+30 more)
 
 ### Community 181 - "Community 181"
-Cohesion: 0.11
-Nodes (34): Binding, Action, ActionSet, Box, FrameState, G, Hand, Handedness (+26 more)
+Cohesion: 0.10
+Nodes (35): Binding, Action, ActionSet, Box, FrameState, G, Hand, Handedness (+27 more)
 
 ### Community 182 - "Community 182"
 Cohesion: 0.07
@@ -5254,16 +5216,16 @@ Cohesion: 0.06
 Nodes (65): BrowsingContextId, Bytes, ConsoleLogLevel, CrossProcessInstant, DebuggerValue, Destination, Duration, FunctionPreview (+57 more)
 
 ### Community 184 - "Community 184"
-Cohesion: 0.10
-Nodes (33): BlockLevelCreator, char_is_whitespace, Arc, ArcRefCell, BlockContainer, BlockLevelBox, BoxSlot, BoxTreeString (+25 more)
+Cohesion: 0.09
+Nodes (36): AnonymousTableContent, BlockLevelCreator, char_is_whitespace, Arc, ArcRefCell, BlockContainer, BlockLevelBox, BoxSlot (+28 more)
 
 ### Community 185 - "Community 185"
 Cohesion: 0.07
 Nodes (25): AttributeMutation, AttrRef, Box, ChildrenMutation, CloneChildrenFlag, CStr, Dom, DOMString (+17 more)
 
 ### Community 186 - "Community 186"
-Cohesion: 0.03
-Nodes (31): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+23 more)
+Cohesion: 0.04
+Nodes (24): inspect, _form_master_re(), _funcs_to_names(), get_caller_module_dict(), _get_regex(), lex(), Lexer, LexerReflect (+16 more)
 
 ### Community 187 - "Community 187"
 Cohesion: 0.10
@@ -5271,23 +5233,23 @@ Nodes (16): Path2D, DOMMatrix2DInit, DomRoot, DOMString, DomTypeHolder, ErrorRes
 
 ### Community 188 - "Community 188"
 Cohesion: 0.09
-Nodes (36): FillOrStrokeStyle, paint(), snapshot_as_pixmap(), State, VelloCPUDrawTarget, worker_thread_count(), Affine, Arc (+28 more)
+Nodes (37): FillOrStrokeStyle, paint(), snapshot_as_pixmap(), State, VelloCPUDrawTarget, worker_thread_count(), Affine, Arc (+29 more)
 
 ### Community 189 - "Community 189"
-Cohesion: 0.07
-Nodes (37): CStr, D, Dom, Fallible, FnOnce, From, GlobalScope, Heap (+29 more)
+Cohesion: 0.06
+Nodes (43): Clone, CStr, D, Deref, Dom, Fallible, FnOnce, From (+35 more)
 
 ### Community 190 - "Community 190"
-Cohesion: 0.07
-Nodes (36): BufferSource, D, DomRefCell, DomRoot, Fallible, GlobalScope, GPUBuffer, GPUCommandBuffer (+28 more)
+Cohesion: 0.08
+Nodes (32): BufferSource, D, DomRefCell, DomRoot, Fallible, GlobalScope, GPUBuffer, GPUCommandBuffer (+24 more)
 
 ### Community 191 - "Community 191"
 Cohesion: 0.10
 Nodes (26): Arc, AttributeMutation, AttrRef, Document, DomRefCell, DomRoot, DOMString, DomTypeHolder (+18 more)
 
 ### Community 192 - "Community 192"
-Cohesion: 0.11
-Nodes (19): C, Error, IpcError, Opts, Preferences, Process, Result, String (+11 more)
+Cohesion: 0.10
+Nodes (24): Child, C, Error, IpcError, Opts, Preferences, Process, Result (+16 more)
 
 ### Community 193 - "Community 193"
 Cohesion: 0.10
@@ -5298,8 +5260,8 @@ Cohesion: 0.16
 Nodes (21): Box, Condition, Connection, SqliteEngine, Error, FnOnce, IndexedDBIndex, IndexedDBKeyRange (+13 more)
 
 ### Community 195 - "Community 195"
-Cohesion: 0.10
-Nodes (28): CommandName, Document, DomRoot, DOMString, JSContext, Node, NoGC, Option (+20 more)
+Cohesion: 0.11
+Nodes (27): CommandName, Document, DomRoot, DOMString, JSContext, Node, NoGC, Option (+19 more)
 
 ### Community 196 - "Community 196"
 Cohesion: 0.08
@@ -5307,7 +5269,7 @@ Nodes (31): Cell, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, Element, E
 
 ### Community 197 - "Community 197"
 Cohesion: 0.06
-Nodes (42): Code, From, InputEventResult, Key, Location, Modifiers, MouseButton, Option (+34 more)
+Nodes (43): Code, Default, From, InputEventResult, Key, Location, Modifiers, MouseButton (+35 more)
 
 ### Community 198 - "Community 198"
 Cohesion: 0.05
@@ -5315,11 +5277,11 @@ Nodes (40): Arc, DomTypeHolder, Error, Fallible, GenericCallback, GPUDevice, Ide
 
 ### Community 199 - "Community 199"
 Cohesion: 0.04
-Nodes (26): CustomAutoRooterGuard, Data, DomMatrixId, DOMMatrixInit, DomRoot, DOMString, DomTypeHolder, Fallible (+18 more)
+Nodes (25): CustomAutoRooterGuard, Data, DomMatrixId, DOMMatrixInit, DomRoot, DOMString, DomTypeHolder, Fallible (+17 more)
 
 ### Community 200 - "Community 200"
 Cohesion: 0.04
-Nodes (44): CDATASection, Comment, Box, CachedFrozenArray, CurrentRealm, DocumentFragment, DocumentOrShadowRoot, DocumentTimeline (+36 more)
+Nodes (46): CDATASection, Comment, Arc, CachedFrozenArray, CSSStyleSheet, CurrentRealm, DocumentFragment, DocumentOrShadowRoot (+38 more)
 
 ### Community 201 - "Community 201"
 Cohesion: 0.09
@@ -5327,30 +5289,30 @@ Nodes (30): ChildrenList, Atom, ChildrenMutation, Document, Dom, DomRoot, DOMStr
 
 ### Community 202 - "Community 202"
 Cohesion: 0.05
-Nodes (23): Atom, AtomIdent, AtomString, AttrValue, Callback, CaseSensitivity, Document, F (+15 more)
+Nodes (27): is_relevant_attribute(), Atom, AtomIdent, AtomString, Attr, AttrValue, Callback, CaseSensitivity (+19 more)
 
 ### Community 203 - "Community 203"
 Cohesion: 0.10
 Nodes (30): Cell, D, DomRefCell, DomRoot, Drop, Fallible, GlobalScope, GPUDevice (+22 more)
 
 ### Community 204 - "Community 204"
-Cohesion: 0.09
-Nodes (33): ActionsByTick, ActionSequence, BrowsingContextId, ErrorStatus, FxHashSet, HashMap, Instant, Result (+25 more)
+Cohesion: 0.10
+Nodes (26): Arc, BoxFragment, BuiltDisplayList, DiagnosticsLogging, FragmentTree, ImageResolver, PaintDisplayListInfo, PaintTimingHandler (+18 more)
 
 ### Community 205 - "Community 205"
-Cohesion: 0.10
-Nodes (27): ByteString, Cell, DomRefCell, DomRoot, DomTypeHolder, ErrorResult, Fallible, GlobalScope (+19 more)
+Cohesion: 0.09
+Nodes (30): ByteString, Cell, DomRefCell, DomRoot, DomTypeHolder, ErrorResult, Fallible, GlobalScope (+22 more)
 
 ### Community 206 - "Community 206"
-Cohesion: 0.09
-Nodes (23): DeviceIntSize, Drop, FxHashMap, HashMap, HashSet, ImageKey, ImageResponse, OnceCell (+15 more)
+Cohesion: 0.08
+Nodes (32): Cow, Document, Encoding, Fallible, FormDatum, FormSubmitterElement, From, HandleObject (+24 more)
 
 ### Community 207 - "Community 207"
 Cohesion: 0.07
-Nodes (20): blessed, ConvertToStructuredFilter, format_seconds(), LoggingManager, Holds and controls global logging state.      An application should instantiate, Enable JSON logging on the specified file object., Enable logging to the terminal., Replace the installed terminal handler.          Returns the old handler or None (+12 more)
+Nodes (15): Arc, AudioRenderer, F, FetchMetadata, Mutex, NetworkError, NoGC, Player (+7 more)
 
 ### Community 208 - "Community 208"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (25): BrowsingContextId, Cell, Debug, Document, Dom, DomRefCell, EventTarget, FocusSequenceNumber (+17 more)
 
 ### Community 209 - "Community 209"
@@ -5375,39 +5337,39 @@ Nodes (36): Box, ConsoleLogLevel, ConsoleMessage, DebuggerValue, DOMString, DomT
 
 ### Community 214 - "Community 214"
 Cohesion: 0.06
-Nodes (34): BlobId, BlobImpl, CryptoKeyId, DomException, DomExceptionId, DomMatrix, DomMatrixId, DomPoint (+26 more)
+Nodes (33): BlobId, BlobImpl, CryptoKeyId, DomException, DomExceptionId, DomMatrix, DomMatrixId, DomPoint (+25 more)
 
 ### Community 215 - "Community 215"
 Cohesion: 0.15
 Nodes (23): CacheStorageError, CacheStorageThreadMessage, E, Error, GenericReceiver, GenericSender, HashMap, ImmutableOrigin (+15 more)
 
 ### Community 217 - "Community 217"
-Cohesion: 0.09
-Nodes (23): Bytes, Chars, Clone, Decoder, DomRoot, Fallible, FetchMetadata, FetchResponseListener (+15 more)
+Cohesion: 0.06
+Nodes (41): Bytes, Cell, Chars, Clone, Decoder, DomRefCell, DomRoot, DOMString (+33 more)
 
 ### Community 218 - "Community 218"
-Cohesion: 0.09
-Nodes (11): CacheStorage, Crypto, History, ImmutableOrigin, LoadData, PipelineId, RequestClient, StructuredSerializedData (+3 more)
+Cohesion: 0.06
+Nodes (15): CacheStorage, Crypto, EmbedderMsg, History, LoadData, NoGC, RequestClient, ScriptToConstellationMessage (+7 more)
 
 ### Community 219 - "Community 219"
 Cohesion: 0.08
 Nodes (36): ArrayVec, Box, ComputedValues, Copy, Debug, ExactSizeIterator, Fn, Formatter (+28 more)
 
 ### Community 220 - "Community 220"
-Cohesion: 0.03
-Nodes (60): difflib, errno, importlib_util, CommandContext, FailedCommandError, MachError, MissingFileError, NoCommandError (+52 more)
+Cohesion: 0.02
+Nodes (73): difflib, errno, importlib_util, Lint, CommandContext, FailedCommandError, MachError, MissingFileError (+65 more)
 
 ### Community 221 - "Community 221"
-Cohesion: 0.06
-Nodes (23): AttributeMutation, AttrRef, BindContext, DOMString, DomTypeHolder, ElementInternals, ErrorResult, EventHandlerNonNull (+15 more)
+Cohesion: 0.05
+Nodes (42): Activatable, AttributeMutation, AttrRef, AttrValue, BindContext, CSSStyleDeclaration, Document, DocumentFragment (+34 more)
 
 ### Community 222 - "Community 222"
-Cohesion: 0.10
-Nodes (30): Au, AxesScrollSensitivity, ClipId, CSSPixel, ExternalScrollId, Fragment, LayoutPixel, LayoutPoint (+22 more)
+Cohesion: 0.08
+Nodes (38): AbsoluteColor, Au, AxesScrollSensitivity, ClipId, CSSPixel, ExternalScrollId, Fragment, LayoutPixel (+30 more)
 
 ### Community 223 - "Community 223"
 Cohesion: 0.07
-Nodes (40): ArrayBufferU8, ArrayBufferViewOrArrayBuffer, ArrayBufferViewU8, Clone, CustomAutoRooterGuard, Element, Eq, Fallible (+32 more)
+Nodes (41): ArrayBufferU8, ArrayBufferViewOrArrayBuffer, ArrayBufferViewU8, Clone, CustomAutoRooterGuard, Element, Eq, Fallible (+33 more)
 
 ### Community 224 - "Community 224"
 Cohesion: 0.06
@@ -5415,7 +5377,7 @@ Nodes (38): Arc, AttributeMutation, AttrRef, AttrValue, BindContext, Cell, CSSSt
 
 ### Community 225 - "Community 225"
 Cohesion: 0.07
-Nodes (38): bidiclass, codepointmapdata, AbsolutelyPositionedBox, Arc, ArcRefCell, BlockLevelBox, BoxTreeString, FnOnce (+30 more)
+Nodes (39): atomicrefcell, bidiclass, codepointmapdata, AbsolutelyPositionedBox, Arc, ArcRefCell, BlockLevelBox, BoxTreeString (+31 more)
 
 ### Community 226 - "Community 226"
 Cohesion: 0.14
@@ -5426,64 +5388,64 @@ Cohesion: 0.06
 Nodes (37): BlobToken, Arc, BlobTokenCommunicator, CoreResourceMsg, D, Debug, Deref, DerefMut (+29 more)
 
 ### Community 228 - "Community 228"
-Cohesion: 0.05
-Nodes (49): Arc, Cell, CSSRuleList, CurrentRealm, Document, Dom, DomRefCell, DomRoot (+41 more)
+Cohesion: 0.07
+Nodes (38): Arc, Cell, CSSRuleList, CurrentRealm, Document, Dom, DomRefCell, DomRoot (+30 more)
 
 ### Community 229 - "Community 229"
-Cohesion: 0.08
-Nodes (14): Au, ComputedValues, CSSPixel, DomRefCell, Fn, Locked, PropertyDeclarationBlock, ScrollBehavior (+6 more)
+Cohesion: 0.04
+Nodes (18): AttributeStorage, AtomicUsize, ComputedValues, Debug, DomRefCell, DomTypeHolder, ElementState, Fn (+10 more)
 
 ### Community 230 - "Community 230"
 Cohesion: 0.06
-Nodes (39): mozlog_formatters_base, mozlog_reader, NamedTuple, Any, Any, six, TypedDict, UnexpectedResult (+31 more)
+Nodes (42): mozlog, mozlog_formatters, mozlog_formatters_base, mozlog_reader, multiprocessing, NamedTuple, Any, Any (+34 more)
 
 ### Community 232 - "Encoding"
-Cohesion: 0.14
-Nodes (23): AtEndOfFile, Cow, Document, Encoding, Instant, LossyDecoder, NetworkSink, Option (+15 more)
+Cohesion: 0.13
+Nodes (24): AtEndOfFile, Cow, Document, Encoding, Instant, LossyDecoder, NetworkSink, Option (+16 more)
 
 ### Community 233 - "Community 233"
-Cohesion: 0.07
-Nodes (26): Action, Arc, Dom, DomRefCell, DOMString, DomTypeHolder, EventTarget, FxHashSet (+18 more)
+Cohesion: 0.05
+Nodes (58): Action, Arc, Bytes, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder (+50 more)
 
 ### Community 234 - "Community 234"
-Cohesion: 0.08
-Nodes (34): autorealm, Box, Dom, DomRoot, Drop, GlobalScope, JSContext, JSTraceable (+26 more)
+Cohesion: 0.09
+Nodes (33): autorealm, Box, Dom, DomRoot, Drop, GlobalScope, JSContext, JSTraceable (+25 more)
 
 ### Community 235 - "Community 235"
 Cohesion: 0.08
 Nodes (47): servo_dictionary_create(), servo_dictionary_free(), servo_dictionary_get_key(), servo_dictionary_get_keys(), servo_dictionary_get_size(), servo_dictionary_has_key(), servo_dictionary_set_key(), servo_list_create() (+39 more)
 
 ### Community 236 - "Community 236"
-Cohesion: 0.10
-Nodes (21): Cell, Document, DomRefCell, DOMTokenList, Fallible, GlobalScope, HandleObject, HTMLElement (+13 more)
+Cohesion: 0.14
+Nodes (11): AttrValue, Document, DOMString, GlobalScope, HandleObject, InitiatorType, LocalName, Prefix (+3 more)
 
 ### Community 237 - "MainActivity.kt"
 Cohesion: 0.24
 Nodes (6): Omnibox(), Settings, Bundle, Modifier, ServoNavigator, TextFieldState
 
 ### Community 238 - "Community 238"
-Cohesion: 0.09
-Nodes (24): accesskit, AtomicOptionScrollTreeNodeId, ContainerTimingID, Index, Index<T>, Indexable, LCPCandidateID, NamespaceIndex (+16 more)
+Cohesion: 0.16
+Nodes (14): accesskit, ContainerTimingID, Index, Index<T>, Indexable, LCPCandidateID, NamespaceIndex, PipelineNamespaceId (+6 more)
 
 ### Community 239 - "Community 239"
-Cohesion: 0.09
-Nodes (31): Arc, BoxFragment, BuiltDisplayList, ClipChainId, ClipId, DiagnosticsLogging, FragmentTree, ImageResolver (+23 more)
+Cohesion: 0.08
+Nodes (22): Box, Cell, EmbedderControl, EventLoopWaker, HashMap, InputEventId, InputEventResult, LoadStatus (+14 more)
 
 ### Community 240 - "Community 240"
 Cohesion: 0.04
 Nodes (40): evaluate_and_wait(), format_metric(), heap_in_use_bytes(), now_ms(), on_a11y_tree_update(), on_clipboard_get_text(), on_ec_color_picker(), on_ec_file_picker() (+32 more)
 
 ### Community 241 - "Community 241"
-Cohesion: 0.50
-Nodes (3): HitTestFlags, HitTestResult, LayoutPoint
+Cohesion: 0.11
+Nodes (17): CSSPixel, GenericSender, InputEvent, Item, Iterator, Option, Rect, Result (+9 more)
 
 ### Community 242 - "Community 242"
-Cohesion: 0.13
-Nodes (21): BluetoothRemoteGATTDescriptor, BluetoothRemoteGATTDescriptorMethods, ArrayBufferViewOrArrayBuffer, AsyncBluetoothListener, BluetoothRemoteGATTCharacteristic, BluetoothRequest, BluetoothResponse, ByteString (+13 more)
+Cohesion: 0.12
+Nodes (22): BluetoothRemoteGATTDescriptor, BluetoothRemoteGATTCharacteristicMethods, BluetoothRemoteGATTDescriptorMethods, ArrayBufferViewOrArrayBuffer, AsyncBluetoothListener, BluetoothRemoteGATTCharacteristic, BluetoothRequest, BluetoothResponse (+14 more)
 
 ### Community 243 - "Community 243"
 Cohesion: 0.08
-Nodes (32): Document, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget, Fallible (+24 more)
+Nodes (34): Document, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget, Fallible (+26 more)
 
 ### Community 244 - "Community 244"
 Cohesion: 0.09
@@ -5494,8 +5456,8 @@ Cohesion: 0.14
 Nodes (20): AlgorithmIdentifier, ArrayBufferViewOrArrayBufferOrJsonWebKey, ArrayBufferViewOrArrayBuffer, Box, CryptoKey, CryptoKeyPair, CurrentRealm, DomRoot (+12 more)
 
 ### Community 246 - "Community 246"
-Cohesion: 0.10
-Nodes (16): AlignmentBaseline, Au, FloatLineItem, IndefiniteContainingBlock, LineBlockSizes, LineItem, LogicalRect, LogicalVec2 (+8 more)
+Cohesion: 0.11
+Nodes (22): ConstellationToEmbedderMsg, Drop, EmbedderMsg, FxHashMap, InputEventId, NetToEmbedderMsg, Option, Rc (+14 more)
 
 ### Community 247 - "Community 247"
 Cohesion: 0.05
@@ -5515,19 +5477,19 @@ Nodes (25): Cell, DomRefCell, DomRoot, DOMString, DomTypeHolder, ErrorResult, Ev
 
 ### Community 251 - "Community 251"
 Cohesion: 0.07
-Nodes (38): CachedKernTable, CFData, CFDictionary, cgglyph, Au, CFRetained, Debug, Error (+30 more)
+Nodes (35): CachedKernTable, CFData, CFDictionary, cgglyph, Au, CFRetained, Debug, Error (+27 more)
 
 ### Community 252 - "Community 252"
-Cohesion: 0.03
-Nodes (78): alert_trampoline(), authentication_trampoline(), certificate_error_trampoline(), color_picker_trampoline(), confirm_trampoline(), context_menu_action_from_i32(), context_menu_trampoline(), download_continue_trampoline() (+70 more)
+Cohesion: 0.04
+Nodes (42): context_menu_action_from_i32(), ServoContextMenuAction, ServoWebViewDelegate, CertificateError, CertificateErrorRequest, AllowOrDenyRequest, AuthenticationRequest, c_int (+34 more)
 
 ### Community 253 - "avplayer.rs"
 Cohesion: 0.05
 Nodes (22): AVPlayerOnInfoType, c_void, AVPlayerState, Box, Drop, F, Fn, MediaSourceWrapper (+14 more)
 
 ### Community 254 - "Community 254"
-Cohesion: 0.10
-Nodes (31): GetBreakableLinesReply, GetBreakpointPositionsCompressedReply, GetBreakpointPositionsQuery, GetBreakpointPositionsRequest, SourceActor, SourceContentReply, SourceForm, SourceManager (+23 more)
+Cohesion: 0.09
+Nodes (32): GetBreakableLinesReply, GetBreakpointPositionsCompressedReply, GetBreakpointPositionsQuery, GetBreakpointPositionsRequest, SourceActor, SourceContentReply, SourceForm, SourceManager (+24 more)
 
 ### Community 255 - "Community 255"
 Cohesion: 0.14
@@ -5538,24 +5500,20 @@ Cohesion: 0.09
 Nodes (45): c_void, Config, ConversionResult, DOMClass, DomRoot, Finite, FromJSValConvertible, HandleId (+37 more)
 
 ### Community 257 - "Community 257"
-Cohesion: 0.09
-Nodes (31): Clone, Debug, Default, Deref, Dom, DomRoot, Eq, F (+23 more)
+Cohesion: 0.08
+Nodes (33): Clone, Debug, Default, Deref, Dom, DomRoot, Eq, F (+25 more)
 
 ### Community 258 - "Community 258"
 Cohesion: 0.08
 Nodes (32): BrowsingContextGroup, BrowsingContext, BrowsingContextId, ConstellationInputEvent, CSSPixel, Epoch, FxHashMap, FxHashSet (+24 more)
 
-### Community 259 - "Community 259"
-Cohesion: 0.09
-Nodes (19): DocumentActivity, FocusSequenceNumber, HistoryStateId, LoadData, LogEntry, NavigationHistoryBehavior, NeedsToReload, Option (+11 more)
-
 ### Community 260 - "Community 260"
-Cohesion: 0.05
-Nodes (45): Cell, CrossProcessPaintApi, CSSPixelLength, Debug, Device, DocumentAnimationSet, DocumentStyleSheet, Drop (+37 more)
+Cohesion: 0.11
+Nodes (15): Dom, Duration, Instant, JsTimerTaskData, RootedInternalTimerCallback, TimerEventId, TimerSource, OneshotTimerData (+7 more)
 
 ### Community 261 - "Community 261"
-Cohesion: 0.09
-Nodes (29): C, Drop, F, M, MemoryReport, ProfilerMsg, Self, String (+21 more)
+Cohesion: 0.10
+Nodes (28): C, Drop, F, M, MemoryReport, ProfilerMsg, Self, String (+20 more)
 
 ### Community 262 - "Community 262"
 Cohesion: 0.08
@@ -5574,8 +5532,8 @@ Cohesion: 0.19
 Nodes (17): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, Fallible, HandleObject (+9 more)
 
 ### Community 266 - "Community 266"
-Cohesion: 0.08
-Nodes (27): AttributeMutation, AttrRef, AttrValue, BindContext, BrowsingContextId, DomRoot, DOMString, DomTypeHolder (+19 more)
+Cohesion: 0.07
+Nodes (37): AttributeMutation, AttrRef, BindContext, BrowsingContextId, Cell, DomRefCell, DomRoot, DOMTokenList (+29 more)
 
 ### Community 267 - "Community 267"
 Cohesion: 0.07
@@ -5590,44 +5548,44 @@ Cohesion: 0.07
 Nodes (47): Au, Cell, CrossProcessInstant, CSSPixel, Document, Dom, DomRefCell, DomRoot (+39 more)
 
 ### Community 270 - "Community 270"
-Cohesion: 0.08
-Nodes (33): Cell, CrossProcessInstant, Dom, DOMHighResTimeStamp, DomRefCell, DomRoot, DOMString, DomTypeHolder (+25 more)
+Cohesion: 0.09
+Nodes (29): Cell, CrossProcessInstant, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget (+21 more)
 
 ### Community 271 - "Community 271"
-Cohesion: 0.09
-Nodes (22): Cell, EmbedderControl, EmbedderControlId, Fn, From, Option, PlatformWindow, Rc (+14 more)
+Cohesion: 0.11
+Nodes (16): EmbedderControl, EmbedderControlId, Fn, Option, PlatformWindow, Rc, RefCell, RunningAppState (+8 more)
 
 ### Community 272 - "interaction_profiles.rs"
-Cohesion: 0.08
-Nodes (28): Box, Deref, DerefMut, Drop, HashSet, JSObject, MallocSizeOfOps, Option (+20 more)
+Cohesion: 0.11
+Nodes (10): copy, CPP_INTEGER(), Macro, Preprocessor, r'(((((0x)|(0X))[0-9a-fA-F]+)|(\d+))([uU][lL]|[lL][uU]|[uU]|[lL])?), r'\"([^\\\n]|(\\(.|\n)))*?\, r'(L)?\'([^\\\n]|(\\(.|\n)))*?\, t_CPP_CHAR() (+2 more)
 
 ### Community 273 - "Community 273"
 Cohesion: 0.11
 Nodes (34): F, FallbackFontSelectionOptions, FontRef, From, GenericFontFamily, LowercaseFontFamilyName, Option, Path (+26 more)
 
 ### Community 274 - "Community 274"
-Cohesion: 0.14
-Nodes (17): Duration, HashMap, HeaderMap, MallocSizeOf, MallocSizeOfOps, Option, ServoUrl, String (+9 more)
+Cohesion: 0.12
+Nodes (19): Duration, HashMap, HeaderMap, MallocSizeOf, MallocSizeOfOps, Option, ServoUrl, String (+11 more)
 
 ### Community 275 - "Community 275"
 Cohesion: 0.07
 Nodes (41): CachedImage, AnimatingImages, Arc, CachedImageOrError, DeviceIntSize, DevicePixel, Drop, FontContext (+33 more)
 
 ### Community 276 - "Community 276"
-Cohesion: 0.12
-Nodes (11): AttrName, AttrRef<'a>, ContentAttributeData, AttrIdentifier, AttrValue, DOMString, LocalName, Namespace (+3 more)
+Cohesion: 0.06
+Nodes (26): AttributeEntry, AttributesBorrow, AttributeStorage, AttrName, AttrRef<'a>, AttrValueRef, ContentAttributeData, AsRef (+18 more)
 
 ### Community 277 - "Community 277"
-Cohesion: 0.04
-Nodes (73): Atom, AttributeMutation, AttrRef, AttrValue, Cell, Cow, Document, Dom (+65 more)
+Cohesion: 0.06
+Nodes (41): Atom, AttributeMutation, AttrRef, AttrValue, Cell, Dom, DomObject, DomOnceCell (+33 more)
 
 ### Community 278 - "Community 278"
 Cohesion: 0.06
 Nodes (46): AttributeMutation, AttrRef, BindContext, Bytes, Cell, Document, Dom, DomRefCell (+38 more)
 
 ### Community 279 - "Community 279"
-Cohesion: 0.18
-Nodes (9): BorderStyle, ExactSizeIterator, Self, T, deref, namedarea, StyloLineNameIter, TaffyStyloStyle (+1 more)
+Cohesion: 0.12
+Nodes (22): BackgroundPainter, BorderSide, AbsoluteColor, Au, BorderStyleColor, ColorF, CommonItemProperties, ContainerTimingRoots (+14 more)
 
 ### Community 280 - "Community 280"
 Cohesion: 0.09
@@ -5635,19 +5593,19 @@ Nodes (32): arraybufferu8, Atom, Blob, Cell, DOMException, DomRefCell, DomRoot, 
 
 ### Community 281 - "Community 281"
 Cohesion: 0.15
-Nodes (23): CookieStringStorage, servo_get_site_data_manager(), servo_site_data_clear_cookies(), servo_site_data_clear_session_cookies(), servo_site_data_clear_site_data(), servo_site_data_cookies_for_url(), servo_site_data_manager_free(), servo_site_data_set_cookie() (+15 more)
+Nodes (25): CookieStringStorage, servo_get_site_data_manager(), servo_site_data_clear_cookies(), servo_site_data_clear_session_cookies(), servo_site_data_clear_site_data(), servo_site_data_cookies_for_url(), servo_site_data_cookies_for_url_async(), servo_site_data_manager_free() (+17 more)
 
 ### Community 282 - "Community 282"
-Cohesion: 0.12
-Nodes (46): call(), display_and_window_handle(), Java_org_servo_servoview_JNIServo_addPlatformWindow(), Java_org_servo_servoview_JNIServo_doFrame(), Java_org_servo_servoview_JNIServo_goBack(), Java_org_servo_servoview_JNIServo_goForward(), Java_org_servo_servoview_JNIServo_init(), Java_org_servo_servoview_JNIServo_keydown() (+38 more)
+Cohesion: 0.21
+Nodes (28): call(), Java_org_servo_servoview_JNIServo_doFrame(), Java_org_servo_servoview_JNIServo_goBack(), Java_org_servo_servoview_JNIServo_goForward(), Java_org_servo_servoview_JNIServo_init(), Java_org_servo_servoview_JNIServo_keydown(), Java_org_servo_servoview_JNIServo_keyup(), Java_org_servo_servoview_JNIServo_loadUri() (+20 more)
 
 ### Community 283 - "Community 283"
 Cohesion: 0.10
-Nodes (27): AnimatingImages, Animation, Arc, Cell, DocumentAnimationSet, Dom, DomRefCell, Duration (+19 more)
+Nodes (26): AnimatingImages, Arc, Cell, DocumentAnimationSet, Dom, DomRefCell, Duration, FxHashMap (+18 more)
 
 ### Community 284 - "Community 284"
-Cohesion: 0.10
-Nodes (23): Attr, is_boolean_attribute(), is_relevant_attribute(), LayoutDom<'dom, Attr>, AttrMethods, AttrIdentifier, AttrValue, Document (+15 more)
+Cohesion: 0.11
+Nodes (21): Attr, is_boolean_attribute(), LayoutDom<'dom, Attr>, AttrMethods, AttrIdentifier, AttrValue, Document, DomRefCell (+13 more)
 
 ### Community 285 - "Community 285"
 Cohesion: 0.12
@@ -5682,48 +5640,48 @@ Cohesion: 0.08
 Nodes (50): Arc, Atom, AtomicBool, Box, Cell, CSSPixel, DevicePixel, Dom (+42 more)
 
 ### Community 293 - "Community 293"
-Cohesion: 0.19
-Nodes (17): Arc, BoxTree, LayoutContext, Option, Self, ServoLayoutNode, Vec, BoxDamageAction (+9 more)
+Cohesion: 0.12
+Nodes (24): Arc, BoxTree, ConcreteNode, E, F, LayoutContext, Option, Self (+16 more)
 
 ### Community 294 - "Community 294"
 Cohesion: 0.10
-Nodes (31): Au, BaseFragment, ComputedValues, ContainerTimingRecord, ContainerTimingRoots, FastLayoutTransform, FxHashMap, FxHashSet (+23 more)
+Nodes (32): Au, BaseFragment, ComputedValues, ContainerTimingRecord, ContainerTimingRoots, FastLayoutTransform, FxHashMap, FxHashSet (+24 more)
 
 ### Community 295 - "Community 295"
-Cohesion: 0.09
-Nodes (32): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, EventTarget, Fallible, FxHashMap (+24 more)
+Cohesion: 0.12
+Nodes (24): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, EventTarget, Fallible, FxHashMap (+16 more)
 
 ### Community 296 - "Community 296"
-Cohesion: 0.36
-Nodes (5): AttrValue, Document, HandleObject, LocalName, Prefix
+Cohesion: 0.22
+Nodes (8): CloneChildrenFlag, Document, DomRoot, HandleObject, LocalName, Node, Prefix, ValidityState
 
 ### Community 297 - "Community 297"
-Cohesion: 0.14
-Nodes (39): Encoding, Error, Fallible, GlobalScope, HeaderMap, JSContext, MutNullableDom, Node (+31 more)
+Cohesion: 0.12
+Nodes (43): DomRoot, DOMString, Encoding, Error, Fallible, GlobalScope, HeaderMap, JSContext (+35 more)
 
 ### Community 298 - "Community 298"
 Cohesion: 0.11
-Nodes (23): Bytes, DomRoot, FetchMetadata, FetchResponseListener, InitiatorType, JSContext, Metadata, NetworkError (+15 more)
+Nodes (25): ApiSpace, ClipPlanes, EventBuffer, Eye, Floor, Frame, Input, InputSource (+17 more)
 
 ### Community 299 - "Community 299"
-Cohesion: 0.07
-Nodes (37): BluetoothRequest, Debug, DevtoolScriptControlMsg, Formatter, FxHashSet, GenericCallback, GenericSender, ImageCacheResponseMessage (+29 more)
+Cohesion: 0.09
+Nodes (29): BluetoothRequest, DevtoolScriptControlMsg, FxHashSet, GenericCallback, GenericSender, ImageCacheResponseMessage, Option, PipelineId (+21 more)
 
 ### Community 300 - "Community 300"
-Cohesion: 0.13
-Nodes (16): Bytes, BytesMut, Encoding, FetchMetadata, FetchResponseListener, GlobalScope, Metadata, NetworkError (+8 more)
+Cohesion: 0.10
+Nodes (24): Arc, AtomicBool, Box, DiscoveryAPI, GenericReceiver, InputId, MockDeviceInit, MockDeviceMsg (+16 more)
 
 ### Community 301 - "Community 301"
-Cohesion: 0.09
-Nodes (7): Float32ArrayOrUnrestrictedFloatSequence, Int32ArrayOrLongSequence, Option, Snapshot, WebGLRenderbuffer, WebGLUniformLocation, Uint32ArrayOrUnsignedLongSequence
+Cohesion: 0.08
+Nodes (8): Float32ArrayOrUnrestrictedFloatSequence, Int32ArrayOrLongSequence, Option, Snapshot, WebGLFramebuffer, WebGLRenderbuffer, WebGLUniformLocation, Uint32ArrayOrUnsignedLongSequence
 
 ### Community 302 - "Community 302"
-Cohesion: 0.11
-Nodes (33): BrowserTab, BrowserWindow, HBITMAP, HDC, HINSTANCE, HWND, LPARAM, LRESULT (+25 more)
+Cohesion: 0.10
+Nodes (37): BrowserTab, BrowserWindow, HBITMAP, HDC, HINSTANCE, HWND, LPARAM, LRESULT (+29 more)
 
 ### Community 303 - "net/decoder.rs"
-Cohesion: 0.09
-Nodes (33): bodyext, BodyStream, BoxedBody, bufread, bytes, Context, Debug, Display (+25 more)
+Cohesion: 0.10
+Nodes (30): bodyext, BodyStream, BoxedBody, bufread, Context, Debug, Display, Error (+22 more)
 
 ### Community 304 - "Community 304"
 Cohesion: 0.06
@@ -5731,23 +5689,23 @@ Nodes (62): CacheDetails, CertificateFingerprint, CertificateIdentity, Certifica
 
 ### Community 305 - "Community 305"
 Cohesion: 0.05
-Nodes (13): D, DomRoot, GlobalScope, JSContext, Limits, PhantomData, Reflector, Self (+5 more)
+Nodes (12): D, DomRoot, GlobalScope, JSContext, Limits, PhantomData, Reflector, Self (+4 more)
 
 ### Community 306 - "Community 306"
-Cohesion: 0.07
-Nodes (43): Arc, AtomicBool, AutoWorkerReset, CspViolationsProcessor, CurrentRealm, DebuggerGlobalScope, DevtoolScriptControlMsg, DomRoot (+35 more)
+Cohesion: 0.06
+Nodes (50): Arc, AtomicBool, AutoWorkerReset, CspViolationsProcessor, CurrentRealm, DebuggerGlobalScope, DevtoolScriptControlMsg, DomRoot (+42 more)
 
 ### Community 307 - "Community 307"
 Cohesion: 0.07
-Nodes (37): Adapter, Box, CompositionPipeline, Connection, CSSPixel, Debug, DevicePixel, Fn (+29 more)
+Nodes (35): Adapter, Box, CompositionPipeline, Connection, CSSPixel, DevicePixel, Fn, From (+27 more)
 
 ### Community 308 - "Community 308"
 Cohesion: 0.09
 Nodes (27): C, ConversionResult, Default, Deref, DerefMut, Eq, FromJSValConvertible, HandleId (+19 more)
 
 ### Community 309 - "Community 309"
-Cohesion: 0.06
-Nodes (38): is_execution_stack_empty(), BufferQueue, Cell, Document, DomRefCell, Encoding, F, FetchMetadata (+30 more)
+Cohesion: 0.04
+Nodes (65): Arc, BufferQueue, Bytes, Cell, Cow, Document, DomRefCell, DomRoot (+57 more)
 
 ### Community 310 - "Community 310"
 Cohesion: 0.09
@@ -5766,12 +5724,12 @@ Cohesion: 0.07
 Nodes (34): Activatable, AttributeMutation, AttrRef, BindContext, Cell, CommandState, Document, DomRoot (+26 more)
 
 ### Community 314 - "Community 314"
-Cohesion: 0.06
-Nodes (25): Arc, AudioRenderer, CrossProcessPaintApi, ImageKey, Mutex, NoGC, Player, PlayerError (+17 more)
+Cohesion: 0.07
+Nodes (23): Box, CertificateDer, EmbedderProxy, Error, Option, Result, Sender, UrlWithBlobClaim (+15 more)
 
 ### Community 315 - "Community 315"
-Cohesion: 0.10
-Nodes (27): BlobCallback, AttributeMutation, AttrRef, AttrValue, Document, DomRefCell, DomRoot, DOMString (+19 more)
+Cohesion: 0.09
+Nodes (28): AudioRenderThread, AudioRenderThreadMsg, Sink, AudioGraph, AsRef, AudioContextOptions, AudioNodeInit, AudioSink (+20 more)
 
 ### Community 316 - "Community 316"
 Cohesion: 0.08
@@ -5787,19 +5745,19 @@ Nodes (24): Au, Descriptor, Document, Element, FnMut, NoGC, Option, SmallVec (+1
 
 ### Community 319 - "Community 319"
 Cohesion: 0.05
-Nodes (65): is_bidi_control(), BidiLevels, Arc, ArcRefCell, AtomicRefCell, Au, BaseFragmentInfo, ComputedValues (+57 more)
+Nodes (64): is_bidi_control(), BidiLevels, Arc, ArcRefCell, AtomicRefCell, Au, BaseFragmentInfo, ComputedValues (+56 more)
 
 ### Community 320 - "Community 320"
-Cohesion: 0.13
-Nodes (24): FallbackFontSelectionOptions, Fn, FontContext, FontData, FontDescriptor, FontFamilyDescriptor, FontRef, FontStyleStruct (+16 more)
+Cohesion: 0.10
+Nodes (16): Arc, FetchResponseMsg, FontResolver, ImageCache, ImageCacheFactory, ImageLoadListener, MallocSizeOfOps, Report (+8 more)
 
 ### Community 322 - "Community 322"
 Cohesion: 0.12
 Nodes (27): CanvasData, CanvasData<DrawTarget>, Filter, Rect<f64>, RectToi32, write_image(), CanvasId, CompositionOptions (+19 more)
 
 ### Community 323 - "Community 323"
-Cohesion: 0.05
-Nodes (33): BroadcastChannelState, AbortSignal, Dom, DOMTracker, EmbedderMsg, Error, FxBuildHasher, FxHashMap (+25 more)
+Cohesion: 0.03
+Nodes (61): BroadcastChannelState, AbortSignal, CoreResourceThread, Dom, DOMTracker, EmbedderMsg, Error, Function (+53 more)
 
 ### Community 324 - "Community 324"
 Cohesion: 0.08
@@ -5810,28 +5768,28 @@ Cohesion: 0.06
 Nodes (30): Arc, Default, Deref, DerefMut, From, GenericSharedMemory, Option, Range (+22 more)
 
 ### Community 326 - "Community 326"
-Cohesion: 0.57
-Nodes (3): Option, Ordering, Self
+Cohesion: 0.06
+Nodes (23): Clone, Debug, Default, Deref, Err, Formatter, HandleValue, Heap (+15 more)
 
 ### Community 327 - "Community 327"
-Cohesion: 0.06
-Nodes (20): BroadcastChannel, BroadcastChannelMsg, CommonScriptMsg, ConstellationInterest, ErrorInfo, Fallible, HandleValue, JSContext (+12 more)
+Cohesion: 0.05
+Nodes (21): BroadcastChannel, CommonScriptMsg, ConstellationInterest, ErrorInfo, Fallible, HandleValue, JSContext, MessagePort (+13 more)
 
 ### Community 328 - "Community 328"
 Cohesion: 0.07
-Nodes (26): Arc, AttrValue, ComputedValues, Element, ElementDataMut, ElementDataRef, From, LayoutDom (+18 more)
+Nodes (27): Arc, AttrValue, ComputedValues, Element, ElementDataMut, ElementDataRef, From, LayoutDom (+19 more)
 
 ### Community 329 - "Community 329"
-Cohesion: 0.13
-Nodes (56): FnMut, NodeId, Rc, Rect, Role, ServoTest, Tree, TreeUpdate (+48 more)
+Cohesion: 0.16
+Nodes (48): Rc, Rect, ServoTest, Tree, WebView, WebViewDelegateImpl, assert_rect_eq(), assert_tree_structure_and_get_root_web_area() (+40 more)
 
 ### Community 331 - "Community 331"
-Cohesion: 0.08
-Nodes (40): check_main_thread(), HandleKind, is_compatible_struct_size(), is_live(), live_handles(), register(), servo_builder_build(), servo_builder_create() (+32 more)
+Cohesion: 0.10
+Nodes (36): check_main_thread(), ensure_panic_hook_installed(), HandleKind, init(), is_compatible_struct_size(), is_live(), live_handles(), register() (+28 more)
 
 ### Community 332 - "Community 332"
-Cohesion: 0.06
-Nodes (37): BrowserWindow, HINSTANCE, HWND, LPARAM, LRESULT, ServoViewHost(), string, UINT (+29 more)
+Cohesion: 0.04
+Nodes (91): deque, HMENU, pair, BrowserWindow, HINSTANCE, HWND, LPARAM, LRESULT (+83 more)
 
 ### Community 333 - "Community 333"
 Cohesion: 0.11
@@ -5851,47 +5809,51 @@ Nodes (35): AudioGraph, Connection, Edge, InputPort, Node, NodeId, OutputPort, P
 
 ### Community 337 - "Community 337"
 Cohesion: 0.07
-Nodes (44): commdlg, BrowserSettings, BrowserWindow, HBITMAP, HINSTANCE, HWND, LPARAM, LRESULT (+36 more)
+Nodes (53): commdlg, BrowserSettings, BrowserWindow, HBITMAP, HINSTANCE, HWND, LPARAM, LRESULT (+45 more)
 
 ### Community 338 - "Community 338"
-Cohesion: 0.08
-Nodes (28): Box, DoneChannel, FetchContext, FxHashMap, Option, Range, Request, Response (+20 more)
+Cohesion: 0.10
+Nodes (11): Atom, Au, AxesOverflow, CSSPixel, CSSPixelRectVec, Element, HTMLSlotElement, Option (+3 more)
+
+### Community 339 - "Community 339"
+Cohesion: 0.09
+Nodes (13): CommonScriptMsg, DiscardBrowsingContext, EmbedderControlId, EmbedderControlResponse, F, ImageCacheResponseMessage, JSContext, MainThreadScriptMsg (+5 more)
 
 ### Community 340 - "Community 340"
 Cohesion: 0.05
-Nodes (55): AuxiliaryWebViewCreationResponse, Arc, BrowsingContextId, CrossProcessPaintApi, Default, Destination, Encoding, GenericReceiver (+47 more)
+Nodes (77): AuxiliaryWebViewCreationResponse, Arc, BrowsingContextId, CrossProcessPaintApi, Default, Destination, DevtoolScriptControlMsg, Encoding (+69 more)
 
 ### Community 341 - "Community 341"
-Cohesion: 0.08
-Nodes (41): AbortSignal, Callback, Cell, CurrentRealm, Dom, DOMString, Error, GenericSharedMemory (+33 more)
+Cohesion: 0.07
+Nodes (44): AbortSignal, Callback, Cell, CurrentRealm, Data, Dom, DOMString, Eq (+36 more)
 
 ### Community 342 - "Community 342"
-Cohesion: 0.04
-Nodes (41): AlignSelf, AutoTrackList, RepetitionCount, AlignContent, AlignItems, Atom, BoxGenerationMode, BoxSizing (+33 more)
+Cohesion: 0.03
+Nodes (46): AlignSelf, AutoTrackList, AlignContent, AlignItems, Atom, BoxGenerationMode, BoxSizing, Dimension (+38 more)
 
 ### Community 343 - "Community 343"
-Cohesion: 0.10
-Nodes (32): BrowserWindow, DWORD_PTR, HDC, HINSTANCE, HWND, LPARAM, LRESULT, string (+24 more)
+Cohesion: 0.08
+Nodes (37): BrowserWindow, DWORD_PTR, HDC, HINSTANCE, HWND, LPARAM, LRESULT, string (+29 more)
 
 ### Community 344 - "Community 344"
-Cohesion: 0.13
-Nodes (18): algorithm, HDC, HINSTANCE, HWND, LPARAM, LRESULT, DownloadManager(), string (+10 more)
+Cohesion: 0.06
+Nodes (39): algorithm, commctrl, cstdarg, EXCEPTION_POINTERS, LONG, LONG64, LPWSTR, objbase (+31 more)
 
 ### Community 345 - "Community 345"
-Cohesion: 0.12
-Nodes (20): BackgroundPainter, BorderSide, AbsoluteColor, Au, BorderStyleColor, BoxFragmentWithStyle, ColorF, CommonItemProperties (+12 more)
+Cohesion: 0.11
+Nodes (30): BrowsingContextId, CSSFloat, Image, ImageKey, LayoutContext, Option, PipelineId, Self (+22 more)
 
 ### Community 346 - "Community 346"
 Cohesion: 0.03
-Nodes (46): MallocSizeOfOps, BinaryHeap<T>, bytes::Bytes, bytes::BytesMut, crossbeam_channel::Receiver<T>, crossbeam_channel::Sender<T>, CString, data_url::mime::Mime (+38 more)
+Nodes (29): euclid::Length<T, Unit>, euclid::Point2D<T, U>, euclid::RigidTransform3D<T, Src, Dst>, euclid::Scale<T, Src, Dst>, euclid::SideOffsets2D<T, U>, euclid::Size2D<T, U>, euclid::Transform3D<T, Src, Dst>, euclid::Vector2D<T, U> (+21 more)
 
 ### Community 347 - "Community 347"
 Cohesion: 0.27
 Nodes (10): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGTextPositioningElement (+2 more)
 
 ### Community 348 - "Community 348"
-Cohesion: 0.05
-Nodes (65): absolutecolor, AngleOrPercentage, BlendMode, AbsoluteColor, Alpha, BlendingStyle, CanvasGradientStop, CompositionOrBlending (+57 more)
+Cohesion: 0.06
+Nodes (34): absolutecolor, BlendMode, AbsoluteColor, Alpha, BlendingStyle, CanvasGradientStop, CompositionOrBlending, CompositionStyle (+26 more)
 
 ### Community 349 - "Community 349"
 Cohesion: 0.09
@@ -5910,24 +5872,24 @@ Cohesion: 0.05
 Nodes (32): AppSrcCallbacks, AppSrc, AtomicBool, BinImpl, BoolError, Class, DebugCategory, ElementImpl (+24 more)
 
 ### Community 353 - "Community 353"
-Cohesion: 0.08
-Nodes (23): CachedFrozenArray, Cell, Dom, DomRoot, DOMString, DomTypeHolder, Finite, GamepadHapticActuator (+15 more)
+Cohesion: 0.07
+Nodes (24): CachedFrozenArray, Cell, Dom, DomRoot, DOMString, DomTypeHolder, Finite, GamepadHapticActuator (+16 more)
 
 ### Community 354 - "Community 354"
-Cohesion: 0.13
-Nodes (22): Document, DomRoot, DOMStringList, DomTypeHolder, ErrorResult, Fallible, FnOnce, GlobalScope (+14 more)
+Cohesion: 0.09
+Nodes (25): c_char, DOMClass, GCContext, Handle, JSAtomState, JSContext, JSObject, JSTracer (+17 more)
 
 ### Community 355 - "Community 355"
 Cohesion: 0.06
 Nodes (35): AsHandleValue, Dom<T>, DomOnceCell, DomOnceCell<T>, Heap<Value>, LayoutDom, LayoutDom<'dom, T>, LayoutDom<'_, Node> (+27 more)
 
 ### Community 356 - "Community 356"
-Cohesion: 0.12
-Nodes (21): Cell, Data, DomRoot, DomTypeHolder, EventHandlerNonNull, EventTarget, Fallible, FxHashMap (+13 more)
+Cohesion: 0.10
+Nodes (27): Cell, CustomAutoRooterGuard, Data, DomRoot, DomTypeHolder, ErrorResult, EventHandlerNonNull, EventTarget (+19 more)
 
 ### Community 357 - "Community 357"
 Cohesion: 0.11
-Nodes (11): AccessibilityDamage, MoveContext, TreeIterator, UnbindContext, Node, htmlareaelement, localname, SuppressObserver (+3 more)
+Nodes (15): CustomElementRegistry, DomRoot, ErrorResult, Fallible, From, G, HTMLElement, I (+7 more)
 
 ### Community 358 - "Community 358"
 Cohesion: 0.23
@@ -5935,7 +5897,7 @@ Nodes (12): DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject, HandleV
 
 ### Community 359 - "Community 359"
 Cohesion: 0.11
-Nodes (8): NodeDamage, NoGC, UnrootedDom, UnrootedFollowingFlatTreeNodesTraversal, FlatTreeParent<'a>, UnrootedAncestorIterator, UnrootedFollowingNodeIterator, UnrootedPrecedingNodeIterator
+Nodes (17): Box, DomObject, DomRefCell, DomRoot, FnOnce, HashMapTracedValues, Heap, IDBFactory (+9 more)
 
 ### Community 360 - "Community 360"
 Cohesion: 0.08
@@ -5954,20 +5916,20 @@ Cohesion: 0.16
 Nodes (27): CallArgs, ConstantSpec, Constructor, CStr, FnOnce, GlobalScope, Guard, HandleObject (+19 more)
 
 ### Community 364 - "Community 364"
-Cohesion: 0.06
-Nodes (39): Arc, AtomicBool, Box, ContextId, DeviceAPI, DiscoveryAPI, EnvironmentBlendMode, Error (+31 more)
+Cohesion: 0.09
+Nodes (20): ContextId, DeviceAPI, EnvironmentBlendMode, Error, Event, FnOnce, HitTestId, HitTestSource (+12 more)
 
 ### Community 365 - "Community 365"
-Cohesion: 0.10
-Nodes (33): Arc, AtomicBool, CustomResponseMediator, Drop, FontContext, GenericCallback, GenericSender, HashMap (+25 more)
+Cohesion: 0.11
+Nodes (24): Cell, CorsSettings, Document, DomRefCell, DomRoot, DOMTokenList, ElementCreator, HandleObject (+16 more)
 
 ### Community 366 - "Community 366"
-Cohesion: 0.06
-Nodes (35): collect_packages(), crates_io_version_exists(), load_metadata(), log(), main(), parse_args(), publish_package(), publish_packages() (+27 more)
+Cohesion: 0.10
+Nodes (27): collect_packages(), crates_io_version_exists(), load_metadata(), log(), main(), parse_args(), publish_package(), publish_packages() (+19 more)
 
 ### Community 367 - "Community 367"
-Cohesion: 0.18
-Nodes (15): DOMTokenList, Atom, Dom, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult (+7 more)
+Cohesion: 0.07
+Nodes (21): ActionRequest, EmbedderControlId, EmbedderControlResponse, InputEventAndId, KeyboardEvent, MediaSessionActionType, MouseButtonEvent, PaintHitTestResult (+13 more)
 
 ### Community 368 - "Community 368"
 Cohesion: 0.13
@@ -5990,60 +5952,60 @@ Cohesion: 0.14
 Nodes (16): Cell, DomRoot, Drop, JSContext, Operation, Option, Result, Self (+8 more)
 
 ### Community 373 - "Community 373"
-Cohesion: 0.10
-Nodes (18): Box, Default, Deref, DerefMut, Display, Formatter, From, Handle (+10 more)
+Cohesion: 0.06
+Nodes (32): AuthorStyles, callobjecttracer, Box, Default, Deref, DerefMut, Display, Formatter (+24 more)
 
 ### Community 374 - "Community 374"
-Cohesion: 0.07
-Nodes (27): Atom, AtomicRef, FontDataAndIndex, FontIdentifier, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontVariation (+19 more)
+Cohesion: 0.17
+Nodes (13): Cell, DevicePoint, InputEventAndId, InputEventId, InputEventResult, PendingTouchInputEvent, RenderApi, RepaintReason (+5 more)
 
 ### Community 375 - "Community 375"
-Cohesion: 0.12
-Nodes (23): Document, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult, Fallible, HandleObject (+15 more)
+Cohesion: 0.06
+Nodes (28): Box, BrowsingContextId, CrossProcessInstant, GenericCallback, IdentityHub, ImageCacheResponseMessage, Layout, MainThreadScriptMsg (+20 more)
 
 ### Community 376 - "Community 376"
 Cohesion: 0.11
 Nodes (14): Debug, Error, Formatter, InputEventAndId, Modifiers, MouseButton, PaintHitTestResult, Result (+6 more)
 
 ### Community 377 - "Community 377"
-Cohesion: 0.08
-Nodes (34): BufferQueue, Document, Dom, DomRoot, Element, FragmentContext, HTMLScriptElement, Iterator (+26 more)
+Cohesion: 0.09
+Nodes (33): BufferQueue, Document, Dom, DomRoot, Element, FragmentContext, HTMLScriptElement, Iterator (+25 more)
 
 ### Community 378 - "Community 378"
 Cohesion: 0.09
-Nodes (13): CommonScriptMsg, DiscardBrowsingContext, EmbedderControlId, EmbedderControlResponse, F, ImageCacheResponseMessage, JSContext, MainThreadScriptMsg (+5 more)
+Nodes (17): DocumentActivity, FocusSequenceNumber, HistoryStateId, LoadData, NavigationHistoryBehavior, NeedsToReload, NewWebViewDetails, Option (+9 more)
 
 ### Community 379 - "Community 379"
 Cohesion: 0.06
-Nodes (41): BodyInit, BodyMixin, Bytes, ByteString, Cell, DomRefCell, DomRoot, DomTypeHolder (+33 more)
+Nodes (37): BodyInit, BodyMixin, Bytes, Cell, DomRefCell, DomRoot, DomTypeHolder, Error (+29 more)
 
 ### Community 380 - "Community 380"
-Cohesion: 0.08
-Nodes (11): AnimationFrameCallback, F, NamedPropertyValue, NoGC, T, UnrootedDom, is_named_element_with_id_attribute(), is_named_element_with_name_attribute() (+3 more)
+Cohesion: 0.20
+Nodes (11): FontDescriptor, FontFamilyDescriptor, FontRef, FontTemplateRef, HashMap, ResolvedFontVariantAlternates, Result, Vec (+3 more)
 
 ### Community 381 - "Community 381"
-Cohesion: 0.29
-Nodes (15): servo_builder_set_request_context(), servo_request_context_create(), servo_request_context_free(), servo_request_context_set_accept_language(), servo_request_context_set_cache_path(), servo_request_context_set_cookie_path(), servo_request_context_set_proxy_config(), servo_webview_builder_set_request_context() (+7 more)
+Cohesion: 0.22
+Nodes (16): servo_builder_set_request_context(), servo_request_context_create(), servo_request_context_free(), servo_request_context_set_accept_language(), servo_request_context_set_cache_path(), servo_request_context_set_cookie_path(), servo_request_context_set_proxy_config(), servo_webview_builder_set_request_context() (+8 more)
 
 ### Community 382 - "Community 382"
-Cohesion: 0.32
-Nodes (6): BoxedTimerCallback, SendableTaskSource, TimerEvent, TimerListener, TimerListenerContext, TimerSource
+Cohesion: 0.14
+Nodes (21): Callback, Cell, Dom, DomRefCell, Rc, ReadableByteStreamController, ReadableStreamDefaultController, ReadableStreamDefaultReader (+13 more)
 
 ### Community 383 - "Community 383"
 Cohesion: 0.09
 Nodes (22): JSTracer, AuthorStyles<S>, AuthorStylesheetSet<S>, Box<T>, CustomTraceable, DocumentStylesheetSet<S>, Finger<J>, Hand<J> (+14 more)
 
 ### Community 384 - "Community 384"
-Cohesion: 0.10
-Nodes (19): c_int, Cell, DomRefCell, DomRoot, DOMString, Drop, JSContext, Operation (+11 more)
+Cohesion: 0.07
+Nodes (26): c_int, Cell, DomRefCell, DomRoot, DOMString, Drop, GLLimits, GlType (+18 more)
 
 ### Community 385 - "Community 385"
 Cohesion: 0.11
 Nodes (17): Debug, DomRoot, DomTypeHolder, Error, Fallible, Finite, Formatter, JSContext (+9 more)
 
 ### Community 386 - "Community 386"
-Cohesion: 0.22
-Nodes (15): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, Gamepad, HandleObject (+7 more)
+Cohesion: 0.10
+Nodes (17): Element, HitTestResult, Into, MouseEvent, Range, Result, ScriptToEmbedderChan, Self (+9 more)
 
 ### Community 387 - "Community 387"
 Cohesion: 0.10
@@ -6063,11 +6025,11 @@ Nodes (14): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope
 
 ### Community 391 - "Community 391"
 Cohesion: 0.10
-Nodes (30): ArrayBufferOrArrayBufferViewOrBlobOrString, Blob, BlobImpl, Data, DomRoot, DOMString, DomTypeHolder, Fallible (+22 more)
+Nodes (31): ArrayBufferOrArrayBufferViewOrBlobOrString, Blob, BlobImpl, Data, DomRoot, DOMString, DomTypeHolder, Fallible (+23 more)
 
 ### Community 392 - "Community 392"
-Cohesion: 0.07
-Nodes (47): execute_delete_command(), execute_forward_delete_command(), execute_insert_horizontal_rule_command(), execute_insert_image_command(), execute_insert_line_break_command(), execute_insert_paragraph_command(), execute_insert_text_command(), execute_removeformat_command() (+39 more)
+Cohesion: 0.06
+Nodes (50): execute_delete_command(), execute_forward_delete_command(), execute_insert_horizontal_rule_command(), execute_insert_image_command(), execute_insert_line_break_command(), execute_insert_paragraph_command(), execute_insert_text_command(), execute_removeformat_command() (+42 more)
 
 ### Community 393 - "Community 393"
 Cohesion: 0.08
@@ -6078,8 +6040,8 @@ Cohesion: 0.10
 Nodes (24): CallbackReaction, AttributeMutation, AttrRef, Document, DomRoot, DOMString, DomTypeHolder, Element (+16 more)
 
 ### Community 395 - "Community 395"
-Cohesion: 0.10
-Nodes (22): Document, Dom, DomRoot, Expression, Fallible, Item, Iterator, JSContext (+14 more)
+Cohesion: 0.14
+Nodes (10): Expression, Fallible, LocalName, Namespace, Prefix, RootedCallback, XPathNSResolver, parse_expression() (+2 more)
 
 ### Community 396 - "Community 396"
 Cohesion: 0.09
@@ -6106,8 +6068,8 @@ Cohesion: 0.14
 Nodes (22): Data, DomExceptionId, DomRoot, DOMString, DomTypeHolder, Error, FxHashMap, GlobalScope (+14 more)
 
 ### Community 402 - "Community 402"
-Cohesion: 0.05
-Nodes (46): action, casesensitivity, ContextualParseError, CSSStyleDeclaration, CustomElementRegistry, DOMTracker, FrameRequestCallback, GlobalScope (+38 more)
+Cohesion: 0.12
+Nodes (16): Cell, Drop, Epoch, GenericSender, Hash, PhysicalSize, RefCell, ScreenGeometry (+8 more)
 
 ### Community 403 - "ohos_media/source.rs"
 Cohesion: 0.10
@@ -6119,19 +6081,19 @@ Nodes (27): D, Dom, DomRefCell, DomRoot, Drop, Extent3d, Fallible, GlobalScope (
 
 ### Community 405 - "Community 405"
 Cohesion: 0.09
-Nodes (32): ImageData, ClampedU8, Cow, CustomAutoRooterGuard, Data, DomRoot, DomTypeHolder, Fallible (+24 more)
+Nodes (33): ImageData, ClampedU8, Cow, CustomAutoRooterGuard, Data, DomRoot, DomTypeHolder, Fallible (+25 more)
 
 ### Community 406 - "Community 406"
-Cohesion: 0.07
-Nodes (17): CSSStyleDeclaration, Dom, DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Option (+9 more)
+Cohesion: 0.08
+Nodes (12): CSSStyleDeclaration, Dom, DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Option (+4 more)
 
 ### Community 407 - "Community 407"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (28): ClientOrServiceWorkerOrMessagePort, Atom, CachedFrozenArray, Dom, DomRoot, DOMString, DomTypeHolder, EventTarget (+20 more)
 
 ### Community 408 - "Community 408"
 Cohesion: 0.07
-Nodes (3): HandleObject, JSContext, MutableHandleValue
+Nodes (4): HandleObject, JSContext, MutableHandleValue, WebGLVertexArrayObject
 
 ### Community 409 - "Community 409"
 Cohesion: 0.12
@@ -6150,52 +6112,52 @@ Cohesion: 0.13
 Nodes (26): Convert, CurrentRealm, DomRoot, DomTypeHolder, Error, GlobalScope, HandleValue, JSContext (+18 more)
 
 ### Community 413 - "Community 413"
-Cohesion: 0.09
-Nodes (21): CanvasCommand, CanvasGradient, CanvasPattern, CanvasRenderingContext2D, CanvasRenderingContext2DSettings, DOMMatrix, DomRoot, Fallible (+13 more)
+Cohesion: 0.17
+Nodes (8): CurrentRealm, ImageBitmapOptions, ImageBitmapSource, MutableHandleValue, RequestInit, RequestOrUSVString, RootedPromise, StructuredSerializeOptions
 
 ### Community 414 - "Community 414"
-Cohesion: 0.05
-Nodes (41): Box, Clone, Debug, Deref, DomRoot, Drop, Eq, Formatter (+33 more)
+Cohesion: 0.06
+Nodes (39): Box, Clone, Debug, Deref, DomRoot, Drop, Eq, H (+31 more)
 
 ### Community 415 - "Community 415"
-Cohesion: 0.08
-Nodes (28): HashMapTracedValues, HashMapTracedValues<K, V, FxBuildHasher>, HashMapTracedValues<K, V, RandomState>, HashMapTracedValues<K, V, S>, NoTrace, trace_jsval(), trace_script(), trace_string() (+20 more)
+Cohesion: 0.17
+Nodes (11): HashMapTracedValues<K, V, S>, Default, Iter, K, MallocConditionalSizeOf, Option, V, Values (+3 more)
 
 ### Community 416 - "Community 416"
 Cohesion: 0.09
-Nodes (37): OffscreenCanvas, canvasrenderingcontext2dsettings, Cell, Data, DomRefCell, DomRoot, DomTypeHolder, EventTarget (+29 more)
+Nodes (36): OffscreenCanvas, Cell, Data, DomRefCell, DomRoot, DomTypeHolder, EventTarget, Fallible (+28 more)
 
 ### Community 417 - "EditingContext"
 Cohesion: 0.07
-Nodes (31): ClipboardAction, ClipboardEvent, ClipboardEventType, DomRoot, DragDataStore, EditingAction, Error, EventTarget (+23 more)
+Nodes (30): ClipboardAction, ClipboardEvent, ClipboardEventType, DomRoot, DragDataStore, EditingAction, Error, EventTarget (+22 more)
 
 ### Community 418 - "Community 418"
 Cohesion: 0.06
-Nodes (29): AutoCloseWorker, Arc, AtomicBool, Blob, BlobImpl, CachedFrozenArray, Cell, Cow (+21 more)
+Nodes (30): AutoCloseWorker, Arc, AtomicBool, Blob, BlobImpl, CachedFrozenArray, Cell, Cow (+22 more)
 
 ### Community 419 - "Community 419"
 Cohesion: 0.07
 Nodes (26): atomicu64, HeadlessWindow, ActiveEventLoop, Cell, ConsoleLogLevel, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint (+18 more)
 
 ### Community 420 - "generic_channel/callback.rs"
-Cohesion: 0.09
-Nodes (32): A, Clone, D, Debug, Deserialize, Error, F, Formatter (+24 more)
+Cohesion: 0.08
+Nodes (34): A, Clone, D, Debug, Deserialize, Error, F, Formatter (+26 more)
 
 ### Community 421 - "Community 421"
 Cohesion: 0.13
 Nodes (28): Box, Context, Expression, From, N, Namespace, NamespaceResolver, NodeTest (+20 more)
 
 ### Community 422 - "Community 422"
-Cohesion: 0.10
-Nodes (21): Atom, Box, DevicePixel, DrawAPaintImageResult, Formatter, FxHashMap, Layout, MallocSizeOfOps (+13 more)
+Cohesion: 0.17
+Nodes (5): Atom, Dom, EventTarget, HTMLCanvasElement, PendingScrollEvent
 
 ### Community 423 - "Community 423"
-Cohesion: 0.07
-Nodes (44): AlignContent, AlignFlags, AlignItems, AspectRatio, Atom, BoxGenerationMode, BoxSizing, ContentDistribution (+36 more)
+Cohesion: 0.06
+Nodes (47): AlignContent, AlignFlags, AlignItems, AspectRatio, Atom, BoxGenerationMode, BoxSizing, ContentDistribution (+39 more)
 
 ### Community 424 - "Community 424"
-Cohesion: 0.10
-Nodes (40): Actor, ActorEncode, ActorError, ActorMsg, ActorRegistry, Arc, AtomicRefCell, BrowsingContextActor (+32 more)
+Cohesion: 0.19
+Nodes (18): ActorEncode, ActorError, ActorRegistry, ClientRequest, Clone, DevtoolsConnection, DomMutation, DowncastableActorArc (+10 more)
 
 ### Community 425 - "Community 425"
 Cohesion: 0.17
@@ -6211,11 +6173,11 @@ Nodes (29): Error, Filter, MutexGuard, Option, Response, ResponseBody, Result, S
 
 ### Community 428 - "Community 428"
 Cohesion: 0.08
-Nodes (26): A, Arc, AsRef, D, Debug, Deref, Deserialize, Error (+18 more)
+Nodes (25): A, Arc, AsRef, D, Debug, Deref, Deserialize, Error (+17 more)
 
 ### Community 429 - "Community 429"
-Cohesion: 0.10
-Nodes (26): Cell, CrossProcessInstant, Default, LCPCandidateID, Option, ProfilerCategory, ProfilerChan, ProgressiveWebMetrics (+18 more)
+Cohesion: 0.14
+Nodes (21): Cell, CrossProcessInstant, LCPCandidateID, Option, ProfilerCategory, ProfilerChan, ProgressiveWebMetrics, ProgressiveWebMetricType (+13 more)
 
 ### Community 430 - "Community 430"
 Cohesion: 0.09
@@ -6231,23 +6193,23 @@ Nodes (12): Cell, DomRoot, Drop, JSContext, Operation, Self, WeakRef, WebGLComma
 
 ### Community 433 - "Community 433"
 Cohesion: 0.10
-Nodes (25): AttributeMutation, AttrRef, BindContext, Cell, ChildrenMutation, Document, DomRoot, DOMString (+17 more)
+Nodes (26): AttributeMutation, AttrRef, BindContext, Cell, ChildrenMutation, Document, DomRoot, DOMString (+18 more)
 
 ### Community 434 - "Community 434"
 Cohesion: 0.06
 Nodes (42): Au, c_void, Debug, Deref, Drop, FontData, FontFace, FontIdentifier (+34 more)
 
 ### Community 435 - "Community 435"
-Cohesion: 0.10
-Nodes (15): DOMString, DomTypeHolder, ErrorResult, FontFaceRuleInfo, FontFaceSet, FontTemplate, LowercaseFontFamilyName, MutNullableDom (+7 more)
+Cohesion: 0.06
+Nodes (43): Cell, ContextualParseError, Descriptors, DomRefCell, DomRoot, DOMString, DomTypeHolder, ErrorResult (+35 more)
 
 ### Community 436 - "Community 436"
 Cohesion: 0.08
-Nodes (51): Args, bpaf, Cell, Default, DeviceIndependentPixel, DiagnosticsLogging, Display, Error (+43 more)
+Nodes (52): Args, bpaf, panic, Cell, Default, DeviceIndependentPixel, DiagnosticsLogging, Display (+44 more)
 
 ### Community 437 - "Community 437"
 Cohesion: 0.10
-Nodes (41): animation_property_name_to_idl_attribute_name(), get_property_declarations(), Keyframe, KeyframeEffect, KeyframePropertyDeclaration, lookup_css_property_by_idl_attribute_name(), parse_single_property_declaration(), process_a_keyframe_like_object() (+33 more)
+Nodes (40): animation_property_name_to_idl_attribute_name(), get_property_declarations(), Keyframe, KeyframeEffect, KeyframePropertyDeclaration, lookup_css_property_by_idl_attribute_name(), parse_single_property_declaration(), process_a_keyframe_like_object() (+32 more)
 
 ### Community 438 - "Community 438"
 Cohesion: 0.11
@@ -6262,16 +6224,16 @@ Cohesion: 0.02
 Nodes (75): approx_equal(), check_string_getter(), create_about_blank_webview(), create_test_servo(), dummy_context_menu_callback(), free_test_servo(), get_test_webview(), off_thread_call_main_thread_only() (+67 more)
 
 ### Community 441 - "Community 441"
-Cohesion: 0.21
-Nodes (10): Dom, DomRoot, DomTypeHolder, Option, Size2D, Viewport, WebGLTexture, XRWebGLSubImage (+2 more)
+Cohesion: 0.06
+Nodes (42): Activatable, AttributeMutation, AttrRef, AttrValue, BindContext, ChildrenMutation, Document, Dom (+34 more)
 
 ### Community 442 - "ServoMediaStreamSrc"
 Cohesion: 0.06
 Nodes (31): Arc, AtomicBool, BinImpl, BoolError, Class, DebugCategory, Element, ElementImpl (+23 more)
 
 ### Community 443 - "Community 443"
-Cohesion: 0.13
-Nodes (19): ArcRefCell, Au, Baselines, ComputedValues, Fragment, LogicalRect, TableTrack, TableTrackGroup (+11 more)
+Cohesion: 0.08
+Nodes (31): Box, BrowsingContextId, EventLoopWaker, GenericSender, InputEvent, Option, Preferences, Receiver (+23 more)
 
 ### Community 444 - "Community 444"
 Cohesion: 0.10
@@ -6283,7 +6245,7 @@ Nodes (35): Au, Cell, CSSPixel, Dom, DomRefCell, DomRoot, DOMString, Element (+2
 
 ### Community 446 - "Community 446"
 Cohesion: 0.06
-Nodes (52): CProtocolHandler, ResourceLoadInner, servo_builder_register_protocol_handler(), servo_web_resource_load_cancel(), servo_web_resource_load_finish(), servo_web_resource_load_free(), servo_web_resource_load_get_request(), servo_web_resource_load_intercept() (+44 more)
+Nodes (51): CProtocolHandler, ResourceLoadInner, servo_builder_register_protocol_handler(), servo_web_resource_load_cancel(), servo_web_resource_load_finish(), servo_web_resource_load_free(), servo_web_resource_load_get_request(), servo_web_resource_load_intercept() (+43 more)
 
 ### Community 447 - "Community 447"
 Cohesion: 0.10
@@ -6298,8 +6260,8 @@ Cohesion: 0.16
 Nodes (20): CacheStorageMethods, CacheStorageThreadResponse, DomRoot, DOMString, DomTypeHolder, Error, GenericCallback, GlobalScope (+12 more)
 
 ### Community 450 - "Community 450"
-Cohesion: 0.09
-Nodes (35): blobbinding, BlobMethods, BlobPropertyBag, ArrayBufferOrArrayBufferViewOrBlobOrString, BlobId, BlobImpl, CurrentRealm, Data (+27 more)
+Cohesion: 0.10
+Nodes (34): blobbinding, BlobMethods, BlobPropertyBag, ArrayBufferOrArrayBufferViewOrBlobOrString, BlobId, BlobImpl, CurrentRealm, Data (+26 more)
 
 ### Community 451 - "Community 451"
 Cohesion: 0.13
@@ -6331,7 +6293,7 @@ Nodes (15): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, Fallible, Handl
 
 ### Community 458 - "Community 458"
 Cohesion: 0.10
-Nodes (24): multispan, EmptyTraceInNoTraceDiagnostic, get_must_not_have_traceable(), incorrect_no_trace(), is_jstraceable(), NotracePass, register(), TraceInNoTraceDiagnostic (+16 more)
+Nodes (19): Cell, CSSPixel, DomRefCell, ExternalScrollId, FireMouseEventType, FxHashMap, Instant, KeyboardEvent (+11 more)
 
 ### Community 459 - "Community 459"
 Cohesion: 0.06
@@ -6339,7 +6301,7 @@ Nodes (41): Interaction, ModifierNodeElement, PlatformTextInputModifierNode, add
 
 ### Community 460 - "Community 460"
 Cohesion: 0.06
-Nodes (30): NoGC, Atom, ChildrenMutation, CSSStyleSheet, CustomElementRegistry, EventTarget, GlobalScope, MutationObserver (+22 more)
+Nodes (30): Box, Cell, ChildrenMutation, CSSStyleSheet, Document, Event, EventTarget, GlobalScope (+22 more)
 
 ### Community 461 - "Community 461"
 Cohesion: 0.10
@@ -6347,7 +6309,7 @@ Nodes (21): AttrStrRef, AttrStrRef<'a>, AttrStrRefInner, Element, AttributesBorr
 
 ### Community 462 - "Community 462"
 Cohesion: 0.15
-Nodes (22): callback, Cell, Document, Dom, DomRoot, DomTypeHolder, F, Fallible (+14 more)
+Nodes (22): Cell, Document, Dom, DomRoot, DomTypeHolder, F, Fallible, Filter (+14 more)
 
 ### Community 463 - "Community 463"
 Cohesion: 0.10
@@ -6358,8 +6320,8 @@ Cohesion: 0.08
 Nodes (28): concurrent_futures, TestConnection, # TODO: These are not supported yet, # FIXME: it's not really gonna be 0, # FIXME: it's not really gonna be 0, assert_source_breakable_lines_and_positions(), Devtools, # TODO: Use new syntax in python 3.12 (+20 more)
 
 ### Community 465 - "Community 465"
-Cohesion: 0.10
-Nodes (27): MediaType, pointercapabilities, preferscolorscheme, Rule, selectormap, sourcelocation, DummyMetricsProvider, get_mock_rules() (+19 more)
+Cohesion: 0.06
+Nodes (36): MediaType, parser, parsercontext, parse(), pointercapabilities, preferscolorscheme, quirksmode, Rule (+28 more)
 
 ### Community 466 - "Community 466"
 Cohesion: 0.14
@@ -6382,36 +6344,36 @@ Cohesion: 0.10
 Nodes (42): Box, CallArgs, Callback, CurrentRealm, Destination, DomRefCell, FnOnce, GlobalScope (+34 more)
 
 ### Community 471 - "Community 471"
-Cohesion: 0.08
-Nodes (39): Arc, Atom, AtomicBool, Box, DomRefCell, DomRoot, From, GenericCallback (+31 more)
+Cohesion: 0.13
+Nodes (19): AtomicBool, DomRefCell, DomRoot, GlobalScope, HashMapTracedValues, JSContext, ModuleRequest, ModuleStatus (+11 more)
 
 ### Community 472 - "Community 472"
-Cohesion: 0.12
-Nodes (28): Cell, ContextualParseError, Descriptors, DomRefCell, DomRoot, Fallible, FontFaceRule, From (+20 more)
+Cohesion: 0.20
+Nodes (31): AngleOrPercentage, ColorInterpolationMethod, colormixflags, AbsoluteColor, Au, Color, ColorStop, ComputedValues (+23 more)
 
 ### Community 473 - "Community 473"
-Cohesion: 0.09
-Nodes (31): BaselineShift, baselinesource, BidiInfo, Cell, ComputedValues, FnOnce, FontMetrics, LayoutBoxBase (+23 more)
+Cohesion: 0.18
+Nodes (15): DOMTokenList, Atom, Dom, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult (+7 more)
 
 ### Community 474 - "Community 474"
 Cohesion: 0.08
 Nodes (28): D, Dom, DomRefCell, DomRoot, Drop, Fallible, GlobalScope, GPUBindGroup (+20 more)
 
 ### Community 475 - "Community 475"
-Cohesion: 0.10
-Nodes (30): baselineshiftkeyword, CellOrTrackMeasure, CollapsedBorders, Arc, AtomicRef, ContentSizes, LogicalVec2, Option (+22 more)
+Cohesion: 0.12
+Nodes (21): ArcRefCell, Au, BoxFragment, ContainingBlock, Fragment, LogicalRect, PositioningContext, SpecificLayoutInfo (+13 more)
 
 ### Community 476 - "Community 476"
-Cohesion: 0.11
-Nodes (29): Convert, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleValue, JSContext (+21 more)
+Cohesion: 0.10
+Nodes (30): Convert, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleValue, JSContext (+22 more)
 
 ### Community 477 - "Community 477"
 Cohesion: 0.16
 Nodes (10): Any, Config, Encoder, handle_modifier(), handle_preset(), JobConfig, main(), Try to merge another job with this job. Returns True if merging is successful (+2 more)
 
 ### Community 478 - "Community 478"
-Cohesion: 0.10
-Nodes (32): borrowmut, CompressionFormat, Dom, DomRoot, DomTypeHolder, Error, Fallible, GlobalScope (+24 more)
+Cohesion: 0.09
+Nodes (33): borrowmut, CompressionFormat, Dom, DomRoot, DomTypeHolder, Error, Fallible, GlobalScope (+25 more)
 
 ### Community 479 - "Community 479"
 Cohesion: 0.07
@@ -6422,40 +6384,40 @@ Cohesion: 0.12
 Nodes (10): InputEventAndId, LogTarget, servo_constellation_traits::EmbedderToConstellationMessage, servo_constellation_traits::ScriptToConstellationMessage, LogTarget, winit::event::Event<AppEvent>, winit::event::WindowEvent, logtarget (+2 more)
 
 ### Community 481 - "Community 481"
-Cohesion: 0.12
-Nodes (44): Arc, Database, FetchMetadata, Font, FontResolver, ID, ImageCache, ImageLoadListener (+36 more)
+Cohesion: 0.09
+Nodes (53): arrayvec, Arc, Database, FetchMetadata, Font, FontResolver, ID, ImageCache (+45 more)
 
 ### Community 482 - "Community 482"
 Cohesion: 0.12
 Nodes (24): DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject, JSContext, Option, Reflector (+16 more)
 
 ### Community 483 - "Community 483"
-Cohesion: 0.06
-Nodes (23): BytesView, AsRef, Display, Eq, Hash, Item, Iterator, JSContext (+15 more)
+Cohesion: 0.08
+Nodes (14): BytesView, Display, Hash, NoGC, PartialEq, RefMut, T, Utf16CodeUnits (+6 more)
 
 ### Community 484 - "Community 484"
 Cohesion: 0.10
 Nodes (12): Cell, CrossProcessInstant, DomRoot, DomTypeHolder, GlobalScope, JSContext, Option, Rc (+4 more)
 
 ### Community 485 - "Community 485"
-Cohesion: 0.14
-Nodes (14): Default, From, GenericReceiver, Selector, Self, SmallVec, T, GenericReceiverSet<T> (+6 more)
+Cohesion: 0.12
+Nodes (17): Default, From, GenericReceiver, Selector, Self, SmallVec, T, GenericReceiverSet (+9 more)
 
 ### Community 486 - "Community 486"
-Cohesion: 0.11
-Nodes (23): Iterator, Option, PartialEq, Rc, Ref, RefCell, Self, String (+15 more)
+Cohesion: 0.14
+Nodes (14): Iterator, Option, PartialEq, Rc, Ref, RefCell, Self, String (+6 more)
 
 ### Community 487 - "servo_gdb.py"
 Cohesion: 0.07
 Nodes (10): AuPrinter, BitFieldU8Printer, ChildPrinter, lookup_servo_type(), NodeTypeIdPrinter, OptionPrinter, register_printers(), TestPrinter (+2 more)
 
 ### Community 488 - "Community 488"
-Cohesion: 0.08
-Nodes (35): execute_createlink_command(), execute_unlink_command(), Cell, ContextMenuAction, DeviceIntRect, DevicePoint, Dom, DomRefCell (+27 more)
+Cohesion: 0.09
+Nodes (32): execute_createlink_command(), Cell, ContextMenuAction, DeviceIntRect, DevicePoint, Dom, DomRefCell, Element (+24 more)
 
 ### Community 489 - "Community 489"
-Cohesion: 0.19
-Nodes (20): ComputedValues, LayoutContext, Option, PseudoElement, PseudoElementChain, Self, ServoArc, ServoLayoutNode (+12 more)
+Cohesion: 0.11
+Nodes (31): AtomicRef, ComputedValues, Cow, Deref, From, I, LayoutContext, Option (+23 more)
 
 ### Community 490 - "Community 490"
 Cohesion: 0.11
@@ -6470,20 +6432,20 @@ Cohesion: 0.08
 Nodes (30): Arc, AtomicBool, Box, BoxedTimerCallback, Cell, Default, Drop, Duration (+22 more)
 
 ### Community 493 - "Community 493"
-Cohesion: 0.16
-Nodes (14): Condition, HandleObject, JSContext, Option, Self, T, currentrealm, get (+6 more)
+Cohesion: 0.11
+Nodes (17): Bytes, FetchMetadata, FetchResponseListener, GlobalScope, ImageCache, InitiatorType, NetworkError, PendingImageId (+9 more)
 
 ### Community 494 - "Community 494"
-Cohesion: 0.09
-Nodes (29): addrawvalueroot, CStr, Drop, JSContext, JSObject, c_void, DomRoot, GlobalScope (+21 more)
+Cohesion: 0.13
+Nodes (22): c_void, DomRoot, GlobalScope, Handle, HandleObject, ID, JSClass, JSContext (+14 more)
 
 ### Community 495 - "Community 495"
-Cohesion: 0.11
-Nodes (29): CrateNum, defkind, defpathdata, GenericArg, inferctxtext_as, litkind, find_first_crate(), implements_trait() (+21 more)
+Cohesion: 0.08
+Nodes (16): AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, CreateNewWebViewRequest, Cursor, DeviceIntPoint, DeviceIntSize, DownloadContinueCallback (+8 more)
 
 ### Community 496 - "Community 496"
 Cohesion: 0.08
-Nodes (21): Bytes, CoreResourceThread, F, FetchCanceller, FetchMetadata, FetchResponseListener, GlobalScope, InitiatorType (+13 more)
+Nodes (20): Bytes, CoreResourceThread, FetchCanceller, FetchResponseListener, GlobalScope, InitiatorType, Instant, LocalName (+12 more)
 
 ### Community 497 - "Community 497"
 Cohesion: 0.14
@@ -6494,20 +6456,20 @@ Cohesion: 0.21
 Nodes (18): c_int, Option, String, Vec, malloc_statistics_t, collect_reports(), macos_malloc_statistics(), page_size() (+10 more)
 
 ### Community 499 - "Community 499"
-Cohesion: 0.13
-Nodes (21): ClipboardEvent, ClipboardEventType, ClipboardEventInit, ClipboardEventMethods, Atom, DataTransfer, DomRoot, DOMString (+13 more)
+Cohesion: 0.14
+Nodes (20): ClipboardEvent, ClipboardEventType, ClipboardEventInit, ClipboardEventMethods, Atom, DataTransfer, DomRoot, DOMString (+12 more)
 
 ### Community 500 - "webvtt/src/lib.rs"
 Cohesion: 0.11
 Nodes (14): BufferQueue, Option, PhantomData, String, StrTendril, WebVttCue, small_char_set, IncrementalWebVTTParser (+6 more)
 
 ### Community 502 - "Community 502"
-Cohesion: 0.13
-Nodes (19): Angle, Cell, Data, DOMMatrix2DInit, DomMatrixId, DOMMatrixInit, DOMString, Fallible (+11 more)
+Cohesion: 0.11
+Nodes (22): Angle, Cell, Data, DOMMatrix2DInit, DomMatrixId, DOMMatrixInit, DOMPoint, DOMPointInit (+14 more)
 
 ### Community 503 - "Community 503"
-Cohesion: 0.10
-Nodes (29): comma, From, Option, Result, Self, TokenStream, ImplItemFn, ItemFn (+21 more)
+Cohesion: 0.06
+Nodes (44): comma, Structure, TokenStream, TokenStream, TokenStream, From, Option, Result (+36 more)
 
 ### Community 504 - "Community 504"
 Cohesion: 0.10
@@ -6518,8 +6480,8 @@ Cohesion: 0.10
 Nodes (25): Arc, c_void, Clone, Debug, DomRoot, Error, Formatter, FxHashMap (+17 more)
 
 ### Community 506 - "script_bindings/init.rs"
-Cohesion: 0.06
-Nodes (38): DummySampler, NativeStack, Sampler, c_void, Default, NativeStack, Result, Self (+30 more)
+Cohesion: 0.14
+Nodes (11): DummySampler, NativeStack, Sampler, c_void, Default, NativeStack, Result, Self (+3 more)
 
 ### Community 507 - "Community 507"
 Cohesion: 0.11
@@ -6550,8 +6512,8 @@ Cohesion: 0.13
 Nodes (16): Cell, DomRoot, Drop, JSContext, Operation, Option, Self, WeakRef (+8 more)
 
 ### Community 514 - "Community 514"
-Cohesion: 0.13
-Nodes (11): BlobImpl, SharedSnapshot, Transform3D, BroadcastClone, DomMatrix, DomPoint, DomQuad, SerializableFile (+3 more)
+Cohesion: 0.11
+Nodes (16): Add, AddAssign, AspectRatio, ConstraintSpace, Fn, IndefiniteContainingBlock, InlineContentSizesResult, LayoutBoxBase (+8 more)
 
 ### Community 515 - "Community 515"
 Cohesion: 0.07
@@ -6562,8 +6524,8 @@ Cohesion: 0.12
 Nodes (15): Any, main(), OHOSWebDriverController, Delete a WebDriver session., Create a new WebDriver session., Create a new window/webview if needed., Navigate to a URL with OHOS-specific handling., Controller for running WebDriver tests on OHOS devices using HTTP API. (+7 more)
 
 ### Community 517 - "Community 517"
-Cohesion: 0.09
-Nodes (28): AudioRenderThread, AudioRenderThreadMsg, Sink, AudioGraph, AsRef, AudioContextOptions, AudioNodeInit, AudioSink (+20 more)
+Cohesion: 0.17
+Nodes (13): BrowsingContextId, ErrorStatus, Instant, Result, WebElement, KeyDownAction, KeyUpAction, PointerMoveAction (+5 more)
 
 ### Community 518 - "Community 518"
 Cohesion: 0.11
@@ -6582,8 +6544,8 @@ Cohesion: 0.11
 Nodes (24): D, Dom, DomRefCell, DomRoot, Drop, Fallible, GenericCallback, GlobalScope (+16 more)
 
 ### Community 522 - "Community 522"
-Cohesion: 0.06
-Nodes (16): inspect, get_caller_module_dict(), Grammar, GrammarError, LALRError, LRItem, LRTable, MiniProduction (+8 more)
+Cohesion: 0.03
+Nodes (26): call_errorfunc(), digraph(), format_result(), format_stack_entry(), get_caller_module_dict(), Grammar, GrammarError, LALRError (+18 more)
 
 ### Community 523 - "Community 523"
 Cohesion: 0.17
@@ -6591,7 +6553,7 @@ Nodes (15): DomRoot, DomTypeHolder, ErrorResult, Fallible, HandleObject, JSConte
 
 ### Community 524 - "Community 524"
 Cohesion: 0.05
-Nodes (37): BrowserAction, cassert, cctype, iomanip, iostream, BrowserSettings, RECT, string (+29 more)
+Nodes (40): BrowserAction, cassert, cctype, iomanip, iostream, BrowserSettings, RECT, string (+32 more)
 
 ### Community 525 - "Community 525"
 Cohesion: 0.09
@@ -6614,8 +6576,8 @@ Cohesion: 0.16
 Nodes (15): Chars, F, Option, Peekable, String, WebVttCue, collect_ascii_digits(), collect_for_closure() (+7 more)
 
 ### Community 530 - "Community 530"
-Cohesion: 0.13
-Nodes (22): Cookie, CookieSource, HashMap, Item, Iterator, Option, Ordering, Result (+14 more)
+Cohesion: 0.14
+Nodes (21): Cookie, CookieSource, HashMap, Item, Iterator, Option, Ordering, Result (+13 more)
 
 ### Community 531 - "Community 531"
 Cohesion: 0.09
@@ -6631,7 +6593,7 @@ Nodes (24): Callback, CurrentRealm, Dom, DomRefCell, DomRoot, DomTypeHolder, Fal
 
 ### Community 534 - "Community 534"
 Cohesion: 0.09
-Nodes (26): Arc, BuiltDisplayList, Epoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey (+18 more)
+Nodes (25): Arc, BuiltDisplayList, Epoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey (+17 more)
 
 ### Community 535 - "Community 535"
 Cohesion: 0.04
@@ -6650,24 +6612,24 @@ Cohesion: 0.09
 Nodes (33): Arc, AtomicBool, Cell, CustomAutoRooterGuard, DomRefCell, DomRoot, DomTypeHolder, ErrorResult (+25 more)
 
 ### Community 539 - "Community 539"
-Cohesion: 0.07
-Nodes (32): Box, Callback, Cell, Deref, Dom, DomTypeHolder, Error, HandleObject (+24 more)
+Cohesion: 0.12
+Nodes (18): Option, Result, String, Vec, ctr128be, b64url(), ClearKey, ClearKeyError (+10 more)
 
 ### Community 540 - "Community 540"
 Cohesion: 0.07
 Nodes (33): Cell, DomRefCell, DomRoot, Drop, F, Item, Iterator, JSContext (+25 more)
 
 ### Community 541 - "Community 541"
-Cohesion: 0.08
-Nodes (12): CrossProcessPaintApi, ExternalScrollId, HandleObject, JSContext, LayoutPixel, MutableHandleObject, ScriptToConstellationMessage, ScrollBehavior (+4 more)
+Cohesion: 0.09
+Nodes (11): CrossProcessPaintApi, ExternalScrollId, HandleObject, JSContext, LayoutPixel, MutableHandleObject, ScrollBehavior, ScrollToOptions (+3 more)
 
 ### Community 542 - "Community 542"
-Cohesion: 0.11
-Nodes (24): CrossProcessPaintApi, Epoch, GenericReceiver, ImageDescriptor, ImageKey, PainterSurfmanDetailsMap, Rc, RoutedReceiver (+16 more)
+Cohesion: 0.10
+Nodes (26): CrossProcessPaintApi, Epoch, GenericReceiver, ImageDescriptor, ImageKey, PainterSurfmanDetailsMap, Rc, RoutedReceiver (+18 more)
 
 ### Community 543 - "Community 543"
-Cohesion: 0.07
-Nodes (24): AttrStrRef, Cell, Cow, CredentialsMode, CurrentRealm, ElementInternals, Finite, FromStr (+16 more)
+Cohesion: 0.15
+Nodes (17): Cell, DomRefCell, DomRoot, Drop, JSContext, Operation, Self, WeakRef (+9 more)
 
 ### Community 544 - "Community 544"
 Cohesion: 0.05
@@ -6679,7 +6641,7 @@ Nodes (14): CrossProcessInstant, DOMHighResTimeStamp, DomRoot, DOMString, DomTyp
 
 ### Community 546 - "Community 546"
 Cohesion: 0.10
-Nodes (23): ByteString, Cell, DomRefCell, DomRoot, DomTypeHolder, EventTarget, GlobalScope, JSContext (+15 more)
+Nodes (24): ByteString, Cell, DomRefCell, DomRoot, DomTypeHolder, EventTarget, GlobalScope, JSContext (+16 more)
 
 ### Community 547 - "Community 547"
 Cohesion: 0.09
@@ -6690,44 +6652,44 @@ Cohesion: 0.10
 Nodes (5): MockGitHubAPIServer, MockPullRequest, Tests that commits are properly applied to WPT by     CreateOrUpdateBranchForPRS, TestApplyCommitsToWPT, TestFullSyncRun
 
 ### Community 549 - "Community 549"
-Cohesion: 0.16
-Nodes (21): Clone, ImmutableOrigin, String, BroadcastChannelMsg, DomException, Serializable, SerializableAesKeyAlgorithm, SerializableAlgorithm (+13 more)
+Cohesion: 0.07
+Nodes (22): AccessibilityActionRequest, ContainerTimingRecord, CustomAutoRooterGuard, Document, ErrorResult, HandleValue, ImmutableOrigin, JSObject (+14 more)
 
 ### Community 550 - "Community 550"
 Cohesion: 0.09
-Nodes (25): AtomicU8, Au, BaseFragmentInfo, Debug, Formatter, FragmentFlags, From, NodeAndStyleInfo (+17 more)
+Nodes (24): AtomicU8, Au, BaseFragmentInfo, Debug, Formatter, FragmentFlags, From, NodeAndStyleInfo (+16 more)
 
 ### Community 551 - "Community 551"
 Cohesion: 0.34
 Nodes (30): create_blocklisted_device(), create_characteristic(), create_characteristic_with_value(), create_descriptor(), create_descriptor_with_value(), create_device(), create_device_with_uuids(), create_generic_access_service() (+22 more)
 
 ### Community 552 - "Community 552"
-Cohesion: 0.17
-Nodes (10): Box, EventLoopWaker, FnOnce, PaintMessage, PaintProxy, RoutedReceiver, Send, WebXrRegistry (+2 more)
+Cohesion: 0.18
+Nodes (18): Arc, Au, CSSPixel, Fragment, OpaqueNode, Option, PhysicalRect, Point2D (+10 more)
 
 ### Community 553 - "Community 553"
-Cohesion: 0.20
-Nodes (16): Document, Dom, DomRoot, DomTypeHolder, Fallible, HandleObject, JSContext, Option (+8 more)
+Cohesion: 0.14
+Nodes (18): Document, Dom, DomRoot, DomTypeHolder, Fallible, HandleObject, JSContext, Option (+10 more)
 
 ### Community 554 - "Community 554"
-Cohesion: 0.11
-Nodes (21): ArcRefCell, ComputedValues, Drop, From, LayoutBox, PhantomData, PseudoElement, Self (+13 more)
+Cohesion: 0.13
+Nodes (30): CryptoKey, CryptoKeyPair, DomRoot, EcdhKeyDeriveParams, EcKeyGenParams, EcKeyImportParams, Error, ExportedKey (+22 more)
 
 ### Community 555 - "Community 555"
 Cohesion: 0.32
 Nodes (8): ProcessingInstruction, CharacterData, Document, DomRoot, DOMString, DomTypeHolder, JSContext, ProcessingInstructionMethods
 
 ### Community 556 - "Community 556"
-Cohesion: 0.10
-Nodes (24): BackendResult, DomRoot, DomTypeHolder, Error, GlobalScope, HandleValue, IDBDatabase, IDBOpenDBRequest (+16 more)
+Cohesion: 0.11
+Nodes (23): BackendResult, DomRoot, DomTypeHolder, Error, GlobalScope, HandleValue, IDBDatabase, IDBOpenDBRequest (+15 more)
 
 ### Community 557 - "Community 557"
-Cohesion: 0.11
-Nodes (18): Default, DiagnosticsLogging, Item, Iterator, Option, OutputOptions, PathBuf, Result (+10 more)
+Cohesion: 0.10
+Nodes (20): Default, DiagnosticsLogging, Item, Iterator, Option, OutputOptions, PathBuf, Result (+12 more)
 
 ### Community 558 - "Community 558"
-Cohesion: 0.13
-Nodes (21): canvascontext, Convert, DomRoot, Fallible, GlobalScope, HandleObject, JSContext, LayerId (+13 more)
+Cohesion: 0.09
+Nodes (31): canvascontext, Convert, Dom, DomRoot, DomTypeHolder, Fallible, Finite, GlobalScope (+23 more)
 
 ### Community 559 - "Community 559"
 Cohesion: 0.17
@@ -6739,7 +6701,7 @@ Nodes (8): AccessibilityNode, scroll_offset_to_affine(), AccessibilityDamage, Af
 
 ### Community 561 - "Community 561"
 Cohesion: 0.13
-Nodes (21): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, DragDataStore, Element, FileList (+13 more)
+Nodes (20): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, DragDataStore, Element, FileList (+12 more)
 
 ### Community 562 - "htmlsourceelement.rs"
 Cohesion: 0.12
@@ -6747,23 +6709,23 @@ Nodes (25): AttributeMutation, AttrRef, AttrValue, BindContext, Document, Dom, D
 
 ### Community 563 - "Community 563"
 Cohesion: 0.10
-Nodes (26): AtomicRefCell, AttributeMutation, AttrRef, AttrValue, ChildrenMutation, Document, DomRoot, DOMString (+18 more)
+Nodes (27): AtomicRefCell, AttributeMutation, AttrRef, AttrValue, ChildrenMutation, Document, DomRoot, DOMString (+19 more)
 
 ### Community 564 - "Community 564"
 Cohesion: 0.10
-Nodes (30): ClipboardItem, Representation, RepresentationDataPromiseFulfillmentHandler, RepresentationDataPromiseRejectionHandler, ClipboardItemMethods, ClipboardItemOptions, CachedFrozenArray, Callback (+22 more)
+Nodes (29): ClipboardItem, Representation, RepresentationDataPromiseFulfillmentHandler, RepresentationDataPromiseRejectionHandler, ClipboardItemMethods, ClipboardItemOptions, CachedFrozenArray, Callback (+21 more)
 
 ### Community 565 - "Community 565"
 Cohesion: 0.09
-Nodes (30): BackgroundHangMonitorControlMsg, Box, Constellation, Drop, Eq, GenericReceiver, GenericSender, H (+22 more)
+Nodes (31): BackgroundHangMonitorControlMsg, Box, Constellation, Drop, Eq, GenericReceiver, GenericSender, H (+23 more)
 
 ### Community 566 - "Community 566"
 Cohesion: 0.10
 Nodes (8): ArrayBuffer, ArrayBufferView, Box, CustomAutoRooterGuard, Heap, JSObject, RootedVec, Int8Array
 
 ### Community 567 - "Community 567"
-Cohesion: 0.08
-Nodes (28): Arc, AspectRatio, AtomicBool, Au, BaseFragmentInfo, ComputedValues, ComputeInlineContentSizes, ConstraintSpace (+20 more)
+Cohesion: 0.13
+Nodes (10): AtomicRef, Option, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset, ResolvedSlotAndLocation, Table (+2 more)
 
 ### Community 568 - "Community 568"
 Cohesion: 0.05
@@ -6774,20 +6736,20 @@ Cohesion: 0.10
 Nodes (20): Any, Arc, BoolError, Caps, Drop, Element, MediaOutput, MediaSocket (+12 more)
 
 ### Community 570 - "Community 570"
-Cohesion: 0.15
-Nodes (19): Atom, DomRoot, DOMString, DomTypeHolder, Event, EventTarget, Fallible, HandleObject (+11 more)
+Cohesion: 0.16
+Nodes (18): Atom, DomRoot, DOMString, DomTypeHolder, Event, EventTarget, Fallible, HandleObject (+10 more)
 
 ### Community 571 - "Community 571"
-Cohesion: 0.06
-Nodes (19): Box, CustomElementDefinition, CustomElementRegistry, CustomElementState, Function, Heap, IntersectionObserver, IntersectionObserverRegistration (+11 more)
+Cohesion: 0.05
+Nodes (21): Box, CloneChildrenFlag, CustomElementDefinition, CustomElementRegistry, CustomElementState, DOMTokenList, Function, Heap (+13 more)
 
 ### Community 572 - "Community 572"
-Cohesion: 0.09
-Nodes (25): Box, BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, FnOnce, IceCandidate, IceServer (+17 more)
+Cohesion: 0.19
+Nodes (12): AtomicUsize, Box, FnOnce, IceCandidate, MediaStreamId, SdpType, Send, SessionDescription (+4 more)
 
 ### Community 573 - "Community 573"
-Cohesion: 0.10
-Nodes (23): Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler, Request (+15 more)
+Cohesion: 0.09
+Nodes (32): Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler, Request (+24 more)
 
 ### Community 574 - "customevent.rs"
 Cohesion: 0.17
@@ -6814,12 +6776,12 @@ Cohesion: 0.13
 Nodes (17): cmd_or_control, load_icon(), TouchEventSimulator, winit_phase_to_touch_event_type(), XRWindowPose, geometry, Gui, Icon (+9 more)
 
 ### Community 582 - "Community 582"
-Cohesion: 0.17
-Nodes (10): DefPath, ManualDOMStringPass, Expr, ExprKind, LateContext, LateLintPass, Lint, LintPass (+2 more)
+Cohesion: 0.06
+Nodes (33): Activatable, AttributeMutation, AttrRef, AttrValue, Cell, Document, DomRefCell, DomRoot (+25 more)
 
 ### Community 583 - "Community 583"
-Cohesion: 0.11
-Nodes (25): AudioBuffer, audiobuffer_as_servomediaaudiobuffer, AudioBufferMethods, AudioBufferOptions, Arc, CustomAutoRooterGuard, DomRefCell, DomRoot (+17 more)
+Cohesion: 0.12
+Nodes (23): AudioBuffer, audiobuffer_as_servomediaaudiobuffer, AudioBufferMethods, AudioBufferOptions, Arc, CustomAutoRooterGuard, DomRefCell, DomRoot (+15 more)
 
 ### Community 584 - "Community 584"
 Cohesion: 0.27
@@ -6834,8 +6796,8 @@ Cohesion: 0.20
 Nodes (16): Atom, DomRoot, DOMString, DomTypeHolder, Event, Fallible, HandleObject, JSContext (+8 more)
 
 ### Community 587 - "Community 587"
-Cohesion: 0.16
-Nodes (20): Arc, Database, Font, FontContext, FontDescriptor, FontFamily, FontResolver, FxHashMap (+12 more)
+Cohesion: 0.10
+Nodes (29): au, Font, PathBuf, Arc, Database, Font, FontContext, FontDescriptor (+21 more)
 
 ### Community 588 - "Community 588"
 Cohesion: 0.23
@@ -6858,8 +6820,8 @@ Cohesion: 0.12
 Nodes (20): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleObject, Iterable (+12 more)
 
 ### Community 593 - "Community 593"
-Cohesion: 0.10
-Nodes (23): Deref, Error, FromStr, H, HandleValue, Hash, JSContext, JSString (+15 more)
+Cohesion: 0.07
+Nodes (32): AsRef, Deref, Display, Error, Formatter, From, FromStr, H (+24 more)
 
 ### Community 594 - "Community 594"
 Cohesion: 0.21
@@ -6867,19 +6829,19 @@ Nodes (16): Atom, D, Dom, DomRoot, DOMString, Event, GlobalScope, GPUError (+8 m
 
 ### Community 595 - "Community 595"
 Cohesion: 0.12
-Nodes (22): AbsoluteColor, Atom, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+14 more)
+Nodes (21): AbsoluteColor, Atom, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+13 more)
 
 ### Community 596 - "Community 596"
-Cohesion: 0.10
-Nodes (25): Box, Default, Drop, From, GenericSender, Option, Receiver, Self (+17 more)
+Cohesion: 0.16
+Nodes (16): Box, Drop, From, GenericSender, Self, SendResult, T, Message (+8 more)
 
 ### Community 597 - "Community 597"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (11): CacheEntryDescriptor, Cookie, CookieSource, CoreResourceMsg, GenericSend, GenericSender, SendResult, ServoUrl (+3 more)
 
 ### Community 598 - "Community 598"
-Cohesion: 0.14
-Nodes (18): CrossProcessInstant, F, Option, ProfilerMsg, Span, String, T, TimerMetadataFrameType (+10 more)
+Cohesion: 0.24
+Nodes (4): AttributesBorrow<'a>, AttrRef, Item, Iterator
 
 ### Community 599 - "Community 599"
 Cohesion: 0.10
@@ -6890,68 +6852,68 @@ Cohesion: 0.09
 Nodes (16): FnOnce, FxHashMap, MessagePortId, MessagePortRouterId, PortMessageTask, ScriptToConstellationMessage, UserContentManagerId, UserContents (+8 more)
 
 ### Community 601 - "Community 601"
-Cohesion: 0.12
-Nodes (30): AppliedEntry, AppliedRule, Actor, ActorEncode, ActorError, ActorRegistry, Arc, AutoMargins (+22 more)
+Cohesion: 0.13
+Nodes (29): AppliedEntry, AppliedRule, Actor, ActorEncode, ActorError, ActorRegistry, Arc, AutoMargins (+21 more)
 
 ### Community 602 - "Community 602"
 Cohesion: 0.09
 Nodes (24): DOMTracker, DOMTracker<T>, MutableWeakRef, MutableWeakRef<T>, WeakRefEntry, WeakRefEntry<'a, T>, WeakRefVec, WeakRefVec<T> (+16 more)
 
 ### Community 603 - "Community 603"
-Cohesion: 0.13
-Nodes (23): BluetoothRemoteGATTCharacteristic, BluetoothCharacteristicProperties, BluetoothRemoteGATTCharacteristicMethods, ArrayBufferViewOrArrayBuffer, AsyncBluetoothListener, BluetoothDescriptorUUID, BluetoothRemoteGATTService, BluetoothRequest (+15 more)
+Cohesion: 0.14
+Nodes (23): response_async(), BluetoothRemoteGATTCharacteristic, BluetoothCharacteristicProperties, ArrayBufferViewOrArrayBuffer, AsyncBluetoothListener, BluetoothDescriptorUUID, BluetoothRemoteGATTService, BluetoothRequest (+15 more)
 
 ### Community 604 - "Community 604"
-Cohesion: 0.10
-Nodes (20): AsRef, Box, BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, Fn, FnOnce (+12 more)
+Cohesion: 0.13
+Nodes (22): Document, DomRoot, DOMStringList, DomTypeHolder, ErrorResult, Fallible, FnOnce, GlobalScope (+14 more)
 
 ### Community 605 - "Community 605"
-Cohesion: 0.14
-Nodes (10): JSContext, Key, Maplike, Option, Value, AtomicRefCell<IndexSet<K>>, DomRefCell<IndexMap<K, V>>, DomRefCell<IndexSet<K>> (+2 more)
+Cohesion: 0.12
+Nodes (13): Iterable, JSContext, Key, Maplike, Option, Value, AtomicRefCell<IndexSet<K>>, DomRefCell<IndexMap<K, V>> (+5 more)
 
 ### Community 606 - "Community 606"
 Cohesion: 0.12
-Nodes (23): Arc, CSSGroupingRule, CSSRule, CSSRuleList, CssRuleType, CSSStyleSheet, DomRoot, DOMString (+15 more)
+Nodes (24): Arc, CSSGroupingRule, CSSRule, CSSRuleList, CssRuleType, CSSStyleSheet, DomRoot, DOMString (+16 more)
 
 ### Community 607 - "Community 607"
-Cohesion: 0.22
-Nodes (9): NamespaceIndex<T>, StorageKey, Transferable, From, T, DomObject, MarkedAsTransferableInIdl, NamespaceIndex (+1 more)
+Cohesion: 0.07
+Nodes (26): NamespaceIndex<T>, StorageKey, Transferable, Option, PreloadId, Request, Response, SharedPreloadedResources (+18 more)
 
 ### Community 608 - "Community 608"
-Cohesion: 0.14
-Nodes (23): Blob, DomRefCell, DomRoot, DomTypeHolder, Fallible, File, FormDatum, GlobalScope (+15 more)
+Cohesion: 0.08
+Nodes (41): Blob, DomRefCell, DomRoot, DomTypeHolder, Fallible, File, FormDatum, GlobalScope (+33 more)
 
 ### Community 609 - "Community 609"
-Cohesion: 0.10
-Nodes (30): CompressionFormat, Dom, DomRoot, DomTypeHolder, Error, Fallible, GlobalScope, JSContext (+22 more)
+Cohesion: 0.11
+Nodes (29): CompressionFormat, Dom, DomRoot, DomTypeHolder, Error, Fallible, GlobalScope, JSContext (+21 more)
 
 ### Community 610 - "Community 610"
 Cohesion: 0.09
 Nodes (20): Cell, DomRoot, Drop, JSContext, MutNullableDom, Operation, Option, Self (+12 more)
 
 ### Community 611 - "Community 611"
-Cohesion: 0.05
-Nodes (20): CurrentRealm, DevicePixel, Finite, ImageBitmapOptions, ImageBitmapSource, JSTraceable, JSTracer, MutableHandleValue (+12 more)
+Cohesion: 0.18
+Nodes (17): BrowsingContextId, FxHashMap, FxHashSet, Iterator, Option, Pipeline, PipelineId, Self (+9 more)
 
 ### Community 612 - "TestBindingProxy"
 Cohesion: 0.16
 Nodes (8): DOMString, DomTypeHolder, NoGC, Option, TestBinding, Vec, TestBindingProxyMethods, TestBindingProxy
 
 ### Community 613 - "Community 613"
-Cohesion: 0.19
-Nodes (13): CacheResult, CorsSettings, Formatter, Image, ImageLoadListener, ImageMetadata, ImmutableOrigin, NetworkError (+5 more)
+Cohesion: 0.15
+Nodes (21): CacheResult, CorsSettings, CorsStatus, Debug, Formatter, Image, ImageMetadata, ImmutableOrigin (+13 more)
 
 ### Community 614 - "Community 614"
 Cohesion: 0.10
 Nodes (23): Cell, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, Error, Fallible (+15 more)
 
 ### Community 615 - "Community 615"
-Cohesion: 0.09
-Nodes (24): D, DomRoot, DOMString, GlobalScope, JSContext, PhantomData, Reflector, Self (+16 more)
+Cohesion: 0.17
+Nodes (12): D, DomRoot, DOMString, GlobalScope, JSContext, PhantomData, Reflector, Self (+4 more)
 
 ### Community 616 - "Community 616"
 Cohesion: 0.06
-Nodes (43): affine, ColorImage, configure_fonts(), embedder_image_to_egui_image(), Gui, load_cjk_fonts(), load_pending_favicons(), truncate_with_ellipsis() (+35 more)
+Nodes (42): affine, ColorImage, configure_fonts(), embedder_image_to_egui_image(), Gui, load_cjk_fonts(), load_pending_favicons(), truncate_with_ellipsis() (+34 more)
 
 ### Community 617 - "Community 617"
 Cohesion: 0.13
@@ -6967,7 +6929,7 @@ Nodes (13): Box2D, LayoutPixel, Vec, bounds_do_not_reach_back_to_the_origin(), d
 
 ### Community 620 - "Community 620"
 Cohesion: 0.14
-Nodes (17): servo_download_item_cancel(), servo_download_item_get_received_bytes(), servo_download_item_get_state(), servo_download_item_get_suggested_filename(), servo_download_item_get_total_bytes(), servo_download_item_get_url(), servo_download_item_pause(), servo_download_item_resume() (+9 more)
+Nodes (16): servo_download_item_cancel(), servo_download_item_get_received_bytes(), servo_download_item_get_state(), servo_download_item_get_suggested_filename(), servo_download_item_get_total_bytes(), servo_download_item_get_url(), servo_download_item_pause(), servo_download_item_resume() (+8 more)
 
 ### Community 621 - "Community 621"
 Cohesion: 0.11
@@ -6990,16 +6952,16 @@ Cohesion: 0.10
 Nodes (29): Dom, DomRefCell, DomRoot, DOMString, Element, Event, EventTarget, FileList (+21 more)
 
 ### Community 626 - "Community 626"
-Cohesion: 0.17
-Nodes (11): Document, Dom, DOMHighResTimeStamp, DomRoot, DomTypeHolder, GlobalScope, JSContext, NavigationTimingType (+3 more)
+Cohesion: 0.20
+Nodes (12): BorderRadius, BoxFragmentWithStyle, ClipChainId, LayoutRect, OnceCell, Option, RefCell, BoxFragment (+4 more)
 
 ### Community 627 - "Community 627"
-Cohesion: 0.70
-Nodes (4): Arc, ServoMedia, main(), run_example()
+Cohesion: 0.16
+Nodes (15): Arc, CSSStyleSheet, DomRoot, DomTypeHolder, Element, JSContext, NoGC, Option (+7 more)
 
 ### Community 628 - "Community 628"
-Cohesion: 0.06
-Nodes (42): Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia (+34 more)
+Cohesion: 0.08
+Nodes (32): Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia, Arc, ClientContextId (+24 more)
 
 ### Community 629 - "Community 629"
 Cohesion: 0.10
@@ -7014,8 +6976,8 @@ Cohesion: 0.10
 Nodes (26): Convert, CSSGroupingRule, CSSRule, CSSStyleSheet, Dom, DomRefCell, DomRoot, DOMString (+18 more)
 
 ### Community 632 - "Community 632"
-Cohesion: 0.18
-Nodes (26): BookmarkItem, fstream, HistoryItem, string, vector, wstring, string, shlobj (+18 more)
+Cohesion: 0.15
+Nodes (30): BookmarkItem, fstream, HistoryItem, string, vector, wstring, string, shlobj (+22 more)
 
 ### Community 633 - "Community 633"
 Cohesion: 0.14
@@ -7026,20 +6988,20 @@ Cohesion: 0.10
 Nodes (25): Bytes, DomRoot, EventTarget, FetchMetadata, FetchResponseListener, GlobalScope, InitiatorType, JSContext (+17 more)
 
 ### Community 635 - "Community 635"
-Cohesion: 0.11
-Nodes (28): ArrayBufferViewU8, Cell, Dom, DomRoot, Error, Fallible, GlobalScope, Heap (+20 more)
+Cohesion: 0.12
+Nodes (27): ArrayBufferViewU8, Cell, Dom, DomRoot, Error, Fallible, GlobalScope, Heap (+19 more)
 
 ### Community 636 - "Community 636"
-Cohesion: 0.12
-Nodes (14): ConstellationInputEvent, DomRoot, Element, EventBubbles, EventTarget, HitTestResult, JSContext, KeyboardTypesEvent (+6 more)
+Cohesion: 0.06
+Nodes (36): Code, ConstellationInputEvent, Cursor, Dom, DomRoot, Element, EventBubbles, EventTarget (+28 more)
 
 ### Community 637 - "Community 637"
-Cohesion: 0.07
-Nodes (7): DOMString, MutableHandleObject, T, Vec, WebGLCommand, WebGLProgram, WebGLShader
+Cohesion: 0.08
+Nodes (5): DOMString, MutableHandleObject, Vec, WebGLProgram, WebGLShader
 
 ### Community 638 - "Community 638"
-Cohesion: 0.10
-Nodes (18): Add, AddAssign, AspectRatio, ConstraintSpace, Fn, IndefiniteContainingBlock, InlineContentSizesResult, LayoutBoxBase (+10 more)
+Cohesion: 0.13
+Nodes (18): Au, Direction, F, FnOnce, From, LazyCell, LogicalVec2, OnceCell (+10 more)
 
 ### Community 639 - "Community 639"
 Cohesion: 0.25
@@ -7066,36 +7028,36 @@ Cohesion: 0.10
 Nodes (25): Cell, Convert, CurrentRealm, Dom, DomRefCell, DomRoot, DomTypeHolder, EventTarget (+17 more)
 
 ### Community 645 - "Community 645"
-Cohesion: 0.12
-Nodes (23): Cell, Dom, DomRoot, DOMString, DomTypeHolder, ErrorResult, Fallible, HandleValue (+15 more)
+Cohesion: 0.11
+Nodes (13): blessed, ConvertToStructuredFilter, format_seconds(), Enable JSON logging on the specified file object., Enable logging to the terminal., Format number of seconds to MM:SS.DD form., Filter that converts unstructured records into structured ones., Log formatter that writes a structured JSON entry. (+5 more)
 
 ### Community 646 - "Community 646"
-Cohesion: 0.10
-Nodes (17): callback_ref(), HostCallbacks, new_string_as_jvalue(), WakeupCallback, JavaVM, JValueOwned, Arc, Box (+9 more)
+Cohesion: 0.14
+Nodes (12): callback_ref(), HostCallbacks, new_string_as_jvalue(), JValueOwned, HostTrait, InputMethodControl, LoadStatus, MediaSessionPlaybackState (+4 more)
 
 ### Community 647 - "Community 647"
-Cohesion: 0.07
-Nodes (24): abort, animations, attributes, clipboard, credentialmanagement, form, gamepad, permission (+16 more)
+Cohesion: 0.06
+Nodes (26): abort, animations, attributes, clipboard, credentialmanagement, form, gamepad, permission (+18 more)
 
 ### Community 648 - "Community 648"
-Cohesion: 0.10
-Nodes (18): Au, AxesOverflow, BoxAreaType, ConstellationInputEvent, CSSPixel, CSSPixelRectVec, Font, HitTestFlags (+10 more)
+Cohesion: 0.09
+Nodes (20): Au, AxesOverflow, BoxAreaType, ConstellationInputEvent, CSSPixel, CSSPixelRectVec, Font, HitTestFlags (+12 more)
 
 ### Community 649 - "Community 649"
 Cohesion: 0.13
 Nodes (23): BrowsingContextId, Default, Document, Dom, DomRoot, FxBuildHasher, FxHashMap, GlobalScope (+15 more)
 
 ### Community 650 - "Community 650"
-Cohesion: 0.10
-Nodes (10): Atom, CspList, Dom, EventTarget, HTMLCanvasElement, PolicyContainer, PreloadedResources, Ref (+2 more)
+Cohesion: 0.04
+Nodes (49): Atom, Box, Cell, CrossProcessPaintApi, CSSPixelLength, Debug, Device, DevicePixel (+41 more)
 
 ### Community 651 - "Community 651"
 Cohesion: 0.10
 Nodes (23): ComputePassEncoderCommand, D, Dom, DomRefCell, DomRoot, Drop, GlobalScope, GPUBindGroup (+15 more)
 
 ### Community 652 - "Community 652"
-Cohesion: 0.03
-Nodes (18): OffscreenCanvasRenderingContext2D, CanvasContext, CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin, CanvasTextAlign (+10 more)
+Cohesion: 0.05
+Nodes (4): OffscreenCanvasRenderingContext2D, CanvasContext, DomTypeHolder, StringOrCanvasGradientOrCanvasPattern
 
 ### Community 653 - "Community 653"
 Cohesion: 0.22
@@ -7103,43 +7065,43 @@ Nodes (15): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, HandleObject, H
 
 ### Community 654 - "Community 654"
 Cohesion: 0.10
-Nodes (21): Cell, Drop, FxHashMap, InputEventId, JSEngineSetup, NetToEmbedderMsg, Option, Rc (+13 more)
+Nodes (19): Arc, Bytes, DomRoot, FetchCanceller, FetchMetadata, FetchResponseListener, GlobalScope, ImageCache (+11 more)
 
 ### Community 655 - "servo_tidy_tidy"
 Cohesion: 0.18
 Nodes (6): LintRunner, Lint, Linter, Lint, Lint, servo_tidy_tidy
 
 ### Community 656 - "Community 656"
-Cohesion: 0.15
-Nodes (24): Drop, ImmutableOrigin, Option, Result, Self, StorageThreads, String, TempDir (+16 more)
+Cohesion: 0.14
+Nodes (27): Drop, ImmutableOrigin, Option, Result, Self, StorageThreads, String, TempDir (+19 more)
 
 ### Community 657 - "Community 657"
-Cohesion: 0.12
-Nodes (9): DomRoot, Element, F, G, HTMLElement, Item, Iterator, FollowingNodeIterator (+1 more)
+Cohesion: 0.13
+Nodes (11): Add, AddAssign, Default, Output, Self, Sub, LogicalRect<T>, LogicalSides<T> (+3 more)
 
 ### Community 658 - "Community 658"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (11): is_rect_valid(), parse_color(), CanvasImageSource, CompositionOptions, DOMString, FillOrStrokeStyle, HTMLCanvasElement, LineOptions (+3 more)
 
 ### Community 659 - "Community 659"
-Cohesion: 0.03
-Nodes (30): PaintRenderingContext2D, CanvasGradient, CanvasImageSource, CanvasLineCap, CanvasLineJoin, CanvasPattern, CanvasState, Cell (+22 more)
+Cohesion: 0.06
+Nodes (3): PaintRenderingContext2D, DomTypeHolder, ImageKey
 
 ### Community 660 - "Community 660"
-Cohesion: 0.14
-Nodes (19): Box, CollectionFilter, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult, HTMLCollection (+11 more)
+Cohesion: 0.13
+Nodes (20): Box, CollectionFilter, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult, HTMLCollection (+12 more)
 
 ### Community 661 - "Community 661"
-Cohesion: 0.14
-Nodes (16): Dom, DomRoot, DOMString, DomTypeHolder, Event, GlobalScope, Heap, JSContext (+8 more)
+Cohesion: 0.15
+Nodes (15): Dom, DomRoot, DOMString, DomTypeHolder, Event, GlobalScope, Heap, JSContext (+7 more)
 
 ### Community 662 - "Community 662"
 Cohesion: 0.10
 Nodes (32): FramesReply, FramesRequest, GetAvailableEventBreakpointsReply, PoppedFrameMsg, ResumeLimit, ResumeLimitType, ResumeRequest, ThreadActor (+24 more)
 
 ### Community 663 - "Community 663"
-Cohesion: 0.12
-Nodes (26): App, AppState, load_userscripts(), ActiveEventLoop, AppEvent, ApplicationHandler, Box, EventLoopProxy (+18 more)
+Cohesion: 0.10
+Nodes (28): app, App, AppState, load_userscripts(), main(), ActiveEventLoop, AppEvent, ApplicationHandler (+20 more)
 
 ### Community 664 - "Community 664"
 Cohesion: 0.08
@@ -7150,8 +7112,8 @@ Cohesion: 0.06
 Nodes (34): ColorInterpolation, ColorRendering, ClipPathDef, Default, DefRef, Display, FilterDef, MaskDef (+26 more)
 
 ### Community 666 - "Community 666"
-Cohesion: 0.08
-Nodes (28): Remote, call(), check_call(), extract_arg(), extract_args(), forward_webdriver(), main(), shell_quote() (+20 more)
+Cohesion: 0.16
+Nodes (16): application_context, display_manager, napi, get_display_density(), get_native_values(), init_servo(), InitOpts, main_thread() (+8 more)
 
 ### Community 667 - "Community 667"
 Cohesion: 0.13
@@ -7174,12 +7136,12 @@ Cohesion: 0.11
 Nodes (20): CurrentRealm, DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject, JSContext, MemoryReportResult (+12 more)
 
 ### Community 672 - "Community 672"
-Cohesion: 0.07
-Nodes (26): Cell, FnOnce, GenericCallback, IdentityHub, ImageCacheResponseMessage, LayoutValue, MainThreadScriptMsg, MemProfilerChan (+18 more)
+Cohesion: 0.09
+Nodes (30): Au, Box, Debug, Deref, FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric (+22 more)
 
 ### Community 673 - "Community 673"
-Cohesion: 0.05
-Nodes (35): Cell, CustomElementDefinition, CustomElementReactionStack, DebuggerGlobalScope, Default, DocumentCollection, DomRefCell, DOMString (+27 more)
+Cohesion: 0.10
+Nodes (33): Arc, AtomicBool, CustomResponseMediator, Drop, FontContext, GenericCallback, GenericSender, HashMap (+25 more)
 
 ### Community 674 - "Community 674"
 Cohesion: 0.11
@@ -7194,24 +7156,24 @@ Cohesion: 0.17
 Nodes (15): Atom, DomRoot, DOMString, DomTypeHolder, ErrorResult, Event, Fallible, HandleObject (+7 more)
 
 ### Community 677 - "Community 677"
-Cohesion: 0.11
-Nodes (21): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, F, Finite, JSContext (+13 more)
+Cohesion: 0.07
+Nodes (32): canvascontext_as, Dom, EventTarget, JSContext, LayerId, Option, WebGLContextId, WebGLRenderingContext (+24 more)
 
 ### Community 678 - "Community 678"
-Cohesion: 0.14
-Nodes (16): CrossProcessPaintApi, Epoch, ExternalImageSource, GenericSender, ImageKey, Option, PendingTexture, SharedSnapshot (+8 more)
+Cohesion: 0.16
+Nodes (12): ExternalImageSource, FxHashMap, ImageKey, Size2D, WebGPUContextId, WebGpuExternalImageMap, WebRenderExternalImageApi, ExternalImageData (+4 more)
 
 ### Community 679 - "Community 679"
 Cohesion: 0.11
 Nodes (29): AttachedReply, ConnectReply, DetachedReply, GetPushSubscriptionReply, WorkerTargetActor, WorkerTargetActorMsg, WorkerTraits, WorkerType (+21 more)
 
 ### Community 680 - "Community 680"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (16): AddEventListenerOptionsOrBoolean, CallbackFunction, Box, DOMString, DomTypeHolder, EventListener, Option, OwnerWindow (+8 more)
 
 ### Community 681 - "Community 681"
-Cohesion: 0.14
-Nodes (19): ClientConnection, Connection, Context, Debug, Display, Error, Formatter, Pin (+11 more)
+Cohesion: 0.12
+Nodes (18): CFRetained, F, FallbackFontSelectionOptions, FontTemplate, GenericFontFamily, LowercaseFontFamilyName, Option, Vec (+10 more)
 
 ### Community 682 - "Community 682"
 Cohesion: 0.10
@@ -7222,12 +7184,12 @@ Cohesion: 0.10
 Nodes (22): ActorError, Arc, FnOnce, From, Method, Mutex, Option, Result (+14 more)
 
 ### Community 684 - "Community 684"
-Cohesion: 0.10
-Nodes (25): BoxSlot, BoxTreeString, Contents, DisplayGeneratingBox, LayoutContext, NodeAndStyleInfo, OnceLock, Option (+17 more)
+Cohesion: 0.09
+Nodes (26): BoxSlot, BoxTreeString, Contents, DisplayGeneratingBox, LayoutContext, NodeAndStyleInfo, OnceLock, Option (+18 more)
 
 ### Community 685 - "Community 685"
-Cohesion: 0.17
-Nodes (15): Structure, TokenStream, TokenStream, TokenStream, decl_derive, expand_dom_object(), dom_struct(), dom_struct_impl() (+7 more)
+Cohesion: 0.13
+Nodes (11): BlockContainer, ComputeInlineContentSizes, FnOnce, IndefiniteContainingBlock, InlineContentSizesResult, LayoutBoxBase, T, WeakLayoutBox (+3 more)
 
 ### Community 686 - "Community 686"
 Cohesion: 0.21
@@ -7238,24 +7200,24 @@ Cohesion: 0.13
 Nodes (17): Arc, ArrayBufferU8, GenericSharedMemory, HeapArrayBuffer, HeapBufferSource, JSContext, Range, Result (+9 more)
 
 ### Community 688 - "Community 688"
-Cohesion: 0.10
-Nodes (31): Cow, DerefMut, From, MutableHandleValue, Target, ToJSValConvertible, Vec, Atom (+23 more)
+Cohesion: 0.12
+Nodes (30): Cow, DerefMut, From, ToJSValConvertible, Vec, Atom, contains_html_space_characters(), DOMString (+22 more)
 
 ### Community 689 - "Community 689"
 Cohesion: 0.13
 Nodes (20): Atom, Cell, Dom, DomRefCell, DomRoot, Element, FnMut, FxBuildHasher (+12 more)
 
 ### Community 690 - "Community 690"
-Cohesion: 0.10
-Nodes (28): Cell, ConversionResult, Dom, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope (+20 more)
+Cohesion: 0.11
+Nodes (27): Cell, ConversionResult, Dom, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope (+19 more)
 
 ### Community 691 - "geolocationpositionerror.rs"
 Cohesion: 0.34
 Nodes (9): DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Reflector, Self, GeolocationPositionError (+1 more)
 
 ### Community 692 - "Community 692"
-Cohesion: 0.15
-Nodes (15): CustomAutoRooterGuard, DOMMatrix, DOMPoint, DOMPointInit, DomRoot, Float32Array, Float64Array, GlobalScope (+7 more)
+Cohesion: 0.17
+Nodes (13): CustomAutoRooterGuard, DOMMatrix, DomRoot, Float32Array, Float64Array, GlobalScope, HandleObject, JSContext (+5 more)
 
 ### Community 693 - "Community 693"
 Cohesion: 0.23
@@ -7282,16 +7244,16 @@ Cohesion: 0.20
 Nodes (15): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleObject, IndexMap (+7 more)
 
 ### Community 699 - "Community 699"
-Cohesion: 0.10
-Nodes (11): DomRoot, DOMString, Element, EmbedderMsg, Event, NamedPropertyValue, Option, WebViewId (+3 more)
+Cohesion: 0.11
+Nodes (13): CSSStyleDeclaration, DomRoot, DOMString, Element, Event, NamedPropertyValue, Option, Selection (+5 more)
 
 ### Community 700 - "Community 700"
-Cohesion: 0.10
-Nodes (27): arraybuffervieworarraybuffer, Dom, DomRoot, DOMString, DomTypeHolder, Encoding, Fallible, GlobalScope (+19 more)
+Cohesion: 0.11
+Nodes (25): arraybuffervieworarraybuffer, Dom, DomRoot, DOMString, DomTypeHolder, Encoding, Fallible, GlobalScope (+17 more)
 
 ### Community 701 - "Community 701"
-Cohesion: 0.12
-Nodes (29): Atom, Box, Cell, Dom, DomRoot, DOMString, DomTypeHolder, Element (+21 more)
+Cohesion: 0.23
+Nodes (5): Rope, RopeIndex, RopeSlice, Utf32CodeUnits, Utf8CodeUnits
 
 ### Community 702 - "Community 702"
 Cohesion: 0.14
@@ -7314,12 +7276,12 @@ Cohesion: 0.14
 Nodes (19): Clipboard, Drop, Error, FnOnce, From, GenericCallback, Result, Self (+11 more)
 
 ### Community 707 - "Community 707"
-Cohesion: 0.12
-Nodes (19): AxisDirection, Au, AuOrAuto, ContainingBlock, CSSFloat, IndefiniteContainingBlock, LengthPercentage, LogicalSides (+11 more)
+Cohesion: 0.10
+Nodes (24): AxisDirection, BorderStyle, AbsoluteColor, Au, AuOrAuto, Border, ContainingBlock, CSSFloat (+16 more)
 
 ### Community 708 - "Community 708"
 Cohesion: 0.10
-Nodes (20): ImageBitmapRenderingContext, CanvasContext, Cell, DomRefCell, DomRoot, DomTypeHolder, Epoch, Fallible (+12 more)
+Nodes (22): ImageBitmapRenderingContext, CanvasContext, Cell, DomRefCell, DomRoot, DomTypeHolder, Epoch, Fallible (+14 more)
 
 ### Community 709 - "Community 709"
 Cohesion: 0.10
@@ -7330,8 +7292,8 @@ Cohesion: 0.15
 Nodes (19): Atom, Cell, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles, EventCancelable (+11 more)
 
 ### Community 711 - "Community 711"
-Cohesion: 0.13
-Nodes (22): Activatable, AttributeMutation, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+14 more)
+Cohesion: 0.12
+Nodes (23): Activatable, AttributeMutation, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+15 more)
 
 ### Community 712 - "Community 712"
 Cohesion: 0.14
@@ -7342,8 +7304,8 @@ Cohesion: 0.31
 Nodes (6): Device, Option, S, SharedRwLockReadGuard, StylesheetSetRef, StylesheetSetRef<'_, S>
 
 ### Community 714 - "Community 714"
-Cohesion: 0.14
-Nodes (23): Cell, DomRefCell, DomRoot, DOMString, DomTypeHolder, DragDataStore, File, FileSystemEntry (+15 more)
+Cohesion: 0.13
+Nodes (24): Cell, DomRefCell, DomRoot, DOMString, DomTypeHolder, DragDataStore, File, FileSystemEntry (+16 more)
 
 ### Community 715 - "Community 715"
 Cohesion: 0.16
@@ -7354,12 +7316,12 @@ Cohesion: 0.29
 Nodes (17): create_libc_string(), servo_preferences_create(), servo_preferences_free(), servo_preferences_get_bool(), servo_preferences_get_devtools_server_enabled(), servo_preferences_get_devtools_server_port(), servo_preferences_get_i64(), servo_preferences_get_string() (+9 more)
 
 ### Community 717 - "Community 717"
-Cohesion: 0.19
-Nodes (9): AttributeMutation, AttrRef, JSContext, NoGC, String, USVString, HyperlinkElement, HyperlinkElementTraits (+1 more)
+Cohesion: 0.18
+Nodes (10): AttributeMutation, AttrRef, JSContext, NoGC, String, USVString, HyperlinkElement, HyperlinkElementTraits (+2 more)
 
 ### Community 718 - "Community 718"
 Cohesion: 0.13
-Nodes (28): asrefstr, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleValue, JSContext (+20 more)
+Nodes (27): asrefstr, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleValue, JSContext (+19 more)
 
 ### Community 719 - "AccessibilityData"
 Cohesion: 0.18
@@ -7370,12 +7332,12 @@ Cohesion: 0.24
 Nodes (7): ConstellationInputEvent, HitTestResult, JSContext, Self, DragGesture, DragHandler, DragHandler
 
 ### Community 721 - "Community 721"
-Cohesion: 0.07
-Nodes (45): Cell, CoreResourceThread, CorsSettings, CurrentRealm, Default, DeferredRequestInit, Destination, Fallible (+37 more)
+Cohesion: 0.05
+Nodes (69): Bytes, Cell, CoreResourceThread, CorsSettings, CurrentRealm, Default, DeferredRequestInit, Destination (+61 more)
 
 ### Community 722 - "Community 722"
-Cohesion: 0.21
-Nodes (8): ArcBorrow, Arc, ImplicitScopeRoot, PropertyDeclarationBlock, PseudoElement, SharedStyleContext, OpaqueElement, StyleLocked
+Cohesion: 0.17
+Nodes (11): GenericSender, MediaInstance, SeekLockMsg, Send, mediastreamid, PlaybackState, Player, PlayerError (+3 more)
 
 ### Community 723 - "Community 723"
 Cohesion: 0.19
@@ -7383,7 +7345,7 @@ Nodes (16): Box2D, CrossProcessInstant, Dom, DOMHighResTimeStamp, DOMRectReadOnl
 
 ### Community 724 - "Community 724"
 Cohesion: 0.06
-Nodes (16): CanvasContext, Cell, ImageKey, MutNullableDom, Reflector, RootedPromise, Type, WebGLBuffer (+8 more)
+Nodes (18): CanvasContext, Cell, ImageKey, MutNullableDom, Reflector, RootedPromise, TexDataType, TexFormat (+10 more)
 
 ### Community 725 - "Community 725"
 Cohesion: 0.20
@@ -7394,12 +7356,12 @@ Cohesion: 0.11
 Nodes (24): Box, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget, HTMLMediaElement (+16 more)
 
 ### Community 727 - "Community 727"
-Cohesion: 0.04
-Nodes (25): Box, Cell, Debug, Document, DomRefCell, DomTypeHolder, Event, Formatter (+17 more)
+Cohesion: 0.05
+Nodes (21): Debug, DomRefCell, DomTypeHolder, Formatter, GenericLayoutData, MutNullableDom, NodeFlags, Ordering (+13 more)
 
 ### Community 728 - "Community 728"
-Cohesion: 0.07
-Nodes (25): Box, Bytes, BytesMut, CommonScriptMsg, DebuggerGlobalScope, ErrorResult, Fallible, FetchMetadata (+17 more)
+Cohesion: 0.21
+Nodes (7): AudioRenderThreadMsg, AudioSink, AudioSinkError, Chunk, MediaSocket, Sender, DummyAudioSink
 
 ### Community 729 - "Community 729"
 Cohesion: 0.23
@@ -7407,7 +7369,7 @@ Nodes (12): Document, DomRoot, DomTypeHolder, HandleObject, HTMLCollection, HTML
 
 ### Community 730 - "Community 730"
 Cohesion: 0.06
-Nodes (34): DeviceIndependentIntSize, DeviceIntRect, DeviceIntSize, ExternalScrollId, PipelineId, UserContentManagerId, WebViewId, AllowOrDeny (+26 more)
+Nodes (52): Arc, Destination, DeviceIndependentIntSize, DeviceIntRect, DeviceIntSize, GenericSharedMemory, Method, Option (+44 more)
 
 ### Community 731 - "Community 731"
 Cohesion: 0.18
@@ -7418,24 +7380,24 @@ Cohesion: 0.16
 Nodes (17): Box, CollectionFilter, Dom, DomRoot, DOMString, DomTypeHolder, Element, HTMLCollection (+9 more)
 
 ### Community 733 - "Community 733"
-Cohesion: 0.07
-Nodes (27): MemoryActor, TimelineMemoryReply, Actor, ActorRegistry, String, String, T, Vec (+19 more)
+Cohesion: 0.25
+Nodes (10): ActorRegistry, Arc, DevtoolsConnection, NetworkEvent, Option, String, Vec, Cause (+2 more)
 
 ### Community 734 - "Community 734"
-Cohesion: 0.23
-Nodes (5): Gl, Rc, RefreshDriver, GLuint, Framebuffer
+Cohesion: 0.16
+Nodes (18): AlternateKindRequiringResolution, Arc, Atom, Box, Clone, CSSFontFaceDescriptors, FxHashMap, Option (+10 more)
 
 ### Community 735 - "Community 735"
 Cohesion: 0.11
 Nodes (23): Box, ContextId, Device, Error, GenericReceiver, GenericSender, GL, LayerGrandManager (+15 more)
 
 ### Community 736 - "Community 736"
-Cohesion: 0.15
-Nodes (12): CreateObjectResult, IndexedDBIndex, KeyPath, Vec, DbResult, IndexedDBEnvironment<E>, test_abort_transaction_restores_readwrite_key_generator_current_number(), test_origin() (+4 more)
+Cohesion: 0.13
+Nodes (12): CreateObjectResult, F, IndexedDBIndex, KeyPath, Vec, DbResult, IndexedDBEnvironment<E>, test_abort_transaction_restores_readwrite_key_generator_current_number() (+4 more)
 
 ### Community 737 - "htmldocument.rs"
-Cohesion: 0.17
-Nodes (13): Document, DomRoot, DOMString, DomTypeHolder, JSContext, Location, NamedPropertyValue, NoGC (+5 more)
+Cohesion: 0.18
+Nodes (12): Document, DomRoot, DOMString, DomTypeHolder, JSContext, Location, NamedPropertyValue, NoGC (+4 more)
 
 ### Community 738 - "Community 738"
 Cohesion: 0.06
@@ -7462,28 +7424,28 @@ Cohesion: 0.14
 Nodes (21): BiquadFilterNode, &BiquadFilterOptions, BiquadFilterType, BiquadFilterNodeMethods, BiquadFilterNodeOptions, BiquadFilterOptions, BiquadFilterType, AudioNode (+13 more)
 
 ### Community 744 - "Community 744"
-Cohesion: 0.11
-Nodes (24): Clipboard, RepresentationDataPromiseFulfillmentHandler, RepresentationDataPromiseRejectionHandler, write_blobs_and_option_to_the_clipboard(), ClipboardMethods, Blob, Callback, CurrentRealm (+16 more)
+Cohesion: 0.10
+Nodes (26): blobimpl, Clipboard, RepresentationDataPromiseFulfillmentHandler, RepresentationDataPromiseRejectionHandler, write_blobs_and_option_to_the_clipboard(), ClipboardMethods, Blob, Callback (+18 more)
 
 ### Community 745 - "Community 745"
 Cohesion: 0.11
-Nodes (19): Cell, DomRefCell, DOMString, DomTypeHolder, Drop, Duration, EventTarget, FetchCanceller (+11 more)
+Nodes (29): CrateNum, defkind, defpathdata, GenericArg, inferctxtext_as, litkind, find_first_crate(), implements_trait() (+21 more)
 
 ### Community 746 - "Community 746"
-Cohesion: 0.09
-Nodes (21): compilefunction, ConstellationInterest, Deref, DerefMut, DomRefCell, EventListenerInfo, PartialEq, Rc (+13 more)
+Cohesion: 0.14
+Nodes (10): Deref, DerefMut, EventListenerInfo, PartialEq, Rc, RefCell, Vec, EventListenerEntry (+2 more)
 
 ### Community 747 - "Community 747"
 Cohesion: 0.15
 Nodes (21): Box, Cell, DomRefCell, FxHashMap, FxHashSet, Option, PipelineId, Receiver (+13 more)
 
 ### Community 748 - "Community 748"
-Cohesion: 0.10
-Nodes (21): arc_as_servoarc, Default, Deref, FnMut, FontDescriptor, FontFaceRuleInfo, FontIdentifier, FontTemplate (+13 more)
+Cohesion: 0.09
+Nodes (22): Default, Deref, FnMut, FontDescriptor, FontFaceRuleInfo, FontIdentifier, FontTemplate, FontTemplateRef (+14 more)
 
 ### Community 749 - "Community 749"
-Cohesion: 0.09
-Nodes (21): FromStr, Option, Send, String, Vec, IceCredentialType, BundlePolicy, DescriptionType (+13 more)
+Cohesion: 0.07
+Nodes (27): From, FromStr, Option, Result, Self, Send, String, T (+19 more)
 
 ### Community 750 - "Community 750"
 Cohesion: 0.15
@@ -7510,8 +7472,8 @@ Cohesion: 0.16
 Nodes (15): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, HandleObject, JSContext, MediaSession (+7 more)
 
 ### Community 756 - "Community 756"
-Cohesion: 0.35
-Nodes (17): Document, DomRoot, Element, ElementCreator, HandleObject, JSContext, LocalName, Option (+9 more)
+Cohesion: 0.42
+Nodes (15): Document, DomRoot, Element, ElementCreator, HandleObject, JSContext, LocalName, Option (+7 more)
 
 ### Community 757 - "Community 757"
 Cohesion: 0.17
@@ -7522,12 +7484,12 @@ Cohesion: 0.09
 Nodes (38): cacertificates, cachestoragethreadhandle, clientstoragethreadhandle, Cow, HashMap, IpAddr, Option, String (+30 more)
 
 ### Community 759 - "Community 759"
-Cohesion: 0.16
-Nodes (18): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget, Fallible, GlobalScope (+10 more)
+Cohesion: 0.15
+Nodes (19): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, EventTarget, Fallible, GlobalScope (+11 more)
 
 ### Community 760 - "Community 760"
 Cohesion: 0.06
-Nodes (35): AdapterInfo, DeviceId, Features, From, GenericOneshotSender, GenericSharedMemory, ImageFormat, Limits (+27 more)
+Nodes (33): AdapterInfo, DeviceId, Features, From, GenericOneshotSender, GenericSharedMemory, ImageFormat, Limits (+25 more)
 
 ### Community 761 - "Community 761"
 Cohesion: 0.18
@@ -7535,11 +7497,11 @@ Nodes (14): BindContext, Document, DomRoot, HandleObject, HTMLElement, JSContext
 
 ### Community 762 - "Community 762"
 Cohesion: 0.10
-Nodes (25): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject (+17 more)
+Nodes (24): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject (+16 more)
 
 ### Community 763 - "Community 763"
 Cohesion: 0.12
-Nodes (23): CurrentRealm, DomRefCell, DomRoot, DomTypeHolder, EventTarget, GenericCallback, GlobalScope, ImmutableOrigin (+15 more)
+Nodes (24): CurrentRealm, DomRefCell, DomRoot, DomTypeHolder, EventTarget, GenericCallback, GlobalScope, ImmutableOrigin (+16 more)
 
 ### Community 764 - "Community 764"
 Cohesion: 0.08
@@ -7551,59 +7513,59 @@ Nodes (4): HTMLElementOrLong, Option, LongSequenceOrBoolean, StringOrLongSequenc
 
 ### Community 766 - "Community 766"
 Cohesion: 0.06
-Nodes (38): ArrayBufferView, CustomAutoRooterGuard, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HeapArrayBufferView (+30 more)
+Nodes (37): ArrayBufferView, CustomAutoRooterGuard, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HeapArrayBufferView (+29 more)
 
 ### Community 767 - "Community 767"
-Cohesion: 0.09
-Nodes (26): BackendResult, Display, Error, Formatter, ImmutableOrigin, Result, String, Vec (+18 more)
+Cohesion: 0.08
+Nodes (27): BackendResult, Display, Error, Formatter, From, ImmutableOrigin, Result, String (+19 more)
 
 ### Community 768 - "Community 768"
-Cohesion: 0.25
-Nodes (7): BackendError, RusqliteError, RusqliteError, enospc, error_as_stderror, backend_error_from_sqlite_error(), is_sqlite_disk_full_error()
+Cohesion: 0.10
+Nodes (12): ImageInfo, MutNullableDom, Option, TexDataType, TexFormat, TexImageTarget, WebGLFramebuffer, WebGLResult (+4 more)
 
 ### Community 769 - "Community 769"
 Cohesion: 0.09
 Nodes (14): Option, Ord, Result, Vec, CNameToken, Error, LiteralToken, match_operator_name() (+6 more)
 
 ### Community 770 - "Community 770"
-Cohesion: 0.15
-Nodes (7): App, Key, KeyboardEvent, MediaSessionActionType, MouseButton, RawWindowHandle, Self
+Cohesion: 0.18
+Nodes (5): App, Key, KeyboardEvent, MediaSessionActionType, MouseButton
 
 ### Community 771 - "Community 771"
 Cohesion: 0.05
-Nodes (42): ClipPath, AbsoluteColor, AlignFlags, Border, Contents, Default, DisplayInside, From (+34 more)
+Nodes (36): ClipPath, AlignFlags, Contents, DisplayInside, From, Level, NodeAndStyleInfo, Option (+28 more)
 
 ### Community 772 - "Community 772"
-Cohesion: 0.27
-Nodes (6): FxHashMap, Id, Option, Self, StructuredSerializedData, DomRect
+Cohesion: 0.05
+Nodes (59): BlobData, BlobId, BlobImpl, Clone, FxHashMap, Id, ImmutableOrigin, Option (+51 more)
 
 ### Community 773 - "Community 773"
 Cohesion: 0.09
-Nodes (24): AnimationEffectMethods, AnimationEffect, IterationDurationOrAuto, SpecifiedTimingProperties, UnrestrictedDoubleOrString, Dom, DomRefCell, DomTypeHolder (+16 more)
+Nodes (23): AnimationEffectMethods, AnimationEffect, IterationDurationOrAuto, SpecifiedTimingProperties, UnrestrictedDoubleOrString, Dom, DomRefCell, DomTypeHolder (+15 more)
 
 ### Community 774 - "Community 774"
 Cohesion: 0.12
 Nodes (26): AppliedDeclaration, Actor, ActorEncode, ActorError, ActorRegistry, AncestorData, Arc, ClientRequest (+18 more)
 
 ### Community 775 - "Community 775"
-Cohesion: 0.17
-Nodes (14): Document, DomRoot, DomTypeHolder, ErrorResult, Fallible, HTMLCollection, JSContext, LocalName (+6 more)
+Cohesion: 0.12
+Nodes (24): AttributeMutation, AttrRef, AttrValue, Cell, Document, DomRoot, DOMString, DomTypeHolder (+16 more)
 
 ### Community 777 - "Community 777"
 Cohesion: 0.09
 Nodes (20): BrowsingContextId, Display, Formatter, HistoryStateId, NeedsToReload, Option, PartialEq, PipelineId (+12 more)
 
 ### Community 778 - "Community 778"
-Cohesion: 0.10
-Nodes (23): CookieStorage, ServoUrl, String, add_cookie_to_storage(), add_retrieve_cookies(), assert_ip_cookie_bucket_collision_eviction(), delay_to_ensure_different_timestamp(), test_clear_storage_for_url_expires_matching_cookies() (+15 more)
+Cohesion: 0.09
+Nodes (24): CookieStorage, ServoUrl, String, add_cookie_to_storage(), add_retrieve_cookies(), assert_ip_cookie_bucket_collision_eviction(), delay_to_ensure_different_timestamp(), test_clear_storage_for_url_expires_matching_cookies() (+16 more)
 
 ### Community 779 - "Community 779"
-Cohesion: 0.09
-Nodes (19): DOMString, ErrorResult, Fallible, From, I, JSContext, Namespace, NodeInfo (+11 more)
+Cohesion: 0.10
+Nodes (24): multispan, EmptyTraceInNoTraceDiagnostic, get_must_not_have_traceable(), incorrect_no_trace(), is_jstraceable(), NotracePass, register(), TraceInNoTraceDiagnostic (+16 more)
 
 ### Community 780 - "Community 780"
-Cohesion: 0.08
-Nodes (11): Default, Option, String, parse_blob_url, parse_blob_url_with_opaque_origin(), uuid, DataChannelEvent, DataChannelInit (+3 more)
+Cohesion: 0.06
+Nodes (29): Command, Box, Error, Result, main(), env, should_panic_hook_suppress_termination(), path (+21 more)
 
 ### Community 781 - "Community 781"
 Cohesion: 0.24
@@ -7614,8 +7576,8 @@ Cohesion: 0.06
 Nodes (42): assliceof, AppSink, Arc, AsRef, AtomicBool, AudioRenderer, BackendMsg, Box (+34 more)
 
 ### Community 783 - "Community 783"
-Cohesion: 0.12
-Nodes (8): HTMLScriptElement, ScriptResult, Self, VecDeque, PendingInOrderScriptVec, PendingScript, PendingScript, ResizeObserver
+Cohesion: 0.07
+Nodes (14): AnimationFrameCallback, CspList, HTMLScriptElement, NamedPropertyValue, ScriptResult, Self, T, VecDeque (+6 more)
 
 ### Community 784 - "Community 784"
 Cohesion: 0.13
@@ -7623,7 +7585,7 @@ Nodes (22): Data, Dom, DomRoot, DomTypeHolder, File, FileListId, FxHashMap, Glob
 
 ### Community 785 - "Community 785"
 Cohesion: 0.09
-Nodes (21): Arc, AtomicRefCell, Clone, Debug, Default, Deref, Formatter, From (+13 more)
+Nodes (22): Arc, AtomicRefCell, Clone, Debug, Default, Deref, Formatter, From (+14 more)
 
 ### Community 786 - "Community 786"
 Cohesion: 0.10
@@ -7634,16 +7596,16 @@ Cohesion: 0.20
 Nodes (14): CrossProcessInstant, DomRoot, DOMString, DomTypeHolder, Duration, GlobalScope, HandleValue, Heap (+6 more)
 
 ### Community 788 - "Community 788"
-Cohesion: 0.06
-Nodes (31): Activatable, Atom, AttrRef, AttrValue, Cell, CloneChildrenFlag, Document, Element (+23 more)
+Cohesion: 0.07
+Nodes (27): Activatable, Atom, Cell, Element, EmbedderClipboardProvider, ErrorStatus, Event, EventTarget (+19 more)
 
 ### Community 789 - "htmlmenuelement.rs"
 Cohesion: 0.25
 Nodes (11): Document, DomRoot, DomTypeHolder, HandleObject, HTMLElement, JSContext, LocalName, Option (+3 more)
 
 ### Community 790 - "Community 790"
-Cohesion: 0.07
-Nodes (30): AttributeMutation, AttrRef, AttrValue, Cell, CoreResourceThread, Document, DomRefCell, DOMString (+22 more)
+Cohesion: 0.12
+Nodes (19): AtomicBool, BaseFragment, FontInstanceKey, FontMetrics, From, ImageKey, LayoutThread, PipelineId (+11 more)
 
 ### Community 791 - "html/mod.rs"
 Cohesion: 0.18
@@ -7667,27 +7629,27 @@ Nodes (11): Error, Result, Vec, Keccak, RATE, SpongeCursor, State1600, digest() 
 
 ### Community 796 - "Community 796"
 Cohesion: 0.15
-Nodes (18): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, ErrorResult, Fallible, GlobalScope (+10 more)
+Nodes (19): Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder, ErrorResult, Fallible, GlobalScope (+11 more)
 
 ### Community 797 - "Community 797"
 Cohesion: 0.11
 Nodes (23): Cell, CustomAutoRooterGuard, DomRefCell, DomRoot, DomTypeHolder, ErrorResult, EventTarget, GlobalScope (+15 more)
 
 ### Community 798 - "Community 798"
-Cohesion: 0.14
-Nodes (21): Box, Cell, Dom, DomRoot, GlobalScope, Heap, JSContext, JSVal (+13 more)
+Cohesion: 0.13
+Nodes (22): Box, Cell, Dom, DomRoot, GlobalScope, Heap, JSContext, JSVal (+14 more)
 
 ### Community 799 - "Community 799"
 Cohesion: 0.07
-Nodes (37): ArrayBufferView, ArrayBufferViewU8, Callback, Cell, CurrentRealm, CustomAutoRooterGuard, Dom, DomRefCell (+29 more)
+Nodes (39): ByteTeeReadIntoRequest, ArrayBufferView, ArrayBufferViewU8, Callback, Cell, CurrentRealm, CustomAutoRooterGuard, Dom (+31 more)
 
 ### Community 800 - "quality.rs"
 Cohesion: 0.19
 Nodes (11): Display, Formatter, HeaderValue, Mime, Result, T, Vec, Quality (+3 more)
 
 ### Community 801 - "Community 801"
-Cohesion: 0.16
-Nodes (14): DomRefCell, DomTypeHolder, Heap, JSVal, MutNullableDom, ReadableByteStreamController, ReadableStreamGenericReader, Reflector (+6 more)
+Cohesion: 0.12
+Nodes (15): AutoOr, Fn, FnOnce, T, U, V, LogicalSides1D, LogicalSides1D<AutoOr<&LengthPercentage>> (+7 more)
 
 ### Community 802 - "Community 802"
 Cohesion: 0.48
@@ -7706,16 +7668,12 @@ Cohesion: 0.25
 Nodes (12): LineBreakOptions, Option, Range, Self, Utf8CodeUnits, Vec, advance_to_linebreaks_in_range(), LineBreaker (+4 more)
 
 ### Community 806 - "Community 806"
-Cohesion: 0.07
-Nodes (25): Cell, Code, Cursor, Dom, DomRefCell, ExternalScrollId, FireMouseEventType, FxHashMap (+17 more)
+Cohesion: 0.16
+Nodes (11): Error, GL, Result, Session, SessionBuilder, SessionInit, SessionMode, genericcallback_as_profilegenericcallback (+3 more)
 
 ### Community 807 - "Community 807"
 Cohesion: 0.11
 Nodes (22): ApiSpace, BaseTransform, Cell, Dom, DomRoot, DomTypeHolder, Finite, Float32 (+14 more)
-
-### Community 808 - "Community 808"
-Cohesion: 0.12
-Nodes (15): Arc, Bytes, BytesMut, DomRoot, FetchMetadata, FetchResponseListener, Metadata, ModuleRequest (+7 more)
 
 ### Community 809 - "Community 809"
 Cohesion: 0.11
@@ -7758,12 +7716,12 @@ Cohesion: 0.20
 Nodes (11): CrossProcessInstant, frequency(), now(), timebase_info(), Add, Duration, Output, Self (+3 more)
 
 ### Community 819 - "Community 819"
-Cohesion: 0.21
-Nodes (13): PreferenceActor, Actor, ActorError, ActorRegistry, Arc, ClientRequest, Map, Result (+5 more)
+Cohesion: 0.23
+Nodes (12): PreferenceActor, Actor, ActorError, ActorRegistry, Arc, ClientRequest, Map, Result (+4 more)
 
 ### Community 820 - "Community 820"
-Cohesion: 0.15
-Nodes (22): convert_oscillator_options(), OscillatorNode, AudioParam, AudioScheduledSourceNode, BaseAudioContext, Cell, Dom, DomRoot (+14 more)
+Cohesion: 0.14
+Nodes (23): convert_oscillator_options(), OscillatorNode, BaseAudioContextMethods, AudioParam, AudioScheduledSourceNode, BaseAudioContext, Cell, Dom (+15 more)
 
 ### Community 821 - "Community 821"
 Cohesion: 0.13
@@ -7786,24 +7744,24 @@ Cohesion: 0.20
 Nodes (11): CrossProcessInstant, DocumentVisibilityState, DomRoot, DOMString, DomTypeHolder, Finite, GlobalScope, JSContext (+3 more)
 
 ### Community 826 - "Community 826"
-Cohesion: 0.08
-Nodes (22): BytesOrWideString, Display, E, Error, Formatter, Option, Result, Self (+14 more)
+Cohesion: 0.13
+Nodes (13): Display, E, Error, Formatter, Option, Result, Self, Vec (+5 more)
 
 ### Community 827 - "Community 827"
-Cohesion: 0.09
-Nodes (21): Error, HTMLElement, JSContext, Result, Self, TryFrom, DOMString, Node (+13 more)
+Cohesion: 0.17
+Nodes (11): Document, Dom, DOMHighResTimeStamp, DomRoot, DomTypeHolder, GlobalScope, JSContext, NavigationTimingType (+3 more)
 
 ### Community 828 - "Community 828"
 Cohesion: 0.09
 Nodes (24): servo_webview_gamepad_haptic_effect_request_failed(), servo_webview_gamepad_haptic_effect_request_info(), servo_webview_gamepad_haptic_effect_request_succeeded(), ServoGamepadDelegate, ServoGamepadHapticEffectInfo, ServoGamepadHapticEffectRequest, Box, Drop (+16 more)
 
 ### Community 829 - "Community 829"
-Cohesion: 0.09
-Nodes (29): Au, Box, Debug, Deref, FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric (+21 more)
+Cohesion: 0.07
+Nodes (26): Atom, AtomicRef, FontDataAndIndex, FontIdentifier, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontVariation (+18 more)
 
 ### Community 830 - "Community 830"
-Cohesion: 0.15
-Nodes (12): HashMap, HashSet, Option, PipelineId, RwLockReadGuard, S, String, Vec (+4 more)
+Cohesion: 0.25
+Nodes (6): FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation, NativeFontHandle
 
 ### Community 831 - "Community 831"
 Cohesion: 0.25
@@ -7814,8 +7772,8 @@ Cohesion: 0.13
 Nodes (21): Arc, CSSGroupingRule, CssRules, CssRuleType, CSSStyleDeclaration, CSSStyleSheet, DomRoot, DOMString (+13 more)
 
 ### Community 833 - "Community 833"
-Cohesion: 0.14
-Nodes (20): Atom, Cell, DomRefCell, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles (+12 more)
+Cohesion: 0.13
+Nodes (21): Atom, Cell, DomRefCell, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles (+13 more)
 
 ### Community 834 - "Community 834"
 Cohesion: 0.17
@@ -7826,20 +7784,20 @@ Cohesion: 0.25
 Nodes (11): Document, DomRoot, DomTypeHolder, HandleObject, HTMLElement, JSContext, LocalName, Option (+3 more)
 
 ### Community 836 - "Community 836"
-Cohesion: 0.10
-Nodes (19): Element, HitTestResult, Into, MouseEvent, Range, RangeAny, Result, ScriptToEmbedderChan (+11 more)
+Cohesion: 0.22
+Nodes (11): Error, HashMap, ImmutableOrigin, Result, StorageProxyMap, String, Uuid, IndexedDBDescription (+3 more)
 
 ### Community 837 - "Community 837"
 Cohesion: 0.12
-Nodes (22): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, ErrorResult (+14 more)
+Nodes (21): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, ErrorResult (+13 more)
 
 ### Community 838 - "Community 838"
 Cohesion: 0.13
 Nodes (19): DomRoot, DOMString, DomTypeHolder, ErrorResult, ImmutableOrigin, JSContext, NoGC, Option (+11 more)
 
 ### Community 839 - "Community 839"
-Cohesion: 0.10
-Nodes (24): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, ErrorResult (+16 more)
+Cohesion: 0.11
+Nodes (23): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, ErrorResult (+15 more)
 
 ### Community 840 - "Community 840"
 Cohesion: 0.07
@@ -7850,32 +7808,32 @@ Cohesion: 0.23
 Nodes (8): ErrorResult, Fn, FnMut, Node, NoGC, SelectionLiveRangeNotification, StartOrEnd, Document
 
 ### Community 842 - "Community 842"
-Cohesion: 0.17
-Nodes (18): CommandState, Document, DomRefCell, DomRoot, DOMString, DomTypeHolder, Element, ErrorResult (+10 more)
+Cohesion: 0.16
+Nodes (18): CrossProcessInstant, DomRoot, DOMString, DomTypeHolder, Duration, Fallible, GlobalScope, HandleObject (+10 more)
 
 ### Community 843 - "Community 843"
 Cohesion: 0.12
-Nodes (18): Cell, CSSPixel, DevicePixel, Dom, DomRoot, DomTypeHolder, EventTarget, Finite (+10 more)
+Nodes (19): Cell, CSSPixel, DevicePixel, Dom, DomRoot, DomTypeHolder, EventTarget, Finite (+11 more)
 
 ### Community 844 - "Community 844"
 Cohesion: 0.36
 Nodes (5): Context, Self, Sink, ParserUpdate, IncrementalWebVTTParser<Context, Sink>
 
 ### Community 845 - "Community 845"
-Cohesion: 0.11
-Nodes (24): Cell, CorsSettings, Document, DomRefCell, DomRoot, DOMTokenList, ElementCreator, HandleObject (+16 more)
+Cohesion: 0.18
+Nodes (11): DisplayHandle, Error, OffscreenRenderingContext, PhysicalSize, Result, Self, WindowHandle, NativeWidget (+3 more)
 
 ### Community 846 - "Community 846"
 Cohesion: 0.20
 Nodes (14): Dom, DomRoot, DomTypeHolder, GlobalScope, JSContext, Self, Space, Window (+6 more)
 
 ### Community 847 - "Community 847"
-Cohesion: 0.08
-Nodes (16): AccessibilityActionRequest, ContainerTimingRecord, Document, Fn, ImageCacheResponseCallback, LCPCandidate, PendingImage, PendingImageId (+8 more)
+Cohesion: 0.04
+Nodes (45): action, casesensitivity, Cell, ContextualParseError, CustomElementRegistry, DeferredRequestInit, Dom, DOMTracker (+37 more)
 
 ### Community 848 - "Community 848"
-Cohesion: 0.09
-Nodes (14): Arc, Box, BrowsingContextId, CrossProcessInstant, FontContext, ImageCache, Layout, PinchZoomInfos (+6 more)
+Cohesion: 0.15
+Nodes (22): Actor, ActorMsg, Arc, AtomicRefCell, BrowsingContextActor, LongStringObj, Option, String (+14 more)
 
 ### Community 849 - "Community 849"
 Cohesion: 0.11
@@ -7883,15 +7841,15 @@ Nodes (21): D, DomRefCell, DomRoot, Drop, Fallible, GlobalScope, GPUDevice, GPUQ
 
 ### Community 850 - "Community 850"
 Cohesion: 0.08
-Nodes (33): Display, EntityType, Eye, Floor, Input, InputSource, MockButton, MockViewsInit (+25 more)
+Nodes (31): Display, EntityType, Eye, Floor, Input, InputSource, MockButton, MockViewsInit (+23 more)
 
 ### Community 851 - "Community 851"
 Cohesion: 0.06
 Nodes (31): 0. Executive Overview, 1.1 The Golden Rule: Delegate Builds to GitHub Actions, 1.2 Repository & Tooling Facts, 1. Ground Rules & Agent Operating Manual (Mandatory), 2. Master Progress Tracker, 3.1 Layered Architecture Diagram, 3. Architectural Blueprint, 4. Workstream Breakdown & Agent Tickets (+23 more)
 
 ### Community 852 - "Community 852"
-Cohesion: 0.16
-Nodes (20): DomRoot, Fallible, GlobalScope, HandleObject, ImmutableOrigin, JSContext, MutableHandleValue, NotificationPermissionCallback (+12 more)
+Cohesion: 0.17
+Nodes (5): BasicInterpreter, p_dimitem_double(), p_number_signed(), dimitem : ID LPAREN INTEGER COMMA INTEGER RPAREN, number  : MINUS INTEGER                | MINUS FLOAT
 
 ### Community 853 - "Community 853"
 Cohesion: 0.06
@@ -7906,8 +7864,8 @@ Cohesion: 0.12
 Nodes (20): BluetoothPermissionResult, BluetoothPermissionResultMethods, AsyncBluetoothListener, Bluetooth, BluetoothDevice, BluetoothRequest, BluetoothResponse, Dom (+12 more)
 
 ### Community 856 - "Community 856"
-Cohesion: 0.11
-Nodes (20): colorflags, CommandName, Document, Element, From, HTMLElement, JSContext, Node (+12 more)
+Cohesion: 0.06
+Nodes (39): colorflags, execute_default_paragraph_separator_command(), execute_italic_command(), execute_strikethrough_command(), execute_style_with_css_command(), execute_underline_command(), CommandName, Document (+31 more)
 
 ### Community 857 - "Community 857"
 Cohesion: 0.09
@@ -7934,16 +7892,16 @@ Cohesion: 0.16
 Nodes (18): Cell, Document, Dom, DomRoot, DomTypeHolder, Fallible, Filter, JSContext (+10 more)
 
 ### Community 863 - "Community 863"
-Cohesion: 0.08
-Nodes (24): Arc, Bytes, Cow, DOMStringList, I, ImmutableOrigin, Metadata, Mime (+16 more)
+Cohesion: 0.13
+Nodes (16): Bytes, BytesMut, Encoding, FetchMetadata, FetchResponseListener, GlobalScope, Metadata, NetworkError (+8 more)
 
 ### Community 864 - "Community 864"
 Cohesion: 0.15
 Nodes (18): CSSPixel, DomRoot, DomTypeHolder, EventTarget, Finite, HandleObject, JSContext, Modifiers (+10 more)
 
 ### Community 865 - "Community 865"
-Cohesion: 0.17
-Nodes (9): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, OESTextureHalfFloat (+1 more)
+Cohesion: 0.09
+Nodes (17): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, DomRoot (+9 more)
 
 ### Community 866 - "Community 866"
 Cohesion: 0.13
@@ -7958,20 +7916,20 @@ Cohesion: 0.26
 Nodes (10): CSSPixel, DomRoot, DomTypeHolder, Finite, JSContext, PaintWorkletGlobalScope, Reflector, Size2D (+2 more)
 
 ### Community 869 - "Community 869"
-Cohesion: 0.25
-Nodes (8): current_task, kern_success, mach_port_deallocate, mach_vm_deallocate, count_running_threads(), deinit(), Option, task_threads
+Cohesion: 0.15
+Nodes (18): contents_vec(), RopeIndex, RopeSlice, String, test_rope_delete_slice(), test_rope_index_conversion_to_utf16_offset(), test_rope_index_conversion_to_utf8_offset(), test_rope_index_intersects_character() (+10 more)
 
 ### Community 870 - "Community 870"
 Cohesion: 0.16
 Nodes (21): Builder, Caps, Element, MediaStreamId, MediaStreamType, MediaTrackConstraintSet, Option, Self (+13 more)
 
 ### Community 871 - "Community 871"
-Cohesion: 0.11
-Nodes (17): CustomAutoRooterGuard, DeferredRequestInit, ErrorResult, Fallible, FetchLaterResult, HandleValue, JSObject, MutableOrigin (+9 more)
+Cohesion: 0.50
+Nodes (3): JSTraceable, JSTracer, LayoutValue<T>
 
 ### Community 873 - "Community 873"
-Cohesion: 0.14
-Nodes (9): AtomicRef, Option, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset, ResolvedSlotAndLocation, TableBuilder (+1 more)
+Cohesion: 0.08
+Nodes (18): Box, HandleObject, IceCandidate, JSContext, MediaStreamId, MediaStreamType, SendableTaskSource, Trusted (+10 more)
 
 ### Community 874 - "Community 874"
 Cohesion: 0.11
@@ -7983,7 +7941,7 @@ Nodes (17): CanvasPattern, CanvasPatternMethods, DOMMatrix2DInit, DomRefCell, Do
 
 ### Community 876 - "Community 876"
 Cohesion: 0.08
-Nodes (34): AssignedNodesOptions, AttributeMutation, AttrRef, BindContext, Cell, Document, Dom, DomRoot (+26 more)
+Nodes (35): AssignedNodesOptions, AttributeMutation, AttrRef, BindContext, Cell, Document, Dom, DomRoot (+27 more)
 
 ### Community 877 - "Community 877"
 Cohesion: 0.11
@@ -8002,12 +7960,12 @@ Cohesion: 0.16
 Nodes (18): BluetoothRemoteGATTService, BluetoothRemoteGATTServiceMethods, AsyncBluetoothListener, BluetoothCharacteristicUUID, BluetoothDevice, BluetoothResponse, BluetoothServiceUUID, CurrentRealm (+10 more)
 
 ### Community 881 - "Community 881"
-Cohesion: 0.29
-Nodes (4): AtomicRef, Clear, ContentSizesComputation<'layout_data>, TextRunSegment
+Cohesion: 0.14
+Nodes (20): Arc, Atom, Box, From, GenericCallback, IdentityHub, ImageCache, MainThreadScriptMsg (+12 more)
 
 ### Community 882 - "Community 882"
 Cohesion: 0.15
-Nodes (20): Arc, CSSFontFaceDescriptors, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString (+12 more)
+Nodes (19): Arc, CSSFontFaceDescriptors, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString (+11 more)
 
 ### Community 884 - "Community 884"
 Cohesion: 0.15
@@ -8030,12 +7988,16 @@ Cohesion: 0.14
 Nodes (14): PeriodicWave, PeriodicWaveOptions, Wavetable, complex32, Option, OscillatorType, Self, Vec (+6 more)
 
 ### Community 889 - "Community 889"
-Cohesion: 0.10
-Nodes (18): Box, CurrentRealm, DomObject, DomRefCell, DomRoot, FnOnce, HashMapTracedValues, Heap (+10 more)
+Cohesion: 0.11
+Nodes (20): FxHashMap, GenericSender, HashMap, Option, Self, TraversalId, WebDriverJSResult, WebViewId (+12 more)
 
 ### Community 891 - "Community 891"
 Cohesion: 0.13
 Nodes (19): AbsoluteColor, AttributeMutation, AttrRef, AttrValue, BindContext, Document, DomRoot, DOMString (+11 more)
+
+### Community 892 - "Community 892"
+Cohesion: 0.22
+Nodes (15): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, Gamepad, HandleObject (+7 more)
 
 ### Community 893 - "Community 893"
 Cohesion: 0.07
@@ -8043,11 +8005,11 @@ Nodes (130): BooleanOrScrollIntoViewOptions, Dom, DomRoot, DOMString, DomTypeHol
 
 ### Community 894 - "Community 894"
 Cohesion: 0.07
-Nodes (44): ActorError, ActorRegistry, Arc, BrowsingContextId, DevtoolsConnection, DevtoolsControlMsg, DevtoolScriptControlMsg, DevtoolsPageInfo (+36 more)
+Nodes (43): ActorError, ActorRegistry, Arc, BrowsingContextId, DevtoolsConnection, DevtoolsControlMsg, DevtoolScriptControlMsg, DevtoolsPageInfo (+35 more)
 
 ### Community 895 - "Community 895"
-Cohesion: 0.17
-Nodes (9): Arc, FetchResponseMsg, FontData, FontTemplate, LowercaseFontFamilyName, Url, DownloaderResponseResult, RemoteWebFontDownloader (+1 more)
+Cohesion: 0.08
+Nodes (30): AtomicBool, AtomicUsize, CoreResourceThread, FetchResponseMsg, FontData, FontFaceRuleInfo, FontGroup, FontIdentifier (+22 more)
 
 ### Community 896 - "Community 896"
 Cohesion: 0.17
@@ -8058,12 +8020,12 @@ Cohesion: 0.15
 Nodes (18): CurrentRealm, DomRoot, DomTypeHolder, Error, GlobalScope, JSContext, Option, Reflector (+10 more)
 
 ### Community 898 - "Community 898"
-Cohesion: 0.14
-Nodes (23): ByteTeeReadIntoRequest, ArrayBufferViewU8, ByteTeePullAlgorithm, ByteTeeUnderlyingSource, Cell, Dom, DomRoot, Fallible (+15 more)
+Cohesion: 0.15
+Nodes (22): ArrayBufferViewU8, ByteTeePullAlgorithm, ByteTeeUnderlyingSource, Cell, Dom, DomRoot, Fallible, GlobalScope (+14 more)
 
 ### Community 899 - "Community 899"
-Cohesion: 0.08
-Nodes (14): Box, DataChannelId, IceCandidate, SendableTaskSource, Trusted, WebRtcController, WebRtcSignaller, DataChannelEvent (+6 more)
+Cohesion: 0.15
+Nodes (18): display_and_window_handle(), Java_org_servo_servoview_JNIServo_addPlatformWindow(), Java_org_servo_servoview_JNIServo_resumePainting(), jni_coordinate_to_rust_viewport_rect(), set_default_config_dir(), WakeupCallback, JavaVM, JObject (+10 more)
 
 ### Community 900 - "Community 900"
 Cohesion: 0.13
@@ -8074,28 +8036,28 @@ Cohesion: 0.17
 Nodes (19): ApiRigidTransform, DOMPointInit, DOMPointReadOnly, DomRoot, DomTypeHolder, Fallible, Float32, HandleObject (+11 more)
 
 ### Community 902 - "Community 902"
-Cohesion: 0.14
-Nodes (8): CanPlayTypeResult, DOMString, From, Option, ShadowRoot, SrcObject, MediaError, MediaStreamOrBlob
+Cohesion: 0.05
+Nodes (43): 10.1 Navigation / session, 10.2 UI chrome, 10.3 Web platform, 10.4 Networking / security, 10.5 Stability / performance, 10.6 Packaging / verification, 10.7 Highest-value remaining gaps, 10. Phase 4 - final gap audit (static, 20 Nov 2026) (+35 more)
 
 ### Community 903 - "Community 903"
 Cohesion: 0.11
 Nodes (21): Arc, AsRef, AtomicUsize, Descriptors, FontData, FontFaceRuleInfo, From, GenericSharedMemory (+13 more)
 
 ### Community 904 - "Community 904"
-Cohesion: 0.17
-Nodes (15): Vec, ExternalScrollId, ScrollTree, ScrollTreeNodeId, flip_y_rgba8_image_inplace, layoutvector2d, flip_y_rgba8_image_inplace(), size2d (+7 more)
+Cohesion: 0.18
+Nodes (14): Vec, ExternalScrollId, ScrollTree, ScrollTreeNodeId, flip_y_rgba8_image_inplace, layoutvector2d, size2d, add_mock_scroll_node() (+6 more)
 
 ### Community 905 - "Community 905"
-Cohesion: 0.11
-Nodes (31): HFONT, HKEY, namespace, BrowserSettings, BrowserWindow, DWORD, HINSTANCE, HWND (+23 more)
+Cohesion: 0.14
+Nodes (27): HKEY, BrowserSettings, BrowserWindow, DWORD, HINSTANCE, HWND, LPARAM, LRESULT (+19 more)
 
 ### Community 906 - "Community 906"
-Cohesion: 0.12
-Nodes (20): ContentType, FetchMetadata, From, HeaderMap, HttpStatus, Mime, ResourceFetchTiming, Self (+12 more)
+Cohesion: 0.11
+Nodes (21): ContentType, FetchMetadata, From, HeaderMap, HttpStatus, Mime, ResourceFetchTiming, Self (+13 more)
 
 ### Community 907 - "Community 907"
-Cohesion: 0.31
-Nodes (9): BTreeMap, GenericSender, ImmutableOrigin, Option, String, WebStorageType, WebViewId, OriginEntry (+1 more)
+Cohesion: 0.14
+Nodes (27): Arc, BTreeMap, Error, FxHashMap, GenericReceiver, GenericSender, ImmutableOrigin, MemProfilerChan (+19 more)
 
 ### Community 908 - "Community 908"
 Cohesion: 0.12
@@ -8118,8 +8080,8 @@ Cohesion: 0.13
 Nodes (21): CachedResource, CacheKey, Arc, CacheEntry, Connection, From, Option, PathBuf (+13 more)
 
 ### Community 913 - "Community 913"
-Cohesion: 0.06
-Nodes (38): BorderImageOutset, BorderImageWidth, Clip, clippath_as_computedclippath, colororauto, Border, BorderRadius, ComputedValues (+30 more)
+Cohesion: 0.13
+Nodes (17): HashMapTracedValues, HashMapTracedValues<K, V, FxBuildHasher>, HashMapTracedValues<K, V, RandomState>, NoTrace, trace_jsval(), trace_script(), trace_string(), FxBuildHasher (+9 more)
 
 ### Community 914 - "Community 914"
 Cohesion: 0.10
@@ -8134,8 +8096,8 @@ Cohesion: 0.14
 Nodes (23): CompileOptionsWrapper, Cow, CStr, ErrorResult, Handle, Heap, JSContext, JSScript (+15 more)
 
 ### Community 917 - "Community 917"
-Cohesion: 0.12
-Nodes (23): AbsolutelyPositionedBox, AlignFlags, Arc, ArcRefCell, Baselines, BoxFragment, ComputedValues, ContainingBlock (+15 more)
+Cohesion: 0.09
+Nodes (28): AbsolutelyPositionedBox, AlignFlags, Arc, ArcRefCell, Baselines, BoxFragment, ComputedValues, ContainingBlock (+20 more)
 
 ### Community 918 - "Community 918"
 Cohesion: 0.10
@@ -8186,8 +8148,8 @@ Cohesion: 0.24
 Nodes (5): AccessibilityUpdate<'update>, test_accessibility_update_add_some_nodes_twice(), NodeId, Self, ServoLayoutNode
 
 ### Community 930 - "Community 930"
-Cohesion: 0.09
-Nodes (11): AttrValueRef, AttributeMutation, AttrRef, CloneChildrenFlag, DOMTokenList, Node, String, VirtualMethods (+3 more)
+Cohesion: 0.10
+Nodes (9): AttrValueRef, AttributeMutation, AttrRef, BindContext, ChildrenMutation, ElementSelectorFlags, UnbindContext, VirtualMethods (+1 more)
 
 ### Community 931 - "Community 931"
 Cohesion: 0.08
@@ -8203,35 +8165,35 @@ Nodes (19): AsRef, Au, Debug, Drop, FontVariation, Formatter, NonNull, Result (+
 
 ### Community 934 - "Community 934"
 Cohesion: 0.12
-Nodes (16): ExternalImageSource, GenericReceiver, GenericSender, GlApi, GlContext, NativeDisplay, Option, PlayerGLContext (+8 more)
+Nodes (17): ExternalImageSource, GenericReceiver, GenericSender, GlApi, GlContext, NativeDisplay, Option, PlayerGLContext (+9 more)
 
 ### Community 935 - "Community 935"
 Cohesion: 0.09
 Nodes (24): BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorControlMsg, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, Box<dyn BackgroundHangMonitorRegister>, HangAlert, HangAnnotation (+16 more)
 
 ### Community 936 - "Community 936"
-Cohesion: 0.14
-Nodes (10): BlobInfo, FileManagerThreadMsg, InsecureRequestsPolicy, MutableOrigin, NoGC, RelativePos, RequestClient, RootedPromise (+2 more)
+Cohesion: 0.16
+Nodes (9): BlobInfo, BroadcastChannelMsg, FileManagerThreadMsg, InsecureRequestsPolicy, MutableOrigin, NoGC, RelativePos, RequestClient (+1 more)
 
 ### Community 937 - "Community 937"
-Cohesion: 0.15
-Nodes (18): BluetoothAdvertisingEvent, BluetoothAdvertisingEventInit, BluetoothAdvertisingEventMethods, Atom, BluetoothDevice, Dom, DomRoot, DOMString (+10 more)
+Cohesion: 0.08
+Nodes (34): BluetoothAdvertisingEvent, BluetoothAdvertisingEventInit, BluetoothAdvertisingEventMethods, Atom, BluetoothDevice, Dom, DomRoot, DOMString (+26 more)
 
 ### Community 938 - "Community 938"
-Cohesion: 0.13
-Nodes (23): BodyChunkResponse, BodyChunkRequest, Callback, CurrentRealm, Dom, DomRoot, DOMString, GenericSharedMemory (+15 more)
+Cohesion: 0.15
+Nodes (19): BodyChunkResponse, BodyChunkRequest, Callback, CurrentRealm, Dom, GenericSharedMemory, HandleValue, IpcSender (+11 more)
 
 ### Community 939 - "Community 939"
-Cohesion: 0.16
-Nodes (13): Cell, Dom, DomRoot, EventTarget, JSContext, Option, Vec, Window (+5 more)
+Cohesion: 0.24
+Nodes (7): addrawvalueroot, CStr, Drop, JSContext, JSObject, jsval, PermanentRoot
 
 ### Community 940 - "Community 940"
 Cohesion: 0.15
 Nodes (21): CaretAnimation, Arc, AtomicBool, Box, Cell, ColorF, EventLoopWaker, FxHashMap (+13 more)
 
 ### Community 941 - "Community 941"
-Cohesion: 0.10
-Nodes (17): CertificateErrorResponse, AllowOrDeny, GenericCallback, GenericSender, InterceptedWebResourceLoad, Self, Sender, TokioSender (+9 more)
+Cohesion: 0.13
+Nodes (13): AllowOrDeny, GenericCallback, InterceptedWebResourceLoad, Self, TokioSender, WebResourceRequest, WebResourceResponse, AllowOrDenyRequest (+5 more)
 
 ### Community 942 - "Community 942"
 Cohesion: 0.27
@@ -8243,35 +8205,35 @@ Nodes (20): ClientMethods, CustomAutoRooterGuard, DomRoot, DOMString, DomTypeHol
 
 ### Community 944 - "Community 944"
 Cohesion: 0.08
-Nodes (40): D, Debug, Deref, DerefMut, Error, Formatter, Ok, PartialEq (+32 more)
+Nodes (38): D, Debug, Deref, DerefMut, Error, Formatter, Ok, PartialEq (+30 more)
 
 ### Community 945 - "Community 945"
-Cohesion: 0.08
-Nodes (39): Arc, Au, BorderRadius, BoxFragmentWithStyle, ClipId, CSSPixel, FastLayoutTransform, Fragment (+31 more)
+Cohesion: 0.11
+Nodes (21): BorderRadius, BoxFragmentWithStyle, ClipId, FastLayoutTransform, FxHashMap, HitTestFlags, HitTestResult, HitTestResultItem (+13 more)
 
 ### Community 946 - "Community 946"
-Cohesion: 0.12
-Nodes (18): ComputeInlineContentSizes, ConstraintSpace, FlexAxis, Fn, IndefiniteContainingBlock, InlineContentSizesResult, LayoutContext, LayoutStyle (+10 more)
+Cohesion: 0.14
+Nodes (16): AlignItems, AuOrAuto, ComputeInlineContentSizes, ConstraintSpace, Fn, IndefiniteContainingBlock, InlineContentSizesResult, LayoutContext (+8 more)
 
 ### Community 947 - "Community 947"
 Cohesion: 0.14
 Nodes (22): AspectRatio, Au, ComputedValues, ContainingBlock, Default, DefiniteContainingBlock, From, LogicalVec2 (+14 more)
 
 ### Community 948 - "Community 948"
-Cohesion: 0.25
-Nodes (4): AxesOverflow, FragmentFlags, ComputedTransformStyle, ComputedValues
+Cohesion: 0.20
+Nodes (5): AxesOverflow, FragmentFlags, ComputedTransformStyle, ComputedValues, PrimitiveFlags
 
 ### Community 949 - "Community 949"
-Cohesion: 0.15
-Nodes (9): Bytes, Request, Response, Vec, Violation, DiscardFetch, FetchTaskTarget, GenericCallback<FetchResponseMsg> (+1 more)
+Cohesion: 0.13
+Nodes (10): Bytes, Request, Response, Vec, Violation, DiscardFetch, FetchMetadata, FetchTaskTarget (+2 more)
 
 ### Community 950 - "Community 950"
 Cohesion: 0.15
 Nodes (19): Arc, CSSConditionRule, CSSGroupingRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+11 more)
 
 ### Community 951 - "Community 951"
-Cohesion: 0.10
-Nodes (19): Any, Drop, MediaStream, MediaStreamId, MediaStreamType, MediaTrackConstraintSet, Option, Arc (+11 more)
+Cohesion: 0.07
+Nodes (22): AudioBackend, AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions, AudioStreamReader, Backend, BackendInit, Block (+14 more)
 
 ### Community 953 - "Community 953"
 Cohesion: 0.30
@@ -8290,24 +8252,24 @@ Cohesion: 0.29
 Nodes (5): NoTraceable, Foo, i32, JSTraceable, NoTrace
 
 ### Community 957 - "Community 957"
-Cohesion: 0.17
-Nodes (16): Destination, Method, Option, ServoUrl, String, AuthenticationResponse, BluetoothDeviceDescription, JavaScriptErrorInfo (+8 more)
+Cohesion: 0.23
+Nodes (21): CryptoKey, CryptoKeyPair, DomRoot, EcKeyGenParams, EcKeyImportParams, Error, ExportedKey, GlobalScope (+13 more)
 
 ### Community 958 - "servo-media-derive/lib.rs"
 Cohesion: 0.60
 Nodes (5): TokenStream, DeriveInput, audio_scheduled_source_node(), channel_info(), impl_audio_scheduled_source_node()
 
 ### Community 959 - "Community 959"
-Cohesion: 0.15
-Nodes (17): BrowsingContextId, Dom, DomRefCell, DomRoot, HTMLIFrameElement, IFrameSizes, Item, Iterator (+9 more)
+Cohesion: 0.13
+Nodes (19): BrowsingContextId, Dom, DomRefCell, DomRoot, HTMLIFrameElement, IFrameSizes, Item, Iterator (+11 more)
 
 ### Community 960 - "Community 960"
-Cohesion: 0.15
-Nodes (18): ArrayBufferViewOrArrayBuffer, Cell, DomRoot, DOMString, DomTypeHolder, Encoding, Fallible, GlobalScope (+10 more)
+Cohesion: 0.14
+Nodes (19): ArrayBufferViewOrArrayBuffer, Cell, DomRoot, DOMString, DomTypeHolder, Encoding, Fallible, GlobalScope (+11 more)
 
 ### Community 961 - "Community 961"
-Cohesion: 0.08
-Nodes (18): attrref, Atom, Error, Option, Result, Self, SpecificInputActivationType, SpecificInputType (+10 more)
+Cohesion: 0.09
+Nodes (16): Atom, Error, Option, Result, Self, SpecificInputActivationType, SpecificInputType, TryFrom (+8 more)
 
 ### Community 962 - "Community 962"
 Cohesion: 0.13
@@ -8315,7 +8277,7 @@ Nodes (14): AbstractRange, BoundaryPoint, Debug, Document, DomTypeHolder, Format
 
 ### Community 963 - "Community 963"
 Cohesion: 0.11
-Nodes (21): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, HandleObject (+13 more)
+Nodes (22): AbsoluteColor, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, HandleObject (+14 more)
 
 ### Community 964 - "Community 964"
 Cohesion: 0.13
@@ -8334,28 +8296,28 @@ Cohesion: 0.13
 Nodes (22): CallArgs, DomRoot, DomTypeHolder, Error, Fallible, Function, GlobalScope, HandleObject (+14 more)
 
 ### Community 968 - "Community 968"
-Cohesion: 0.15
-Nodes (27): C, CryptoKey, CryptoKeyPair, DomRoot, EcKeyGenParams, EcKeyImportParams, Error, ErrorResult (+19 more)
+Cohesion: 0.12
+Nodes (18): Bytes, BytesMut, DomRoot, FetchMetadata, FetchResponseListener, GlobalScope, JSContext, NetworkError (+10 more)
 
 ### Community 969 - "Community 969"
-Cohesion: 0.17
-Nodes (27): CryptoKey, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyFormat, KeyUsage (+19 more)
+Cohesion: 0.18
+Nodes (26): CryptoKey, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyFormat, KeyUsage (+18 more)
 
 ### Community 970 - "Community 970"
 Cohesion: 0.12
 Nodes (21): CurrentRealm, Dom, DomRefCell, DomRoot, DomTypeHolder, Function, GenericSender, GlobalScope (+13 more)
 
 ### Community 971 - "Community 971"
-Cohesion: 0.10
-Nodes (21): bluetoothrequest, bluetooththreadfactory, builder_as_envloggerbuilder, servo_create_sandbox(), servo_run_content_process(), ScriptToConstellationSender, defaultwakelockdelegate, fetchthread (+13 more)
+Cohesion: 0.19
+Nodes (10): Au, CollapsedMargin, CSSPixel, LogicalSides, Point2D, Rect, Self, Utf32CodeUnits (+2 more)
 
 ### Community 972 - "Community 972"
 Cohesion: 0.26
 Nodes (8): DomRoot, DOMString, DomTypeHolder, JSContext, Reflector, Window, MediaError, MediaErrorMethods
 
 ### Community 973 - "Community 973"
-Cohesion: 0.11
-Nodes (24): Arc, BoxedFetchCallback, FetchResponseMsg, GlobalScope, InitiatorType, JSContext, Listener, Mutex (+16 more)
+Cohesion: 0.10
+Nodes (25): bytes, Arc, BoxedFetchCallback, FetchResponseMsg, GlobalScope, InitiatorType, JSContext, Listener (+17 more)
 
 ### Community 974 - "Community 974"
 Cohesion: 0.13
@@ -8370,8 +8332,8 @@ Cohesion: 0.13
 Nodes (18): Debug, F, Formatter, HashMap, JSValue, Result, Self, String (+10 more)
 
 ### Community 977 - "Community 977"
-Cohesion: 0.12
-Nodes (20): AutomaticResponder, Cell, ClipboardDelegate, CSSPixel, Drop, GamepadDelegate, GenericSender, Hash (+12 more)
+Cohesion: 0.13
+Nodes (14): AutomaticResponder, ClipboardDelegate, GamepadDelegate, NewWebViewDetails, Rc, RenderingContext, RequestContext, Self (+6 more)
 
 ### Community 978 - "Community 978"
 Cohesion: 0.07
@@ -8382,24 +8344,28 @@ Cohesion: 0.14
 Nodes (20): DOMStringMap, to_camel_case(), to_snake_case(), is_valid_continuation(), is_valid_start(), matches_name_production(), Dom, DomRoot (+12 more)
 
 ### Community 980 - "Community 980"
-Cohesion: 0.20
-Nodes (23): Arc, ClientStorageThreadHandle, CreateObjectResult, ImmutableOrigin, Path, PathBuf, Self, StorageProxyMap (+15 more)
+Cohesion: 0.19
+Nodes (24): Arc, ClientStorageThreadHandle, CreateObjectResult, ImmutableOrigin, Path, PathBuf, Self, StorageProxyMap (+16 more)
 
 ### Community 981 - "Community 981"
-Cohesion: 0.20
-Nodes (10): BackendResult, Error, HashMap, Result, StorageProxyMap, Uuid, IndexedDBDescription, IndexedDBManager (+2 more)
+Cohesion: 0.09
+Nodes (10): MallocConditionalSizeOf, OnceCell<T>, OnceLock<T>, Option<T>, parking_lot::RwLock<T>, servo_arc::Arc<ComputedValues>, std::cell::RefCell<T>, (T1, T2) (+2 more)
 
 ### Community 982 - "Community 982"
 Cohesion: 0.07
 Nodes (27): 1. Scope: the C ABI is the compatibility boundary, 2.1 Version macros and runtime query, 2.2 Semantic versioning rules, 2.3 What counts as a breaking change (checklist), 2.4 While `MAJOR` is `0`: incompatible changes bump `MINOR`, 2. Versioning, 3.1 Symbol naming and prefixing, 3.2 Opaque handles (+19 more)
 
 ### Community 983 - "Community 983"
-Cohesion: 0.11
-Nodes (18): CachedMetadata, Arc, AtomicBool, CacheEntryDescriptor, Data, Formatter, HttpStatus, ResponseBody (+10 more)
+Cohesion: 0.12
+Nodes (29): Atom, Box, Cell, Dom, DomRoot, DOMString, DomTypeHolder, Element (+21 more)
 
 ### Community 984 - "Community 984"
-Cohesion: 0.09
-Nodes (11): MallocConditionalSizeOf, OnceCell<T>, OnceLock<T>, Option<T>, parking_lot::RwLock<T>, servo_arc::Arc<ComputedValues>, std::cell::RefCell<T>, [T] (+3 more)
+Cohesion: 0.17
+Nodes (13): AudioListener, AudioListenerMethods, audionodetype, AudioParam, BaseAudioContext, Dom, DomRoot, DomTypeHolder (+5 more)
+
+### Community 985 - "Community 985"
+Cohesion: 0.15
+Nodes (4): CheckTidiness, iterFile(), test_file_path(), unittest
 
 ### Community 986 - "Community 986"
 Cohesion: 0.10
@@ -8414,8 +8380,8 @@ Cohesion: 0.19
 Nodes (26): arraysize, blocksizeuser, Cipher, AeadParams, AesDerivedKeyParams, AesKeyGenParams, CryptoKey, DomRoot (+18 more)
 
 ### Community 989 - "Community 989"
-Cohesion: 0.24
-Nodes (8): DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector, Self, PipelineId, PipelineIdMethods
+Cohesion: 0.14
+Nodes (9): adjust_canvas_size(), adjust_size_sign(), CanvasCommand, Epoch, ImageKey, NoGC, Point2D, PredefinedColorSpace (+1 more)
 
 ### Community 991 - "Community 991"
 Cohesion: 0.25
@@ -8426,20 +8392,20 @@ Cohesion: 0.30
 Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 993 - "Community 993"
-Cohesion: 0.10
-Nodes (15): AttributeEntry, AttributesBorrow, AttributeStorage, AttrValueRef, AsRef, Attr, AttrInfo, Deref (+7 more)
+Cohesion: 0.12
+Nodes (20): c_uint, c_void, CallArgs, ID, JSClass, JSVal, MutableOrigin, Option (+12 more)
 
 ### Community 994 - "Community 994"
-Cohesion: 0.13
-Nodes (24): Cell, CurrentRealm, D, Dom, DOMClass, DomRoot, Fallible, HandleValue (+16 more)
+Cohesion: 0.12
+Nodes (25): Cell, CurrentRealm, D, Dom, DOMClass, DomRoot, Fallible, HandleValue (+17 more)
 
 ### Community 995 - "Community 995"
-Cohesion: 0.16
-Nodes (14): AudioListener, AudioListenerMethods, audionodetype, AudioParam, BaseAudioContext, Dom, DomRoot, DomTypeHolder (+6 more)
+Cohesion: 0.13
+Nodes (14): Arc, Atom, Eq, FontDataAndIndex, FontDescriptor, H, Hash, NativeFontHandle (+6 more)
 
 ### Community 996 - "Community 996"
-Cohesion: 0.12
-Nodes (33): AbsoluteColor, Arc, BoxFragment, ContainerTimingRoots, DiagnosticsLogging, FragmentTree, PaintDisplayListInfo, PhysicalPoint (+25 more)
+Cohesion: 0.16
+Nodes (25): Arc, BoxFragment, ContainerTimingRoots, DiagnosticsLogging, FragmentTree, PaintDisplayListInfo, PhysicalPoint, PipelineId (+17 more)
 
 ### Community 997 - "Community 997"
 Cohesion: 0.11
@@ -8450,12 +8416,12 @@ Cohesion: 0.11
 Nodes (17): BinaryHeap, cmp, BoxedTimerCallback, Duration, Eq, Instant, Option, Ord (+9 more)
 
 ### Community 999 - "Community 999"
-Cohesion: 0.07
-Nodes (32): Activatable, AttributeMutation, AttrRef, AttrValue, Cell, Document, DomRefCell, DomRoot (+24 more)
+Cohesion: 0.18
+Nodes (14): AtomicBool, JSContext, JSTracer, Option, Receiver, Runtime, Sender, WorkletGlobalScope (+6 more)
 
 ### Community 1000 - "Community 1000"
 Cohesion: 0.05
-Nodes (34): CapFlags, Box, Cell, Default, Drop, Element, ImageKey, Item (+26 more)
+Nodes (34): Box, Default, Drop, F, ImageKey, Item, Iterator, Reflector (+26 more)
 
 ### Community 1001 - "Community 1001"
 Cohesion: 0.12
@@ -8465,21 +8431,25 @@ Nodes (21): ApiSpace, FromIterator, HitTestId, Native, Option, Point3D, RigidTra
 Cohesion: 0.14
 Nodes (20): Arc, BlockContainer, BoxFragment, CollapsibleWithParentStartMargin, ComputedValues, ConstraintSpace, ContainingBlock, InlineContentSizesResult (+12 more)
 
+### Community 1003 - "Community 1003"
+Cohesion: 0.29
+Nodes (3): DocumentFragment, DomRoot, JSContext
+
 ### Community 1004 - "Community 1004"
 Cohesion: 0.14
 Nodes (21): D, Dom, DomRefCell, DomRoot, Drop, GlobalScope, GPUBindGroupDescriptor, GPUBindGroupLayout (+13 more)
 
 ### Community 1005 - "Community 1005"
-Cohesion: 0.17
-Nodes (16): Arc, AtomicBool, Au, BaseFragment, BaseFragmentInfo, ComputedValues, ContainingBlockCalculation, Fragment (+8 more)
+Cohesion: 0.16
+Nodes (17): arc_as_servoarc, Arc, AtomicBool, Au, BaseFragment, BaseFragmentInfo, ComputedValues, ContainingBlockCalculation (+9 more)
 
 ### Community 1006 - "Community 1006"
 Cohesion: 0.10
-Nodes (12): AnimationState, CSSPixel, DeviceIndependentPixel, DevicePixel, InputEventAndId, InputEventId, InputEventResult, Scale (+4 more)
+Nodes (13): AnimationState, CSSPixel, DeviceIndependentPixel, DevicePixel, InputEventAndId, InputEventId, InputEventResult, PipelineExitSource (+5 more)
 
 ### Community 1007 - "Community 1007"
-Cohesion: 0.12
-Nodes (19): Arc, CSSRule, CSSRuleList, CssRules, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+11 more)
+Cohesion: 0.13
+Nodes (18): Arc, CSSRule, CSSRuleList, CssRules, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+10 more)
 
 ### Community 1008 - "Community 1008"
 Cohesion: 0.16
@@ -8494,36 +8464,36 @@ Cohesion: 0.40
 Nodes (3): DomTypeHolder, SpecLinkMethods, SpecLink
 
 ### Community 1011 - "Community 1011"
-Cohesion: 0.25
-Nodes (5): AmbigArg, Pat, FnDefVisitor<'a, 'tcx>, Expr, Visitor
+Cohesion: 0.16
+Nodes (21): GainNode, GainOptions, Arc, ServoMedia, AudioNode, AudioParam, BaseAudioContext, Convert (+13 more)
 
 ### Community 1012 - "Community 1012"
 Cohesion: 0.23
 Nodes (8): Default, Deref, MallocSizeOf, MallocSizeOfOps, Option, T, Finite, Finite<T>
 
 ### Community 1013 - "Community 1013"
-Cohesion: 0.15
-Nodes (17): Arc, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+9 more)
+Cohesion: 0.14
+Nodes (18): Arc, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+10 more)
 
 ### Community 1014 - "Community 1014"
-Cohesion: 0.15
-Nodes (7): Add, Output, Self, Sub, LogicalRect<T>, LogicalSides<T>, Neg
+Cohesion: 0.32
+Nodes (5): Connection, Option, Surface, SurfaceTexture, UntypedSize2D
 
 ### Community 1015 - "Community 1015"
 Cohesion: 0.07
 Nodes (6): CurrentRealm, Fallible, GlobalScope, HandleValue, RootedPromise, SimpleCallback
 
 ### Community 1017 - "Community 1017"
-Cohesion: 0.16
-Nodes (15): Arc, CSSStyleSheet, DomRoot, DomTypeHolder, Element, JSContext, NoGC, Option (+7 more)
+Cohesion: 0.11
+Nodes (18): CachedMetadata, Arc, AtomicBool, CacheEntryDescriptor, Data, Formatter, HttpStatus, ResponseBody (+10 more)
 
 ### Community 1018 - "Community 1018"
 Cohesion: 0.30
 Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 1019 - "Community 1019"
-Cohesion: 0.48
-Nodes (4): i32, ServoCertErrorCode, From, Self
+Cohesion: 0.18
+Nodes (11): DomRoot, DOMString, DomTypeHolder, Element, JSContext, MediaList, NoGC, Option (+3 more)
 
 ### Community 1020 - "Community 1020"
 Cohesion: 0.13
@@ -8534,8 +8504,8 @@ Cohesion: 0.17
 Nodes (16): AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder, HandleObject, HTMLElement (+8 more)
 
 ### Community 1022 - "Community 1022"
-Cohesion: 0.24
-Nodes (4): AttributesBorrow<'a>, AttrRef, Item, Iterator
+Cohesion: 0.14
+Nodes (18): Atom, Dom, DomRoot, DOMString, DomTypeHolder, FxBuildHasher, GlobalScope, HashMapTracedValues (+10 more)
 
 ### Community 1023 - "Community 1023"
 Cohesion: 0.33
@@ -8546,8 +8516,8 @@ Cohesion: 0.13
 Nodes (14): Destination, E, Error, From, HeaderName, I, RequestMode, Result (+6 more)
 
 ### Community 1025 - "Community 1025"
-Cohesion: 0.26
-Nodes (9): GenericReceiver, HashMap, ProfilerChan, ProfilerMsg, Report, String, Vec, Profiler (+1 more)
+Cohesion: 0.14
+Nodes (14): CrossProcessPaintApi, Debug, Error, EventLoopWaker, Formatter, GenericCallback, OpaqueSender, PaintMessage (+6 more)
 
 ### Community 1026 - "Community 1026"
 Cohesion: 0.22
@@ -8569,25 +8539,29 @@ Nodes (18): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Element, Event, EventB
 Cohesion: 0.14
 Nodes (15): Atom, Cell, DomRoot, DomTypeHolder, EventBubbles, EventCancelable, EventComposed, JSContext (+7 more)
 
+### Community 1031 - "Community 1031"
+Cohesion: 0.09
+Nodes (35): alert_trampoline(), authentication_trampoline(), certificate_error_trampoline(), color_picker_trampoline(), confirm_trampoline(), context_menu_trampoline(), download_continue_trampoline(), file_picker_trampoline() (+27 more)
+
 ### Community 1032 - "Community 1032"
 Cohesion: 0.26
 Nodes (4): Au, ContainingBlockCalculation, PhysicalRect, BoxFragmentWithStyle<'a>
 
 ### Community 1033 - "Community 1033"
-Cohesion: 0.14
-Nodes (18): Dom, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, FileSystem, FileSystemEntry, FileSystemEntryCallback (+10 more)
+Cohesion: 0.10
+Nodes (26): Dom, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, FileSystem, FileSystemEntry, FileSystemEntryCallback (+18 more)
 
 ### Community 1034 - "Community 1034"
-Cohesion: 0.11
-Nodes (18): Cell, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, FileSystem, FileSystemEntryCallback, MutNullableDom (+10 more)
+Cohesion: 0.10
+Nodes (19): callback, Cell, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, FileSystem, FileSystemEntryCallback (+11 more)
 
 ### Community 1035 - "Community 1035"
 Cohesion: 0.26
 Nodes (3): EventListener, Function, RootedCallback
 
 ### Community 1036 - "Community 1036"
-Cohesion: 0.15
-Nodes (18): Box, CurrentRealm, DomRoot, Element, JSContext, Node, Option, RootedPromise (+10 more)
+Cohesion: 0.16
+Nodes (16): Box, CurrentRealm, DomRoot, Element, JSContext, Node, Option, RootedPromise (+8 more)
 
 ### Community 1037 - "Community 1037"
 Cohesion: 0.04
@@ -8602,12 +8576,12 @@ Cohesion: 0.19
 Nodes (14): Dom, DomRoot, DOMString, DomTypeHolder, JSContext, LocalName, MutNullableDom, Namespace (+6 more)
 
 ### Community 1040 - "Community 1040"
-Cohesion: 0.11
-Nodes (6): call_errorfunc(), format_result(), format_stack_entry(), LRParser, YaccProduction, YaccSymbol
+Cohesion: 0.16
+Nodes (7): DOMString, Namespace, NodeInfo, NodeTypeId, T, as_uintptr(), uintptr_t
 
 ### Community 1041 - "Community 1041"
-Cohesion: 0.11
-Nodes (19): Arc, Bytes, DomRoot, FetchCanceller, FetchMetadata, FetchResponseListener, GlobalScope, ImageCache (+11 more)
+Cohesion: 0.16
+Nodes (13): Cell, DomRefCell, DomTypeHolder, Fallible, GPUDevice, HTMLMediaElement, LoadBlocker, PlanarTexture (+5 more)
 
 ### Community 1042 - "Community 1042"
 Cohesion: 0.50
@@ -8618,8 +8592,8 @@ Cohesion: 0.16
 Nodes (17): BindContext, Document, DomRoot, DomTypeHolder, FormControl, HandleObject, HTMLElement, HTMLFormElement (+9 more)
 
 ### Community 1044 - "Community 1044"
-Cohesion: 0.10
-Nodes (13): DomTypeHolder, EmbedderClipboardProvider, FormControl, HTMLElement, MutNullableDom, NoGC, Ref, RefCell (+5 more)
+Cohesion: 0.09
+Nodes (19): Cell, DomRefCell, DomTypeHolder, Element, EmbedderClipboardProvider, FormControl, HTMLElement, MutNullableDom (+11 more)
 
 ### Community 1045 - "Community 1045"
 Cohesion: 0.21
@@ -8642,8 +8616,8 @@ Cohesion: 0.15
 Nodes (19): D, DomRoot, DOMString, Error, GlobalScope, GPUErrorFilter, HandleObject, JSContext (+11 more)
 
 ### Community 1051 - "Community 1051"
-Cohesion: 0.18
-Nodes (8): Attribute, Element, LocalName, Namespace, Option, Prefix, XPathWrapper<DomRoot<Attr>>, XPathWrapper<DomRoot<Element>>
+Cohesion: 0.08
+Nodes (27): Attribute, Document, Dom, DomRoot, Element, From, Item, Iterator (+19 more)
 
 ### Community 1052 - "Community 1052"
 Cohesion: 0.13
@@ -8651,15 +8625,15 @@ Nodes (21): C, Copy, Default, Fn, Joint, Native, Option, R (+13 more)
 
 ### Community 1053 - "Community 1053"
 Cohesion: 0.10
-Nodes (30): AdapterInfo, CurrentRealm, D, Dom, DomRoot, DOMString, Drop, Features (+22 more)
+Nodes (31): AdapterInfo, CurrentRealm, D, Dom, DomRoot, DOMString, Drop, Features (+23 more)
 
 ### Community 1054 - "Community 1054"
 Cohesion: 0.08
-Nodes (24): EmbeddedPlatformWindow, Cell, ConsoleLogLevel, DeviceIndependentIntRect, DeviceIndependentPixel, DevicePixel, DisplayHandle, EmbedderControl (+16 more)
+Nodes (23): EmbeddedPlatformWindow, XrDiscoveryWebXrRegistry, ConsoleLogLevel, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DisplayHandle (+15 more)
 
 ### Community 1055 - "Community 1055"
-Cohesion: 0.09
-Nodes (18): ImeProxy, InputMethod_TextInputType, convert_ime_options(), HostCallbacks, ImeError, NativeValues, OhosImeOptions, OhosDeviceType (+10 more)
+Cohesion: 0.11
+Nodes (11): HostCallbacks, load_url(), set_log_filter(), HostTrait, LoadStatus, MediaSessionPlaybackState, Option, RefCell (+3 more)
 
 ### Community 1056 - "Community 1056"
 Cohesion: 0.14
@@ -8671,7 +8645,7 @@ Nodes (21): BlackboxingActor, BlackboxRange, BlackboxRequest, BlackboxSourceLoca
 
 ### Community 1058 - "Community 1058"
 Cohesion: 0.10
-Nodes (21): AbsoluteColor, AttributeMutation, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+13 more)
+Nodes (22): AbsoluteColor, AttributeMutation, AttrRef, AttrValue, Document, DomRoot, DOMString, DomTypeHolder (+14 more)
 
 ### Community 1059 - "Community 1059"
 Cohesion: 0.13
@@ -8686,12 +8660,12 @@ Cohesion: 0.16
 Nodes (14): alt, Cookie, CookieSource, OffsetDateTime, Option, ServoUrl, String, SystemTime (+6 more)
 
 ### Community 1062 - "Community 1062"
-Cohesion: 0.09
-Nodes (14): AnimationRefreshDriverObserver, BaseRefreshDriver, DevicePoint, Drop, EmbedderToConstellationMessage, Gl, MemoryReport, PainterId (+6 more)
+Cohesion: 0.07
+Nodes (25): AnimationRefreshDriverObserver, Arc, BaseRefreshDriver, Cell, DevicePoint, Drop, GenericSharedMemory, Gl (+17 more)
 
 ### Community 1063 - "Community 1063"
-Cohesion: 0.24
-Nodes (15): ChannelMergerNode, ChannelMergerOptions, ChannelMergerNodeMethods, ChannelMergerOptions, ChannelNodeOptions, AudioNode, BaseAudioContext, Convert (+7 more)
+Cohesion: 0.14
+Nodes (23): ChannelMergerNode, ChannelMergerOptions, ChannelMergerNodeMethods, ChannelMergerOptions, ChannelNodeOptions, Arc, ServoMedia, Arc (+15 more)
 
 ### Community 1064 - "Community 1064"
 Cohesion: 0.09
@@ -8730,8 +8704,8 @@ Cohesion: 0.21
 Nodes (21): Chars, F, HeaderMap, Mime, Option, Peekable, String, Vec (+13 more)
 
 ### Community 1073 - "Community 1073"
-Cohesion: 0.08
-Nodes (13): Activatable, AttrInfo, DocumentFragment, Err, ErrorResult, Formatter, NodeOrString, Result (+5 more)
+Cohesion: 0.06
+Nodes (15): Activatable, AttrInfo, DocumentFragment, Err, ErrorResult, Formatter, Node, NodeOrString (+7 more)
 
 ### Community 1074 - "Community 1074"
 Cohesion: 0.17
@@ -8750,20 +8724,20 @@ Cohesion: 0.17
 Nodes (17): Atom, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles, EventCancelable, Fallible (+9 more)
 
 ### Community 1078 - "Community 1078"
-Cohesion: 0.18
-Nodes (17): Blob, DomRoot, DOMString, DomTypeHolder, Error, Fallible, GlobalScope, HandleObject (+9 more)
+Cohesion: 0.17
+Nodes (18): Blob, DomRoot, DOMString, DomTypeHolder, Error, Fallible, GlobalScope, HandleObject (+10 more)
 
 ### Community 1079 - "Community 1079"
 Cohesion: 0.12
 Nodes (21): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, File, FileSystem (+13 more)
 
 ### Community 1080 - "Community 1080"
-Cohesion: 0.09
-Nodes (13): Function, ImmutableOrigin, MessagePortRouterId, NotificationPermissionCallback, Option, RootedCallback, ScriptEventLoopReceiver, ScriptEventLoopSender (+5 more)
+Cohesion: 0.24
+Nodes (13): Atom, DomRoot, DOMString, DomTypeHolder, Fallible, HandleObject, JSContext, Option (+5 more)
 
 ### Community 1081 - "Community 1081"
-Cohesion: 0.16
-Nodes (17): AttributeMutation, AttrRef, BindContext, Document, DomRoot, DomTypeHolder, HandleObject, HTMLElement (+9 more)
+Cohesion: 0.15
+Nodes (18): AttributeMutation, AttrRef, BindContext, Document, DomRoot, DomTypeHolder, HandleObject, HTMLElement (+10 more)
 
 ### Community 1082 - "Community 1082"
 Cohesion: 0.17
@@ -8774,44 +8748,44 @@ Cohesion: 0.17
 Nodes (7): Option, Sized, Vec, SanitizerAttribute, NameMember, SanitizerAttribute, SanitizerElementWithAttributes
 
 ### Community 1084 - "Community 1084"
-Cohesion: 0.08
-Nodes (34): contents_vec(), Rope, RopeChars, RopeIndex, RopeMovement, RopeMovementIterator, RopeSlice, RopeSlice<'a> (+26 more)
+Cohesion: 0.17
+Nodes (11): RopeChars, RopeMovement, RopeMovementIterator, RopeSlice<'a>, DoubleEndedIterator, Item, Iterator, Option (+3 more)
 
 ### Community 1086 - "Community 1086"
 Cohesion: 0.14
 Nodes (20): ArrayBufferView, DomRoot, Option, Result, Self, TexDataType, TexFormat, TexImageTarget (+12 more)
 
 ### Community 1087 - "Community 1087"
-Cohesion: 0.22
-Nodes (6): Bytes, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, Result
+Cohesion: 0.15
+Nodes (10): Remote, click_category(), close_popup(), identify_element_in_category(), load_mossel(), operator(), selenium_common, selenium_webdriver_common_by (+2 more)
 
 ### Community 1088 - "Community 1088"
-Cohesion: 0.18
-Nodes (16): CacheStorageThreadMessage, ClientStorageThreadHandle, ClientStorageThreadMessage, GenericCallback, GenericSend, GenericSender, ImmutableOrigin, IndexedDBThreadMsg (+8 more)
+Cohesion: 0.16
+Nodes (17): CacheStorageThreadMessage, ClientStorageThreadHandle, ClientStorageThreadMessage, GenericCallback, GenericSend, GenericSender, ImmutableOrigin, IndexedDBThreadMsg (+9 more)
 
 ### Community 1089 - "Community 1089"
 Cohesion: 0.10
 Nodes (17): XRWindow, GlWindowMode, GlWindowRenderTarget, ActiveEventLoop, AppEvent, Context, Device, DeviceIntPoint (+9 more)
 
 ### Community 1090 - "Community 1090"
-Cohesion: 0.16
-Nodes (24): AsRef, FnOnce, Option, Path, PathBuf, Result, ServoShellPreferences, ServoUrl (+16 more)
+Cohesion: 0.27
+Nodes (16): AsRef, FnOnce, Option, Path, PathBuf, Result, ServoShellPreferences, ServoUrl (+8 more)
 
 ### Community 1091 - "Community 1091"
 Cohesion: 0.13
 Nodes (18): EmbedderControl, EmbedderControlId, Fn, HashMap, Option, PlatformWindow, Rc, RefCell (+10 more)
 
 ### Community 1092 - "Community 1092"
-Cohesion: 0.09
-Nodes (17): CanvasContextState, CanvasFillOrStrokeStyle, replace_ascii_whitespace(), CanvasTextAlign, CanvasTextBaseline, CompositionOrBlending, Font, FontContext (+9 more)
+Cohesion: 0.15
+Nodes (8): Any, CompletedProcess, Path, HarmonyDeviceConnector, HarmonyDevicePerfMode, A helper class to enter performance mode using python `with` syntax.     Current, Clear the readonly bit and reattempt the removal, remove_readonly()
 
 ### Community 1093 - "Community 1093"
-Cohesion: 0.10
-Nodes (9): AlertResponse, Drop, EmbedderControlId, ConfirmResponse, SelectElementOptionOrOptgroup, SelectElementRequest, AlertDialog, ConfirmDialog (+1 more)
+Cohesion: 0.17
+Nodes (6): AlertResponse, Drop, GenericSender, ConfirmResponse, AlertDialog, ConfirmDialog
 
 ### Community 1094 - "Community 1094"
-Cohesion: 0.22
-Nodes (14): AnimationMethods, Animation, AnimationEffect, AnimationTimeline, DomRoot, DomTypeHolder, EventTarget, GlobalScope (+6 more)
+Cohesion: 0.16
+Nodes (13): InitOpts, go_forward(), init_app(), ServoAction, TouchEventType, WakeupCallback, App, Box (+5 more)
 
 ### Community 1095 - "Community 1095"
 Cohesion: 0.11
@@ -8822,12 +8796,12 @@ Cohesion: 0.19
 Nodes (18): ConstantSourceNode, ConstantSourceOptions, AudioParam, AudioScheduledSourceNode, BaseAudioContext, Convert, Dom, DomRoot (+10 more)
 
 ### Community 1097 - "Community 1097"
-Cohesion: 0.14
-Nodes (20): OfflineAudioContext, BaseAudioContextMethods, BaseAudioContext, Cell, CurrentRealm, DomRefCell, DomRoot, DomTypeHolder (+12 more)
+Cohesion: 0.15
+Nodes (19): OfflineAudioContext, BaseAudioContext, Cell, CurrentRealm, DomRefCell, DomRoot, DomTypeHolder, Fallible (+11 more)
 
 ### Community 1098 - "Community 1098"
-Cohesion: 0.14
-Nodes (12): CSSPixel, InputEvent, Item, Iterator, Option, Rect, Result, RgbaImage (+4 more)
+Cohesion: 0.07
+Nodes (30): ActorAsAny, Borrow, Any, Arc, Deref, DerefMut, Drop, Eq (+22 more)
 
 ### Community 1099 - ".fmt"
 Cohesion: 0.40
@@ -8862,8 +8836,8 @@ Cohesion: 0.17
 Nodes (14): AudioTrackList, AudioTrack, AudioTrackListMethods, Dom, DomRefCell, DomRoot, DOMString, DomTypeHolder (+6 more)
 
 ### Community 1107 - "Community 1107"
-Cohesion: 0.16
-Nodes (16): Arc, Au, AxesScrollSensitivity, BoxFragment, Cell, FnMut, Fragment, Option (+8 more)
+Cohesion: 0.17
+Nodes (15): Arc, Au, AxesScrollSensitivity, BoxFragment, Cell, FnMut, Fragment, Option (+7 more)
 
 ### Community 1108 - "Community 1108"
 Cohesion: 0.16
@@ -8882,8 +8856,8 @@ Cohesion: 0.14
 Nodes (18): CustomAutoRooterGuard, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleObject, JSContext (+10 more)
 
 ### Community 1112 - "Community 1112"
-Cohesion: 0.23
-Nodes (7): DOMString, From, Self, bool, DOMString, IsComposing, SelectionDirection
+Cohesion: 0.20
+Nodes (14): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleObject, Iterable (+6 more)
 
 ### Community 1113 - "Community 1113"
 Cohesion: 0.15
@@ -8905,6 +8879,10 @@ Nodes (16): Atom, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles, EventC
 Cohesion: 0.15
 Nodes (16): Cell, Document, Dom, DomRoot, DOMString, DomTypeHolder, EventListener, EventTarget (+8 more)
 
+### Community 1119 - "Community 1119"
+Cohesion: 0.14
+Nodes (14): Arc, AtomicBool, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, Box, ImageCacheFactory, InitialScriptState, JoinHandle (+6 more)
+
 ### Community 1120 - "Community 1120"
 Cohesion: 0.13
 Nodes (20): Arc, AtomicBool, DomRefCell, DomRoot, DOMString, DomTypeHolder, HashMap, HasOrigin (+12 more)
@@ -8914,16 +8892,16 @@ Cohesion: 0.21
 Nodes (4): ServoUrl, USVString, quirks, UrlHelper
 
 ### Community 1122 - "Community 1122"
-Cohesion: 0.11
-Nodes (13): AudioRenderThreadMsg, AudioSink, AudioSinkError, AudioStreamReader, Block, Chunk, GenericCallback, MediaSocket (+5 more)
+Cohesion: 0.38
+Nodes (4): ConnectionMsg, GenericCallback, Connection, TxnCompleteMsg
 
 ### Community 1123 - "Community 1123"
-Cohesion: 0.04
-Nodes (24): BloomFilter, AtomIdent, CaseSensitivity, ConcreteNode, ElementDataMut, ElementDataRef, ElementSelectorFlags, F (+16 more)
+Cohesion: 0.03
+Nodes (58): applicabledeclarationblock, ArcBorrow, AttrSelectorOperation, BloomFilter, casesensitivityext, Arc, Atom, AtomIdent (+50 more)
 
 ### Community 1124 - "Community 1124"
-Cohesion: 0.18
-Nodes (14): AtomicBool, JSContext, JSTracer, Option, Receiver, Runtime, Sender, WorkletGlobalScope (+6 more)
+Cohesion: 0.12
+Nodes (11): JSTraceable, Result, ScriptEventLoopSender, SendError, StatelessWorkletThreadPool, WorkletExecutor, WorkletId, WorkletThreadPool (+3 more)
 
 ### Community 1125 - "Community 1125"
 Cohesion: 0.20
@@ -8938,32 +8916,32 @@ Cohesion: 0.14
 Nodes (17): D, DomRefCell, DomRoot, DOMString, GlobalScope, HandleObject, IndexSet, JSContext (+9 more)
 
 ### Community 1128 - "Community 1128"
-Cohesion: 0.14
-Nodes (7): RefCell, Weak, WebViewBuilder, WebViewId, WebViewTrait, MessageRouter, ServoRendererWebView
+Cohesion: 0.23
+Nodes (14): call_html_constructor(), get_constructor_object_from_local_name(), html_constructor(), CallArgs, Element, GlobalScope, HandleObject, ID (+6 more)
 
 ### Community 1129 - "Community 1129"
 Cohesion: 0.12
 Nodes (10): Default, From, Option, PartialEq, Self, StatusCode, T, Vec (+2 more)
 
 ### Community 1130 - "Community 1130"
-Cohesion: 0.14
-Nodes (15): BoxedFetchCallback, CoreResourceThread, FxHashMap, GenericCallback, Option, Receiver, RequestBuilder, RequestId (+7 more)
+Cohesion: 0.17
+Nodes (14): LongStringActor, LongStringObj, SubstringReply, Actor, ActorError, ActorRegistry, Arc, ClientRequest (+6 more)
 
 ### Community 1131 - "Community 1131"
-Cohesion: 0.29
-Nodes (14): I, IndexedDBKeyType, Option, Vec, decode_stringy(), deserialize(), deserialize_number(), encode_stringy() (+6 more)
+Cohesion: 0.15
+Nodes (21): Error, From, I, IndexedDBKeyType, Option, Result, Self, TryFrom (+13 more)
 
 ### Community 1132 - "Community 1132"
-Cohesion: 0.17
-Nodes (13): Arc, ConnectionMsg, GenericCallback, ImmutableOrigin, Option, SqliteEngine, String, ThreadPool (+5 more)
+Cohesion: 0.18
+Nodes (16): BrowsingContextId, Document, DomRoot, ImmutableOrigin, Metadata, MutableOrigin, Option, ScriptWindowProxies (+8 more)
 
 ### Community 1134 - "Community 1134"
-Cohesion: 0.19
-Nodes (23): AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, CryptoKey, DomRoot, Error, ExportedKey, GlobalScope (+15 more)
+Cohesion: 0.24
+Nodes (20): AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, CryptoKey, DomRoot, Error, ExportedKey, GlobalScope (+12 more)
 
 ### Community 1135 - "Community 1135"
-Cohesion: 0.18
-Nodes (8): NoTrace<T>, Formatter, From, JSTraceable, MallocSizeOf, MallocSizeOfOps, Result, T
+Cohesion: 0.16
+Nodes (14): CanvasGradient, CanvasImageSource, CanvasPattern, CanvasState, Cell, DOMMatrix, DomRoot, Fallible (+6 more)
 
 ### Community 1136 - "Community 1136"
 Cohesion: 0.12
@@ -8974,12 +8952,12 @@ Cohesion: 0.15
 Nodes (12): AudioTrack, AudioTrackMethods, AudioTrackList, Cell, DomRoot, DOMString, DomTypeHolder, JSContext (+4 more)
 
 ### Community 1138 - "Community 1138"
-Cohesion: 0.27
-Nodes (14): GainNode, AudioNode, AudioParam, BaseAudioContext, Dom, DomRoot, DomTypeHolder, Fallible (+6 more)
+Cohesion: 0.15
+Nodes (14): CrossProcessPaintApi, FontFaceRule, LockedFontFaceRule, Origin, ResourceThreads, Self, StylesheetGuards, StylesheetWebFontLoadFinishedCallback (+6 more)
 
 ### Community 1139 - "Community 1139"
-Cohesion: 0.29
-Nodes (3): DocumentFragment, DomRoot, JSContext
+Cohesion: 0.16
+Nodes (14): BoxedFetchCallback, CoreResourceThread, FxHashMap, GenericCallback, Option, Receiver, RequestBuilder, RequestId (+6 more)
 
 ### Community 1140 - "Community 1140"
 Cohesion: 0.13
@@ -8990,24 +8968,24 @@ Cohesion: 0.18
 Nodes (17): OfflineAudioCompletionEvent, Atom, AudioBuffer, Dom, DomRoot, DOMString, DomTypeHolder, Event (+9 more)
 
 ### Community 1142 - "Community 1142"
-Cohesion: 0.19
-Nodes (12): DomRoot, Element, Node, NoGC, Option, Ordering, Self, compare_tab_indices() (+4 more)
+Cohesion: 0.13
+Nodes (11): Event, Fn, GamepadIndex, PlatformWindow, Rc, Ref, Self, ServoShellWindow (+3 more)
 
 ### Community 1143 - "Community 1143"
 Cohesion: 0.15
 Nodes (12): AssumeUnder4GB, len_utf16_for_utf8_byte(), len_utf16_to_len_utf32_for_utf8_byte(), Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset, Utf8CodeUnits, IntoIterator (+4 more)
 
 ### Community 1144 - "Community 1144"
-Cohesion: 0.16
-Nodes (18): CrossProcessInstant, DomRoot, DOMString, DomTypeHolder, Duration, Fallible, GlobalScope, HandleObject (+10 more)
+Cohesion: 0.22
+Nodes (14): AnimationMethods, Animation, AnimationEffect, AnimationTimeline, DomRoot, DomTypeHolder, EventTarget, GlobalScope (+6 more)
 
 ### Community 1145 - "Community 1145"
 Cohesion: 0.16
 Nodes (15): BroadcastChannelMethods, broadcastchannelmsg, Cell, DomRoot, DOMString, DomTypeHolder, ErrorResult, EventTarget (+7 more)
 
 ### Community 1146 - "Community 1146"
-Cohesion: 0.18
-Nodes (17): BrowsingContextId, FxHashMap, FxHashSet, Iterator, Option, Pipeline, PipelineId, Self (+9 more)
+Cohesion: 0.16
+Nodes (11): Add, Document, DomRoot, DomTypeHolder, GlobalScope, JSContext, Output, Reflector (+3 more)
 
 ### Community 1147 - "Community 1147"
 Cohesion: 0.14
@@ -9026,8 +9004,8 @@ Cohesion: 0.19
 Nodes (11): Clone, Deref, Drop, JSPrincipals, MutableOrigin, NonNull, Self, Target (+3 more)
 
 ### Community 1151 - "Community 1151"
-Cohesion: 0.15
-Nodes (17): Arc, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+9 more)
+Cohesion: 0.16
+Nodes (16): Arc, CSSGroupingRule, CSSRule, CssRuleType, CSSStyleSheet, DomRoot, DOMString, DomTypeHolder (+8 more)
 
 ### Community 1152 - "Community 1152"
 Cohesion: 0.18
@@ -9045,37 +9023,33 @@ Nodes (13): CommandName, DomRoot, DOMString, JSContext, Option, Result, Selectio
 Cohesion: 0.18
 Nodes (17): Cell, DomRoot, DomTypeHolder, FxHashSet, GlobalScope, JSContext, Option, OwnerWindow (+9 more)
 
-### Community 1158 - "Community 1158"
-Cohesion: 0.09
-Nodes (13): CoreResourceThread, Duration, F, IsInterval, JsTimerTaskData, OneshotTimerHandle, OneshotTimers, PipelineId (+5 more)
-
 ### Community 1159 - "Community 1159"
-Cohesion: 0.10
-Nodes (14): CrossProcessInstant, DOMString, Element, HTMLFormElement, Image, ImageMetadata, LayoutDom, LengthOrPercentageOrAuto (+6 more)
+Cohesion: 0.12
+Nodes (13): CrossProcessInstant, Element, HTMLFormElement, Image, ImageMetadata, LayoutDom, LengthOrPercentageOrAuto, LoadBlocker (+5 more)
 
 ### Community 1160 - "Community 1160"
 Cohesion: 0.19
 Nodes (16): CloneChildrenFlag, Document, DocumentFragment, DomRoot, DomTypeHolder, HandleObject, HTMLElement, JSContext (+8 more)
 
 ### Community 1161 - "Community 1161"
-Cohesion: 0.11
-Nodes (17): Bytes, FetchMetadata, FetchResponseListener, GlobalScope, ImageCache, InitiatorType, NetworkError, PendingImageId (+9 more)
+Cohesion: 0.20
+Nodes (13): Dom, DomRoot, DomTypeHolder, GlobalScope, Hand, Iterable, JSContext, Reflector (+5 more)
 
 ### Community 1162 - "Community 1162"
 Cohesion: 0.15
 Nodes (12): Cell, DomRoot, DOMString, DomTypeHolder, JSContext, MutNullableDom, Option, Reflector (+4 more)
 
 ### Community 1163 - "Community 1163"
-Cohesion: 0.18
-Nodes (9): DomTypeHolder, MutNullableDom, NoGC, Range, SelectionLiveRangeNotification, StartOrEnd, LayoutDom<'dom, Selection>, Selection (+1 more)
+Cohesion: 0.11
+Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+2 more)
 
 ### Community 1164 - "Community 1164"
-Cohesion: 0.18
-Nodes (11): DisplayHandle, Error, OffscreenRenderingContext, PhysicalSize, Result, Self, WindowHandle, NativeWidget (+3 more)
+Cohesion: 0.15
+Nodes (14): Default, HeaderMap, Into, IntoIterator, Item, Option, Self, ServoUrl (+6 more)
 
 ### Community 1165 - "Community 1165"
-Cohesion: 0.09
-Nodes (18): applicabledeclarationblock, casesensitivityext, Atom, Au, Display, DomRoot, Element, ElementState (+10 more)
+Cohesion: 0.06
+Nodes (43): CSSPixel, DeviceIndependentPixel, DevicePixel, DevicePoint, EventLoopWaker, FontInstanceKey, FontKey, GenericSender (+35 more)
 
 ### Community 1166 - "Community 1166"
 Cohesion: 0.16
@@ -9086,8 +9060,8 @@ Cohesion: 0.20
 Nodes (23): CryptoKey, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyFormat, KeyUsage (+15 more)
 
 ### Community 1168 - "Community 1168"
-Cohesion: 0.06
-Nodes (31): DomRoot, JSContext, Reflector, Self, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext (+23 more)
+Cohesion: 0.14
+Nodes (13): Dom, DomRoot, DomTypeHolder, JSContext, Option, Reflector, WebGLExtension, WebGLExtensions (+5 more)
 
 ### Community 1169 - "Community 1169"
 Cohesion: 0.17
@@ -9114,8 +9088,8 @@ Cohesion: 0.15
 Nodes (18): Arc, CurrentRealm, FxHashMap, ImmutableOrigin, MainThreadScriptMsg, PipelineId, PolicyContainer, Reflector (+10 more)
 
 ### Community 1175 - "Community 1175"
-Cohesion: 0.09
-Nodes (21): Arc, AtomicRefCell, Bytes, Error, FetchMetadata, FetchResponseListener, InitiatorType, NetworkError (+13 more)
+Cohesion: 0.12
+Nodes (16): Arc, AtomicRefCell, Error, FetchMetadata, FetchResponseListener, InitiatorType, NetworkError, RequestId (+8 more)
 
 ### Community 1176 - "Community 1176"
 Cohesion: 0.21
@@ -9126,12 +9100,12 @@ Cohesion: 0.15
 Nodes (18): CurrentRealm, D, DomRoot, GlobalScope, GPUTextureFormat, JSContext, MutNullableDom, PhantomData (+10 more)
 
 ### Community 1178 - "Community 1178"
-Cohesion: 0.13
-Nodes (18): D, DomRefCell, DomRoot, Drop, GlobalScope, JSContext, NoGC, PhantomData (+10 more)
+Cohesion: 0.14
+Nodes (17): D, DomRefCell, DomRoot, Drop, GlobalScope, JSContext, NoGC, PhantomData (+9 more)
 
 ### Community 1179 - "Community 1179"
-Cohesion: 0.11
-Nodes (21): D, Dom, DomRefCell, DomRoot, Drop, GlobalScope, GPUTexture, JSContext (+13 more)
+Cohesion: 0.33
+Nodes (6): CollectionFilter, Dom, Element, Node, Vec, TableRowFilter
 
 ### Community 1180 - "Community 1180"
 Cohesion: 0.14
@@ -9154,8 +9128,8 @@ Cohesion: 0.29
 Nodes (10): Font, FontAlias, FontFamily, FontList, for_each_variation(), Attribute, Node, Option (+2 more)
 
 ### Community 1185 - "Community 1185"
-Cohesion: 0.18
-Nodes (17): CacheMethods, CacheQueryOptions, CacheStorageThreadResponse, DomRoot, DOMString, DomTypeHolder, GenericCallback, GlobalScope (+9 more)
+Cohesion: 0.13
+Nodes (12): DataChannelId, DataChannelInit, DataChannelMessage, Option, Result, Self, Sender, WebRtcDataChannelResult (+4 more)
 
 ### Community 1186 - "Community 1186"
 Cohesion: 0.21
@@ -9167,31 +9141,31 @@ Nodes (18): Actor, ActorEncode, ActorError, ActorMsg, ActorRegistry, Arc, Client
 
 ### Community 1188 - "Community 1188"
 Cohesion: 0.07
-Nodes (35): Au, Debug, FontData, FontIdentifier, FontInstanceFlags, FontInstancePlatformOptions, FontMetrics, FontRef (+27 more)
+Nodes (34): Au, Debug, FontData, FontIdentifier, FontInstanceFlags, FontInstancePlatformOptions, FontMetrics, FontRef (+26 more)
 
 ### Community 1189 - "Community 1189"
 Cohesion: 0.12
 Nodes (20): Au, DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIntRect, DeviceIntSize, DevicePixel, Rect, Scale (+12 more)
 
 ### Community 1190 - "Community 1190"
-Cohesion: 0.14
-Nodes (14): Arc, AtomicBool, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, Box, ImageCacheFactory, InitialScriptState, JoinHandle (+6 more)
+Cohesion: 0.22
+Nodes (10): DomRoot, Element, Node, NoGC, Option, Self, Continue, SequentialFocusNavigationMechanism (+2 more)
 
 ### Community 1191 - "Community 1191"
-Cohesion: 0.13
-Nodes (15): CanvasCommand, CanvasGradient, CanvasPattern, CanvasState, DOMMatrix, DomRoot, Fallible, Finite (+7 more)
+Cohesion: 0.10
+Nodes (5): Cursor, Image, LoadStatus, RefMut, ServoUrl
 
 ### Community 1192 - "Community 1192"
-Cohesion: 0.17
-Nodes (11): Epoch, FxHashMap, FxHashSet, ImageData, ImageKey, ImageUpdate, PipelineId, SerializableImageData (+3 more)
+Cohesion: 0.16
+Nodes (12): EmbedderToConstellationMessage, Epoch, FxHashMap, FxHashSet, ImageData, ImageKey, ImageUpdate, PipelineId (+4 more)
 
 ### Community 1193 - "Community 1193"
 Cohesion: 0.10
-Nodes (17): BuiltDisplayListDescriptor, ExternalScrollId, GenericReceiver, LayoutVector2D, Paint, PaintDisplayListInfo, PipelineExitSource, Rc (+9 more)
+Nodes (15): BuiltDisplayListDescriptor, ExternalScrollId, GenericReceiver, LayoutVector2D, Paint, PaintDisplayListInfo, RenderingContext, Self (+7 more)
 
 ### Community 1194 - "Community 1194"
-Cohesion: 0.11
-Nodes (14): Box, EventLoopWaker, Fn, PlatformWindow, Preferences, Rc, Ref, Self (+6 more)
+Cohesion: 0.14
+Nodes (13): Box, EventLoopWaker, FnOnce, GenericEmbedderProxy, PaintMessage, PaintProxy, RoutedReceiver, Send (+5 more)
 
 ### Community 1195 - "Community 1195"
 Cohesion: 0.12
@@ -9218,8 +9192,8 @@ Cohesion: 0.13
 Nodes (19): Cell, Dom, DomRefCell, DomRoot, DomTypeHolder, ErrorCallback, FileSystemDirectoryEntry, GlobalScope (+11 more)
 
 ### Community 1201 - "Community 1201"
-Cohesion: 0.07
-Nodes (32): destroy_servo_jsprincipal(), principals_is_addon_principal(), principals_is_system_principal(), read_jsprincipal(), subsumes(), write_jsprincipal(), JSContext, AutoRealm (+24 more)
+Cohesion: 0.12
+Nodes (21): destroy_servo_jsprincipal(), principals_is_addon_principal(), principals_is_system_principal(), read_jsprincipal(), subsumes(), write_jsprincipal(), DomGlobal, T (+13 more)
 
 ### Community 1202 - "Community 1202"
 Cohesion: 0.18
@@ -9230,12 +9204,12 @@ Cohesion: 0.17
 Nodes (12): DomRoot, DomTypeHolder, Float32, GlobalScope, HeapBufferSource, HeapFloat32Array, JSContext, Option (+4 more)
 
 ### Community 1204 - "Community 1204"
-Cohesion: 0.18
-Nodes (16): BrowsingContextId, Document, DomRoot, ImmutableOrigin, Metadata, MutableOrigin, Option, ScriptWindowProxies (+8 more)
+Cohesion: 0.16
+Nodes (14): Condition, HandleObject, JSContext, Option, Self, T, currentrealm, get (+6 more)
 
 ### Community 1205 - "Community 1205"
-Cohesion: 0.14
-Nodes (18): Atom, Dom, DomRoot, DOMString, DomTypeHolder, FxBuildHasher, GlobalScope, HashMapTracedValues (+10 more)
+Cohesion: 0.18
+Nodes (12): CanvasGradient, CanvasPattern, CanvasState, DOMMatrix, DomRoot, Fallible, Finite, ImageData (+4 more)
 
 ### Community 1206 - "Community 1206"
 Cohesion: 0.17
@@ -9258,16 +9232,16 @@ Cohesion: 0.13
 Nodes (14): JSContext, JSTraceable, MallocSizeOf, MutableHandleObject, MutNullableDom, T, WebGLExtensions, WebGLExtensionSpec (+6 more)
 
 ### Community 1211 - "Community 1211"
-Cohesion: 0.12
-Nodes (7): DomRoot, GLContextAttributes, RootedHTMLCanvasElementOrOffscreenCanvas, Size2D, WebGLActiveInfo, WebGLRenderingContext, WebGLQuery
+Cohesion: 0.09
+Nodes (9): DomRoot, GLContextAttributes, RootedHTMLCanvasElementOrOffscreenCanvas, Size2D, WebGLActiveInfo, WebGLRenderingContext, Window, WebGLQuery (+1 more)
 
 ### Community 1212 - "Community 1212"
 Cohesion: 0.14
 Nodes (15): AssociatedMemory, DomRefCell, DomRoot, DomTypeHolder, Operation, Option, Reflector, USVString (+7 more)
 
 ### Community 1213 - "Community 1213"
-Cohesion: 0.17
-Nodes (13): IIRFilter, IIRFilterNode, IIRFilterNodeOptions, Complex64, Arc, AudioNodeEngine, AudioNodeType, BlockInfo (+5 more)
+Cohesion: 0.31
+Nodes (7): IIRFilter, IIRFilterNodeOptions, Arc, BlockInfo, Chunk, Vec, VecDeque
 
 ### Community 1214 - "Community 1214"
 Cohesion: 0.30
@@ -9278,24 +9252,24 @@ Cohesion: 0.16
 Nodes (13): D, DomRoot, DOMString, GlobalScope, JSContext, PhantomData, Reflector, Self (+5 more)
 
 ### Community 1216 - "Community 1216"
-Cohesion: 0.07
-Nodes (30): Default, Eye, PartialEq, Rect, RigidTransform3D, Self, Transform3D, Vec (+22 more)
+Cohesion: 0.10
+Nodes (22): Eye, Rect, RigidTransform3D, Transform3D, Vec, Capture, CubeBack, CubeBottom (+14 more)
 
 ### Community 1217 - "Community 1217"
-Cohesion: 0.23
-Nodes (5): Default, GLVersion, NativeVertexArray, WebGLVersion, GLState
+Cohesion: 0.15
+Nodes (10): CrossProcessPaintApi, ImageKey, RwLock, VideoFrame, VideoFrameRenderer, WebViewId, WindowGLContext, FrameHolder (+2 more)
 
 ### Community 1218 - "Community 1218"
 Cohesion: 0.15
 Nodes (17): CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle, CanvasGradientMethods, CanvasGradientStop, CanvasGradientStyle, DomRefCell, DomRoot (+9 more)
 
 ### Community 1219 - "Community 1219"
-Cohesion: 0.13
-Nodes (16): Bytes, BytesMut, DomRoot, FetchMetadata, FetchResponseListener, GlobalScope, JSContext, NetworkError (+8 more)
+Cohesion: 0.19
+Nodes (10): Discovery, AppInitOptions, Cell, EventLoopWaker, HostTrait, Opts, Preferences, Rc (+2 more)
 
 ### Community 1220 - "Community 1220"
-Cohesion: 0.13
-Nodes (14): Arc, Atom, Eq, FontDataAndIndex, FontDescriptor, H, Hash, NativeFontHandle (+6 more)
+Cohesion: 0.06
+Nodes (12): Default, Option, String, fromstr, parse_blob_url, parse_blob_url_with_opaque_origin(), uuid, DataChannelEvent (+4 more)
 
 ### Community 1221 - "Community 1221"
 Cohesion: 0.15
@@ -9319,19 +9293,19 @@ Nodes (12): ANGLEInstancedArraysMethods, Dom, DomRoot, DomTypeHolder, JSContext,
 
 ### Community 1226 - "Community 1226"
 Cohesion: 0.11
-Nodes (17): AudioNodeCommon, AudioNodeEngine, AudioNodeInit, AudioNodeMessage, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelCountMode (+9 more)
+Nodes (18): AudioNodeCommon, AudioNodeEngine, AudioNodeInit, AudioNodeMessage, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelCountMode (+10 more)
 
 ### Community 1227 - "Community 1227"
 Cohesion: 0.13
 Nodes (14): ConstantSourceNode, ConstantSourceNodeOptions, AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, Chunk, Default (+6 more)
 
 ### Community 1228 - "Community 1228"
-Cohesion: 0.24
-Nodes (13): Document, DocumentType, Dom, DomRoot, DOMString, DomTypeHolder, Fallible, JSContext (+5 more)
+Cohesion: 0.12
+Nodes (27): Context, is_custom_data_attribute(), is_valid_attribute_local_name(), is_valid_doctype_name(), is_valid_element_local_name(), is_valid_namespace_prefix(), namespace_from_domstring(), validate_and_extract() (+19 more)
 
 ### Community 1229 - "Community 1229"
-Cohesion: 0.17
-Nodes (5): BasicInterpreter, p_dimitem_double(), p_number_signed(), dimitem : ID LPAREN INTEGER COMMA INTEGER RPAREN, number  : MINUS INTEGER                | MINUS FLOAT
+Cohesion: 0.13
+Nodes (9): Any, Drop, MediaOutput, MediaStream, MediaStreamId, MediaStreamType, DummyMediaOutput, DummyMediaStream (+1 more)
 
 ### Community 1230 - "Community 1230"
 Cohesion: 0.14
@@ -9342,20 +9316,20 @@ Cohesion: 0.15
 Nodes (15): LivePromiseReferences, PromiseKey, trace_refcounted_objects(), TrustedPromise, Error, FxHashMap, JSContext, JSTracer (+7 more)
 
 ### Community 1232 - "Community 1232"
-Cohesion: 0.44
-Nodes (11): Node, NoGC, Option, Ordering, UnrootedDom, compare_dom_positions(), compare_nodes_in_same_parent(), compare_offset_and_node_in_same_parent() (+3 more)
+Cohesion: 0.19
+Nodes (17): bitflags, Node, NoGC, Option, Ordering, UnrootedDom, From, RestyleDamage (+9 more)
 
 ### Community 1233 - "Community 1233"
-Cohesion: 0.07
-Nodes (31): Atom, AudioTrackList, Cell, Document, Dom, DomRefCell, Drop, HTMLElement (+23 more)
+Cohesion: 0.17
+Nodes (11): (), MallocSizeOfOps, genericlengthpercentageorauto, Arc<T>, MallocConditionalShallowSizeOf, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf, Rc<T> (+3 more)
 
 ### Community 1234 - "Community 1234"
-Cohesion: 0.23
-Nodes (14): BluetoothUUID, canonical_uuid(), resolve_uuid_name(), BluetoothUUIDMethods, BluetoothCharacteristicUUID, BluetoothDescriptorUUID, BluetoothServiceUUID, DOMString (+6 more)
+Cohesion: 0.22
+Nodes (15): BluetoothUUID, canonical_uuid(), resolve_uuid_name(), BluetoothUUIDMethods, BluetoothCharacteristicUUID, BluetoothDescriptorUUID, BluetoothServiceUUID, DOMString (+7 more)
 
 ### Community 1235 - "Community 1235"
-Cohesion: 0.16
-Nodes (15): ActorAsAny, Any, Arc, Deref, From, MallocSizeOf, PhantomData, Send (+7 more)
+Cohesion: 0.13
+Nodes (15): DevtoolsConnection, HashMap, HashSet, Map, Option, PipelineId, Result, RwLockReadGuard (+7 more)
 
 ### Community 1236 - "Community 1236"
 Cohesion: 0.18
@@ -9366,8 +9340,8 @@ Cohesion: 0.16
 Nodes (17): Actor, ActorEncode, ActorError, ActorRegistry, Arc, ClientRequest, HashMap, Map (+9 more)
 
 ### Community 1238 - "Community 1238"
-Cohesion: 0.18
-Nodes (23): Box, Callback, Cell, Dom, Error, Heap, JSVal, MessagePort (+15 more)
+Cohesion: 0.12
+Nodes (15): ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange, FontStyle, FontWeight, FontWidth, Sized, FontMatchDistanceMethod (+7 more)
 
 ### Community 1239 - "Community 1239"
 Cohesion: 0.18
@@ -9386,24 +9360,24 @@ Cohesion: 0.15
 Nodes (16): Debug, DebuggerGlobalScope, Dom, DomRoot, DOMString, DomTypeHolder, Event, Formatter (+8 more)
 
 ### Community 1243 - "Community 1243"
-Cohesion: 0.17
-Nodes (12): DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, NoGC, Option, Plugin (+4 more)
+Cohesion: 0.15
+Nodes (13): DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, NoGC, Option, Plugin (+5 more)
 
 ### Community 1244 - "Community 1244"
-Cohesion: 0.23
-Nodes (5): CrossProcessInstant, Frame, FrameUpdateEvent, JSContext, XRFrame
+Cohesion: 0.11
+Nodes (21): ActionsByTick, ActionSequence, FxHashSet, HashMap, String, Vec, GeneralAction, info (+13 more)
 
 ### Community 1245 - "Community 1245"
 Cohesion: 0.16
 Nodes (14): Display, DomRoot, DOMString, DomTypeHolder, Fallible, Formatter, GlobalScope, JSContext (+6 more)
 
 ### Community 1246 - "Community 1246"
-Cohesion: 0.04
-Nodes (58): CollectionSource, Activatable, AttributeMutation, AttrRef, AttrValue, BindContext, Box, ChildrenMutation (+50 more)
+Cohesion: 0.16
+Nodes (9): Arc, Context, Device, Drop, NativeFramebuffer, Rect, RefMut, SurfmanRenderingContext (+1 more)
 
 ### Community 1247 - "Community 1247"
-Cohesion: 0.23
-Nodes (21): CryptoKey, CryptoKeyPair, DomRoot, EcKeyGenParams, EcKeyImportParams, Error, ExportedKey, GlobalScope (+13 more)
+Cohesion: 0.21
+Nodes (13): CommandName, Document, DomRoot, DOMString, JSContext, Node, Option, (DomRoot<Node>, u32) (+5 more)
 
 ### Community 1248 - "Community 1248"
 Cohesion: 0.23
@@ -9414,28 +9388,28 @@ Cohesion: 0.23
 Nodes (21): Algorithm, CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext (+13 more)
 
 ### Community 1250 - "Community 1250"
-Cohesion: 0.20
-Nodes (23): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+15 more)
+Cohesion: 0.23
+Nodes (21): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+13 more)
 
 ### Community 1251 - "Community 1251"
-Cohesion: 0.24
-Nodes (20): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+12 more)
+Cohesion: 0.23
+Nodes (21): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+13 more)
 
 ### Community 1252 - "Community 1252"
-Cohesion: 0.21
-Nodes (15): Atom, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles, EventCancelable, Fallible (+7 more)
+Cohesion: 0.24
+Nodes (8): Option, Ordering, PartialEq, PartialOrd, Self, IndexedDBKeyRange, IndexedDBKeyType, test_as_singleton()
 
 ### Community 1253 - "Community 1253"
-Cohesion: 0.23
-Nodes (12): DomRoot, DOMString, DomTypeHolder, Fallible, HandleObject, JSContext, Option, Reflector (+4 more)
+Cohesion: 0.12
+Nodes (20): Node, parse(), Vec, DomRoot, DOMString, DomTypeHolder, Fallible, HandleObject (+12 more)
 
 ### Community 1254 - "Community 1254"
 Cohesion: 0.16
 Nodes (10): DomRoot, DomTypeHolder, ImmutableOrigin, JSContext, Reflector, ServoUrl, USVString, WorkerGlobalScope (+2 more)
 
 ### Community 1255 - "Community 1255"
-Cohesion: 0.08
-Nodes (11): Cursor, H, Image, LoadStatus, Option, Ref, RefMut, ServoUrl (+3 more)
+Cohesion: 0.11
+Nodes (9): Action, DeviceSize, H, NodeId, Option, Ref, String, TreeId (+1 more)
 
 ### Community 1256 - "Community 1256"
 Cohesion: 0.13
@@ -9446,16 +9420,16 @@ Cohesion: 0.15
 Nodes (13): CrossProcessInstant, From, MutexGuard, Option, ResourceTimingType, Self, RedirectEndValue, RedirectStartValue (+5 more)
 
 ### Community 1258 - "Community 1258"
-Cohesion: 0.11
-Nodes (21): FxHashMap, GenericSender, HashMap, Option, Self, TraversalId, WebDriverJSResult, WebViewId (+13 more)
+Cohesion: 0.18
+Nodes (7): ThreadPool, ThreadPoolState, Arc, Mutex, Self, OP, pref
 
 ### Community 1259 - "Community 1259"
 Cohesion: 0.17
 Nodes (13): Box, Debug, Drop, Error, Formatter, LayerId, LayerInit, Result (+5 more)
 
 ### Community 1260 - "Community 1260"
-Cohesion: 0.05
-Nodes (49): bench(), BenchDom, black_box, Criterion, Reflector, DomObject, Sized, D (+41 more)
+Cohesion: 0.12
+Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+2 more)
 
 ### Community 1261 - "Community 1261"
 Cohesion: 0.13
@@ -9470,40 +9444,40 @@ Cohesion: 0.09
 Nodes (21): 10. Run the checks, 1. Put the function in the right module, 2. Use the correct ABI and naming, 3. Follow the opaque-handle conventions, 4. Write the full safety contract in the doc comment, 5. Validate arguments, return codes, and never panic across FFI, 6. Respect the threading rule, 7. Handle ownership transfer explicitly (+13 more)
 
 ### Community 1264 - "Community 1264"
-Cohesion: 0.10
-Nodes (7): FloatBandNode, infinity, panic, check_node_balance(), check_node_ordering(), check_tree_balance(), check_tree_ordering()
+Cohesion: 0.05
+Nodes (54): Arbitrary, Au, Box, Clear, Drop, FloatBand, FloatBandTree, FloatContext (+46 more)
 
 ### Community 1265 - "Community 1265"
-Cohesion: 0.03
-Nodes (110): ActionData, AtomicIsize, AccessibilityDamage, Action, AnimatingImages, Any, Arc, AttrValue (+102 more)
+Cohesion: 0.02
+Nodes (118): ActionData, AtomicIsize, AccessibilityDamage, Action, AnimatingImages, Any, Arc, AttrValue (+110 more)
 
 ### Community 1266 - "Community 1266"
-Cohesion: 0.15
-Nodes (18): axesscrollsensitivity, BlockFormattingContext, ArcRefCell, Au, AxesOverflow, BlockLevelBox, FragmentTree, LayoutContext (+10 more)
+Cohesion: 0.19
+Nodes (17): axesscrollsensitivity, ArcRefCell, Au, AxesOverflow, BlockLevelBox, ComputedValues, FragmentTree, LayoutContext (+9 more)
 
 ### Community 1267 - "Community 1267"
 Cohesion: 0.14
 Nodes (12): StereoPannerNode, StereoPannerOptions, AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, Chunk, Default (+4 more)
 
 ### Community 1268 - "Community 1268"
-Cohesion: 0.15
-Nodes (10): Dom, DomTypeHolder, Finite, Option, Size2D, Viewport, WebGLContextId, XRFrame (+2 more)
+Cohesion: 0.12
+Nodes (41): GCContext, HandleObject, IndexMap, JSObject, JSTracer, ObjectOpResult, PropertyDescriptor, RawHandle (+33 more)
 
 ### Community 1269 - "Community 1269"
-Cohesion: 0.07
-Nodes (43): Cell, Default, DomRefCell, DOMString, Fallible, FxHashMap, GlobalScope, HandleValue (+35 more)
+Cohesion: 0.29
+Nodes (10): C, Dom, FnOnce, GlobalScope, R, runtime, run_a_callback(), run_a_script() (+2 more)
 
 ### Community 1270 - "Community 1270"
 Cohesion: 0.10
 Nodes (8): Calc, Parser, statement : NAME EQUALS expression, statement : expression, expression : expression PLUS expression                   | expression MINUS exp, expression : MINUS expression %prec UMINUS, expression : LPAREN expression RPAREN, Base class for a lexer/parser that has the rules defined as methods
 
 ### Community 1271 - "Community 1271"
-Cohesion: 0.21
-Nodes (9): CompiledEventListener, Atom, EventBubbles, EventCancelable, EventComposed, EventTarget, JSContext, CommonEventHandler (+1 more)
+Cohesion: 0.13
+Nodes (12): AsRef, CacheEntry, MallocSizeOfOps, Metadata, ServoUrl, StdArc, DiskCache, Lifecycle (+4 more)
 
 ### Community 1272 - "Community 1272"
-Cohesion: 0.22
-Nodes (9): fs, ResourceReaderImpl, set_resource_dir(), rootNode, OnceLock, PathBuf, Resource, ResourceReaderMethods (+1 more)
+Cohesion: 0.15
+Nodes (13): PathBuf, Resource, ResourceReaderMethods, Vec, DefaultResourceReader, ResourceReaderImpl, set_resource_dir(), OnceLock (+5 more)
 
 ### Community 1273 - "Community 1273"
 Cohesion: 0.19
@@ -9514,16 +9488,16 @@ Cohesion: 0.18
 Nodes (14): Arc, CSSGroupingRule, CSSStyleSheet, DOMString, DomTypeHolder, Locked, Option, RefCell (+6 more)
 
 ### Community 1275 - "Community 1275"
-Cohesion: 0.19
-Nodes (12): Callback, DomRoot, Item, Iterator, JSContext, Node, NoGC, Option (+4 more)
+Cohesion: 0.18
+Nodes (13): Callback, DomRoot, Item, Iterator, JSContext, Node, NoGC, Option (+5 more)
 
 ### Community 1276 - "Community 1276"
 Cohesion: 0.18
 Nodes (14): DomRefCell, DOMString, Event, EventTarget, HTMLInputElement, InputActivationState, JSContext, Option (+6 more)
 
 ### Community 1277 - "Community 1277"
-Cohesion: 0.15
-Nodes (22): DevtoolScriptControlMsg, GenericCallback, ImmutableOrigin, Option, PartialEq, ProfilerChan, ScriptToDevtoolsControlMsg, ScriptToEmbedderChan (+14 more)
+Cohesion: 0.20
+Nodes (20): AlignFlags, AspectRatio, Au, Baselines, CollapsedBlockMargins, LogicalRect, LogicalSides, PaddingBorderMargin (+12 more)
 
 ### Community 1278 - "Community 1278"
 Cohesion: 0.13
@@ -9538,16 +9512,16 @@ Cohesion: 0.21
 Nodes (12): DOMException, DomRoot, DOMString, DomTypeHolder, HandleObject, JSContext, Option, Window (+4 more)
 
 ### Community 1281 - "Community 1281"
-Cohesion: 0.20
-Nodes (14): DomRefCell, DomRoot, DOMString, DomTypeHolder, Fallible, GlobalScope, HandleObject, Iterable (+6 more)
+Cohesion: 0.07
+Nodes (18): CanvasContextState, CanvasFillOrStrokeStyle, replace_ascii_whitespace(), AbsoluteColor, CanvasDirection, CanvasTextAlign, CanvasTextBaseline, CompositionOrBlending (+10 more)
 
 ### Community 1282 - "Community 1282"
 Cohesion: 0.22
 Nodes (20): CryptoKey, CryptoKeyPair, DomRoot, EcdhKeyDeriveParams, Error, ExportedKey, GlobalScope, JSContext (+12 more)
 
 ### Community 1283 - "Community 1283"
-Cohesion: 0.16
-Nodes (10): BlobData, BlobId, PathBuf, RefCell, RelativePos, Uuid, Vec, BlobData (+2 more)
+Cohesion: 0.21
+Nodes (15): D, Dom, DomRoot, GlobalScope, JSContext, MutableHandleValue, Option, Reflector (+7 more)
 
 ### Community 1284 - "Community 1284"
 Cohesion: 0.21
@@ -9558,56 +9532,56 @@ Cohesion: 0.21
 Nodes (14): Atom, Dom, DomRoot, DOMString, DomTypeHolder, Event, HandleObject, JSContext (+6 more)
 
 ### Community 1286 - "Community 1286"
-Cohesion: 0.20
-Nodes (13): Dom, DomRoot, DomTypeHolder, GlobalScope, Hand, Iterable, JSContext, Reflector (+5 more)
+Cohesion: 0.15
+Nodes (13): ApiPose, BaseTransform, Floor, Frame, Option, Point2D, Vec, RigidTransform3D (+5 more)
 
 ### Community 1287 - "Community 1287"
-Cohesion: 0.12
-Nodes (15): app, Arc, AtomicBool, AtomicI32, EmbedderToConstellationMessage, PreferencesObserver, PrefValue, Receiver (+7 more)
+Cohesion: 0.14
+Nodes (13): Arc, AtomicBool, AtomicI32, EmbedderToConstellationMessage, PreferencesObserver, PrefValue, Receiver, Result (+5 more)
 
 ### Community 1288 - "Community 1288"
-Cohesion: 0.14
-Nodes (14): FromIterator, FxHashSet, MallocSizeOfOps, Self, String, T, is_pub_domain(), is_reg_domain() (+6 more)
+Cohesion: 0.15
+Nodes (13): FromIterator, FxHashSet, MallocSizeOfOps, Self, String, T, is_pub_domain(), is_reg_domain() (+5 more)
 
 ### Community 1289 - "Community 1289"
 Cohesion: 0.14
 Nodes (13): Default, FrameUpdateEvent, HitTestId, HitTestSource, Self, T, Transform3D, U (+5 more)
 
 ### Community 1290 - "Community 1290"
-Cohesion: 0.17
-Nodes (11): MessagePortId, MessagePortImpl, Option, PortMessageTask, VecDeque, enumiter, MessagePortImpl, MessagePortState (+3 more)
+Cohesion: 0.15
+Nodes (13): dump_unmeasured(), heap_reports(), HeapReport, jemalloc_stat(), CStr, Option, Vec, Write (+5 more)
 
 ### Community 1291 - "Community 1291"
 Cohesion: 0.19
 Nodes (12): Arc, Connection, SqliteEngine, Error, Option, PathBuf, Result, Self (+4 more)
 
 ### Community 1292 - "Community 1292"
-Cohesion: 0.19
-Nodes (17): AlphaTreatment, Cow, FxHashMap, HashMap, JoinHandle, PixelFormat, TexDataType, TexFormat (+9 more)
+Cohesion: 0.16
+Nodes (21): AlphaTreatment, Cow, F, FxHashMap, HashMap, JoinHandle, PixelFormat, String (+13 more)
 
 ### Community 1293 - "Community 1293"
-Cohesion: 0.10
-Nodes (18): Dom, Duration, Instant, JsTimerTaskData, RootedInternalTimerCallback, TimerEventId, TimerSource, OneshotTimerData (+10 more)
+Cohesion: 0.12
+Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), expression : LPAREN expression RPAREN, statement : NAME EQUALS expression, statement : expression (+2 more)
 
 ### Community 1294 - "Community 1294"
-Cohesion: 0.11
-Nodes (15): ActionSet, DeviceAPI, Event, EventBuffer, FrameWaiter, InputSource, Instance, LayerManager (+7 more)
+Cohesion: 0.08
+Nodes (25): ActionSet, Box, DeviceAPI, DiscoveryAPI, Event, EventBuffer, Floor, FrameWaiter (+17 more)
 
 ### Community 1295 - "Community 1295"
 Cohesion: 0.06
-Nodes (35): Arc, AttrValue, Bytes, Cell, Document, DomRoot, ElementCreator, Event (+27 more)
+Nodes (32): Arc, Bytes, Cell, Document, DomRoot, ElementCreator, Event, Fallible (+24 more)
 
 ### Community 1296 - "Community 1296"
 Cohesion: 0.10
 Nodes (8): Calc, Parser, statement : NAME EQUALS expression, statement : expression, expression : expression PLUS expression                   | expression MINUS exp, expression : MINUS expression %prec UMINUS, expression : LPAREN expression RPAREN, Base class for a lexer/parser that has the rules defined as methods
 
 ### Community 1297 - "Community 1297"
-Cohesion: 0.15
-Nodes (8): Any, CompletedProcess, Path, HarmonyDeviceConnector, HarmonyDevicePerfMode, A helper class to enter performance mode using python `with` syntax.     Current, Clear the readonly bit and reattempt the removal, remove_readonly()
+Cohesion: 0.23
+Nodes (6): AttrValue, LengthOrPercentageOrAuto, LocalName, RangeAny, Utf32CodeUnits, LayoutDom<'dom, HTMLInputElement>
 
 ### Community 1298 - "Community 1298"
-Cohesion: 0.14
-Nodes (14): adjust_canvas_size(), adjust_size_sign(), CanvasFillRule, DomRoot, Epoch, Fallible, Finite, GlobalScope (+6 more)
+Cohesion: 0.18
+Nodes (14): serialize(), serialize_font(), CanvasGradient, CanvasPattern, DomRoot, Fallible, Finite, GlobalScope (+6 more)
 
 ### Community 1299 - "Community 1299"
 Cohesion: 0.20
@@ -9622,8 +9596,8 @@ Cohesion: 0.12
 Nodes (20): ApacheBugFlag, Mime, Option, Path, Result, Vec, NoSniffFlag, read_file() (+12 more)
 
 ### Community 1302 - "Community 1302"
-Cohesion: 0.11
-Nodes (18): AsyncOperation, E, F, FxHashMap, FxHashSet, GenericReceiver, GenericSender, HashSet (+10 more)
+Cohesion: 0.19
+Nodes (10): AuOrAuto, CSSPixelLength, Debug, From, LogicalRect<Au>, LogicalSides, LogicalSides<Au>, LogicalSides<CSSPixelLength> (+2 more)
 
 ### Community 1303 - "Community 1303"
 Cohesion: 0.15
@@ -9654,44 +9628,48 @@ Cohesion: 0.16
 Nodes (17): PeriodicWave, BaseAudioContext, Convert, Dom, DomRoot, DomTypeHolder, Fallible, Finite (+9 more)
 
 ### Community 1310 - "Community 1310"
-Cohesion: 0.44
-Nodes (8): entry_global(), incumbent_global(), maybe_entry_global(), trace(), DomRoot, GlobalScope, JSTracer, Option
+Cohesion: 0.38
+Nodes (9): entry_global(), incumbent_global(), is_execution_stack_empty(), maybe_entry_global(), trace(), DomRoot, GlobalScope, JSTracer (+1 more)
 
 ### Community 1311 - "Community 1311"
-Cohesion: 0.07
-Nodes (48): CrossProcessPaintApi, Device, JoinHandle, PainterSurfmanDetailsMap, SwapChains, WebGLContextBusyMap, WebGLContextId, WebGLThreads (+40 more)
+Cohesion: 0.10
+Nodes (35): Box, Context, Device, Drop, FxHashMap, GenericSender, GL, NonZeroU32 (+27 more)
 
 ### Community 1312 - "Community 1312"
-Cohesion: 0.32
-Nodes (5): Connection, Option, Surface, SurfaceTexture, UntypedSize2D
+Cohesion: 0.16
+Nodes (15): Au, ContainingBlock, Option, PhysicalPoint, PhysicalRect, PhysicalSize, Size, csspixel (+7 more)
 
 ### Community 1313 - "Community 1313"
-Cohesion: 0.33
-Nodes (9): Arc, FrameStream, LayerManagerAPI, Mutex, Session, OpenXrLayerManager, OpenXrLayer, Passthrough (+1 more)
+Cohesion: 0.11
+Nodes (22): Capture, Arc, EnvironmentBlendMode, FrameState, FrameStream, GlClearer, HashMap, LayerManagerAPI (+14 more)
 
 ### Community 1314 - "Community 1314"
 Cohesion: 0.15
 Nodes (15): Actor, ActorEncode, ActorError, ActorMsg, ActorRegistry, Arc, ClientRequest, HashMap (+7 more)
 
+### Community 1315 - "Community 1315"
+Cohesion: 0.09
+Nodes (35): Display, DomRoot, Error, Formatter, ImageInfo, Result, Self, TexCompression (+27 more)
+
 ### Community 1316 - "Community 1316"
-Cohesion: 0.10
-Nodes (20): DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Option, Reflector, ServoUrl (+12 more)
+Cohesion: 0.22
+Nodes (11): DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Option, Reflector, ServoUrl (+3 more)
 
 ### Community 1317 - "Community 1317"
-Cohesion: 0.15
-Nodes (10): Adapter, Arc, Context, Device, Drop, GLApi, GLVersion, RefMut (+2 more)
+Cohesion: 0.18
+Nodes (11): AnalyserNode, Arc, AudioNodeEngine, AudioNodeType, Block, BlockInfo, ChannelInfo, Chunk (+3 more)
 
 ### Community 1318 - "Community 1318"
-Cohesion: 0.17
-Nodes (12): Dom, DomRoot, DOMString, DomTypeHolder, Event, GlobalScope, JSContext, Option (+4 more)
+Cohesion: 0.12
+Nodes (18): Dom, DomRoot, DOMString, DomTypeHolder, Event, GlobalScope, JSContext, Option (+10 more)
 
 ### Community 1319 - "Community 1319"
 Cohesion: 0.14
 Nodes (13): Debug, Dom, DomRoot, DomTypeHolder, Event, Formatter, GlobalScope, JSContext (+5 more)
 
 ### Community 1320 - "Community 1320"
-Cohesion: 0.21
-Nodes (13): CommandName, Document, DomRoot, DOMString, JSContext, Node, Option, (DomRoot<Node>, u32) (+5 more)
+Cohesion: 0.14
+Nodes (14): AttrValue, DomRefCell, Element, Reflector, NameMember, AttributeMember, Canonicalization, contains_javascript_url() (+6 more)
 
 ### Community 1321 - "Community 1321"
 Cohesion: 0.22
@@ -9699,15 +9677,15 @@ Nodes (10): DomRoot, DomTypeHolder, Finite, GlobalScope, JSContext, Option, Refl
 
 ### Community 1322 - "Community 1322"
 Cohesion: 0.11
-Nodes (22): css_font_to_font_size(), execute_fontsize_command(), font_size_loosely_equivalent(), font_size_to_css_font(), legacy_font_size_for(), maybe_normalize_pixels(), ParsingMode, value_for_fontsize_command() (+14 more)
+Nodes (7): DOMString, check_support_for_algorithm(), DecapsulateAlgorithm, GetKeyLengthAlgorithm, GetSharedKeyLengthAlgorithm, ImportKeyAlgorithm, normalize_and_determine_support()
 
 ### Community 1323 - "Community 1323"
 Cohesion: 0.18
 Nodes (15): Document, DomRoot, DomTypeHolder, HandleObject, HTMLAreaElement, HTMLCollection, HTMLElement, JSContext (+7 more)
 
 ### Community 1324 - "Community 1324"
-Cohesion: 0.24
-Nodes (13): Atom, DomRoot, DOMString, DomTypeHolder, Fallible, HandleObject, JSContext, Option (+5 more)
+Cohesion: 0.16
+Nodes (12): CoreResourceMsg, GenericSender, Option, Range, Uuid, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck (+4 more)
 
 ### Community 1325 - "Community 1325"
 Cohesion: 0.21
@@ -9720,6 +9698,10 @@ Nodes (11): Item, Iterator, Node, NoGC, Option, UnrootedDom, FlatTreeChildIterat
 ### Community 1327 - "Community 1327"
 Cohesion: 0.18
 Nodes (13): ByteString, CurrentRealm, Dom, DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector (+5 more)
+
+### Community 1328 - "Community 1328"
+Cohesion: 0.15
+Nodes (6): Box<T>, MallocShallowSizeOf, smallvec::SmallVec<A>, std::collections::BTreeMap<K, V>, std::collections::VecDeque<T>, Vec<T>
 
 ### Community 1329 - "Community 1329"
 Cohesion: 0.21
@@ -9738,8 +9720,8 @@ Cohesion: 0.24
 Nodes (19): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+11 more)
 
 ### Community 1333 - "Community 1333"
-Cohesion: 0.24
-Nodes (19): CryptoKey, CryptoKeyPair, DomRoot, EcdhKeyDeriveParams, Error, ExportedKey, GlobalScope, JSContext (+11 more)
+Cohesion: 0.22
+Nodes (20): CryptoKey, CryptoKeyPair, DomRoot, EcdhKeyDeriveParams, Error, ExportedKey, GlobalScope, JSContext (+12 more)
 
 ### Community 1334 - "Community 1334"
 Cohesion: 0.18
@@ -9754,72 +9736,72 @@ Cohesion: 0.50
 Nodes (3): `servo`, `tidy`, `wpt`
 
 ### Community 1337 - "Community 1337"
-Cohesion: 0.12
-Nodes (11): JSTraceable, Result, ScriptEventLoopSender, SendError, StatelessWorkletThreadPool, WorkletExecutor, WorkletId, WorkletThreadPool (+3 more)
+Cohesion: 0.13
+Nodes (22): Arc, ArrayVec, BufferId, CrossProcessPaintApi, DeviceIntSize, Drop, Epoch, GenericSender (+14 more)
 
 ### Community 1338 - "Community 1338"
-Cohesion: 0.30
-Nodes (9): BroadcastChannelRouterId, BroadcastChannelMsg, FxHashMap, GenericCallback, HashMap, ImmutableOrigin, String, Vec (+1 more)
+Cohesion: 0.06
+Nodes (40): bench(), BenchDom, black_box, Criterion, Reflector, D, PhantomData, Reflector (+32 more)
 
 ### Community 1339 - "Community 1339"
-Cohesion: 0.15
-Nodes (12): Item, Iterator, Option, Self, ServoLayoutNode, FusedIterator, DOMDescendantIterator, DOMDescendantIterator<'dom> (+4 more)
+Cohesion: 0.20
+Nodes (9): Item, Iterator, Option, Self, ServoLayoutNode, DOMDescendantIterator<'dom>, ReverseChildrenIterator, ReverseChildrenIterator<'dom> (+1 more)
 
 ### Community 1340 - "Community 1340"
 Cohesion: 0.14
 Nodes (14): CascadeData, Debug, Formatter, From, LayoutDom, Option, Result, Self (+6 more)
 
 ### Community 1341 - "Community 1341"
-Cohesion: 0.26
-Nodes (12): D, DomRoot, DOMString, GlobalScope, GPUError, HandleObject, JSContext, Option (+4 more)
+Cohesion: 0.16
+Nodes (17): D, Dom, DomRefCell, DomRoot, Drop, GlobalScope, GPUTexture, JSContext (+9 more)
 
 ### Community 1342 - "Community 1342"
 Cohesion: 0.25
 Nodes (11): Into, Option, PathBuf, Self, String, ProxyMode, ProxyConfig, ProxyMode (+3 more)
 
 ### Community 1343 - "Community 1343"
-Cohesion: 0.13
-Nodes (14): AutomaticResponder, ConstellationProxy, NewWebViewDetails, PipelineId, Rc, RenderingContext, Servo, WebViewBuilder (+6 more)
+Cohesion: 0.12
+Nodes (15): CertificateErrorResponse, AutomaticResponder, ConstellationProxy, NewWebViewDetails, PipelineId, Rc, RenderingContext, Servo (+7 more)
 
 ### Community 1346 - "Community 1346"
-Cohesion: 0.15
-Nodes (6): DeviceIntRect, InputMethodType, Option, RgbColor, ColorPicker, InputMethodControl
+Cohesion: 0.09
+Nodes (11): ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, DeviceIntRect, EmbedderControlId, InputMethodType, Option, RgbColor (+3 more)
 
 ### Community 1347 - "Community 1347"
 Cohesion: 0.20
 Nodes (14): AttrValue, Document, DomRoot, DOMString, DomTypeHolder, HandleObject, HTMLElement, JSContext (+6 more)
 
 ### Community 1348 - "Community 1348"
-Cohesion: 0.08
-Nodes (31): AsyncRuntime, Box, Option, Runtime, Self, ClientStorageThreadHandle, Connection, ImmutableOrigin (+23 more)
+Cohesion: 0.26
+Nodes (12): D, DomRoot, DOMString, GlobalScope, GPUError, HandleObject, JSContext, Option (+4 more)
 
 ### Community 1351 - "Community 1351"
-Cohesion: 0.15
-Nodes (6): Box<T>, MallocShallowSizeOf, smallvec::SmallVec<A>, std::collections::BTreeMap<K, V>, std::collections::VecDeque<T>, Vec<T>
+Cohesion: 0.14
+Nodes (18): accesskit_action_from_u8(), servo_create_new_webview_builder_create(), servo_create_new_webview_request_free(), servo_webview_builder_create(), servo_webview_builder_set_private_browsing(), ServoCreateNewWebViewRequest, ServoWebViewBuilder, Action (+10 more)
 
 ### Community 1352 - "Community 1352"
-Cohesion: 0.20
-Nodes (20): AlignFlags, AspectRatio, Au, Baselines, CollapsedBlockMargins, LogicalRect, LogicalSides, PaddingBorderMargin (+12 more)
+Cohesion: 0.12
+Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+2 more)
 
 ### Community 1358 - "Community 1358"
-Cohesion: 0.19
-Nodes (11): AccessibilityUpdateResult, DomRoot, DomTypeHolder, GlobalScope, JSContext, NoGC, Reflector, LayoutResult (+3 more)
+Cohesion: 0.17
+Nodes (12): AccessibilityUpdateResult, DomRoot, DomTypeHolder, GlobalScope, JSContext, NoGC, Reflector, epoch (+4 more)
 
 ### Community 1359 - "Community 1359"
-Cohesion: 0.17
-Nodes (9): CustomAutoRooterGuard, ErrorResult, Fallible, FrameRequestCallback, HandleValue, JSObject, RootedCallback, StructuredSerializeOptions (+1 more)
+Cohesion: 0.10
+Nodes (16): DomRefCell, DomTypeHolder, ErrorResult, Fallible, FrameRequestCallback, JSContext, MessageData, RootedCallback (+8 more)
 
 ### Community 1360 - "Community 1360"
 Cohesion: 0.20
 Nodes (11): FramerateActor, Actor, ActorRegistry, AtomicRefCell, DevtoolScriptControlMsg, Drop, GenericSender, HighResolutionStamp (+3 more)
 
 ### Community 1361 - "Community 1361"
-Cohesion: 0.17
-Nodes (14): LongStringActor, LongStringObj, SubstringReply, Actor, ActorError, ActorRegistry, Arc, ClientRequest (+6 more)
+Cohesion: 0.07
+Nodes (27): MemoryActor, TimelineMemoryReply, Actor, ActorRegistry, String, String, T, Vec (+19 more)
 
 ### Community 1362 - "Community 1362"
-Cohesion: 0.11
-Nodes (18): DomObject, HandleObject, JSContext, Sized, JSPrincipalsCallbacks, DocumentHelpers, DomHelpers, GlobalScopeHelpers (+10 more)
+Cohesion: 0.25
+Nodes (12): BufReader, Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler (+4 more)
 
 ### Community 1363 - "Community 1363"
 Cohesion: 0.22
@@ -9834,32 +9816,32 @@ Cohesion: 0.27
 Nodes (14): MediaStreamTrackAudioSourceNode, AudioContext, AudioNode, Dom, DomRoot, DomTypeHolder, Fallible, HandleObject (+6 more)
 
 ### Community 1366 - "Community 1366"
-Cohesion: 0.31
-Nodes (6): PhysicalSides, Unit, WritingMode, PhysicalSides<Unit>, PhysicalSize<Unit>, ToLogical
+Cohesion: 0.14
+Nodes (18): CrossProcessInstant, F, Option, ProfilerMsg, Span, String, T, TimerMetadataFrameType (+10 more)
 
 ### Community 1367 - "Community 1367"
-Cohesion: 0.16
-Nodes (12): CoreResourceMsg, GenericSender, Option, Range, Uuid, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck (+4 more)
+Cohesion: 0.18
+Nodes (3): DOMString, Self, SanitizerElement
 
 ### Community 1368 - "Community 1368"
 Cohesion: 0.20
 Nodes (12): BeforeUnloadEventMethods, Atom, DomRefCell, DomRoot, DOMString, DomTypeHolder, Event, EventBubbles (+4 more)
 
 ### Community 1369 - "Community 1369"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (10): BlobResult, BlobData, BlobId, DOMString, FileManagerResult, GenericReceiver, ReadableStream, ReadFileProgress (+2 more)
 
 ### Community 1371 - "Community 1371"
-Cohesion: 0.12
-Nodes (15): AbsoluteColor, AttributeMutation, AttrRef, AttrValue, Cell, CollectionFilter, Dom, DOMString (+7 more)
+Cohesion: 0.18
+Nodes (8): Drop, MallocSizeOf, MallocSizeOfOps, Self, Send, Sync, ProxyTraps, WindowProxyHandler
 
 ### Community 1372 - "Community 1372"
 Cohesion: 0.15
 Nodes (15): servo_webview_clipboard_request_failure(), servo_webview_clipboard_request_success(), ServoClipboardDelegate, ServoClipboardStringRequest, c_char, c_void, ClipboardDelegate, Option (+7 more)
 
 ### Community 1373 - "Community 1373"
-Cohesion: 0.17
-Nodes (10): Atom, ByteString, Fallible, GlobalScope, HandleObject, HeaderMap, Option, RequestBuilder (+2 more)
+Cohesion: 0.18
+Nodes (10): BlackboxCoverage, DebuggerSourceLocation, DomRoot, DomTypeHolder, Event, GlobalScope, JSContext, Self (+2 more)
 
 ### Community 1374 - "Community 1374"
 Cohesion: 0.19
@@ -9874,20 +9856,20 @@ Cohesion: 0.15
 Nodes (11): BrowsingContextId, DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, FxHashMap, PipelineId, WebViewId, DevtoolsBrowserId (+3 more)
 
 ### Community 1377 - "Community 1377"
-Cohesion: 0.07
-Nodes (26): AuthenticationRequest, BluetoothDeviceSelectionRequest, CreateNewWebViewRequest, Cursor, DeviceIntPoint, DeviceIntSize, DownloadContinueCallback, DownloadItem (+18 more)
+Cohesion: 0.09
+Nodes (25): Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler, Request (+17 more)
 
 ### Community 1378 - "Community 1378"
 Cohesion: 0.19
-Nodes (6): ThreadPool, ThreadPoolState, Arc, Mutex, Self, OP
+Nodes (8): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, WEBGLColorBufferFloat
 
 ### Community 1379 - "Community 1379"
-Cohesion: 0.17
-Nodes (14): Default, EmbedderMsg, Opts, Preferences, ProtocolRegistry, RequestContext, Self, ServoBuilder (+6 more)
+Cohesion: 0.24
+Nodes (6): DomRoot, Fallible, Option, Range, LayoutDom<'dom, Selection>, SelectionRange
 
 ### Community 1380 - "Community 1380"
-Cohesion: 0.08
-Nodes (8): DeviceIntRect, DeviceSize, EmbedderControlId, EmbedderControlRequest, Epoch, ScreenGeometry, TreeUpdate, ViewportDetails
+Cohesion: 0.07
+Nodes (42): BaselineShift, baselinesource, BidiInfo, Arc, Cell, ComputedValues, FnOnce, FontAndScriptInfo (+34 more)
 
 ### Community 1381 - "Community 1381"
 Cohesion: 0.22
@@ -9898,8 +9880,8 @@ Cohesion: 0.18
 Nodes (13): Debug, DomRoot, DOMString, DomTypeHolder, Event, Formatter, GlobalScope, JSContext (+5 more)
 
 ### Community 1383 - "Community 1383"
-Cohesion: 0.16
-Nodes (7): ErrorResult, ImmutableOrigin, NodeOrString, TrustedHTMLOrString, Vec, SetParserReason, ServoParser
+Cohesion: 0.07
+Nodes (15): ErrorResult, ImmutableOrigin, NodeOrString, ParseError, Result, ServoUrl, TrustedHTMLOrString, USVString (+7 more)
 
 ### Community 1384 - "Community 1384"
 Cohesion: 0.23
@@ -9914,8 +9896,8 @@ Cohesion: 0.21
 Nodes (9): DomRefCell, DOMString, HTMLInputElement, JSContext, OffsetDateTime, Option, SpecificInputType, TextInputWidget (+1 more)
 
 ### Community 1387 - "Community 1387"
-Cohesion: 0.12
-Nodes (13): Run a tshark command with the specified arguments.     Some custom arguments are, tshark(), LoggingMixin, Provides functionality to control logging., Ensure this class instance has a logger associated with it.          Users of th, Log a structured log event.          A structured log event consists of a loggin, ProcessExecutionMixin, Adjust command arguments to run in the necessary environment.          This exis (+5 more)
+Cohesion: 0.10
+Nodes (26): Run a tshark command with the specified arguments.     Some custom arguments are, tshark(), call(), check_call(), extract_arg(), extract_args(), forward_webdriver(), main() (+18 more)
 
 ### Community 1388 - "Community 1388"
 Cohesion: 0.21
@@ -9926,20 +9908,20 @@ Cohesion: 0.22
 Nodes (9): DomRefCell, DOMString, HTMLInputElement, JSContext, OffsetDateTime, Option, SpecificInputType, TextInputWidget (+1 more)
 
 ### Community 1390 - "Community 1390"
-Cohesion: 0.10
-Nodes (10): BodyInit, DOMString, Fallible, Gamepad, Option, String, USVString, Vec (+2 more)
+Cohesion: 0.12
+Nodes (8): BodyInit, DOMString, Fallible, String, USVString, matches_web_plus_protocol(), is_cors_safelisted_request_content_type(), ProtocolHandlerUpdateRegistration
 
 ### Community 1391 - "Community 1391"
-Cohesion: 0.15
-Nodes (13): FetchMetadata, FetchResponseListener, GlobalScope, InitiatorType, NetworkError, RequestId, ResourceFetchTiming, ResourceTimingListener (+5 more)
+Cohesion: 0.12
+Nodes (15): FetchMetadata, FetchResponseListener, GlobalScope, InitiatorType, NetworkError, RequestId, ResourceFetchTiming, ResourceTimingListener (+7 more)
 
 ### Community 1392 - "Community 1392"
 Cohesion: 0.25
 Nodes (13): DomRefCell, DomRoot, DOMString, DomTypeHolder, GlobalScope, JSContext, Option, PerformanceEntry (+5 more)
 
 ### Community 1393 - "Community 1393"
-Cohesion: 0.12
-Nodes (16): AtomicBool, AtomicUsize, CoreResourceThread, FontGroup, FontStyleStruct, Mutex, RwLock, ServoUrl (+8 more)
+Cohesion: 0.18
+Nodes (10): Default, Option, Receiver, Sender, SendError, ServoError, OneshotSender, ServoErrorChannel (+2 more)
 
 ### Community 1394 - "Community 1394"
 Cohesion: 0.16
@@ -9958,12 +9940,12 @@ Cohesion: 0.23
 Nodes (18): AesDerivedKeyParams, AesKeyGenParams, CryptoKey, DomRoot, Error, ExportedKey, GlobalScope, JSContext (+10 more)
 
 ### Community 1398 - "Community 1398"
-Cohesion: 0.26
-Nodes (19): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+11 more)
+Cohesion: 0.28
+Nodes (18): CryptoKey, CryptoKeyPair, DomRoot, Error, ExportedKey, GlobalScope, JSContext, KeyAlgorithmAndDerivatives (+10 more)
 
 ### Community 1399 - "Community 1399"
 Cohesion: 0.14
-Nodes (10): BorderStyleColor, Eq, LogicalSides, Ordering, PartialOrd, Self, CollapsedBorder, TableLayoutStyle<'_> (+2 more)
+Nodes (11): Display, F, Formatter, Result, T, phantomdata, Entered, EnteredSpan (+3 more)
 
 ### Community 1400 - "Community 1400"
 Cohesion: 0.22
@@ -9986,8 +9968,8 @@ Cohesion: 0.19
 Nodes (12): ApiRigidTransform, Dom, DOMPointReadOnly, DomRoot, DomTypeHolder, JSContext, Option, Reflector (+4 more)
 
 ### Community 1405 - "Community 1405"
-Cohesion: 0.16
-Nodes (11): Add, Document, DomRoot, DomTypeHolder, GlobalScope, JSContext, Output, Reflector (+3 more)
+Cohesion: 0.21
+Nodes (9): Box, CommandBufferId, CommandEncoderId, ContextConfiguration, Error, FnOnce, Result, TextureId (+1 more)
 
 ### Community 1406 - "Community 1406"
 Cohesion: 0.24
@@ -9998,8 +9980,8 @@ Cohesion: 0.20
 Nodes (14): Box, ConstellationProxy, FnOnce, FxHashMap, JavaScriptEvaluationError, JavaScriptEvaluationId, JSValue, Result (+6 more)
 
 ### Community 1408 - "Community 1408"
-Cohesion: 0.12
-Nodes (19): Box, DiscoveryAPI, Floor, LayerGrandManager, Native, Option, Point2D, RigidTransform3D (+11 more)
+Cohesion: 0.13
+Nodes (16): ExtensionSet, Option, String, Vec, Instance, SessionBuilder, SessionInit, SessionMode (+8 more)
 
 ### Community 1409 - "Community 1409"
 Cohesion: 0.11
@@ -10011,19 +9993,19 @@ Nodes (15): Box, DoneChannel, FetchContext, Future, Output, Pin, ProtocolHandler
 
 ### Community 1411 - "Community 1411"
 Cohesion: 0.14
-Nodes (11): AudioBackend, Backend, BackendInit, Controller, MediaOutput, SupportsMediaType, WebRtcBackend, WebRtcController (+3 more)
+Nodes (15): BuildTarget, find_non_system_dependencies_with_otool(), is_macos_system_library(), load_plugin_libraries_from_text_file(), macos_plugins(), make_rpath_path_absolute(), package_gstreamer_dylibs(), Returns true if if the given dependency line from otool refers to     a system l (+7 more)
 
 ### Community 1412 - "Community 1412"
 Cohesion: 0.16
 Nodes (12): MediaStreamSourceNode, AudioNodeEngine, AudioNodeType, AudioStreamReader, BlockInfo, Box, ChannelInfo, Chunk (+4 more)
 
 ### Community 1413 - "Community 1413"
-Cohesion: 0.12
-Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), expression : LPAREN expression RPAREN, statement : NAME EQUALS expression, statement : expression (+2 more)
+Cohesion: 0.26
+Nodes (12): DOMString, AppCodeName(), AppName(), AppVersion(), Language(), Oscpu(), Platform(), Product() (+4 more)
 
 ### Community 1414 - "Community 1414"
-Cohesion: 0.12
-Nodes (25): Arc, Au, BoxFragment, BoxFragmentWithStyle, ClipId, ContainerTimingRoots, Fragment, FragmentTextDecoration (+17 more)
+Cohesion: 0.13
+Nodes (24): Arc, Au, BoxFragment, BoxFragmentWithStyle, ClipId, ContainerTimingRoots, Fragment, FragmentTextDecoration (+16 more)
 
 ### Community 1415 - "Community 1415"
 Cohesion: 0.23
@@ -10031,35 +10013,35 @@ Nodes (9): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificI
 
 ### Community 1416 - "Community 1416"
 Cohesion: 0.17
-Nodes (11): AutoOr, Au, AuOrAuto, Option, PhysicalPoint, PhysicalRect, PhysicalSize, LogicalSides1D<AutoOr<&LengthPercentage>> (+3 more)
+Nodes (10): DefPath, ManualDOMStringPass, Expr, ExprKind, LateContext, LateLintPass, Lint, LintPass (+2 more)
 
 ### Community 1417 - "Community 1417"
 Cohesion: 0.16
 Nodes (10): Arc, Option, Self, Send, Sync, Vec, Buffer, VideoFrame (+2 more)
 
 ### Community 1418 - "Community 1418"
-Cohesion: 0.12
-Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME EQUALS expression, statement : expression, expression : expression PLUS expression                   | expression MINUS exp (+2 more)
+Cohesion: 0.17
+Nodes (9): Arc, FontBaseline, PlatformFont, Self, SingleFontFamily, FontFamilyDescriptor, FontMetrics, FontSearchScope (+1 more)
 
 ### Community 1419 - "Community 1419"
-Cohesion: 0.24
-Nodes (17): arc_as_stdarc, DoneChannel, Option, Range, Request, mutex_as_parkinglotmutex, CachedResourcesOrGuard, CachedResponse (+9 more)
+Cohesion: 0.16
+Nodes (9): NoTrace<T>, Display, Formatter, From, JSTraceable, MallocSizeOf, MallocSizeOfOps, Result (+1 more)
 
 ### Community 1420 - "Community 1420"
-Cohesion: 0.09
-Nodes (20): Cell, Device, EmbedderToConstellationMessage, JoinHandle, Rc, RefCell, RenderingContext, ReportsChan (+12 more)
+Cohesion: 0.07
+Nodes (24): Box, Cell, Device, EmbedderToConstellationMessage, FnOnce, JoinHandle, Option, RgbaImage (+16 more)
 
 ### Community 1421 - "Community 1421"
-Cohesion: 0.07
-Nodes (36): CSSPixel, DeviceIndependentPixel, DevicePixel, DevicePoint, EventLoopWaker, FontInstanceKey, FontKey, GenericSender (+28 more)
+Cohesion: 0.21
+Nodes (12): ConstantSpec, CStr, Guard, HandleObject, JSContext, JSFunctionSpec, JSPropertySpec, MutableHandleObject (+4 more)
 
 ### Community 1422 - "Community 1422"
-Cohesion: 0.16
-Nodes (4): DOMString, Option, RootedHTMLCanvasElementOrOffscreenCanvas, StringOrCanvasGradientOrCanvasPattern
+Cohesion: 0.36
+Nodes (6): AnimationSetKey, Animation, PipelineId, ElementAnimationSet, Transition, TransitionOrAnimationEventType
 
 ### Community 1423 - "Community 1423"
-Cohesion: 0.05
-Nodes (46): cell, Atom, HTMLElement, Option, QuirksMode, Rc, Self, ServoArc (+38 more)
+Cohesion: 0.11
+Nodes (20): Atom, HTMLElement, Option, QuirksMode, Rc, Self, ServoArc, SharedRwLock (+12 more)
 
 ### Community 1424 - "Community 1424"
 Cohesion: 0.15
@@ -10090,8 +10072,8 @@ Cohesion: 0.14
 Nodes (15): D, Display, E, Err, Error, Formatter, FromStr, Result (+7 more)
 
 ### Community 1431 - "Community 1431"
-Cohesion: 0.21
-Nodes (9): Document, DomRoot, Encoding, HeapArrayBuffer, IsHTMLDocument, JSContext, Mime, MutableHandleValue (+1 more)
+Cohesion: 0.12
+Nodes (15): Add, Deref, DerefMut, Div, Duration, From, HeaderMap, Output (+7 more)
 
 ### Community 1432 - "Community 1432"
 Cohesion: 0.20
@@ -10102,32 +10084,32 @@ Cohesion: 0.23
 Nodes (14): DomRefCell, DomRoot, DomTypeHolder, Fallible, GlobalScope, HandleObject, IndexSet, JSContext (+6 more)
 
 ### Community 1434 - "Community 1434"
-Cohesion: 0.14
-Nodes (27): Display, DomRoot, Error, Formatter, ImageInfo, Result, TexCompression, TexDataType (+19 more)
+Cohesion: 0.15
+Nodes (4): DOMString, HTMLCanvasElement, RootedHTMLCanvasElementOrOffscreenCanvas, StringOrCanvasGradientOrCanvasPattern
 
 ### Community 1435 - "Community 1435"
 Cohesion: 0.21
 Nodes (9): DomRoot, JSContext, Option, Reflector, Self, WebGLContextId, WebGLProgramId, Window (+1 more)
 
 ### Community 1436 - "Community 1436"
-Cohesion: 0.16
-Nodes (12): Arc, FxHashMap, GenericReceiver, MemProfilerChan, OriginDescriptor, PathBuf, ThreadPool, Vec (+4 more)
+Cohesion: 0.13
+Nodes (29): arc_as_stdarc, CachedResourcesOrGuard, Debug, DoneChannel, HeaderName, MallocSizeOf, Option, Range (+21 more)
 
 ### Community 1437 - "Community 1437"
 Cohesion: 0.24
 Nodes (15): Address, check_kern_return(), frame_pointer_stack_walk(), get_registers(), MacOsSampler, Registers, resume_thread(), suspend_thread() (+7 more)
 
 ### Community 1438 - "Community 1438"
-Cohesion: 0.17
-Nodes (10): Atom, DocumentStyleSheet, Painter, RequestId, SharedRwLocks, UserContents, UserScript, Vec (+2 more)
+Cohesion: 0.18
+Nodes (11): Arc, Default, MediaStream, Mutex, Option, Self, Uuid, get_stream() (+3 more)
 
 ### Community 1439 - "Community 1439"
 Cohesion: 0.20
 Nodes (13): Color, Error, Extent3d, Result, Origin2d, Origin3d, &GPUColor, &GPUExtent3D (+5 more)
 
 ### Community 1440 - "Community 1440"
-Cohesion: 0.12
-Nodes (13): AllowOrDenyRequest, Cell, ConsoleLogLevel, Event, GamepadIndex, HashMap, Servo, ServoDelegate (+5 more)
+Cohesion: 0.07
+Nodes (28): ActionItem, BrowsingContextId, FxHashSet, HashMap, Map, Option, String, ToString (+20 more)
 
 ### Community 1441 - "Community 1441"
 Cohesion: 0.16
@@ -10135,31 +10117,31 @@ Nodes (12): D, Deserialize, Display, Error, Formatter, Ok, OpaqueNode, Result (+
 
 ### Community 1442 - "Community 1442"
 Cohesion: 0.14
-Nodes (17): Box, Clone, Debug, Eq, H, Hash, MallocSizeOf, PartialEq (+9 more)
+Nodes (11): Box, FnOnce, Option, Result, RgbaImage, ScreenshotCaptureError, UnknownWebView, ViewportDetails (+3 more)
 
 ### Community 1443 - "Community 1443"
-Cohesion: 0.14
-Nodes (16): ContainingBlock, CSSPixelLength, Debug, From, genericlengthpercentageorauto_as_autoor, LogicalRect, LogicalRect<Au>, LogicalRect<CSSPixelLength> (+8 more)
+Cohesion: 0.19
+Nodes (11): Debug, DomRoot, DomTypeHolder, Event, Formatter, GlobalScope, JSContext, Result (+3 more)
 
 ### Community 1444 - "Community 1444"
 Cohesion: 0.15
 Nodes (6): Event, Frame, HitTestId, HitTestSource, ProfileGenericCallback, SessionThread<Device>
 
 ### Community 1445 - "Community 1445"
-Cohesion: 0.12
-Nodes (20): LayoutFactory, Arc, AsyncRuntime, ConstellationToEmbedderMsg, DevtoolsControlMsg, EmbedderProxy, EmbedderToConstellationMessage, GenericEmbedderProxy (+12 more)
+Cohesion: 0.20
+Nodes (5): is_cjk(), len_utf8_for_utf8_byte(), RangeAnyInner, unicode_plane(), sum
 
 ### Community 1446 - "Community 1446"
-Cohesion: 0.33
-Nodes (6): FxHashMap, Self, WebGpuExternalImageMap, WebRenderExternalImageApi, PresentationStagingBuffer, WebGpuExternalImages
+Cohesion: 0.29
+Nodes (8): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificInputType, TextInputWidget, UrlInputType
 
 ### Community 1447 - "Community 1447"
-Cohesion: 0.07
-Nodes (28): ActionItem, BrowsingContextId, FxHashSet, HashMap, Map, Option, String, ToString (+20 more)
+Cohesion: 0.18
+Nodes (7): pytest_sessionfinish(), pytest_sessionstart(), _start_web_servers(), _stop_web_servers(), http_server, Session, socketserver
 
 ### Community 1448 - "Community 1448"
-Cohesion: 0.29
-Nodes (8): Atom, DOMString, EventBubbles, EventCancelable, Fallible, GlobalScope, HandleObject, EventInit
+Cohesion: 0.10
+Nodes (22): CrossProcessInstant, DOMHighResTimeStamp, DomRefCell, From, Reflector, Self, SmallVec, TaskOnce (+14 more)
 
 ### Community 1449 - "Community 1449"
 Cohesion: 0.12
@@ -10174,36 +10156,36 @@ Cohesion: 0.21
 Nodes (17): ChannelSplitterNode, audionodeinit, ChannelSplitterNodeMethods, ChannelSplitterOptions, Arc, ServoMedia, AudioNode, BaseAudioContext (+9 more)
 
 ### Community 1452 - "Community 1452"
-Cohesion: 0.17
-Nodes (10): BrowsingContextId, NamespaceIndex<T>, ScriptEventLoopId, WebViewId, Debug, Display, Formatter, PainterId (+2 more)
+Cohesion: 0.19
+Nodes (8): cfg_if, deinit, Option, PathBuf, resource_protocol_dir_path(), resource_root_dir_path(), HitraceLayer, init_tracing()
 
 ### Community 1453 - "Community 1453"
-Cohesion: 0.21
-Nodes (12): ConstantSpec, CStr, Guard, HandleObject, JSContext, JSFunctionSpec, JSPropertySpec, MutableHandleObject (+4 more)
+Cohesion: 0.17
+Nodes (4): Any, SwapChain, RenderingContext, SoftwareRenderingContext
 
 ### Community 1454 - "Community 1454"
-Cohesion: 0.25
-Nodes (14): Context, is_custom_data_attribute(), is_valid_attribute_local_name(), is_valid_doctype_name(), is_valid_element_local_name(), is_valid_namespace_prefix(), namespace_from_domstring(), validate_and_extract() (+6 more)
+Cohesion: 0.21
+Nodes (10): Dom, DomRoot, DomTypeHolder, Option, Size2D, Viewport, WebGLTexture, XRWebGLSubImage (+2 more)
 
 ### Community 1455 - "Community 1455"
-Cohesion: 0.12
-Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+2 more)
+Cohesion: 0.25
+Nodes (10): Dom, DomRoot, DomTypeHolder, HitTestId, JSContext, Reflector, Window, XRSession (+2 more)
 
 ### Community 1456 - "Community 1456"
 Cohesion: 0.06
-Nodes (37): blobimpl, ArrayBuffer, ArrayBufferView, Blob, Cell, Convert, CurrentRealm, CustomAutoRooterGuard (+29 more)
+Nodes (36): ArrayBuffer, ArrayBufferView, Blob, Cell, Convert, CurrentRealm, CustomAutoRooterGuard, DataChannelId (+28 more)
 
 ### Community 1457 - "Community 1457"
-Cohesion: 0.16
-Nodes (9): Copy, Default, Percentage, T, U, Size<LengthPercentage>, Size<T>, StyleMaxSize (+1 more)
+Cohesion: 0.04
+Nodes (39): AttributeMutation, AttrRef, BindContext, CloneChildrenFlag, Document, DomRefCell, DomRoot, DOMString (+31 more)
 
 ### Community 1458 - "Community 1458"
-Cohesion: 0.07
-Nodes (38): assertunwindsafe, Arc, CorsStatus, CrossProcessPaintApi, Debug, FetchResponseMsg, FontResolver, ImageCache (+30 more)
+Cohesion: 0.18
+Nodes (16): CommandEncoderCommand, CommandEncoderId, ComputePassEncoderCommand, ComputePassEncoderId, Global, RenderBundleEncoderId, RenderPassEncoderCommand, RenderPassEncoderId (+8 more)
 
 ### Community 1459 - "Community 1459"
-Cohesion: 0.13
-Nodes (12): AsRef, Debug, HeaderName, MallocSizeOf, MallocSizeOfOps, Metadata, ServoUrl, CacheKey (+4 more)
+Cohesion: 0.19
+Nodes (13): BindGroupEntry, D, JSContext, T, WebGPUTextureView, GPUBindGroupEntry, GPULoadOp, GPUTextureOrGPUTextureView (+5 more)
 
 ### Community 1460 - "Community 1460"
 Cohesion: 0.15
@@ -10218,8 +10200,8 @@ Cohesion: 0.15
 Nodes (16): Au, FontFaceRuleInfo, GlyphId, Item, Iterator, Option, Point2D, Script (+8 more)
 
 ### Community 1463 - "Community 1463"
-Cohesion: 0.05
-Nodes (48): arc, atomicref, color_as_svgcolor, MallocSizeOfOps, Copy, Debug, NodeInfo, Send (+40 more)
+Cohesion: 0.18
+Nodes (17): CacheMethods, CacheQueryOptions, CacheStorageThreadResponse, DomRoot, DOMString, DomTypeHolder, GenericCallback, GlobalScope (+9 more)
 
 ### Community 1464 - "Community 1464"
 Cohesion: 0.24
@@ -10227,55 +10209,55 @@ Nodes (15): Metadata, PathBuf, Request, Response, ServoUrl, String, Url, DirEntr
 
 ### Community 1465 - "Community 1465"
 Cohesion: 0.22
-Nodes (11): canvascontext_as, Dom, EventTarget, JSContext, LayerId, Option, WebGLContextId, WebGLRenderingContext (+3 more)
+Nodes (11): debug_jsobject(), init(), initialize_logging_once(), register_prompt_toast_callback(), register_terminate_callback(), register_url_callback(), register_xcomponent_callbacks(), Env (+3 more)
 
 ### Community 1466 - "Community 1466"
-Cohesion: 0.08
-Nodes (20): Clone, Debug, Default, Deref, Err, Formatter, HandleValue, Heap (+12 more)
+Cohesion: 0.18
+Nodes (3): DOMString, Option, Snapshot
 
 ### Community 1467 - "Community 1467"
 Cohesion: 0.07
 Nodes (42): Arc, BlackboxCoverage, DevtoolScriptControlMsg, DomRoot, DOMString, DomTypeHolder, EnvironmentInfo, FrameInfo (+34 more)
 
 ### Community 1468 - "Community 1468"
-Cohesion: 0.09
-Nodes (21): AccountingAlloc, AccountingAlloc<A>, AllocSite, atomic, A, AtomicBool, c_void, Layout (+13 more)
+Cohesion: 0.13
+Nodes (12): AccountingAlloc, AccountingAlloc<A>, AllocSite, cell, A, AtomicBool, c_void, Layout (+4 more)
 
 ### Community 1469 - "Community 1469"
-Cohesion: 0.13
-Nodes (14): AlternateKindRequiringResolution, FontFaceRule, HashMap, ResolvedFontVariantAlternates, StylesheetGuards, StylesheetWebFontLoadFinishedCallback, Stylist, WebFontSetDifference (+6 more)
+Cohesion: 0.22
+Nodes (10): DomRefCell, DomRoot, DOMString, DomTypeHolder, JSContext, Option, UIEvent, Window (+2 more)
 
 ### Community 1470 - "Community 1470"
-Cohesion: 0.15
-Nodes (21): CssRuleType, Document, ParseErrorReporter, ParserContext, UrlExtraData, DomRoot, DOMString, DomTypeHolder (+13 more)
+Cohesion: 0.12
+Nodes (25): compiletest_rs_as_compiletest, CssRuleType, Document, ParseErrorReporter, ParserContext, UrlExtraData, DomRoot, DOMString (+17 more)
 
 ### Community 1471 - "Community 1471"
-Cohesion: 0.18
-Nodes (10): BlackboxCoverage, DebuggerSourceLocation, DomRoot, DomTypeHolder, Event, GlobalScope, JSContext, Self (+2 more)
+Cohesion: 0.07
+Nodes (33): atomic, AsyncRuntime, Box, Option, Runtime, Self, Arc, AtomicBool (+25 more)
 
 ### Community 1472 - "Community 1472"
-Cohesion: 0.14
-Nodes (7): ParseError, Referrer, ServiceWorker, ServiceWorkerId, ServiceWorkerRegistration, ServiceWorkerRegistrationId, ServoUrl
+Cohesion: 0.21
+Nodes (12): CrossProcessInstant, Drop, File, Option, P, ProfilerCategory, Result, TimerMetadata (+4 more)
 
 ### Community 1473 - "Community 1473"
 Cohesion: 0.18
 Nodes (10): BlackboxCoverage, DebuggerSourceLocation, DomRoot, DomTypeHolder, Event, GlobalScope, JSContext, Self (+2 more)
 
 ### Community 1474 - "Community 1474"
-Cohesion: 0.16
-Nodes (7): DomRoot, Event, Fallible, GlobalScope, HandleObject, Self, Window
+Cohesion: 0.11
+Nodes (24): c_char, CompiledEventListener, compilefunction, Atom, ConstellationInterest, DomRefCell, Event, EventBubbles (+16 more)
 
 ### Community 1475 - "Community 1475"
 Cohesion: 0.17
-Nodes (7): CharacterData, DOMString, RangeAny, Self, Utf32CodeUnits, FlatTreeSelection<'no_gc>, VisibleSelectionTraversal
+Nodes (13): CrossProcessPaintApi, Device, JoinHandle, PainterSurfmanDetailsMap, SwapChains, WebGLContextBusyMap, WebGLContextId, WebGLThreads (+5 more)
 
 ### Community 1476 - "Community 1476"
 Cohesion: 0.25
 Nodes (11): Dom, DomRoot, DomTypeHolder, GlobalScope, HandleObject, JSContext, MessagePort, Option (+3 more)
 
 ### Community 1477 - "Community 1477"
-Cohesion: 0.16
-Nodes (4): Fallible, GenericSender, IndexedDBThreadMsg, JSContext
+Cohesion: 0.26
+Nodes (9): GenericReceiver, HashMap, ProfilerChan, ProfilerMsg, Report, String, Vec, Profiler (+1 more)
 
 ### Community 1478 - "Community 1478"
 Cohesion: 0.25
@@ -10286,16 +10268,16 @@ Cohesion: 0.27
 Nodes (12): Box, CurrentRealm, DomRoot, GlobalScope, HandleValue, JSContext, JSTraceable, MallocSizeOf (+4 more)
 
 ### Community 1480 - "Community 1480"
-Cohesion: 0.26
-Nodes (4): DomRoot, Fallible, JSContext, Option
+Cohesion: 0.21
+Nodes (7): PipelineNamespace, PipelineNamespaceInstaller, PipelineNamespaceRequest, Default, GenericReceiver, GenericSender, PipelineNamespaceId
 
 ### Community 1481 - "Community 1481"
 Cohesion: 0.22
 Nodes (11): Dom, DomRoot, DomTypeHolder, JSContext, Option, Reflector, Touch, Vec (+3 more)
 
 ### Community 1482 - "Community 1482"
-Cohesion: 0.23
-Nodes (15): CryptoKey, DomRoot, Error, GlobalScope, JSContext, KeyFormat, KeyUsage, Option (+7 more)
+Cohesion: 0.21
+Nodes (16): CryptoKey, DomRoot, Error, GlobalScope, JSContext, KeyFormat, KeyUsage, Option (+8 more)
 
 ### Community 1483 - "Community 1483"
 Cohesion: 0.21
@@ -10310,28 +10292,28 @@ Cohesion: 0.24
 Nodes (13): Dom, DomRoot, DomTypeHolder, HitTestResult, JSContext, Option, Reflector, Window (+5 more)
 
 ### Community 1486 - "Community 1486"
-Cohesion: 0.12
-Nodes (23): Cell, Dom, DomRefCell, FxHashMap, FxHashSet, Ordering, Reflector, UnrootedDom (+15 more)
+Cohesion: 0.19
+Nodes (15): Document, FxHashMap, FxHashSet, Ordering, UnrootedDom, Utf32CodeUnitsOrNodeOffset, compare_shadow_including_dom_positions(), FlatTreeBoundary (+7 more)
 
 ### Community 1487 - "Community 1487"
-Cohesion: 0.23
-Nodes (9): Cell, Dom, DomRefCell, DomRoot, HTMLSlotElement, JSContext, MutationObserver, Vec (+1 more)
+Cohesion: 0.20
+Nodes (12): Cell, Dom, DomRefCell, DomRoot, HTMLSlotElement, JSContext, MicrotaskRunnable, MutationObserver (+4 more)
 
 ### Community 1488 - "Community 1488"
 Cohesion: 0.20
 Nodes (8): Drop, Rc, Self, Servo, UserContentManagerId, UserScript, UserStyleSheet, UserContentManager
 
 ### Community 1489 - "Community 1489"
-Cohesion: 0.22
-Nodes (4): CurrentRealm, JSContext, RootedPromise, SafeHandleValue
+Cohesion: 0.16
+Nodes (13): DomRoot, DomTypeHolder, Fallible, GlobalScope, JSContext, MutNullableDom, Option, ReadableStream (+5 more)
 
 ### Community 1490 - "Community 1490"
-Cohesion: 0.15
-Nodes (9): Borrow, Eq, H, Hash, MallocSizeOfOps, PartialEq, Self, ActorError (+1 more)
+Cohesion: 0.24
+Nodes (7): NoGC, Element, ElementMethods, FocusableAreaKind, inherittypes, overflow, t_as_visibility
 
 ### Community 1491 - "Community 1491"
-Cohesion: 0.14
-Nodes (11): Display, F, Formatter, Result, T, phantomdata, Entered, EnteredSpan (+3 more)
+Cohesion: 0.15
+Nodes (10): Cell, Gl, Rc, RefCell, RefreshDriver, GLuint, Framebuffer, OffscreenRenderingContext (+2 more)
 
 ### Community 1492 - "Community 1492"
 Cohesion: 0.18
@@ -10346,20 +10328,20 @@ Cohesion: 0.15
 Nodes (16): DefRef, FillRule, Length, MarkerDef, Opacity, Option, Vec, LineCap (+8 more)
 
 ### Community 1495 - "Community 1495"
-Cohesion: 0.13
-Nodes (16): F, GLLimits, GlType, PainterId, Result, Self, String, ContextAttributeFlags (+8 more)
+Cohesion: 0.12
+Nodes (16): GLContextAttributes, GLLimits, GlType, GLVersion, PainterId, Result, Self, Size2D (+8 more)
 
 ### Community 1496 - "Community 1496"
-Cohesion: 0.18
-Nodes (16): CommandEncoderCommand, CommandEncoderId, ComputePassEncoderCommand, ComputePassEncoderId, Global, RenderBundleEncoderId, RenderPassEncoderCommand, RenderPassEncoderId (+8 more)
+Cohesion: 0.24
+Nodes (6): AttributeMutation, CoreResourceThread, ImageResponse, JSContext, PendingImageId, UrlWithBlobClaim
 
 ### Community 1497 - "Community 1497"
-Cohesion: 0.09
-Nodes (21): Capture, ClipPlanes, Display, EnvironmentBlendMode, Eye, FrameState, Space, T (+13 more)
+Cohesion: 0.19
+Nodes (12): ClipPlanes, Display, Eye, T, Transform3D, U, View, Extent2Di (+4 more)
 
 ### Community 1498 - "Community 1498"
-Cohesion: 0.29
-Nodes (8): ContextId, Error, GLContexts, LayerId, LayerInit, Result, SubImages, SurfmanGL
+Cohesion: 0.15
+Nodes (16): ContextId, Error, Frame, GLContexts, LayerGrandManager, LayerId, LayerInit, Posef (+8 more)
 
 ### Community 1499 - "Community 1499"
 Cohesion: 0.14
@@ -10382,8 +10364,8 @@ Cohesion: 0.12
 Nodes (16): 1. Executive Summary, 2.1 Threat Vectors, 2.2 Sandboxing Goals, 2. Threat Model & Sandboxing Goals, 3.1 Broker Process (Host / Constellation), 3.2 Target Process (Content Process), 3. Two-Tier Architecture: Broker vs. Target, 4. Sandbox Enforcement Layers (+8 more)
 
 ### Community 1504 - "Community 1504"
-Cohesion: 0.22
-Nodes (9): From, Option, Ordering, PartialEq, PartialOrd, Self, IndexedDBKeyRange, IndexedDBKeyType (+1 more)
+Cohesion: 0.23
+Nodes (9): Display, Eye, Native, RigidTransform3D, Transform3D, View, Viewer, Views (+1 more)
 
 ### Community 1505 - "Community 1505"
 Cohesion: 0.17
@@ -10418,84 +10400,84 @@ Cohesion: 0.20
 Nodes (13): AlternateKindRequiringResolution, Atom, FontFeatureValuesRule, HashMap, Option, Vec, AlternateKindRequiringResolution, FontFeatureValue (+5 more)
 
 ### Community 1513 - "Community 1513"
-Cohesion: 0.19
-Nodes (14): Au, FontData, FontIdentifier, FontVariation, Option, PlatformFont, Vec, CoreTextFontCache (+6 more)
+Cohesion: 0.27
+Nodes (11): Au, FontData, FontIdentifier, FontVariation, Option, PlatformFont, Vec, CoreTextFontCache (+3 more)
 
 ### Community 1514 - "Community 1514"
-Cohesion: 0.12
-Nodes (8): au, Font, PathBuf, compositionop, Gradient, platformfont, make_font(), test_font_can_do_fast_shaping()
+Cohesion: 0.29
+Nodes (4): DomRoot, GlobalScope, HandleObject, Self
 
 ### Community 1515 - "Community 1515"
 Cohesion: 0.16
 Nodes (8): Table, TableSlot, Vec, row_lengths(), slot_is_cell_with_id(), slot_is_empty(), slot_is_spanned_with_offsets(), vector2d
 
 ### Community 1516 - "Community 1516"
-Cohesion: 0.05
-Nodes (36): find_and_copy_dll(), main(), Command, compiletest_rs_as_compiletest, Formatter, H, Result, String (+28 more)
+Cohesion: 0.14
+Nodes (15): find_and_copy_dll(), main(), Formatter, H, Result, String, FmtConst, instant (+7 more)
 
 ### Community 1517 - "Community 1517"
 Cohesion: 0.21
 Nodes (11): DataChannelId, DataChannelInit, DataChannelMessage, Drop, Element, Result, Self, String (+3 more)
 
 ### Community 1518 - "Community 1518"
-Cohesion: 0.05
-Nodes (41): Any, Arc, AtomicUsize, AudioContext, AudioContextOptions, AudioRenderer, AudioSinkError, Backend (+33 more)
+Cohesion: 0.17
+Nodes (12): Arc, AtomicUsize, AudioContext, AudioContextOptions, Backend, BackendInit, BackendMsg, Mutex (+4 more)
 
 ### Community 1519 - "Community 1519"
-Cohesion: 0.14
-Nodes (11): Box, FnOnce, Option, Result, RgbaImage, ScreenshotCaptureError, UnknownWebView, ViewportDetails (+3 more)
+Cohesion: 0.19
+Nodes (6): LayoutDom, ShadowRoot, ShadowRootMode, SlotAssignmentMode, is_valid_shadow_host_name(), ShadowRootInit
 
 ### Community 1520 - "Community 1520"
 Cohesion: 0.19
 Nodes (10): constructor(), findMaxTime(), findMinTime(), initialize(), moveSelection(), normalizeTimes(), pxToNs(), removeIdleTime() (+2 more)
 
 ### Community 1521 - "Community 1521"
-Cohesion: 0.21
-Nodes (12): CrossProcessInstant, Drop, File, Option, P, ProfilerCategory, Result, TimerMetadata (+4 more)
+Cohesion: 0.30
+Nodes (9): BroadcastChannelRouterId, BroadcastChannelMsg, FxHashMap, GenericCallback, HashMap, ImmutableOrigin, String, Vec (+1 more)
 
 ### Community 1522 - "Community 1522"
 Cohesion: 0.17
 Nodes (11): Debug, DomRoot, DomTypeHolder, Event, Formatter, GlobalScope, JSContext, Result (+3 more)
 
 ### Community 1523 - "Community 1523"
-Cohesion: 0.22
-Nodes (10): DomRefCell, DomRoot, DOMString, DomTypeHolder, JSContext, Option, UIEvent, Window (+2 more)
+Cohesion: 0.24
+Nodes (8): Debug, Formatter, OpaqueSender, Result, SendError, CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender
 
 ### Community 1524 - "Community 1524"
-Cohesion: 0.17
-Nodes (7): Arc, CSSStyleSheet, Host, SharedRwLock, Stylesheet, StylesheetSource, get_registrable_domain_suffix_of_or_is_equal_to()
+Cohesion: 0.31
+Nodes (10): ServoTest, test_default_pref_with_background(), test_default_pref_with_transparent_background(), test_default_pref_with_unset_background(), test_non_default_pref_with_background(), test_non_default_pref_with_same_background(), test_non_default_pref_with_transparent_background(), test_non_default_pref_with_unset_background() (+2 more)
 
 ### Community 1525 - "Community 1525"
 Cohesion: 0.19
 Nodes (9): Cell, DomRoot, DomTypeHolder, Finite, JSContext, Reflector, Window, GamepadButton (+1 more)
 
 ### Community 1526 - "Community 1526"
-Cohesion: 0.13
-Nodes (10): Cell, DomRefCell, Element, Event, FocusEvent, NodeList, SelectionMode, TextControlElement (+2 more)
+Cohesion: 0.22
+Nodes (3): Event, FocusEvent, String
 
 ### Community 1527 - "Community 1527"
 Cohesion: 0.25
 Nodes (12): DomRoot, DomTypeHolder, GlobalScope, IDBCursorDirection, IDBTransaction, IndexedDBKeyRange, JSContext, MutableHandleValue (+4 more)
 
 ### Community 1528 - "Community 1528"
-Cohesion: 0.26
-Nodes (6): DomRoot, DOMStringList, GlobalScope, IDBDatabase, IDBTransactionMode, IDBTransactionDurability
+Cohesion: 0.22
+Nodes (7): Default, ProfileGenericCallback, Self, rigidtransform3d, Event, EventBuffer, Visibility
 
 ### Community 1529 - "Community 1529"
 Cohesion: 0.20
 Nodes (11): Node, Option, Self, IsShadowTree, BindContext, BindContext<'a>, IsShadowTree, MoveContext (+3 more)
 
 ### Community 1530 - "Community 1530"
-Cohesion: 0.23
-Nodes (9): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificInputType, TextInputWidget, EmailInputType (+1 more)
+Cohesion: 0.21
+Nodes (10): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificInputType, TextInputWidget, HTMLInputElementMethods (+2 more)
 
 ### Community 1531 - "Community 1531"
 Cohesion: 0.25
 Nodes (11): DOMHighResTimeStamp, DomRoot, DomTypeHolder, GlobalScope, JSContext, Option, PaintTimingInfo, PerformanceEntry (+3 more)
 
 ### Community 1532 - "Community 1532"
-Cohesion: 0.21
-Nodes (10): Cell, DomRoot, DomTypeHolder, EventTarget, GlobalScope, JSContext, PermissionDescriptor, PermissionName (+2 more)
+Cohesion: 0.19
+Nodes (11): Cell, DomRoot, DomTypeHolder, EventTarget, GlobalScope, JSContext, PermissionDescriptor, PermissionName (+3 more)
 
 ### Community 1533 - "Community 1533"
 Cohesion: 0.22
@@ -10506,16 +10488,16 @@ Cohesion: 0.13
 Nodes (13): String, Error, Result, Row, Self, TryFrom, Vec, Iden (+5 more)
 
 ### Community 1535 - "Community 1535"
-Cohesion: 0.19
-Nodes (13): BindGroupEntry, D, JSContext, T, WebGPUTextureView, GPUBindGroupEntry, GPULoadOp, GPUTextureOrGPUTextureView (+5 more)
+Cohesion: 0.18
+Nodes (9): DomRoot, JSContext, Reflector, Self, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext (+1 more)
 
 ### Community 1536 - "Community 1536"
-Cohesion: 0.17
-Nodes (6): AttrSelectorOperation, AtomString, LocalName, Namespace, String, NamespaceConstraint
+Cohesion: 0.24
+Nodes (8): CompareFunction, TextureFormat, PassTimestampWrites, GPUCompareFunction, &GPUComputePassTimestampWrites<D>, &GPURenderPassTimestampWrites<D>, GPUTextureFormat, WebGPUConvert
 
 ### Community 1537 - "Community 1537"
-Cohesion: 0.17
-Nodes (8): Option, PipelineId, QueuedTask, QueuedTaskConversion, Self, TaskQueue, TaskSourceName, ServiceWorkerScriptMsg
+Cohesion: 0.20
+Nodes (8): DeviceId, ImageFormat, NonNull, QueueId, Send, Snapshot, Buffer, MappedBuffer
 
 ### Community 1538 - "Community 1538"
 Cohesion: 0.18
@@ -10530,8 +10512,8 @@ Cohesion: 0.18
 Nodes (9): DomRoot, JSContext, Reflector, Self, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext (+1 more)
 
 ### Community 1541 - "Community 1541"
-Cohesion: 0.11
-Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), statement : NAME "=" expression, statement : expression, expression : expression '+' expression                   | expression '-' expres (+2 more)
+Cohesion: 0.19
+Nodes (12): Arc, ThreadPool, VecDeque, error_as_rusqliteerror, ephemeral_search_databases_are_purged(), GenericSender<IndexedDBThreadMsg>, IndexedDBThreadFactory, KeyGeneratorSnapshot (+4 more)
 
 ### Community 1542 - "Community 1542"
 Cohesion: 0.17
@@ -10550,44 +10532,44 @@ Cohesion: 0.23
 Nodes (9): DomRoot, DomTypeHolder, GlobalScope, JSContext, Rect, Reflector, Viewport, XRViewport (+1 more)
 
 ### Community 1546 - "Community 1546"
-Cohesion: 0.26
-Nodes (12): D, DomRoot, DOMString, GlobalScope, GPUError, HandleObject, JSContext, Option (+4 more)
+Cohesion: 0.12
+Nodes (17): AsyncOperation, BackendResult, E, FxHashMap, FxHashSet, GenericReceiver, GenericSender, HashSet (+9 more)
 
 ### Community 1547 - "Community 1547"
-Cohesion: 0.36
-Nodes (4): Node, Option, NoOpChangeHandler, TreeChangeHandler
+Cohesion: 0.17
+Nodes (12): FnMut, Node, NodeId, Option, Role, TreeUpdate, Vec, find_all_matching_nodes() (+4 more)
 
 ### Community 1548 - "Community 1548"
 Cohesion: 0.17
 Nodes (7): AuthenticationResponse, DownloadState, Url, RegisterOrUnregister, AuthenticationRequest, DownloadItem, ProtocolHandlerRegistration
 
 ### Community 1549 - "Community 1549"
-Cohesion: 0.30
-Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
+Cohesion: 0.09
+Nodes (13): color, Default, Language, Option, Self, fallback_font_families, font, EmojiPresentationPreference (+5 more)
 
 ### Community 1550 - "Community 1550"
-Cohesion: 0.11
-Nodes (27): D, DOMException, DomRoot, DOMString, GlobalScope, HandleObject, JSContext, Option (+19 more)
+Cohesion: 0.23
+Nodes (14): D, DOMException, DomRoot, DOMString, GlobalScope, HandleObject, JSContext, Option (+6 more)
 
 ### Community 1551 - "Community 1551"
-Cohesion: 0.05
-Nodes (73): A, Clone, D, Debug, Deserialize, Display, Duration, Error (+65 more)
+Cohesion: 0.06
+Nodes (70): A, Clone, D, Debug, Deserialize, Display, Duration, Error (+62 more)
 
 ### Community 1552 - "Community 1552"
-Cohesion: 0.21
-Nodes (12): Destination, From, Future, Service, T, HyperHttpConnector, HyperRustlsHttpsConnector, Matcher (+4 more)
+Cohesion: 0.27
+Nodes (6): CanvasRenderingContext2DSettings, GlobalScope, HTMLCanvasElementOrOffscreenCanvas, OffscreenCanvas, RootedHTMLCanvasElementOrOffscreenCanvas, Size2D
 
 ### Community 1553 - "Community 1553"
-Cohesion: 0.34
-Nodes (13): servo_free(), servo_post_task(), servo_set_preference_bool(), servo_set_preference_i64(), servo_set_preference_string(), servo_set_preference_u64(), servo_setup_logging(), servo_spin_event_loop() (+5 more)
+Cohesion: 0.30
+Nodes (14): servo_free(), servo_post_task(), servo_set_preference_bool(), servo_set_preference_i64(), servo_set_preference_string(), servo_set_preference_u64(), servo_setup_logging(), servo_spin_event_loop() (+6 more)
 
 ### Community 1554 - "Community 1554"
-Cohesion: 0.21
-Nodes (10): CrossProcessPaintApi, Error, EventLoopWaker, Formatter, OpaqueSender, PaintMessage, Result, Sender (+2 more)
+Cohesion: 0.20
+Nodes (8): CustomAutoRooterGuard, ErrorInfo, HandleValue, JSObject, PipelineId, StructuredSerializeOptions, Vec, Violation
 
 ### Community 1556 - "Community 1556"
-Cohesion: 0.14
-Nodes (9): AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions, MediaDeviceInfo, MediaDeviceMonitor, Range, Vec, DummyAudioDecoder (+1 more)
+Cohesion: 0.27
+Nodes (9): FetchContext, GenericEmbedderProxy, NetToEmbedderMsg, Option, Request, Response, destination, RequestInterceptor (+1 more)
 
 ### Community 1557 - "Community 1557"
 Cohesion: 0.21
@@ -10598,20 +10580,20 @@ Cohesion: 0.14
 Nodes (7): Default, Into, Self, String, Id, Length, Opacity
 
 ### Community 1559 - "Community 1559"
-Cohesion: 0.21
-Nodes (10): Box, CommandBufferId, CommandEncoderId, ContextConfiguration, Error, FnOnce, Result, Send (+2 more)
+Cohesion: 0.27
+Nodes (6): IIRFilterNode, Complex64, AudioNodeEngine, AudioNodeType, ChannelInfo, Self
 
 ### Community 1560 - "Community 1560"
 Cohesion: 0.24
 Nodes (11): ContextId, Gl, GLContexts, HashMap, LayerId, NativeFramebuffer, NativeTexture, Option (+3 more)
 
 ### Community 1561 - "Community 1561"
-Cohesion: 0.16
-Nodes (12): Bytes, FetchMetadata, FetchResponseListener, ImageCache, InitiatorType, NetworkError, RequestId, ResourceFetchTiming (+4 more)
+Cohesion: 0.19
+Nodes (3): CanvasFillRule, NoGC, Path2D
 
 ### Community 1562 - "Community 1562"
-Cohesion: 0.21
-Nodes (15): ContentScriptDeclaration, ContentScriptDeclaration, ExtensionManifest, load_extension(), LoadedExtension, Box, Error, Option (+7 more)
+Cohesion: 0.16
+Nodes (17): ContentScriptDeclaration, ContentScriptDeclaration, ExtensionManifest, load_extension(), LoadedExtension, fs, rootNode, Box (+9 more)
 
 ### Community 1563 - "Community 1563"
 Cohesion: 0.22
@@ -10622,8 +10604,8 @@ Cohesion: 0.12
 Nodes (4): r'\"([^\\\n]|(\\.))*?\, r'\'([^\\\n]|(\\.))*?\, t_code_ignore_char(), t_code_ignore_string()
 
 ### Community 1565 - "Community 1565"
-Cohesion: 0.18
-Nodes (15): Callback, Cell, Dom, Rc, ReadableStreamDefaultController, ReadableStreamDefaultReader, ReadRequest, Rootable (+7 more)
+Cohesion: 0.20
+Nodes (10): Error, Option, Result, Row, Self, String, TryFrom, Vec (+2 more)
 
 ### Community 1566 - "Community 1566"
 Cohesion: 0.20
@@ -10634,8 +10616,8 @@ Cohesion: 0.21
 Nodes (9): AnimationTimeline, AnimationTimelineMethods, Cell, DomTypeHolder, Duration, Finite, Option, Reflector (+1 more)
 
 ### Community 1568 - "Community 1568"
-Cohesion: 0.17
-Nodes (9): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, EXTColorBufferHalfFloat (+1 more)
+Cohesion: 0.13
+Nodes (12): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, Sized (+4 more)
 
 ### Community 1569 - "Community 1569"
 Cohesion: 0.15
@@ -10646,16 +10628,16 @@ Cohesion: 0.19
 Nodes (10): MediaStreamDestinationNode, AudioNodeEngine, AudioNodeType, AudioSink, BlockInfo, Box, ChannelInfo, Chunk (+2 more)
 
 ### Community 1571 - "Community 1571"
-Cohesion: 0.15
-Nodes (8): From, NamespaceResolver, ProcessingInstruction, String, T, XPathWrapper<DomRoot<ProcessingInstruction>>, XPathWrapper<RootedCallback<XPathNSResolver>>, XPathWrapper<T>
+Cohesion: 0.26
+Nodes (9): MediaDeviceInfo, MediaDeviceMonitor, Option, RefCell, Result, Self, Vec, devicemonitor_as_gstdevicemonitor (+1 more)
 
 ### Community 1572 - "Community 1572"
 Cohesion: 0.19
 Nodes (11): Epoch, read_json_from_file(), WebRenderEpoch, WebRenderEpochToU16, write_json_to_file(), From, Path, Self (+3 more)
 
 ### Community 1573 - "Community 1573"
-Cohesion: 0.19
-Nodes (11): Debug, DomRoot, DomTypeHolder, Event, Formatter, GlobalScope, JSContext, Result (+3 more)
+Cohesion: 0.30
+Nodes (14): css_font_to_font_size(), execute_fontsize_command(), font_size_loosely_equivalent(), font_size_to_css_font(), legacy_font_size_for(), maybe_normalize_pixels(), ParsingMode, value_for_fontsize_command() (+6 more)
 
 ### Community 1574 - "Community 1574"
 Cohesion: 0.28
@@ -10666,36 +10648,36 @@ Cohesion: 0.18
 Nodes (10): BlendComponent, ComputePassDescriptor, IndexFormat, PrimitiveState, QuerySetDescriptor, &GPUBlendComponent, &GPUComputePassDescriptor<D>, GPUIndexFormat (+2 more)
 
 ### Community 1576 - "Community 1576"
-Cohesion: 0.19
-Nodes (7): ProfilerChan, Select, Self, Vec, Process, ProcessManager, ProcessReceiver
+Cohesion: 0.12
+Nodes (13): ProfilerChan, Select, Self, Vec, DomObject, IDLInterface, Sized, Process (+5 more)
 
 ### Community 1577 - "Community 1577"
 Cohesion: 0.22
 Nodes (11): Box, GenericSender, ImmutableOrigin, IpcError, Option, Opts, Preferences, Process (+3 more)
 
 ### Community 1578 - "Community 1578"
-Cohesion: 0.18
-Nodes (3): DOMString, Self, SanitizerElement
+Cohesion: 0.37
+Nodes (12): servo_webview_add_message_handler(), servo_webview_add_script_message_handler(), servo_webview_poll_js_messages(), servo_webview_post_message(), servo_webview_remove_message_handler(), servo_webview_remove_script_message_handler(), c_char, c_void (+4 more)
 
 ### Community 1579 - "Community 1579"
-Cohesion: 0.21
-Nodes (3): CanvasFillRule, NoGC, Path2D
+Cohesion: 0.20
+Nodes (6): AudioDecoder, Box, MediaDeviceMonitor, MediaOutput, MediaSocket, MediaStreamType
 
 ### Community 1580 - "Community 1580"
-Cohesion: 0.10
-Nodes (17): Node, parse(), Vec, AudioNodeEngine, AudioNodeType, BlockInfo, CachedUpmixedBlock, ChannelInfo (+9 more)
+Cohesion: 0.20
+Nodes (9): AudioNodeEngine, AudioNodeType, BlockInfo, CachedUpmixedBlock, ChannelInfo, Chunk, DelayBuffer, Self (+1 more)
 
 ### Community 1581 - "Community 1581"
-Cohesion: 0.05
-Nodes (48): BackendDeInit, Arc, AtomicBool, AtomicUsize, AudioBackend, AudioContext, AudioContextOptions, AudioDecoder (+40 more)
+Cohesion: 0.14
+Nodes (11): BackendDeInit, AtomicBool, AtomicUsize, AudioBackend, BackendInit, BackendMsg, Sender, SupportsMediaType (+3 more)
 
 ### Community 1582 - "Community 1582"
 Cohesion: 0.13
 Nodes (7): BackendMsg, ClientContextId, Drop, MediaInstance, Player, OhosAvPlayer, VideoSink
 
 ### Community 1583 - "Community 1583"
-Cohesion: 0.09
-Nodes (24): ContentType, Option, Request, responsebody, test_pipeline_id, test_webview_id, assert_parse(), base64() (+16 more)
+Cohesion: 0.22
+Nodes (14): ContentType, Option, responsebody, test_webview_id, assert_parse(), base64(), base64_charset(), base64_ct() (+6 more)
 
 ### Community 1584 - "Community 1584"
 Cohesion: 0.27
@@ -10706,24 +10688,24 @@ Cohesion: 0.25
 Nodes (10): Dom, DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector, Self, GeolocationPosition (+2 more)
 
 ### Community 1586 - "Community 1586"
-Cohesion: 0.25
-Nodes (12): DOMString, Element, JSContext, Option, Self, String, follow_hyperlink(), get_element_target() (+4 more)
+Cohesion: 0.28
+Nodes (11): DOMString, Element, JSContext, Option, Self, String, follow_hyperlink(), get_element_target() (+3 more)
 
 ### Community 1587 - "Community 1587"
-Cohesion: 0.11
-Nodes (18): atomicrefcell, AuthorStyles, callobjecttracer, Iterable, Heap, JSObject, Reflector, hash (+10 more)
+Cohesion: 0.31
+Nodes (9): JSObject, T, gcmethods, proto_or_iface_length, do_finalize_global(), finalize_common(), finalize_global(), finalize_weak_referenceable() (+1 more)
 
 ### Community 1588 - "Community 1588"
-Cohesion: 0.25
-Nodes (11): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGElement (+3 more)
+Cohesion: 0.27
+Nodes (10): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGElement (+2 more)
 
 ### Community 1589 - "Community 1589"
 Cohesion: 0.22
 Nodes (10): Cell, DomRoot, DomTypeHolder, EventTarget, GlobalScope, JSContext, Self, WakeLockType (+2 more)
 
 ### Community 1590 - "Community 1590"
-Cohesion: 0.19
-Nodes (8): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, OESTextureFloat
+Cohesion: 0.17
+Nodes (9): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, OESTextureFloat (+1 more)
 
 ### Community 1591 - "Community 1591"
 Cohesion: 0.19
@@ -10734,8 +10716,8 @@ Cohesion: 0.19
 Nodes (8): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, WEBGLCompressedTextureS3TC
 
 ### Community 1593 - "Community 1593"
-Cohesion: 0.25
-Nodes (10): Dom, DomRoot, DomTypeHolder, HitTestId, JSContext, Reflector, Window, XRSession (+2 more)
+Cohesion: 0.12
+Nodes (3): EditingDirection, encoding, htmlareaelement
 
 ### Community 1594 - "Community 1594"
 Cohesion: 0.25
@@ -10746,12 +10728,12 @@ Cohesion: 0.17
 Nodes (5): From, PromptResponse, PromptDialog, SimpleDialog, SimpleDialogRequest
 
 ### Community 1596 - "Community 1596"
-Cohesion: 0.14
-Nodes (15): Box, Clone, Debug, Send, Sender, SendResult, Sync, T (+7 more)
+Cohesion: 0.19
+Nodes (12): Box, Debug, Send, Sender, SendResult, Sync, T, EmbedderMsg (+4 more)
 
 ### Community 1597 - "Community 1597"
-Cohesion: 0.18
-Nodes (10): From, Self, ConsoleLogLevel, log::Level, MediaPositionState, PrefersColorScheme, SelectElementOptionOrOptgroup, Theme (+2 more)
+Cohesion: 0.12
+Nodes (13): Clone, From, Self, Box<dyn EventLoopWaker>, ConsoleLogLevel, GenericEmbedderProxy<T>, log::Level, MediaPositionState (+5 more)
 
 ### Community 1598 - "Community 1598"
 Cohesion: 0.20
@@ -10762,12 +10744,12 @@ Cohesion: 0.14
 Nodes (14): FrameUpdateEvent, HitTestResult, InputFrame, Native, Option, RigidTransform3D, SubImages, Vec (+6 more)
 
 ### Community 1600 - "Community 1600"
-Cohesion: 0.13
-Nodes (7): Drop, E, MallocSizeOf, MallocSizeOfOps, Report, Self, WebStorageEnvironment<E>
+Cohesion: 0.15
+Nodes (6): Drop, E, MallocSizeOf, MallocSizeOfOps, Self, WebStorageEnvironment<E>
 
 ### Community 1601 - "Community 1601"
-Cohesion: 0.15
-Nodes (5): NativeFramebuffer, Rect, RefCell, OffscreenRenderingContext, RenderToParentCallback
+Cohesion: 0.21
+Nodes (10): DOMString, Node, NoGC, ValidationFlags, ValidityState, NoGC, focusoptions, is_barred_by_datalist_ancestor() (+2 more)
 
 ### Community 1602 - "Community 1602"
 Cohesion: 0.21
@@ -10780,6 +10762,10 @@ Nodes (8): DeviceIndependentIntRect, DeviceIndependentPixel, DevicePixel, Length
 ### Community 1604 - "Community 1604"
 Cohesion: 0.20
 Nodes (6): KeyboardEvent, KeyEvent, ModifiersState, RunningAppState, ServoShellWindow, WindowEvent
+
+### Community 1605 - "Community 1605"
+Cohesion: 0.24
+Nodes (10): BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothDeviceMsg, BluetoothError, BluetoothRequest, BluetoothResponse, BluetoothServiceMsg, GATTType (+2 more)
 
 ### Community 1606 - "Community 1606"
 Cohesion: 0.15
@@ -10794,28 +10780,28 @@ Cohesion: 0.19
 Nodes (8): DestinationNode, AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, Chunk, Option, Self
 
 ### Community 1609 - "Community 1609"
-Cohesion: 0.12
-Nodes (16): DomGlobal, T, canvas_context, DomRoot, GlobalScope, CrossProcessPaintApi, GenericReceiver, Option (+8 more)
+Cohesion: 0.13
+Nodes (12): CharacterData, DOMString, RangeAny, Self, UnrootedFollowingFlatTreeNodesTraversal, Utf32CodeUnits, FlatTreeNodePosition, FlatTreeSelection<'no_gc> (+4 more)
 
 ### Community 1610 - "Community 1610"
 Cohesion: 0.26
 Nodes (5): PrintTree, Display, Drop, Option, String
 
 ### Community 1611 - "Community 1611"
-Cohesion: 0.22
-Nodes (11): Atom, CSSFontFaceDescriptors, FxHashMap, SourceList, WebViewId, Arc<FontContext>, FontContextWebFontMethods, WebFontDownloadState (+3 more)
+Cohesion: 0.17
+Nodes (13): Arc, ClipPathDef, FilterDef, HashMap, MarkerDef, MaskDef, String, DefRef (+5 more)
 
 ### Community 1612 - "Community 1612"
-Cohesion: 0.17
-Nodes (9): Arc, FontBaseline, PlatformFont, Self, SingleFontFamily, FontFamilyDescriptor, FontMetrics, FontSearchScope (+1 more)
+Cohesion: 0.25
+Nodes (15): OH_NativeXComponent, get_raw_window_handle(), get_xcomponent_offset(), get_xcomponent_size(), on_dispatch_key_event(), on_dispatch_touch_event_cb(), on_surface_changed_cb(), on_surface_destroyed_cb() (+7 more)
 
 ### Community 1613 - "Community 1613"
-Cohesion: 0.20
-Nodes (9): Add, Div, Duration, Output, Self, Sub, ApproxDuration, get_stale_while_revalidate() (+1 more)
+Cohesion: 0.31
+Nodes (6): Context, Device, FramebufferRebindingFlags, GLint, FramebufferRebindingInfo, WebGLFramebufferBindingRequest
 
 ### Community 1614 - "Community 1614"
-Cohesion: 0.19
-Nodes (9): Error, LayoutContext, Result, Self, ServoLayoutNode, TryFrom, FlexLevelBox, LayoutRoot (+1 more)
+Cohesion: 0.09
+Nodes (18): Error, LayoutContext, Result, Self, ServoLayoutNode, TryFrom, dom, editingaction (+10 more)
 
 ### Community 1615 - "Community 1615"
 Cohesion: 0.25
@@ -10826,40 +10812,40 @@ Cohesion: 0.18
 Nodes (10): Box, F, Fn, MediaSourceWrapper, Option, Self, Send, Sync (+2 more)
 
 ### Community 1617 - "Community 1617"
-Cohesion: 0.16
-Nodes (10): AsRef, Display, Formatter, From, PartialEq, Self, String, DOMString (+2 more)
+Cohesion: 0.13
+Nodes (14): c_longlong, Ime, InputMethod_EnterKeyType, KeyboardStatus, call(), CallError, delete_webview(), focus_webview() (+6 more)
 
 ### Community 1618 - "Community 1618"
-Cohesion: 0.15
-Nodes (13): ApiPose, BaseTransform, Floor, Frame, Option, Point2D, Vec, RigidTransform3D (+5 more)
+Cohesion: 0.36
+Nodes (9): webvtt_cue_text_parsing_rules(), test_can_iterate_back_to_parent(), test_can_iterate_through_nodes(), test_can_iterate_with_multiple_classes(), test_parses_italic_object(), test_parses_nested_objects(), test_parses_object_with_classes(), test_parses_object_with_multiple_classes() (+1 more)
 
 ### Community 1619 - "Community 1619"
 Cohesion: 0.15
 Nodes (5): DocumentId, BoostWebRenderThread, PipelineInfo, RenderBackendHooks, SceneBuilderHooks
 
 ### Community 1620 - "Community 1620"
-Cohesion: 0.16
-Nodes (11): Context, Device, GLContextAttributes, WebGLCommand, WebGLCommandBacktrace, FramebufferRebindingFlags, GLint, GLState (+3 more)
+Cohesion: 0.18
+Nodes (11): Arc, AudioContext, AudioContextOptions, AudioRenderer, ClientContextId, GenericCallback, Mutex, Player (+3 more)
 
 ### Community 1621 - "Community 1621"
 Cohesion: 0.27
 Nodes (10): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGGradientElement (+2 more)
 
 ### Community 1622 - "Community 1622"
-Cohesion: 0.26
-Nodes (12): DOMString, AppCodeName(), AppName(), AppVersion(), Language(), Oscpu(), Platform(), Product() (+4 more)
+Cohesion: 0.24
+Nodes (3): SelectElementOptionOrOptgroup, SelectElementRequest, SelectElement
 
 ### Community 1623 - "Community 1623"
-Cohesion: 0.18
-Nodes (11): AnalyserNode, Arc, AudioNodeEngine, AudioNodeType, Block, BlockInfo, ChannelInfo, Chunk (+3 more)
+Cohesion: 0.15
+Nodes (10): AsRef, Eq, Item, Iterator, Option, Ord, Ordering, PartialOrd (+2 more)
 
 ### Community 1624 - "Community 1624"
-Cohesion: 0.20
-Nodes (3): ChildrenMutation, ErrorResult, JSContext
+Cohesion: 0.14
+Nodes (5): ChildrenMutation, DOMString, ErrorResult, JSContext, SelectionMode
 
 ### Community 1625 - "Community 1625"
-Cohesion: 0.29
-Nodes (8): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificInputType, TextInputWidget, UrlInputType
+Cohesion: 0.08
+Nodes (29): BorderImageOutset, BorderImageWidth, Clip, clippath_as_computedclippath, colororauto, Border, ClipId, ComputedValues (+21 more)
 
 ### Community 1626 - "Community 1626"
 Cohesion: 0.27
@@ -10910,8 +10896,8 @@ Cohesion: 0.27
 Nodes (10): Document, DomRoot, HandleObject, JSContext, LocalName, Option, Prefix, SVGGraphicsElement (+2 more)
 
 ### Community 1638 - "Community 1638"
-Cohesion: 0.10
-Nodes (20): Arc, Box, Buffer, Element, GLContext, GLDisplay, GLVideoFrame, Mutex (+12 more)
+Cohesion: 0.11
+Nodes (19): Arc, Box, Buffer, Element, GLContext, GLDisplay, GLVideoFrame, Mutex (+11 more)
 
 ### Community 1639 - "Community 1639"
 Cohesion: 0.22
@@ -10922,64 +10908,64 @@ Cohesion: 0.25
 Nodes (11): Document, DomRoot, DomTypeHolder, HandleObject, HTMLElement, JSContext, LocalName, Option (+3 more)
 
 ### Community 1641 - "Community 1641"
-Cohesion: 0.24
-Nodes (8): Self, WebGLRenderingContext, CommonCompressedTexImage2DValidator<'a>, CommonTexImage2DValidator<'a>, CompressedTexImage2DValidator<'a>, CompressedTexSubImage2DValidator<'a>, TexImage2DValidator<'a>, TexStorageValidator<'a>
+Cohesion: 0.33
+Nodes (5): CanvasFillRule, CanvasFillRule, Convert, FillRule, Path
 
 ### Community 1642 - "Community 1642"
 Cohesion: 0.25
 Nodes (8): DomRoot, DOMString, DomTypeHolder, JSContext, Reflector, Window, WebGLActiveInfo, WebGLActiveInfoMethods
 
 ### Community 1643 - "Community 1643"
-Cohesion: 0.20
-Nodes (6): CurrentRealm, RootedPromise, RTCIceCandidateInit, RTCSessionDescriptionInit, RTCAnswerOptions, RTCOfferOptions
+Cohesion: 0.11
+Nodes (13): Convert, CurrentRealm, RootedPromise, RTCIceCandidateInit, RTCSessionDescriptionInit, RTCAnswerOptions, RTCIceConnectionState, RTCOfferOptions (+5 more)
 
 ### Community 1644 - "Community 1644"
-Cohesion: 0.11
-Nodes (18): DomObject, IDLInterface, Sized, Box, Drop, Fn, GenericSender, RefCell (+10 more)
+Cohesion: 0.16
+Nodes (12): Box, Drop, Fn, GenericSender, RefCell, Self, SendResult, T (+4 more)
 
 ### Community 1645 - "Community 1645"
 Cohesion: 0.19
 Nodes (11): make_servo_delegate(), ServoDelegate, ServoDelegateWrapper, AllowOrDenyRequest, c_char, c_void, Option, Rc (+3 more)
 
 ### Community 1646 - "Community 1646"
-Cohesion: 0.23
-Nodes (14): call_html_constructor(), get_constructor_object_from_local_name(), html_constructor(), CallArgs, Element, GlobalScope, HandleObject, ID (+6 more)
+Cohesion: 0.17
+Nodes (10): Atom, DocumentStyleSheet, Painter, RequestId, SharedRwLocks, UserContents, UserScript, Vec (+2 more)
 
 ### Community 1647 - "Community 1647"
-Cohesion: 0.20
-Nodes (8): ComputedValues, From, Overflow, PseudoElement, Self, AxesOverflow, combine_id_with_fragment_type(), FragmentType
+Cohesion: 0.22
+Nodes (7): AudioSink, AudioSinkError, ConstellationCanvasMsg, canvasid, Send, reportschan, sender
 
 ### Community 1648 - "Community 1648"
 Cohesion: 0.20
 Nodes (6): Box, Self, Send, Sync, Vec, GroupedClassifier
 
 ### Community 1649 - "Community 1649"
-Cohesion: 0.15
-Nodes (10): cfg_if, deinit, internalevent, mutex, Option, PathBuf, resource_protocol_dir_path(), resource_root_dir_path() (+2 more)
+Cohesion: 0.12
+Nodes (37): HINTERNET, INTERNET_PORT, map, string, wstring, SOCKET, CacheFilePath(), CacheGet() (+29 more)
 
 ### Community 1650 - "Community 1650"
-Cohesion: 0.22
-Nodes (9): Error, GL, Result, Session, SessionBuilder, SessionInit, SessionMode, Box<dyn DiscoveryAPI<GL>> (+1 more)
+Cohesion: 0.39
+Nodes (4): BrowsingContextId, WebViewId, PainterId, PartialEq
 
 ### Community 1651 - "Community 1651"
 Cohesion: 0.27
 Nodes (13): Length, Option, Point, Vec, Circle, Ellipse, Line, Path (+5 more)
 
 ### Community 1652 - "Community 1652"
-Cohesion: 0.15
-Nodes (15): CFRetained, F, FallbackFontSelectionOptions, FontTemplate, GenericFontFamily, LowercaseFontFamilyName, Option, Vec (+7 more)
+Cohesion: 0.22
+Nodes (9): canvas_context, CrossProcessPaintApi, GenericReceiver, Option, WebGPU, WebGpuExternalImageMap, WebGPUMsg, WebRenderExternalImageIdManager (+1 more)
 
 ### Community 1653 - "Community 1653"
-Cohesion: 0.39
-Nodes (5): Arc, GenericSharedMemory, Range, Image, PixelFormat
+Cohesion: 0.28
+Nodes (8): JSContext, cstring, js_isexceptionpending, proto_id_to_name, Error, throw_constructor_without_new(), throw_invalid_this(), throw_type_error
 
 ### Community 1654 - "Community 1654"
-Cohesion: 0.15
-Nodes (13): BaseFragmentInfo, Box, ComputeInlineContentSizes, Contents, DisplayInside, LayoutBoxBase, NodeAndStyleInfo, PropagatedBoxTreeData (+5 more)
+Cohesion: 0.07
+Nodes (36): BlockFormattingContext, Arc, AspectRatio, AtomicRefCell, Au, BaseFragmentInfo, Box, ComputedValues (+28 more)
 
 ### Community 1655 - "Community 1655"
-Cohesion: 0.13
-Nodes (11): Box, FnOnce, Option, Result, RgbaImage, ScreenshotCaptureError, UnknownWebView, ViewportDetails (+3 more)
+Cohesion: 0.20
+Nodes (9): Arc, AudioContext, AudioContextOptions, AudioSinkError, AudioStreamReader, Mutex, Result, Send (+1 more)
 
 ### Community 1656 - "Community 1656"
 Cohesion: 0.14
@@ -10998,24 +10984,24 @@ Cohesion: 0.24
 Nodes (7): JSONObject, MutableList, fromJSON(), HistoryEntry, HistoryManager, HistoryEntry, String
 
 ### Community 1660 - "Community 1660"
-Cohesion: 0.29
-Nodes (4): CanvasRenderingContext2DSettings, GlobalScope, HTMLCanvasElementOrOffscreenCanvas, Size2D
+Cohesion: 0.09
+Nodes (21): ServoUrl, contenttype, cookie, cookiesource, de, Option, String, fuzz_target (+13 more)
 
 ### Community 1662 - "Community 1662"
-Cohesion: 0.41
-Nodes (5): AnimationSetKey, PipelineId, ElementAnimationSet, Transition, TransitionOrAnimationEventType
+Cohesion: 0.22
+Nodes (4): AttrValue, DOMString, InitiatorType, LocalName
 
 ### Community 1663 - "Community 1663"
 Cohesion: 0.27
 Nodes (9): AudioDestinationNode, AudioDestinationNodeMethods, AudioNode, AudioNodeOptions, BaseAudioContext, DomRoot, DomTypeHolder, GlobalScope (+1 more)
 
 ### Community 1664 - "Community 1664"
-Cohesion: 0.18
-Nodes (6): DomRoot, HTMLFormElement, NodeList, UnbindContext, ValidityState, HTMLDataListElement
+Cohesion: 0.22
+Nodes (5): Heap, JSVal, RootedTraceableBox, VecDeque, ReadRequest
 
 ### Community 1665 - "Community 1665"
-Cohesion: 0.18
-Nodes (19): servo_certificate_error_continue(), ServoCertificateError, servo_webview_add_message_handler(), servo_webview_add_script_message_handler(), servo_webview_poll_js_messages(), servo_webview_post_message(), servo_webview_remove_message_handler(), servo_webview_remove_script_message_handler() (+11 more)
+Cohesion: 0.31
+Nodes (9): Callback, CurrentRealm, Dom, HandleValue, ReadableByteStreamController, PullAlgorithmFulfillmentHandler, PullAlgorithmRejectionHandler, StartAlgorithmFulfillmentHandler (+1 more)
 
 ### Community 1666 - "Community 1666"
 Cohesion: 0.45
@@ -11026,16 +11012,16 @@ Cohesion: 0.36
 Nodes (6): HistoryEntryItem, HistoryHeaderItem, HistoryItem, HistoryEntry, HistoryItem, List
 
 ### Community 1668 - "Community 1668"
-Cohesion: 0.18
-Nodes (11): Arc, AudioContext, AudioContextOptions, AudioRenderer, ClientContextId, Mutex, Player, PlayerEvent (+3 more)
+Cohesion: 0.27
+Nodes (8): AudioRenderer, GenericCallback, Player, PlayerEvent, PlayerGLContext, StreamType, VideoFrameRenderer, vec
 
 ### Community 1669 - "Community 1669"
-Cohesion: 0.26
-Nodes (9): MediaDeviceInfo, MediaDeviceMonitor, Option, RefCell, Result, Self, Vec, devicemonitor_as_gstdevicemonitor (+1 more)
+Cohesion: 0.24
+Nodes (10): CStr, HandleObject, JSContext, JSVal, ConstantVal, js_defineproperty, rooted, ConstantSpec (+2 more)
 
 ### Community 1670 - "Community 1670"
-Cohesion: 0.18
-Nodes (8): GamepadSupportedHapticEffects, GamepadUpdateType, Self, String, Window, GamepadUpdateType, EmbedderGamepadEvent, contains_user_gesture()
+Cohesion: 0.24
+Nodes (8): DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector, Self, PipelineId, PipelineIdMethods
 
 ### Community 1671 - "Community 1671"
 Cohesion: 0.31
@@ -11046,28 +11032,32 @@ Cohesion: 0.19
 Nodes (8): GenericReceiver, SeekLock, SeekLockMsg, Self, InternalState, SeekChannel, StateManager, PlayerState
 
 ### Community 1673 - "Community 1673"
-Cohesion: 0.17
-Nodes (11): GenericSender, MediaInstance, SeekLockMsg, Send, mediastreamid, PlaybackState, Player, PlayerError (+3 more)
+Cohesion: 0.25
+Nodes (9): CacheStorageThreadMessage, Deref, DerefMut, From, GenericSender, Self, CacheStorageThreadHandle, Target (+1 more)
 
 ### Community 1674 - "Community 1674"
 Cohesion: 0.15
 Nodes (10): Display, Error, Formatter, Result, Send, nonzerou32, BackendMsg, ClientContextId (+2 more)
 
 ### Community 1675 - "Community 1675"
-Cohesion: 0.21
-Nodes (3): globalNameSetToExposureSet(), IDLExposureMixins, Returns true if the Exposed extended attribute for this interface         expose
+Cohesion: 0.18
+Nodes (9): Error, HTMLElement, JSContext, Result, Self, TryFrom, InteractiveElementCommand, HTMLButtonElementMethods (+1 more)
 
 ### Community 1676 - "Community 1676"
-Cohesion: 0.23
-Nodes (11): attrvalue, Copy, Debug, Element, Impl, SelectorImpl, Send, Sync (+3 more)
+Cohesion: 0.25
+Nodes (7): ImeProxy, InputMethod_TextInputType, convert_ime_options(), ImeError, OhosImeOptions, InputMethodControl, InputMethodType
 
 ### Community 1677 - "Community 1677"
-Cohesion: 0.20
-Nodes (4): CanvasImageSource, DOMMatrix2DInit, ErrorResult, UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence
+Cohesion: 0.12
+Nodes (25): D, DomRoot, DOMString, GlobalScope, GPUError, HandleObject, JSContext, Option (+17 more)
 
 ### Community 1678 - "Community 1678"
+Cohesion: 0.05
+Nodes (38): CanPlayTypeResult, AttributeMutation, AttrRef, AudioTrackList, BoxedSliceOfPromises, Document, DomRoot, DOMString (+30 more)
+
+### Community 1679 - "Community 1679"
 Cohesion: 0.18
-Nodes (6): AttributeMutation, AttrRef, Ref, UnbindContext, VirtualMethods, ShadowTree
+Nodes (6): HTMLMediaData, LengthOrPercentageOrAuto, NoGC, Option, Snapshot, LayoutDom<'_, HTMLVideoElement>
 
 ### Community 1680 - "Community 1680"
 Cohesion: 0.23
@@ -11090,60 +11080,60 @@ Cohesion: 0.29
 Nodes (8): DomRefCell, DOMString, HTMLInputElement, JSContext, Option, SpecificInputType, TextInputWidget, TextInputType
 
 ### Community 1685 - "Community 1685"
-Cohesion: 0.22
-Nodes (8): DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector, PerformanceNavigation, PerformanceNavigationMethods, WindowMethods
+Cohesion: 0.24
+Nodes (8): CachedFrozenArray, DomRefCell, F, Heap, JSContext, JSVal, MutableHandleValue, Option
 
 ### Community 1686 - "Community 1686"
-Cohesion: 0.31
-Nodes (9): Callback, CurrentRealm, Dom, HandleValue, ReadableByteStreamController, PullAlgorithmFulfillmentHandler, PullAlgorithmRejectionHandler, StartAlgorithmFulfillmentHandler (+1 more)
+Cohesion: 0.22
+Nodes (6): Cell, From, Url, scale, PlatformWindow, ServoShellWindowId
 
 ### Community 1687 - "Community 1687"
-Cohesion: 0.33
-Nodes (4): LengthOrPercentageOrAuto, RangeAny, Utf32CodeUnits, LayoutDom<'dom, HTMLInputElement>
+Cohesion: 0.30
+Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 1688 - "Community 1688"
-Cohesion: 0.51
-Nodes (6): ComputedValues, IndependentFormattingContext, ServoArc, ServoLayoutNode, SharedStyleContext, OutsideMarker
+Cohesion: 0.24
+Nodes (7): DomRoot, DomTypeHolder, GlobalScope, JSContext, Reflector, PerformanceNavigation, PerformanceNavigationMethods
 
 ### Community 1689 - "Community 1689"
-Cohesion: 0.14
-Nodes (14): AttrValue, DomRefCell, Element, Reflector, NameMember, AttributeMember, Canonicalization, contains_javascript_url() (+6 more)
+Cohesion: 0.19
+Nodes (10): BytesOrWideString, Debug, Error, Formatter, Result, String, Write, print() (+2 more)
 
 ### Community 1690 - "Community 1690"
 Cohesion: 0.23
 Nodes (7): DomRoot, DomTypeHolder, JSContext, Reflector, Window, WebGLShaderPrecisionFormat, WebGLShaderPrecisionFormatMethods
 
 ### Community 1691 - "Community 1691"
-Cohesion: 0.23
-Nodes (3): digraph(), LRGeneratedTable, traverse()
+Cohesion: 0.31
+Nodes (4): SanitizerElement, built_in_safe_baseline_configuration(), SanitizerConfig, SanitizerConfigAlgorithm
 
 ### Community 1692 - "Community 1692"
 Cohesion: 0.22
 Nodes (7): ResourceThreads, Self, String, Vec, hashset, CacheEntry, NetworkManager
 
 ### Community 1693 - "Community 1693"
-Cohesion: 0.27
-Nodes (5): AllowOrDenyRequest, PermissionFeature, CertificateErrorRequest, PermissionRequest, test_allow_deny_request()
+Cohesion: 0.19
+Nodes (6): AllowOrDenyRequest, PermissionFeature, CertificateErrorRequest, PermissionRequest, test_allow_deny_request(), test_authentication_request()
 
 ### Community 1694 - "Community 1694"
-Cohesion: 0.29
-Nodes (9): FontDescriptor, FontFamilyDescriptor, FontIdentifier, FontRef, FontTemplateRef, Option, Result, Vec (+1 more)
+Cohesion: 0.33
+Nodes (8): test_argument_parsing(), test_argument_parsing_special(), test_cmd_and_location_bar_url(), test_cmdline_and_location_bar_url(), test_file_path_parsing(), test_issue_35754(), test_url(), test_url_any_os()
 
 ### Community 1695 - "Community 1695"
-Cohesion: 0.13
-Nodes (15): HashMap, Vec, PathBuf, Resource, String, Vec, read_bytes(), read_string() (+7 more)
+Cohesion: 0.29
+Nodes (6): Any, AudioSinkError, GenericCallback, MediaSocket, StreamType, OhosMediaSocket
 
 ### Community 1696 - "Community 1696"
-Cohesion: 0.23
-Nodes (13): FloatContext, LogicalRect, PlacedFloat, check_basic_float_rules(), check_floats_rule_1(), check_floats_rule_10(), check_floats_rule_2(), check_floats_rule_3() (+5 more)
+Cohesion: 0.27
+Nodes (5): CanvasRenderingContext2DSettings, GlobalScope, HTMLCanvasElementOrOffscreenCanvas, Option, Size2D
 
 ### Community 1697 - "Community 1697"
-Cohesion: 0.23
-Nodes (11): Backend, NativeTexture, Size2D, SurfaceTexture, SurfmanContext, SurfmanDevice, SurfmanError, Swapchain (+3 more)
+Cohesion: 0.17
+Nodes (14): Backend, NativeTexture, Rect, Size2D, SurfaceTexture, SurfmanContext, SurfmanDevice, SurfmanError (+6 more)
 
 ### Community 1698 - "Community 1698"
-Cohesion: 0.06
-Nodes (61): application_context, c_longlong, display_manager, Ime, InitOpts, InputMethod_EnterKeyType, KeyboardStatus, napi (+53 more)
+Cohesion: 0.35
+Nodes (5): AtomicOptionScrollTreeNodeId, ScriptEventLoopId, ScrollTreeNodeId, Option, Self
 
 ### Community 1699 - "Community 1699"
 Cohesion: 0.24
@@ -11166,20 +11156,20 @@ Cohesion: 0.15
 Nodes (12): 10. What changed in this pass, 1. Bottom line, 2. What "production ready" actually means, 3. Scorecard against the incumbents, 4. Platform support matrix, 5. Security posture, 6. Feature completeness (engine), 7. This branch's C API, specifically (+4 more)
 
 ### Community 1704 - "Community 1704"
-Cohesion: 0.21
-Nodes (8): ServoAction, WakeupCallback, Box, Debug, EventLoopWaker, Formatter, Self, Sender
+Cohesion: 0.27
+Nodes (6): HeaderMap, StatusCode, Url, Vec, UrlRequest, WebResourceResponse
 
 ### Community 1705 - "Community 1705"
 Cohesion: 0.15
 Nodes (12): Add your own test, Advanced Usage, Basic Usage, CI for Gecko, CI for Servo, Comparing the performance before and after a patch, How it works, Prerequisites (+4 more)
 
 ### Community 1706 - "Community 1706"
-Cohesion: 0.17
-Nodes (13): IdNamespace, PainterId, PipelineId, TreeId, u64, WebRenderPipelineId, ExternalScrollId, FontInstanceKey (+5 more)
+Cohesion: 0.18
+Nodes (10): IdNamespace, NamespaceIndex<T>, PainterId, Debug, Display, FontInstanceKey, FontKey, Formatter (+2 more)
 
 ### Community 1707 - "Community 1707"
-Cohesion: 0.24
-Nodes (8): CachedFrozenArray, DomRefCell, F, Heap, JSContext, JSVal, MutableHandleValue, Option
+Cohesion: 0.18
+Nodes (9): Request, test_pipeline_id, build_stale_while_revalidate_test_request(), stale_while_revalidate_freshness_for_cache_control(), test_stale_while_revalidate_not_used_when_request_demands_revalidation(), test_stale_within_stale_while_revalidate_window_serves_immediately_and_revalidates_in_background(), test_stale_without_stale_while_revalidate_requires_synchronous_validation(), unbounded_channel_as_unbounded (+1 more)
 
 ### Community 1708 - "Community 1708"
 Cohesion: 0.26
@@ -11191,19 +11181,15 @@ Nodes (7): BluetoothDeviceDescription, Result, SendError, String, Vec, Bluetooth
 
 ### Community 1710 - "Community 1710"
 Cohesion: 0.26
-Nodes (4): ErrorResult, Node, RootedSelectionBoundary, nodes_have_same_shadow_root()
+Nodes (3): ErrorResult, JSContext, RootedSelectionBoundary
 
 ### Community 1711 - "Community 1711"
 Cohesion: 0.26
 Nodes (5): BroadcastReceiver, MediaSession, NotificationID, Int, String
 
-### Community 1712 - "Community 1712"
-Cohesion: 0.17
-Nodes (5): color, computedvalues, interpolate_color(), srgb_legacy_from_floats(), AbsoluteColor
-
 ### Community 1713 - "Community 1713"
-Cohesion: 0.24
-Nodes (8): CompareFunction, TextureFormat, PassTimestampWrites, GPUCompareFunction, &GPUComputePassTimestampWrites<D>, &GPURenderPassTimestampWrites<D>, GPUTextureFormat, WebGPUConvert
+Cohesion: 0.40
+Nodes (4): Backend, PathBuf, T, ErrorLoadingPlugins
 
 ### Community 1714 - "Community 1714"
 Cohesion: 0.26
@@ -11217,10 +11203,6 @@ Nodes (5): MediaSourceBuilder, OH_AVPlayer, Self, Vec, MediaSourceWrapper
 Cohesion: 0.26
 Nodes (8): FxHashMap, GenericCallback, GenericSender, Self, WebRenderExternalImageIdManager, GLPlayerMsg, GLPlayerMsgForward, GLPlayerThread
 
-### Community 1717 - "Community 1717"
-Cohesion: 0.15
-Nodes (6): Document, Fn, FnMut, StaticRange, Vec, GetComposedRangesOptions
-
 ### Community 1718 - "Community 1718"
 Cohesion: 0.23
 Nodes (7): Box, DocumentId, PainterId, PaintProxy, FramePublishId, FrameReadyParams, RenderNotifier
@@ -11230,16 +11212,16 @@ Cohesion: 0.30
 Nodes (8): DomRoot, DomTypeHolder, JSContext, Reflector, Window, DeferredFetchRecordId, FetchLaterResult, FetchLaterResultMethods
 
 ### Community 1720 - "Community 1720"
-Cohesion: 0.24
-Nodes (10): CStr, HandleObject, JSContext, JSVal, ConstantVal, js_defineproperty, rooted, ConstantSpec (+2 more)
+Cohesion: 0.27
+Nodes (8): VsyncRefreshDriver, Box, Fn, NativeVsync, RefCell, RefreshDriver, Send, Vec
 
 ### Community 1721 - "Community 1721"
 Cohesion: 0.21
 Nodes (5): HTMLFormElement, Option, RangeAny, Utf32CodeUnits, LayoutDom<'_, HTMLTextAreaElement>
 
 ### Community 1722 - "Community 1722"
-Cohesion: 0.09
-Nodes (24): Baselines, CollapsedMargin, ComputeInlineContentSizes, ConstraintSpace, ContainingBlock, ContentSizes, FontRef, InlineBoxes (+16 more)
+Cohesion: 0.10
+Nodes (21): AtomicRef, Clear, CollapsedMargin, ComputeInlineContentSizes, ConstraintSpace, ContentSizes, InlineBoxes, InlineContentSizesResult (+13 more)
 
 ### Community 1723 - "Community 1723"
 Cohesion: 0.30
@@ -11274,12 +11256,16 @@ Cohesion: 0.33
 Nodes (8): Document, ElementState, LocalName, Option, Prefix, SVGGraphicsElement, VirtualMethods, SVGTextContentElement
 
 ### Community 1731 - "Community 1731"
-Cohesion: 0.17
-Nodes (5): TexDataType, TexFormat, TexImageTarget, TexPixels, WebGLTexture
+Cohesion: 0.36
+Nodes (4): ClientContextId, Fn, MediaInstance, MediaInstanceError
+
+### Community 1732 - "Community 1732"
+Cohesion: 0.18
+Nodes (8): Copy, Default, Percentage, T, Size<LengthPercentage>, Size<T>, StyleMaxSize, StyleSize
 
 ### Community 1733 - "Community 1733"
-Cohesion: 0.09
-Nodes (46): Drop, GCContext, HandleObject, JSObject, JSTracer, MallocSizeOf, MallocSizeOfOps, ObjectOpResult (+38 more)
+Cohesion: 0.39
+Nodes (3): DOMHighResTimeStamp, Duration, ToDOMHighResTimeStamp
 
 ### Community 1734 - "Community 1734"
 Cohesion: 0.26
@@ -11294,12 +11280,12 @@ Cohesion: 0.30
 Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 1737 - "Community 1737"
-Cohesion: 0.27
-Nodes (6): HeaderMap, StatusCode, Url, Vec, UrlRequest, WebResourceResponse
+Cohesion: 0.29
+Nodes (4): Item, Iterator, VisibleSelectionTraversal<'no_gc>, FlatTreeSelection
 
 ### Community 1738 - "Community 1738"
-Cohesion: 0.20
-Nodes (10): Error, Option, Result, Row, Self, String, TryFrom, Vec (+2 more)
+Cohesion: 0.15
+Nodes (15): execute_indent_command(), indent(), normalize_sublists(), Document, DomRoot, JSContext, Node, Selection (+7 more)
 
 ### Community 1739 - "Community 1739"
 Cohesion: 0.17
@@ -11321,76 +11307,72 @@ Nodes (4): LoggingHandler, Custom logging handler that works with terminal windo
 Cohesion: 0.17
 Nodes (11): 1. Executive Summary, 2. WebRTC Calling Requirements for Major Platforms, 3. Inventory of Existing Foundations in Servo, 4. Step-by-Step Implementation Roadmap, 5. Key Source Files Reference, Phase 1: DOM Preferences & Unified Plan Modernization [COMPLETED], Phase 2: Local Capture & Permissions Pipeline [COMPLETED], Phase 3: GStreamer `webrtcbin` Core Engine [COMPLETED] (+3 more)
 
-### Community 1744 - "Community 1744"
-Cohesion: 0.26
-Nodes (7): DomRoot, Fallible, GlobalScope, Option, ReadableStream, SafeHandleObject, Self
-
 ### Community 1745 - "Community 1745"
-Cohesion: 0.19
-Nodes (8): DomRoot, JSContext, Reflector, WebGLExtension, WebGLExtensions, WebGLExtensionSpec, WebGLRenderingContext, OESTextureHalfFloatLinear
-
-### Community 1746 - "Community 1746"
-Cohesion: 0.20
-Nodes (11): AtomicRef, Cow, Deref, From, I, S, String, ContentItem (+3 more)
+Cohesion: 0.39
+Nodes (7): JSEngineSetup, JSObject, init(), is_dom_object(), jit_forbidden(), raise_file_handle_limit(), registerbindings
 
 ### Community 1747 - "Community 1747"
-Cohesion: 0.19
-Nodes (12): Option, PreloadId, Request, Response, SharedPreloadedResources, content_security_policy_as_csp, ConsumePreloadedResources, FetchParams (+4 more)
+Cohesion: 0.39
+Nodes (6): extract_memory_reports(), parse_memory_report(), test(), test_extract_memory_reports(), transform_report_for_test(), webbrowser
 
 ### Community 1748 - "Community 1748"
 Cohesion: 0.30
 Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 1749 - "Community 1749"
-Cohesion: 0.24
-Nodes (9): servo_webview_print_to_pdf(), ServoPdfPrintSettings, c_char, c_void, Default, Self, ServoError, WebView (+1 more)
+Cohesion: 0.23
+Nodes (11): attrvalue, Copy, Debug, Element, Impl, SelectorImpl, Send, Sync (+3 more)
+
+### Community 1750 - "Community 1750"
+Cohesion: 0.14
+Nodes (10): ImmutableOrigin, JavaScriptEvaluationError, JavaScriptEvaluationId, JSValue, LogEntry, Result, ScriptEventLoopId, String (+2 more)
+
+### Community 1751 - "Community 1751"
+Cohesion: 0.20
+Nodes (4): CanvasImageSource, DOMMatrix2DInit, ErrorResult, UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence
 
 ### Community 1752 - "Community 1752"
 Cohesion: 0.18
 Nodes (8): AVPlayerState, Cell, Metadata, mediasourcewrapper, InternalState, PlayerState, RenderMsg, yuv_nv12_to_bgra
 
 ### Community 1753 - "Community 1753"
-Cohesion: 0.32
-Nodes (8): ColumnNumberOneOrigin, JSObject, JSScript, RawHandle, RawHandleValue, RawJSContext, HostLoadImportedModule(), HostPopulateImportMeta()
+Cohesion: 0.29
+Nodes (4): AllowOrDenyRequest, ServoDelegate, ServoError, ServoShellServoDelegate
 
 ### Community 1754 - "Community 1754"
-Cohesion: 0.31
-Nodes (4): SanitizerElement, built_in_safe_baseline_configuration(), SanitizerConfig, SanitizerConfigAlgorithm
+Cohesion: 0.15
+Nodes (9): CommandName, DomRoot, DOMString, JSContext, Node, Option, Element, DisplayOutside (+1 more)
 
 ### Community 1755 - "Community 1755"
-Cohesion: 0.10
-Nodes (22): CrossProcessInstant, DOMHighResTimeStamp, DomRefCell, From, Reflector, Self, SmallVec, TaskOnce (+14 more)
-
-### Community 1756 - "Community 1756"
-Cohesion: 0.20
-Nodes (3): AttributeMutation, AttrRef, KeyReaction
+Cohesion: 0.16
+Nodes (13): Cell, Dom, DomRoot, EventTarget, JSContext, Option, Vec, Window (+5 more)
 
 ### Community 1757 - "Community 1757"
-Cohesion: 0.10
-Nodes (12): EditingAction, Option, RopeIndex, RopeSlice, S, Utf16CodeUnits, Utf8CodeUnits, KeyReaction (+4 more)
+Cohesion: 0.08
+Nodes (21): DOMString, EditingAction, From, Option, RangeAny, RopeIndex, RopeSlice, S (+13 more)
 
 ### Community 1758 - "Community 1758"
 Cohesion: 0.38
 Nodes (6): DomRoot, Node, NoGC, Option, ChildrenMutation, ChildrenMutation<'a>
 
 ### Community 1759 - "Community 1759"
-Cohesion: 0.21
-Nodes (8): Default, Language, Option, Self, fallback_font_families, EmojiPresentationPreference, FallbackFontSelectionOptions, shapers
+Cohesion: 0.32
+Nodes (6): parse_selector(), SelectorList, ParseError, Parser, Result, SelectorImpl
 
 ### Community 1760 - "Community 1760"
-Cohesion: 0.13
-Nodes (18): Castable, Document, LocalName, Option, Prefix, VirtualMethods, DomRoot, DOMString (+10 more)
+Cohesion: 0.22
+Nodes (6): Bytes, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming, Result
 
 ### Community 1761 - "Community 1761"
 Cohesion: 0.27
 Nodes (6): Element, GlobalScope, LoadData, NavigationHistoryBehavior, TargetSnapshotParams, LoadOrigin
 
 ### Community 1762 - "Community 1762"
-Cohesion: 0.22
-Nodes (4): FilePickerRequest, FilterPattern, PathBuf, FilePicker
+Cohesion: 0.20
+Nodes (5): FilePickerRequest, FilterPattern, PathBuf, Sender, FilePicker
 
 ### Community 1763 - "Community 1763"
-Cohesion: 0.20
+Cohesion: 0.15
 Nodes (8): FnOnce, JavaScriptEvaluationError, JSValue, Result, RgbaImage, ScreenshotCaptureError, T, WebViewRect
 
 ### Community 1764 - "Community 1764"
@@ -11403,11 +11385,11 @@ Nodes (10): Id, NodeStyle, Option, Vec, Container, SvgNode, SvgTag, SvgTag (+2 m
 
 ### Community 1766 - "Community 1766"
 Cohesion: 0.13
-Nodes (18): Arc, ArrayVec, BufferId, DeviceId, DeviceIntSize, Drop, Global, ImageFormat (+10 more)
+Nodes (11): Drop, Option, QueuedTask, QueuedTaskConversion, Self, TaskSourceName, TrustedWorkerAddress, DedicatedWorkerGlobalScope (+3 more)
 
 ### Community 1767 - "Community 1767"
-Cohesion: 0.09
-Nodes (30): ApiSpace, ClipPlanes, EventBuffer, Eye, Floor, Frame, Input, InputId (+22 more)
+Cohesion: 0.27
+Nodes (7): PipelineId, TreeId, u64, WebRenderPipelineId, ExternalScrollId, From, WebRenderPipelineId
 
 ### Community 1768 - "Community 1768"
 Cohesion: 0.30
@@ -11416,10 +11398,6 @@ Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, O
 ### Community 1769 - "Community 1769"
 Cohesion: 0.18
 Nodes (10): Backlog summary (prioritized), Cross-cutting rules for every phase, Definition of a usable / "minimum lovable" embeddable engine, Phase 0 — Audit and foundations, Phase 1 — Complete the C API read/control surface, Phase 2 — Input and rendering parity, Phase 3 — Networking and content control, Phase 4 — JavaScript binding and messaging (+2 more)
-
-### Community 1771 - "Community 1771"
-Cohesion: 0.25
-Nodes (7): ConcreteNode, E, F, SharedStyleContext, DomTraversal, RecalcStyle, StyleContext
 
 ### Community 1773 - "Community 1773"
 Cohesion: 0.49
@@ -11435,7 +11413,7 @@ Nodes (10): Adding scenarios to CI, available arguments, How to develop scenario
 
 ### Community 1777 - "Community 1777"
 Cohesion: 0.29
-Nodes (6): CurrentRealm, ImageBitmapOptions, ImageBitmapSource, RequestInit, RequestOrUSVString, RootedPromise
+Nodes (4): Box, MediaOutput, MediaStreamType, OhosMediaOutput
 
 ### Community 1778 - "Community 1778"
 Cohesion: 0.22
@@ -11446,64 +11424,64 @@ Cohesion: 0.20
 Nodes (9): 1. Install the C API into a sysroot, 2. Build the example locally, 3. Run it, Notes, Option A: CMake (Recommended — uses `find_package(Servo CONFIG)`), Option B: Direct compilation with `pkg-config`, Option C: Direct compiler invocation, servo-capi C embedder example (+1 more)
 
 ### Community 1780 - "Community 1780"
-Cohesion: 0.22
-Nodes (8): Arc, AtomicRefCell, Au, ComputedValues, ServoLayoutNode, SharedStyleContext, WeakLayoutBox, Baselines
+Cohesion: 0.12
+Nodes (9): PipelineId, QueuedTask, QueuedTaskConversion, Self, TaskQueue, TaskSourceName, Vec, Violation (+1 more)
 
 ### Community 1781 - "Community 1781"
-Cohesion: 0.24
-Nodes (10): Drop, LogicalVec2, PlacementInfo, Vec, ContainingBlockPositionInfo, check_floats_rule_8(), check_floats_rule_9(), FloatInput (+2 more)
+Cohesion: 0.30
+Nodes (10): find_compatible_msvc_with_environment_variables(), find_compatible_msvc_with_path(), find_compatible_msvc_with_vswhere(), find_msvc_installations(), find_msvc_redist_dirs(), find_vswhere(), find_windows_sdk_installation_path(), Try to find the Windows SDK installation path using the Windows registry.     Ra (+2 more)
 
 ### Community 1782 - "Community 1782"
 Cohesion: 0.11
 Nodes (19): Arc, AtomicBool, Box, Debug, Formatter, JSContext, JSTraceable, Result (+11 more)
 
 ### Community 1783 - "Community 1783"
-Cohesion: 0.07
-Nodes (34): crate::DomTypeHolder, define_all_exposed_interfaces(), extract_exception_info(), GlobalStaticData, instance_class_has_proto_at_depth(), instance_class_is_error(), is_platform_object(), is_platform_object_static() (+26 more)
+Cohesion: 0.04
+Nodes (53): crate::DomTypeHolder, define_all_exposed_interfaces(), extract_exception_info(), GlobalStaticData, instance_class_has_proto_at_depth(), instance_class_is_error(), is_platform_object(), is_platform_object_static() (+45 more)
 
 ### Community 1784 - "Community 1784"
-Cohesion: 0.18
-Nodes (7): ImmutableOrigin, JavaScriptEvaluationError, JavaScriptEvaluationId, JSValue, Result, StructuredSerializedData, ServiceWorkerAlgorithm
+Cohesion: 0.38
+Nodes (3): MediaStreamId, MediaTrackConstraintSet, Option
 
 ### Community 1785 - "Community 1785"
-Cohesion: 0.15
-Nodes (10): Cell, MallocSizeOfOps, PhysicalSize, Renderer, Sender, ViewportDescription, PaintMetricState, ScreenshotTaker (+2 more)
+Cohesion: 0.29
+Nodes (8): BindGroupLayoutEntry, Fallible, GPUDevice, GPUTextureDescriptor, TextureDescriptor, GPUBindGroupLayoutEntry, convert_bind_group_layout_entry(), convert_texture_descriptor()
 
 ### Community 1786 - "Community 1786"
-Cohesion: 0.22
-Nodes (6): AtomicRef, NoGC, String, Text, t_as_whitespacecollapse, WhiteSpaceCollapse
+Cohesion: 0.48
+Nodes (3): MediaStreamId, MediaTrackConstraintSet, Option
+
+### Community 1787 - "Community 1787"
+Cohesion: 0.42
+Nodes (8): root_from_handleobject(), root_from_object_static(), DomRoot, HandleObject, JSContext, JSObject, Result, T
 
 ### Community 1788 - "Community 1788"
-Cohesion: 0.17
-Nodes (11): From, Option, Self, TracedCallback, UnderlyingSinkType, UnderlyingSinkTypeRef, UnderlyingSinkTypeRef<'a>, UnderlyingSinkAbortCallback (+3 more)
-
-### Community 1789 - "Community 1789"
-Cohesion: 0.24
-Nodes (10): BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothDeviceMsg, BluetoothError, BluetoothRequest, BluetoothResponse, BluetoothServiceMsg, GATTType (+2 more)
+Cohesion: 0.29
+Nodes (3): Default, Self, InteractiveWindow
 
 ### Community 1790 - "Community 1790"
-Cohesion: 0.49
-Nodes (9): execute_indent_command(), indent(), normalize_sublists(), Document, DomRoot, JSContext, Node, Selection (+1 more)
+Cohesion: 0.43
+Nodes (3): CommandName, JSContext, HTMLElement
 
 ### Community 1791 - "Community 1791"
-Cohesion: 0.22
-Nodes (5): DOMString, Duration, ErrorResult, NoGC, is_field_value()
+Cohesion: 0.13
+Nodes (18): Castable, Document, LocalName, Option, Prefix, VirtualMethods, DomRoot, DOMString (+10 more)
 
 ### Community 1792 - "Community 1792"
-Cohesion: 0.19
-Nodes (7): Any, Cell, SwapChain, RenderingContext, SoftwareRenderingContext, test_minimum_size_error(), rgba
+Cohesion: 0.25
+Nodes (3): AbsoluteColor, LengthOrPercentageOrAuto, LayoutDom<'_, HTMLTableElement>
 
 ### Community 1793 - "Community 1793"
-Cohesion: 0.26
-Nodes (9): Au, Font, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation, PainterId (+1 more)
+Cohesion: 0.29
+Nodes (4): AttrRef, AttrValue, DOMString, VirtualMethods
 
 ### Community 1794 - "Community 1794"
 Cohesion: 0.29
-Nodes (5): DOMString, IDBObjectStore, IDBObjectStoreParameters, IndexedDBIndex, Vec
+Nodes (7): N, V, is_cors_safelisted_language(), is_cors_safelisted_request_accept(), is_cors_safelisted_request_header(), is_cors_safelisted_request_range(), validate_range_header()
 
 ### Community 1795 - "Community 1795"
-Cohesion: 0.24
-Nodes (6): BlockContainer, FnOnce, LayoutBoxBase, T, WeakLayoutBox, BlockFormattingContext
+Cohesion: 0.51
+Nodes (6): ComputedValues, IndependentFormattingContext, ServoArc, ServoLayoutNode, SharedStyleContext, OutsideMarker
 
 ### Community 1796 - "Community 1796"
 Cohesion: 0.29
@@ -11513,37 +11491,33 @@ Nodes (8): DomRoot, DomTypeHolder, GlobalScope, JSContext, TestBinding, TestNS, 
 Cohesion: 0.27
 Nodes (7): Convert, EntityType, Handedness, TargetRayMode, FakeXRRegionType, XRHandedness, XRTargetRayMode
 
-### Community 1798 - "Community 1798"
-Cohesion: 0.43
-Nodes (3): CommandName, JSContext, HTMLElement
-
 ### Community 1799 - "Community 1799"
-Cohesion: 0.24
-Nodes (4): ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, ContextMenu
+Cohesion: 0.20
+Nodes (4): CanvasImageSource, DOMMatrix2DInit, ErrorResult, UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence
 
 ### Community 1800 - "Community 1800"
-Cohesion: 0.38
-Nodes (3): DomRoot, UnbindContext, ValidityState
+Cohesion: 0.20
+Nodes (5): AttributeMutation, AttrRef, AttrValue, UnbindContext, VirtualMethods
 
 ### Community 1801 - "Community 1801"
-Cohesion: 0.36
-Nodes (5): Option, PseudoElement, Self, debug, PseudoElementChain
+Cohesion: 0.42
+Nodes (4): Option, PseudoElement, Self, PseudoElementChain
 
 ### Community 1802 - "Community 1802"
 Cohesion: 0.27
 Nodes (9): AsyncOperation, IndexedDBTxnMode, MallocSizeOf, String, VecDeque, KvsEngine, KvsOperation, KvsTransaction (+1 more)
 
 ### Community 1803 - "Community 1803"
-Cohesion: 0.40
-Nodes (8): AspectRatio, ContainingBlock, ContentSizes, IndependentFormattingContextLayoutResult, LayoutContext, LazySize, Option, PositioningContext
+Cohesion: 0.14
+Nodes (10): AllBrowsingContextsIterator, BrowsingContext, BrowsingContextId, DiscardBrowsingContext, Item, Iterator, Pipeline, RemoteFocusOperation (+2 more)
 
 ### Community 1804 - "Community 1804"
-Cohesion: 0.24
-Nodes (6): RangeAny, String, Utf32CodeUnits, GenericLayoutDataTrait, DOMLayoutData, LayoutDataTrait
+Cohesion: 0.29
+Nodes (6): Box, HTMLIFrameElement, Item, Iterator, SameoriginAncestorNavigablesIterator, SameOriginDescendantNavigablesIterator
 
 ### Community 1805 - "Community 1805"
-Cohesion: 0.09
-Nodes (21): Discovery, AppInitOptions, VsyncRefreshDriver, XrDiscoveryWebXrRegistry, Box, DeviceIntSize, EventLoopWaker, Fn (+13 more)
+Cohesion: 0.36
+Nodes (7): DomTypeHolder, GlobalScope, JSContext, Reflector, RootedPromise, TestUtils, TestUtilsMethods
 
 ### Community 1806 - "Community 1806"
 Cohesion: 0.20
@@ -11570,12 +11544,8 @@ Cohesion: 0.20
 Nodes (9): 1. Executive Summary, 2.1 Process Model & Site Isolation, 2.2 Web Platform Compatibility (WPT), 2.3 Security & Privacy Hardening, 2.4 Consumer Browser Experience (MCB), 2.5 Polish, Observability & Distribution, 2. Core Feature Parity Matrix, 3. Milestone Progress Tracker (+1 more)
 
 ### Community 1812 - "Community 1812"
-Cohesion: 0.44
-Nodes (8): servo_get_network_manager(), servo_network_manager_clear_cache(), servo_network_manager_free(), servo_network_manager_get_cache_entries(), ServoNetworkManager, c_char, Servo, ServoError
-
-### Community 1813 - "Community 1813"
-Cohesion: 0.18
-Nodes (7): Listener, Ref, RefMut, RequestBuilder, SendableTaskSource, FetchGroup, ImportMap
+Cohesion: 0.38
+Nodes (9): servo_get_network_manager(), servo_network_manager_clear_cache(), servo_network_manager_free(), servo_network_manager_get_cache_entries(), ServoNetworkManager, c_char, Servo, ServoError (+1 more)
 
 ### Community 1814 - "Community 1814"
 Cohesion: 0.24
@@ -11586,8 +11556,8 @@ Cohesion: 0.49
 Nodes (9): getJniLibsPath(), getNativeTargetDir(), getNDKAbi(), getNdkDir(), getRustTarget(), getSubTargetDir(), getTargetDir(), Boolean (+1 more)
 
 ### Community 1816 - "Community 1816"
-Cohesion: 0.29
-Nodes (5): GenericSender, TraversalId, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand
+Cohesion: 0.40
+Nodes (4): ServoEventLoopWaker, Box, Default, EventLoopWaker
 
 ### Community 1818 - "Community 1818"
 Cohesion: 0.28
@@ -11598,32 +11568,32 @@ Cohesion: 0.28
 Nodes (6): SymbolIteratorActor, Actor, ActorRegistry, Arc, Self, String
 
 ### Community 1820 - "Community 1820"
-Cohesion: 0.11
-Nodes (20): Config, ConversionResult, CurrentRealm, From, FromJSValConvertible, GlobalScope, HandleValue, JSContext (+12 more)
+Cohesion: 0.06
+Nodes (52): Box, Callback, Cell, Config, ConversionResult, CurrentRealm, Deref, Dom (+44 more)
 
 ### Community 1821 - "Community 1821"
-Cohesion: 0.39
-Nodes (7): CustomAutoRooterGuard, ErrorResult, HandleValue, JSContext, JSObject, StructuredSerializeOptions, Vec
+Cohesion: 0.25
+Nodes (3): DOMMatrix2DInit, ErrorResult, UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence
 
 ### Community 1822 - "Community 1822"
-Cohesion: 0.21
-Nodes (8): DomRoot, DOMString, Element, Item, Iterator, QualName, ElementAttribute, FragmentParsingResult<I>
+Cohesion: 0.25
+Nodes (4): CSSPixel, DevicePixel, Scale, Size2D
 
 ### Community 1823 - "Community 1823"
-Cohesion: 0.23
-Nodes (7): Convert, RTCIceConnectionState, RTCIceGatheringState, GatheringState, IceConnectionState, &RTCSessionDescriptionInit, SessionDescription
+Cohesion: 0.47
+Nodes (4): Controller, WebRtcController, WebRtcError, WebRtcSignaller
 
 ### Community 1824 - "Community 1824"
-Cohesion: 0.30
-Nodes (10): find_compatible_msvc_with_environment_variables(), find_compatible_msvc_with_path(), find_compatible_msvc_with_vswhere(), find_msvc_installations(), find_msvc_redist_dirs(), find_vswhere(), find_windows_sdk_installation_path(), Try to find the Windows SDK installation path using the Windows registry.     Ra (+2 more)
+Cohesion: 0.33
+Nodes (6): CanvasStoreSizesPerType, Convert, GenericDrawTarget, default, imagedescriptor, ReportKind
 
 ### Community 1825 - "Community 1825"
 Cohesion: 0.14
 Nodes (11): CanvasFont, FillOrStrokeStyle, GlyphAndPosition, TextRun, Debug, FontDataAndIndex, FontIdentifier, Formatter (+3 more)
 
 ### Community 1826 - "Community 1826"
-Cohesion: 0.18
-Nodes (10): arrayvec, CommandBufferId, CommandEncoderId, ContextConfiguration, TextureId, deviceintsize, epoch, imagekey (+2 more)
+Cohesion: 0.25
+Nodes (8): current_task, kern_success, mach_port_deallocate, mach_vm_deallocate, count_running_threads(), deinit(), Option, task_threads
 
 ### Community 1827 - "Community 1827"
 Cohesion: 0.39
@@ -11634,8 +11604,8 @@ Cohesion: 0.30
 Nodes (9): Document, DomRoot, HandleObject, HTMLElement, JSContext, LocalName, Option, Prefix (+1 more)
 
 ### Community 1829 - "Community 1829"
-Cohesion: 0.20
-Nodes (5): is_cjk(), len_utf8_for_utf8_byte(), RangeAnyInner, unicode_plane(), sum
+Cohesion: 0.33
+Nodes (5): AudioRenderer, Player, PlayerEvent, PlayerGLContext, VideoFrameRenderer
 
 ### Community 1830 - "Community 1830"
 Cohesion: 0.28
@@ -11646,64 +11616,52 @@ Cohesion: 0.28
 Nodes (6): Actor, ActorRegistry, Arc, Self, String, SimulatorActor
 
 ### Community 1832 - "Community 1832"
-Cohesion: 0.36
-Nodes (6): AlignItems, AuOrAuto, LogicalSides, T, item_with_auto_cross_size_stretches_to_line_size(), FlexRelativeSides
+Cohesion: 0.67
+Nodes (3): LogicalSides, T, FlexRelativeSides
 
 ### Community 1833 - "Community 1833"
-Cohesion: 0.25
-Nodes (10): ActorRegistry, Arc, DevtoolsConnection, NetworkEvent, Option, String, Vec, Cause (+2 more)
+Cohesion: 0.48
+Nodes (7): Any, TestRoot, _check_clean(), diff_manifests(), log_error(), Lint the differences between old and new versions of a     manifest. Differences, update()
 
 ### Community 1834 - "Community 1834"
 Cohesion: 0.33
 Nodes (5): Buffer, Range, Vec, VideoFrameData, OhosBuffer
 
 ### Community 1835 - "Community 1835"
-Cohesion: 0.28
-Nodes (6): Deref, DerefMut, From, HeaderMap, Target, SerializeableHeaderMap
+Cohesion: 0.33
+Nodes (4): MediaDeviceInfo, MediaDeviceMonitor, Vec, OhosDeviceMonitor
 
 ### Community 1836 - "Community 1836"
-Cohesion: 0.18
-Nodes (10): Box, Fn, Item, Iterator, MutexGuard, Option, PanicHookInfo, Send (+2 more)
-
-### Community 1837 - "Community 1837"
-Cohesion: 0.29
-Nodes (10): C, Dom, FnOnce, GlobalScope, R, runtime, run_a_callback(), run_a_script() (+2 more)
+Cohesion: 0.42
+Nodes (6): CDATASection, Document, DomRoot, DOMString, JSContext, Text
 
 ### Community 1838 - "Community 1838"
-Cohesion: 0.31
-Nodes (5): InputEventResult, keyboard_event_fires_keypress_event(), EmbedderKeyboardEvent, ImeEvent, KeyboardScroll
+Cohesion: 0.47
+Nodes (4): ApiPose, Frame, JointFrame, Option
 
 ### Community 1839 - "Community 1839"
-Cohesion: 0.16
-Nodes (8): CurrentRealm, ErrorResult, HitTestId, InputId, RootedPromise, XRReferenceSpaceType, XRHitTestOptionsInit, XRRenderStateInit
+Cohesion: 0.53
+Nodes (4): Document, HandleObject, LocalName, Prefix
 
 ### Community 1840 - "Community 1840"
-Cohesion: 0.05
-Nodes (36): CDATASection, Document, DomRoot, DOMString, JSContext, Text, DomTypeHolder, GPUCanvasContextMethods (+28 more)
-
-### Community 1841 - "Community 1841"
-Cohesion: 0.36
-Nodes (7): DomTypeHolder, GlobalScope, JSContext, Reflector, RootedPromise, TestUtils, TestUtilsMethods
+Cohesion: 0.08
+Nodes (23): DomTypeHolder, GPUCanvasContextMethods, Reflector, RootedHTMLCanvasElementOrOffscreenCanvas, Self, XRLayer, XRCompositionLayer, XRCompositionLayer (+15 more)
 
 ### Community 1842 - "Community 1842"
-Cohesion: 0.25
-Nodes (4): Item, Iterator, VisibleSelectionTraversal<'no_gc>, FlatTreeSelection
-
-### Community 1843 - "Community 1843"
-Cohesion: 0.22
-Nodes (7): Default, ProfileGenericCallback, Self, rigidtransform3d, Event, EventBuffer, Visibility
+Cohesion: 0.07
+Nodes (27): Atom, Cell, CurrentRealm, Dom, DomRefCell, Drop, HTMLElement, MicrotaskRunnable (+19 more)
 
 ### Community 1844 - "Community 1844"
-Cohesion: 0.22
-Nodes (8): Node, Option, Self, dom, PredicateCtx, EvaluationCtx, EvaluationCtx<D>, PredicateCtx
+Cohesion: 0.25
+Nodes (5): AmbigArg, Pat, FnDefVisitor<'a, 'tcx>, Expr, Visitor
 
 ### Community 1845 - "Community 1845"
 Cohesion: 0.31
 Nodes (8): winit_position_to_euclid_point(), winit_size_to_euclid_size(), DevicePixel, PhysicalPosition, PhysicalSize, Point2D, Size2D, T
 
 ### Community 1847 - "Community 1847"
-Cohesion: 0.33
-Nodes (3): RunningAppState, Servo, ServoShellWindow
+Cohesion: 0.22
+Nodes (5): RawWindowHandle, Rect, RunningAppState, Servo, ServoShellWindow
 
 ### Community 1848 - "Community 1848"
 Cohesion: 0.22
@@ -11734,36 +11692,36 @@ Cohesion: 0.11
 Nodes (17): 1. Operating Ground Rules & Constraints, 1. Paint and Present Separation, 2. Codebase Architecture & Subsystems, 2. Omnibox & Search Normalization, 3. Important Architectural Invariants, 3. Native Win32 Window Handles, 4. SpiderMonkey GC Heap & Memory Guardrails, 4. Useful Commands (+9 more)
 
 ### Community 1855 - "Community 1855"
-Cohesion: 0.20
-Nodes (11): BuildTarget, find_non_system_dependencies_with_otool(), is_macos_system_library(), make_rpath_path_absolute(), package_gstreamer_dylibs(), Returns true if if the given dependency line from otool refers to     a system l, Given a path to a binary (either an executable or a dylib), rewrite the     the, Given a dylib dependency from otool, resolve the path into a full path if it (+3 more)
+Cohesion: 0.29
+Nodes (6): CurrentRealm, ImageBitmapOptions, ImageBitmapSource, RequestInit, RequestOrUSVString, RootedPromise
 
 ### Community 1856 - "Community 1856"
 Cohesion: 0.29
-Nodes (6): bitflags, From, RestyleDamage, Self, LayoutDamage, RestyleDamage
+Nodes (7): default_system_generic_font_family(), fallback_font_families(), for_each_available_family(), F, FallbackFontSelectionOptions, GenericFontFamily, LowercaseFontFamilyName
 
 ### Community 1857 - "Community 1857"
 Cohesion: 0.22
 Nodes (8): 1. Quick Installation (PowerShell), 2. Silent / Automated Installation, 3. Uninstallation, 4. Building the Standalone Setup Installer (.exe), 5. Command-Line Options, Installation Features:, Overview, Servo Browser (for Windows) — Installation & Packaging Guide
 
 ### Community 1858 - "Community 1858"
-Cohesion: 0.29
-Nodes (6): PathBuf, Resource, ResourceReaderMethods, Vec, DefaultResourceReader, Resources
+Cohesion: 0.70
+Nodes (4): execute_subscript_command(), Document, JSContext, Selection
 
 ### Community 1859 - "Community 1859"
-Cohesion: 0.24
-Nodes (5): ComputeInlineContentSizes, IndefiniteContainingBlock, InlineContentSizesResult, BlockContainer, compute_inline_content_sizes_for_block_level_boxes()
+Cohesion: 0.22
+Nodes (3): AnimationState, PipelineExitSource, WorkerId
 
 ### Community 1860 - "Community 1860"
-Cohesion: 0.29
-Nodes (8): BindGroupLayoutEntry, Fallible, GPUDevice, GPUTextureDescriptor, TextureDescriptor, GPUBindGroupLayoutEntry, convert_bind_group_layout_entry(), convert_texture_descriptor()
+Cohesion: 0.70
+Nodes (4): execute_superscript_command(), Document, JSContext, Selection
 
 ### Community 1861 - "Community 1861"
-Cohesion: 0.09
-Nodes (21): CanvasRenderingContext2D, Cell, Convert, Epoch, Finite, FxHashMap, GLContextAttributes, HTMLCanvasData (+13 more)
+Cohesion: 0.40
+Nodes (4): Result, WebRtcController, WebRtcError, WebRtcSignaller
 
 ### Community 1863 - "Community 1863"
-Cohesion: 0.24
-Nodes (6): CacheEntry, StdArc, DiskCache, Lifecycle, MemoryCacheLifecycle, RequestState
+Cohesion: 0.40
+Nodes (3): HeapFloat32Array, RootedTraceableBox, HeapFloat64Array
 
 ### Community 1864 - "Community 1864"
 Cohesion: 0.43
@@ -11782,16 +11740,12 @@ Cohesion: 0.39
 Nodes (6): Self, QuotePair, quotes_data_for_lang(), quotes_for_lang(), QuotesData, phf_map
 
 ### Community 1868 - "Community 1868"
-Cohesion: 0.22
-Nodes (7): String, Frame, Posef, Dst, get_profiles_from_path(), transform(), Src
+Cohesion: 0.10
+Nodes (20): i32, servo_certificate_error_continue(), ServoCertErrorCode, ServoCertificateError, servo_webview_print_to_pdf(), ServoPdfPrintSettings, ffi, c_char (+12 more)
 
 ### Community 1869 - "Community 1869"
 Cohesion: 0.32
 Nodes (5): GenericReceiver, SeekLock, SeekLockMsg, Self, SeekChannel
-
-### Community 1870 - "Community 1870"
-Cohesion: 0.20
-Nodes (9): GlClearer, HashMap, Rect, compositionlayerpassthroughfb, ContextMenuFuture, ContextMenuResult, image_rect(), OpenXRInput (+1 more)
 
 ### Community 1871 - "Community 1871"
 Cohesion: 0.29
@@ -11802,28 +11756,28 @@ Cohesion: 0.29
 Nodes (5): Self, Send, Sync, T, ThreadUnsafeOnceLock<T>
 
 ### Community 1873 - "Community 1873"
-Cohesion: 0.31
-Nodes (6): Arbitrary, Clear, Gen, FloatBandWrapper, FloatRangeInput, new_clear()
+Cohesion: 0.40
+Nodes (3): ErrorResult, [KeyUsage], KeyUsageSliceHelper
 
 ### Community 1874 - "Community 1874"
-Cohesion: 0.33
-Nodes (4): DerefMut, Drop, Target, WriteGuard<'a>
+Cohesion: 0.36
+Nodes (4): ClientContextId, Fn, MediaInstance, MediaInstanceError
 
 ### Community 1875 - "Community 1875"
-Cohesion: 0.29
-Nodes (5): DevtoolsConnection, Map, Result, StreamId, Value
+Cohesion: 0.38
+Nodes (3): HashMap, Vec, OhosRegistryScanner
 
 ### Community 1876 - "Community 1876"
-Cohesion: 0.22
-Nodes (7): AudioSink, AudioSinkError, ConstellationCanvasMsg, canvasid, Send, reportschan, sender
+Cohesion: 0.50
+Nodes (3): Self, ConstructorClassHook, InterfaceConstructorBehavior
 
 ### Community 1877 - "Community 1877"
-Cohesion: 0.42
-Nodes (8): root_from_handleobject(), root_from_object_static(), DomRoot, HandleObject, JSContext, JSObject, Result, T
+Cohesion: 0.40
+Nodes (4): Adapter, GLApi, GLVersion, print_diagnostics_information_on_context_creation_failure()
 
 ### Community 1878 - "Community 1878"
-Cohesion: 0.33
-Nodes (4): EmbedderClipboardProvider, Ref, RefMut, TextInput
+Cohesion: 0.23
+Nodes (11): PathBuf, Resource, String, Vec, read_bytes(), read_string(), Resource, ResourceReaderMethods (+3 more)
 
 ### Community 1879 - "Community 1879"
 Cohesion: 0.04
@@ -11831,7 +11785,7 @@ Nodes (62): Option, Reflector, RootedTraceableBox, Sized, String, Vec, CryptoKey
 
 ### Community 1881 - "Community 1881"
 Cohesion: 0.29
-Nodes (6): FnDecl, LocalDefId, in_derive_expn(), Span, FnKind, Span
+Nodes (8): Atom, DOMString, EventBubbles, EventCancelable, Fallible, GlobalScope, HandleObject, EventInit
 
 ### Community 1882 - "Community 1882"
 Cohesion: 0.25
@@ -11852,10 +11806,6 @@ Nodes (7): 1. Current state (evidence), 2. Why iOS is not "one more target", 3. 
 ### Community 1886 - "Community 1886"
 Cohesion: 0.25
 Nodes (7): Architecture in five lines, C / C++ embedders, Documentation index, Embedding Servo, Rust embedders, Start here, Where these docs live
-
-### Community 1887 - "Community 1887"
-Cohesion: 0.31
-Nodes (7): CrossProcessPaintApi, LockedFontFaceRule, Origin, ResourceThreads, Self, SystemFontServiceProxy, FontFaceRuleWithOrigin
 
 ### Community 1888 - "Community 1888"
 Cohesion: 0.25
@@ -11886,56 +11836,52 @@ Cohesion: 0.38
 Nodes (6): Structure, TokenStream, Type, assert_not_impl_traceable(), js_traceable_derive(), parse_quote
 
 ### Community 1896 - "Community 1896"
-Cohesion: 0.33
-Nodes (6): FontFaceRuleInfo, FontStore, ServoArc, FontFaceRuleInitiator, KnownFontFaceRule, WebFontLoadInitiator
+Cohesion: 0.43
+Nodes (4): CSSPixel, DeviceIndependentPixel, DevicePixel, Scale
 
 ### Community 1897 - "Community 1897"
-Cohesion: 0.25
-Nodes (5): ComputeInlineContentSizes, LayoutStyle, WeakLayoutBox, Table, TableTrack
+Cohesion: 0.06
+Nodes (49): BlobCallback, canvasrenderingcontext2dsettings, AttributeMutation, AttrRef, AttrValue, CanvasRenderingContext2D, Cell, Convert (+41 more)
 
 ### Community 1898 - "Community 1898"
-Cohesion: 0.39
-Nodes (9): Au, FloatBand, FloatBandTree, FloatSide, Range, check_node_range_setting(), check_tree_find(), check_tree_find_next() (+1 more)
+Cohesion: 0.25
+Nodes (7): BackendError, RusqliteError, RusqliteError, enospc, error_as_stderror, backend_error_from_sqlite_error(), is_sqlite_disk_full_error()
 
 ### Community 1899 - "Community 1899"
-Cohesion: 0.33
-Nodes (6): CachedResourcesOrGuard, Response, StatusCode, calculate_response_age(), get_response_expiry(), is_cacheable_by_default()
+Cohesion: 0.67
+Nodes (3): From, ProtoOrIfaceIndex, usize
 
-### Community 1900 - "Community 1900"
-Cohesion: 0.28
-Nodes (7): Clone, Deref, Rootable, Target, ToJSValConvertible, RootedCallback<T>, TracedCallback<T>
-
-### Community 1901 - "Community 1901"
+### Community 1902 - "Community 1902"
 Cohesion: 0.60
 Nodes (5): execute_fontname_command(), Document, DOMString, JSContext, Selection
 
-### Community 1902 - "Community 1902"
-Cohesion: 0.33
-Nodes (3): LengthOrPercentageOrAuto, Option, LayoutDom<'_, HTMLTableElement>
-
 ### Community 1903 - "Community 1903"
-Cohesion: 0.53
-Nodes (5): execute_hilitecolor_command(), Document, DOMString, JSContext, Selection
+Cohesion: 0.32
+Nodes (6): Node, Option, Self, PredicateCtx, EvaluationCtx, EvaluationCtx<D>
 
 ### Community 1904 - "Community 1904"
 Cohesion: 0.43
 Nodes (5): DomRefCell, Option, SpecificInputType, TextInputWidget, HiddenInputType
 
 ### Community 1905 - "Community 1905"
-Cohesion: 0.22
-Nodes (6): GLLimits, GlType, WebGLExtensions, WebGLResult, WebGLSLVersion, WebGLVersion
+Cohesion: 0.43
+Nodes (5): Key, key_from_unicode_keycode(), KeyCode, From, TryFrom
 
 ### Community 1906 - "Community 1906"
-Cohesion: 0.28
-Nodes (7): Error, From, Result, Self, TryFrom, KeyType, u8
+Cohesion: 0.50
+Nodes (3): CollectionFilter, Node, OptionsFilter
 
 ### Community 1907 - "Community 1907"
-Cohesion: 0.07
-Nodes (31): CanvasFillRule, round_rect_error(), serialize(), serialize_font(), UnshapedTextRun, clamp_unit_f32, color_as_computedcolor, AbsoluteColor (+23 more)
+Cohesion: 0.12
+Nodes (19): round_rect_error(), UnshapedTextRun, clamp_unit_f32, color_as_computedcolor, Arc, Cell, DOMMatrix, Error (+11 more)
+
+### Community 1908 - "Community 1908"
+Cohesion: 0.50
+Nodes (3): StaticRange, Vec, GetComposedRangesOptions
 
 ### Community 1910 - "Community 1910"
-Cohesion: 0.29
-Nodes (7): default_system_generic_font_family(), fallback_font_families(), for_each_available_family(), F, FallbackFontSelectionOptions, GenericFontFamily, LowercaseFontFamilyName
+Cohesion: 0.83
+Nodes (3): filter_section(), get_source_range(), main()
 
 ### Community 1911 - "Community 1911"
 Cohesion: 0.29
@@ -11965,6 +11911,10 @@ Nodes (6): Embedding API Observability, How it flows, The metrics, Updating the 
 Cohesion: 0.29
 Nodes (6): Cookie Partitioning (CHIPS) Status Note, Execution & Regeneration, Expectations Baseline (Static tree analysis), Outcome Breakdown in `tests/wpt/meta`, Top Test Suites with Non-Pass Entries, WPT Meta-Expectation Recount Baseline Report
 
+### Community 1919 - "Community 1919"
+Cohesion: 0.09
+Nodes (25): Au, Debug, Eq, Font, FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey (+17 more)
+
 ### Community 1920 - "Community 1920"
 Cohesion: 0.29
 Nodes (7): 4. Everything that has to be done, W1 — Conformance (C1) · XL · *the blocking one*, W2 — Security architecture (C2) · XL · *second hardest*, W3 — Platform coverage (C3) · XL · *all five targets*, W4 — Embedding API to parity (C4) · L · *execute `ROADMAP.md`*, W5 — Stability, distribution, ecosystem (C6/C7) · L, W6 — Rendering & media (C5) · XL
@@ -11989,17 +11939,13 @@ Nodes (5): Bar, Baz, Foo, TypeHolder, TypeHolderTrait
 Cohesion: 0.22
 Nodes (6): ComponentActivity, HistoryActivity, SettingsActivity, SharedPreferences, Bundle, String
 
-### Community 1926 - "Community 1926"
-Cohesion: 0.29
-Nodes (3): ParseError, Result, HTMLBaseElement
-
 ### Community 1927 - "Community 1927"
 Cohesion: 0.52
 Nodes (6): escape(), format_slice_cookies(), generate_code_for_test(), list_tests(), Escape the string `s` so that it can be parsed by rust as a valid     UTF-8 stri, update_test_file()
 
-### Community 1930 - "Community 1930"
-Cohesion: 0.29
-Nodes (7): CanvasStoreSizesPerType, Convert, GenericDrawTarget, default, imagedescriptor, ReportKind, serializableimagedata
+### Community 1928 - "Community 1928"
+Cohesion: 0.43
+Nodes (5): BundlePolicy, IceServer, IceTransportPolicy, RtcpMuxPolicy, Vec
 
 ### Community 1931 - "Community 1931"
 Cohesion: 0.40
@@ -12021,33 +11967,37 @@ Nodes (4): Bar, Foo, TypeHolder, TypeHolderTrait
 Cohesion: 0.33
 Nodes (3): Structure, TokenStream, deny_public_fields_derive()
 
-### Community 1937 - "Community 1937"
-Cohesion: 0.70
-Nodes (4): execute_superscript_command(), Document, JSContext, Selection
+### Community 1936 - "Community 1936"
+Cohesion: 0.53
+Nodes (5): execute_hilitecolor_command(), Document, DOMString, JSContext, Selection
 
-### Community 1938 - "Community 1938"
-Cohesion: 0.25
-Nodes (5): Debug, Formatter, Result, TableSlotOffset, TableSlot
+### Community 1937 - "Community 1937"
+Cohesion: 0.11
+Nodes (13): CollectionSource, Box, FormDatum, HTMLOptionElement, Item, Iterator, NoGC, T (+5 more)
 
 ### Community 1939 - "Community 1939"
 Cohesion: 0.40
 Nodes (4): Deref, DerefMut, Target, Realm<'cx>
 
 ### Community 1941 - "Community 1941"
-Cohesion: 0.50
-Nodes (5): CSSPixel, Instant, MouseButton, Point2D, ClickCountingInfo
+Cohesion: 0.12
+Nodes (12): Cell, Dom, DomRefCell, DomTypeHolder, Fn, FnMut, MutNullableDom, Reflector (+4 more)
 
 ### Community 1942 - "Community 1942"
 Cohesion: 0.40
 Nodes (5): PhantomData, iterators, ServoLayoutDomTypeBundle, ServoLayoutDomTypeBundle<'dom>, LayoutDomTypeBundle
+
+### Community 1943 - "Community 1943"
+Cohesion: 0.60
+Nodes (3): SerializableAlgorithm, Algorithm, SerializableAlgorithm
 
 ### Community 1944 - "Community 1944"
 Cohesion: 0.40
 Nodes (4): Vec, PathCommand, PathData, Point
 
 ### Community 1945 - "Community 1945"
-Cohesion: 0.39
-Nodes (5): From, Self, StringOrStringSequence, indexeddb::KeyPath, KeyPath
+Cohesion: 0.11
+Nodes (13): attrref, AccessibilityDamage, JSContext, MoveContext, NodeDamage, TreeIterator, UnbindContext, Node (+5 more)
 
 ### Community 1946 - "Community 1946"
 Cohesion: 0.33
@@ -12085,17 +12035,9 @@ Nodes (4): SanitizerOrSanitizerConfigOrSanitizerPresets, SanitizerMember, SetHTM
 Cohesion: 0.33
 Nodes (6): p_definition_literal(), p_rules(), p_rulesection(), print_code(), rules   : rules rule                | rule, rulesection : rules SECTION
 
-### Community 1956 - "Community 1956"
-Cohesion: 0.39
-Nodes (7): JSEngineSetup, JSObject, init(), is_dom_object(), jit_forbidden(), raise_file_handle_limit(), registerbindings
-
-### Community 1957 - "Community 1957"
-Cohesion: 0.29
-Nodes (4): BindContext, CloneChildrenFlag, Node, VirtualMethods
-
-### Community 1959 - "Community 1959"
-Cohesion: 0.29
-Nodes (5): should_panic_hook_suppress_termination(), PanicHookInfo, raise_signal_or_exit_with_error(), panic_hook(), write
+### Community 1958 - "Community 1958"
+Cohesion: 0.83
+Nodes (3): Cow, Option, &GPUObjectDescriptorBase
 
 ### Community 1961 - "Community 1961"
 Cohesion: 0.60
@@ -12106,32 +12048,24 @@ Cohesion: 0.50
 Nodes (3): Foo, Trait, TypeHolder
 
 ### Community 1963 - "Community 1963"
-Cohesion: 0.14
-Nodes (10): AllBrowsingContextsIterator, BrowsingContext, BrowsingContextId, DiscardBrowsingContext, Item, Iterator, Pipeline, RemoteFocusOperation (+2 more)
-
-### Community 1965 - "Community 1965"
-Cohesion: 0.12
-Nodes (10): Convert, DomRoot, Session, Window, EnvironmentBlendMode, XREnvironmentBlendMode, XREvent, XRInputSourceArray (+2 more)
+Cohesion: 0.07
+Nodes (29): Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia (+21 more)
 
 ### Community 1966 - "Community 1966"
-Cohesion: 0.38
-Nodes (7): analyze_log_files(), analyze_meta_directory(), generate_markdown_report(), main(), Analyze the tests/wpt/meta directory for expectation statistics., Parse raw / structured WPT log files generated by `mach test-wpt`., Any
+Cohesion: 0.09
+Nodes (31): boto3, delta_cell(), format_value(), load_baseline(), load_metrics(), main(), Return True when value is a regression over base beyond threshold.      Higher i, Loads every metric file under `directory`, keyed by platform.      The search is (+23 more)
 
 ### Community 1968 - "Community 1968"
-Cohesion: 0.33
-Nodes (5): From, Result, Self, T, WebRtcError
+Cohesion: 0.47
+Nodes (4): Controller, WebRtcController, WebRtcError, WebRtcSignaller
 
 ### Community 1969 - "Community 1969"
 Cohesion: 0.50
 Nodes (4): String, MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor
 
-### Community 1971 - "Community 1971"
-Cohesion: 0.40
-Nodes (3): From, Self, EncodedImageType
-
-### Community 1972 - "Community 1972"
-Cohesion: 0.40
-Nodes (3): HeapFloat32Array, RootedTraceableBox, HeapFloat64Array
+### Community 1973 - "Community 1973"
+Cohesion: 0.29
+Nodes (6): FnDecl, LocalDefId, in_derive_expn(), Span, FnKind, Span
 
 ### Community 1974 - "Community 1974"
 Cohesion: 0.70
@@ -12140,10 +12074,6 @@ Nodes (4): AutoRealm, DomObject, JSContext, enter_auto_realm()
 ### Community 1975 - "Community 1975"
 Cohesion: 0.40
 Nodes (4): Debug, Formatter, Result, ScriptToConstellationMessage
-
-### Community 1976 - "Community 1976"
-Cohesion: 0.43
-Nodes (5): Box, Callback, HandleValue, NonSendTaskBox, ModuleHandler
 
 ### Community 1977 - "Community 1977"
 Cohesion: 0.40
@@ -12165,33 +12095,17 @@ Nodes (5): 7.1 R2 resolved the Pass-2 blockers, 7.2 B11 — `error[E0507]` in `s
 Cohesion: 0.40
 Nodes (4): getSigningKeyInfo(), Any, Map, String
 
-### Community 1983 - "Community 1983"
-Cohesion: 0.52
-Nodes (3): DeviceIndependentPixel, DevicePixel, Scale
-
 ### Community 1985 - "Community 1985"
-Cohesion: 0.57
-Nodes (4): Error, Result, SqliteEngine, WebStorageEnvironment
-
-### Community 1986 - "Community 1986"
-Cohesion: 0.60
-Nodes (3): SerializableTurboShakeParams, SerializableTurboShakeParams, TurboShakeParams
+Cohesion: 0.53
+Nodes (5): execute_backcolor_command(), Document, DOMString, JSContext, Selection
 
 ### Community 1987 - "Community 1987"
 Cohesion: 0.70
 Nodes (4): chain(), combinations(), combinations_with_replacement(), WebIDLTest()
 
-### Community 1988 - "Community 1988"
-Cohesion: 0.83
-Nodes (3): filter_section(), get_source_range(), main()
-
 ### Community 1989 - "Community 1989"
 Cohesion: 0.33
 Nodes (3): ActivityResultLauncher, Intent, Bundle
-
-### Community 1990 - "Community 1990"
-Cohesion: 0.48
-Nodes (6): ClientStorageThreadMessage, E, GenericReceiver, GenericSender, ClientStorageThread, ClientStorageThread<E>
 
 ### Community 1992 - "Community 1992"
 Cohesion: 0.50
@@ -12201,6 +12115,14 @@ Nodes (3): Public headers, servo-capi, Testing
 Cohesion: 0.67
 Nodes (3): i32, ServoValueType, From
 
+### Community 1994 - "Community 1994"
+Cohesion: 0.40
+Nodes (3): From, Self, EncodedImageType
+
+### Community 1996 - "Community 1996"
+Cohesion: 0.70
+Nodes (4): Arc, ServoMedia, main(), run_example()
+
 ### Community 1999 - "Community 1999"
 Cohesion: 0.67
 Nodes (3): c_void, MallocSizeOfOps, malloc_size_of_including_raw_self()
@@ -12208,30 +12130,6 @@ Nodes (3): c_void, MallocSizeOfOps, malloc_size_of_including_raw_self()
 ### Community 2003 - "Community 2003"
 Cohesion: 0.83
 Nodes (3): Foo, foo2(), main()
-
-### Community 2005 - "Community 2005"
-Cohesion: 0.38
-Nodes (6): ExtensionSet, Option, Vec, get_supported_interaction_profiles(), InteractionProfile, InteractionProfileType
-
-### Community 2008 - "Community 2008"
-Cohesion: 0.53
-Nodes (5): execute_backcolor_command(), Document, DOMString, JSContext, Selection
-
-### Community 2009 - "Community 2009"
-Cohesion: 0.40
-Nodes (3): ErrorResult, [KeyUsage], KeyUsageSliceHelper
-
-### Community 2010 - "Community 2010"
-Cohesion: 0.50
-Nodes (4): Arc, ServoMedia, main(), run_example()
-
-### Community 2013 - "Community 2013"
-Cohesion: 0.60
-Nodes (4): Arc, ServoMedia, main(), run_example()
-
-### Community 2014 - "Community 2014"
-Cohesion: 0.83
-Nodes (3): Cow, Option, &GPUObjectDescriptorBase
 
 ### Community 2015 - "Community 2015"
 Cohesion: 0.50
@@ -12253,101 +12151,89 @@ Nodes (4): 2.1 Everything in scope, 2.2 Recommended execution order (waves), 2.3
 Cohesion: 0.50
 Nodes (3): A/V Playback through HTMLMediaElement, Hardware acceleration, Implementation
 
-### Community 2022 - "Community 2022"
-Cohesion: 0.47
-Nodes (4): ApiPose, Frame, JointFrame, Option
-
 ### Community 2023 - "Community 2023"
-Cohesion: 0.60
-Nodes (4): Arc, ServoMedia, main(), run_example()
-
-### Community 2029 - "Community 2029"
-Cohesion: 0.70
-Nodes (4): execute_bold_command(), Document, JSContext, Selection
-
-### Community 2033 - "Community 2033"
-Cohesion: 0.70
-Nodes (4): Arc, ServoMedia, main(), run_example()
+Cohesion: 0.53
+Nodes (5): MallocSizeOfOps, arc_shallow_size_honors_alignment(), arc_shallow_size_is_the_allocation_size(), ops(), rc_shallow_size_is_the_allocation_size()
 
 ### Community 2038 - "Community 2038"
 Cohesion: 0.05
-Nodes (30): configparser, functools, itertools, BooleanType, ConfigSection, ConfigType, DefaultValue, IntegerType (+22 more)
+Nodes (31): configparser, functools, itertools, BooleanType, ConfigSection, ConfigType, DefaultValue, IntegerType (+23 more)
 
 ### Community 2039 - "Community 2039"
 Cohesion: 0.67
 Nodes (3): Assign(), p_expr_stmt(), expr_stmt : testlist ASSIGN testlist                  | testlist
 
-### Community 2041 - "Community 2041"
-Cohesion: 0.70
-Nodes (4): execute_italic_command(), Document, JSContext, Selection
-
 ### Community 2053 - "Community 2053"
-Cohesion: 0.70
-Nodes (4): execute_strikethrough_command(), Document, JSContext, Selection
+Cohesion: 0.60
+Nodes (3): SerializableCShakeParams, CShakeParams, SerializableCShakeParams
 
-### Community 2066 - "Community 2066"
-Cohesion: 0.70
-Nodes (4): execute_subscript_command(), Document, JSContext, Selection
+### Community 2069 - "Community 2069"
+Cohesion: 0.50
+Nodes (3): HitTestFlags, HitTestResult, LayoutPoint
 
-### Community 2067 - "Community 2067"
-Cohesion: 0.70
-Nodes (4): execute_underline_command(), Document, JSContext, Selection
+### Community 2070 - "Community 2070"
+Cohesion: 0.60
+Nodes (3): SerializableTurboShakeParams, SerializableTurboShakeParams, TurboShakeParams
+
+### Community 2071 - "Community 2071"
+Cohesion: 0.33
+Nodes (3): DeviceIntRect, EmbedderControlId, EmbedderControlRequest
 
 ### Community 2072 - "Community 2072"
-Cohesion: 0.10
-Nodes (23): GainOptions, Arc, ServoMedia, Arc, ServoMedia, Arc, ServoMedia, Arc (+15 more)
+Cohesion: 0.33
+Nodes (4): Default, Self, NewEye, View<Eye>
+
+### Community 2075 - "Community 2075"
+Cohesion: 0.50
+Nodes (4): servo_create_sandbox(), servo_run_content_process(), c_char, servoerror
 
 ### Community 2078 - "Community 2078"
-Cohesion: 0.40
-Nodes (4): Debug, Formatter, Result, EmbedderToConstellationMessage
+Cohesion: 0.70
+Nodes (4): execute_bold_command(), Document, JSContext, Selection
 
-### Community 2085 - "Community 2085"
+### Community 2100 - "Community 2100"
+Cohesion: 0.24
+Nodes (7): PhysicalSides, PhysicalVec, Unit, WritingMode, PhysicalSides<Unit>, PhysicalSize<Unit>, ToLogical
+
+### Community 2102 - "Community 2102"
+Cohesion: 0.22
+Nodes (8): Arc, ServoMedia, InternalEvent, main(), run_example(), mediastreamtype, InternalEvent, RtcThreadEvent
+
+### Community 2107 - "Community 2107"
+Cohesion: 0.60
+Nodes (4): PartialEq, Eye2, SomeEye, SomeEye<Eye1>
+
+### Community 2110 - "Community 2110"
 Cohesion: 0.40
 Nodes (4): Display, Formatter, Result, WebVttParserError
 
-### Community 2090 - "Community 2090"
-Cohesion: 0.60
-Nodes (3): SerializableAlgorithm, Algorithm, SerializableAlgorithm
-
-### Community 2101 - "Community 2101"
-Cohesion: 0.60
-Nodes (3): SerializableCShakeParams, CShakeParams, SerializableCShakeParams
+### Community 2111 - "Community 2111"
+Cohesion: 0.67
+Nodes (3): From, DisplayLayoutInternal, TableTrackGroupType
 
 ### Community 2132 - "Community 2132"
 Cohesion: 0.60
 Nodes (3): SerializableKangarooTwelveParams, KangarooTwelveParams, SerializableKangarooTwelveParams
 
-### Community 2133 - "Community 2133"
-Cohesion: 0.83
-Nodes (3): execute_default_paragraph_separator_command(), Document, DOMString
-
-### Community 2134 - "Community 2134"
-Cohesion: 0.83
-Nodes (3): execute_style_with_css_command(), Document, DOMString
-
-### Community 2135 - "Community 2135"
-Cohesion: 0.67
-Nodes (3): From, DisplayLayoutInternal, TableTrackGroupType
-
 ## Knowledge Gaps
-- **9884 isolated node(s):** `install.sh script`, `DEBIAN_FRONTEND`, `Write`, `Vec`, `Send` (+9879 more)
+- **9955 isolated node(s):** `install.sh script`, `DEBIAN_FRONTEND`, `Write`, `Vec`, `Send` (+9950 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **2515 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **2496 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Castable` connect `Community 1760` to `Community 14`, `Community 39`, `Community 51`, `Community 64`, `Community 72`, `Community 95`, `Community 98`, `Community 102`, `Community 112`, `Community 117`, `Community 120`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 133`, `Community 138`, `Community 147`, `Community 152`, `Community 156`, `Community 160`, `Community 165`, `Community 171`, `Community 175`, `Community 176`, `Community 177`, `Community 191`, `Community 195`, `Community 196`, `Community 199`, `Community 208`, `Community 209`, `Community 212`, `Community 213`, `Community 224`, `Community 228`, `Community 233`, `Community 236`, `Community 244`, `Community 248`, `Community 250`, `Community 256`, `Community 257`, `Community 264`, `Community 265`, `Community 267`, `IntersectionObserver`, `Community 270`, `Community 278`, `Community 280`, `Community 283`, `Community 290`, `Community 291`, `Community 292`, `Community 295`, `Community 297`, `Community 306`, `Community 313`, `Community 317`, `Community 318`, `Community 334`, `Community 347`, `Community 353`, `Community 354`, `Community 355`, `Community 356`, `Community 362`, `Community 369`, `Community 375`, `Community 384`, `Community 386`, `Community 388`, `Community 391`, `Community 392`, `Community 395`, `Community 397`, `Community 400`, `Community 407`, `Community 412`, `Community 414`, `Community 416`, `EditingContext`, `Community 418`, `Community 425`, `Community 426`, `Community 430`, `Community 433`, `Community 437`, `Community 438`, `Community 445`, `Community 457`, `Community 460`, `Community 463`, `Community 468`, `Community 470`, `Community 471`, `Community 476`, `Community 484`, `Community 488`, `Community 491`, `Community 499`, `Community 502`, `Community 509`, `Community 511`, `HTMLMetaElement`, `Community 527`, `Community 531`, `Community 537`, `Worker`, `Community 540`, `Community 544`, `Community 546`, `Community 556`, `Community 558`, `Community 561`, `htmlsourceelement.rs`, `Community 563`, `Community 570`, `customevent.rs`, `Community 575`, `Community 584`, `Community 586`, `Community 591`, `Community 595`, `Community 603`, `Community 606`, `Community 608`, `Community 610`, `Community 614`, `Community 618`, `Community 625`, `Community 626`, `Community 630`, `Community 631`, `Community 634`, `Community 639`, `Community 640`, `Community 644`, `Community 645`, `Community 649`, `Community 653`, `Community 659`, `Community 660`, `Community 668`, `Community 670`, `Community 673`, `Community 675`, `Community 676`, `Community 686`, `Community 689`, `Community 694`, `Community 701`, `Community 703`, `Community 704`, `Community 709`, `Community 710`, `Community 711`, `Community 714`, `Community 717`, `Community 721`, `Community 725`, `Community 726`, `Community 729`, `Community 731`, `Community 732`, `Community 742`, `Community 745`, `Community 746`, `Community 756`, `Community 757`, `Community 761`, `Community 763`, `Community 788`, `Community 797`, `Community 806`, `Community 810`, `Community 827`, `Community 831`, `Community 832`, `Community 833`, `Community 836`, `Community 837`, `Community 838`, `Community 839`, `Community 840`, `Community 842`, `Community 843`, `Community 845`, `Community 846`, `Community 856`, `Community 863`, `Community 864`, `Community 876`, `Community 891`, `Community 893`, `Community 916`, `Community 919`, `Community 928`, `Community 937`, `Community 942`, `Community 954`, `Community 959`, `Community 963`, `Community 973`, `Community 979`, `Community 999`, `Community 1000`, `Community 1007`, `Community 1008`, `Community 1020`, `Community 1021`, `Community 1027`, `Community 1029`, `Community 1030`, `Community 1036`, `Community 1041`, `Community 1043`, `Community 1048`, `Community 1058`, `Community 1071`, `Community 1076`, `Community 1077`, `Community 1081`, `Community 1082`, `Community 1094`, `Community 1097`, `Community 1103`, `Community 1106`, `Community 1116`, `Community 1118`, `Community 1120`, `Community 1125`, `Community 1141`, `Community 1144`, `Community 1152`, `Community 1153`, `Community 1154`, `Community 1160`, `Community 1166`, `Community 1170`, `Community 1171`, `Community 1173`, `Community 1174`, `Community 1198`, `Community 1199`, `Community 1201`, `Community 1202`, `Community 1228`, `Community 1233`, `Community 1242`, `Community 1246`, `Community 1252`, `Community 1269`, `Community 1274`, `Community 1276`, `Community 1284`, `Community 1285`, `Community 1295`, `Community 1307`, `Community 1308`, `Community 1320`, `Community 1322`, `Community 1323`, `Community 1326`, `Community 1341`, `Community 1347`, `Community 1365`, `Community 1368`, `Community 1371`, `Community 1394`, `Community 1395`, `Community 1423`, `Community 1450`, `Community 1456`, `Community 1460`, `Community 1465`, `Community 1467`, `Community 1486`, `Community 1487`, `Community 1523`, `Community 1526`, `Community 1546`, `Community 1550`, `Community 1586`, `Community 1588`, `Community 1615`, `Community 1621`, `Community 1626`, `Community 1627`, `Community 1628`, `Community 1629`, `Community 1630`, `Community 1631`, `Community 1632`, `Community 1633`, `Community 1634`, `Community 1635`, `Community 1636`, `Community 1637`, `Community 1646`, `Community 1723`, `Community 1727`, `Community 1728`, `Community 1729`, `Community 1730`, `Community 1733`, `Community 1755`, `Community 1758`, `Community 1786`, `Community 1790`, `Community 1861`, `Community 1907`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
-- **Why does `Types` connect `Community 67` to `Community 522`, `Community 1166`, `Community 527`, `Community 402`, `Community 661`, `Community 277`, `Community 1046`, `Community 533`, `Community 28`, `Community 416`, `EditingContext`, `Community 418`, `Community 1318`, `Community 1319`, `Community 806`, `Community 171`, `Community 1326`, `Community 177`, `Community 178`, `Community 690`, `Community 1082`, `Community 827`, `Community 1467`, `Community 700`, `Community 186`, `Community 577`, `Community 836`, `Community 198`, `Community 200`, `Community 460`, `Community 1487`, `Community 208`, `Community 1363`, `Community 1238`, `Community 1755`, `Community 220`, `Community 478`, `Community 863`, `Community 224`, `htmldocument.rs`, `Community 609`, `Community 1125`, `Community 488`, `Community 108`, `Community 750`, `Community 112`, `Community 124`, `Community 893`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
-- **Why does `std` connect `Community 628` to `Community 256`, `Community 257`, `Community 131`, `Community 1287`, `Community 524`, `Community 1292`, `Community 1551`, `Community 273`, `Community 788`, `Community 21`, `Community 663`, `Community 2072`, `Community 152`, `Community 24`, `Community 1434`, `Community 1437`, `Community 414`, `Community 543`, `quality.rs`, `Community 1698`, `Community 163`, `Community 935`, `Community 1959`, `Community 297`, `Community 1451`, `Community 47`, `Community 688`, `Community 1458`, `Community 436`, `Community 1461`, `Community 54`, `Community 182`, `Community 568`, `Community 829`, `Community 192`, `Community 69`, `Community 460`, `Community 1870`, `Community 79`, `Community 336`, `Community 1233`, `Community 82`, `Community 593`, `Community 590`, `Community 469`, `Community 724`, `Community 2010`, `Community 2013`, `Community 101`, `Community 869`, `Community 999`, `Community 2023`, `Community 1000`, `Community 1516`, `Community 879`, `Community 251`, `Community 1521`, `Community 2033`, `Community 627`, `Community 1264`, `Community 502`, `Community 123`, `Community 124`, `Community 126`, `Community 127`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `Castable` connect `Community 1791` to `Community 10`, `Community 14`, `Community 30`, `Community 33`, `Community 39`, `Community 51`, `Community 64`, `Community 72`, `Community 77`, `Community 93`, `Community 95`, `Community 98`, `Community 112`, `Community 117`, `Community 120`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 133`, `Community 138`, `Community 147`, `Community 152`, `Community 156`, `Community 160`, `Community 165`, `Community 171`, `Community 175`, `Community 176`, `Community 177`, `Community 191`, `Community 195`, `Community 196`, `Community 199`, `Community 208`, `Community 209`, `Community 212`, `Community 213`, `Community 217`, `Community 224`, `Community 228`, `Community 233`, `Community 244`, `Community 248`, `Community 250`, `Community 256`, `Community 257`, `Community 264`, `Community 265`, `Community 266`, `Community 267`, `IntersectionObserver`, `Community 270`, `Community 278`, `Community 280`, `Community 283`, `Community 290`, `Community 291`, `Community 292`, `Community 295`, `Community 297`, `Community 306`, `Community 309`, `Community 313`, `Community 317`, `Community 318`, `Community 334`, `Community 347`, `Community 353`, `Community 354`, `Community 355`, `Community 356`, `Community 362`, `Community 365`, `Community 369`, `Community 384`, `Community 386`, `Community 388`, `Community 391`, `Community 392`, `Community 397`, `Community 400`, `Community 407`, `Community 412`, `Community 414`, `Community 416`, `EditingContext`, `Community 418`, `Community 425`, `Community 426`, `Community 430`, `Community 433`, `Community 437`, `Community 438`, `Community 441`, `Community 445`, `Community 457`, `Community 458`, `Community 463`, `Community 468`, `Community 470`, `Community 476`, `Community 484`, `Community 488`, `Community 491`, `Community 499`, `Community 502`, `Community 509`, `Community 511`, `HTMLMetaElement`, `Community 527`, `Community 531`, `Community 537`, `Worker`, `Community 540`, `Community 543`, `Community 544`, `Community 546`, `Community 556`, `Community 558`, `Community 561`, `htmlsourceelement.rs`, `Community 563`, `Community 570`, `customevent.rs`, `Community 575`, `Community 582`, `Community 584`, `Community 586`, `Community 591`, `Community 595`, `Community 603`, `Community 604`, `Community 606`, `Community 608`, `Community 610`, `Community 614`, `Community 618`, `Community 625`, `Community 630`, `Community 631`, `Community 634`, `Community 639`, `Community 640`, `Community 644`, `Community 649`, `Community 653`, `Community 660`, `Community 668`, `Community 670`, `Community 675`, `Community 676`, `Community 677`, `Community 686`, `Community 689`, `Community 694`, `Community 703`, `Community 704`, `Community 709`, `Community 710`, `Community 711`, `Community 714`, `Community 717`, `Community 721`, `Community 725`, `Community 726`, `Community 729`, `Community 731`, `Community 732`, `Community 742`, `Community 756`, `Community 757`, `Community 761`, `Community 763`, `Community 775`, `Community 788`, `Community 797`, `Community 810`, `Community 827`, `Community 831`, `Community 832`, `Community 833`, `Community 837`, `Community 838`, `Community 839`, `Community 840`, `Community 842`, `Community 843`, `Community 846`, `Community 856`, `Community 864`, `Community 876`, `Community 881`, `Community 891`, `Community 892`, `Community 893`, `Community 916`, `Community 919`, `Community 928`, `Community 937`, `Community 942`, `Community 954`, `Community 959`, `Community 963`, `Community 973`, `Community 979`, `Community 983`, `Community 1000`, `Community 1007`, `Community 1008`, `Community 1019`, `Community 1020`, `Community 1021`, `Community 1027`, `Community 1029`, `Community 1030`, `Community 1036`, `Community 1041`, `Community 1043`, `Community 1044`, `Community 1048`, `Community 1051`, `Community 1058`, `Community 1071`, `Community 1076`, `Community 1077`, `Community 1081`, `Community 1082`, `Community 1097`, `Community 1103`, `Community 1106`, `Community 1116`, `Community 1118`, `Community 1120`, `Community 1125`, `Community 1128`, `Community 1135`, `Community 1141`, `Community 1144`, `Community 1152`, `Community 1153`, `Community 1154`, `Community 1160`, `Community 1166`, `Community 1170`, `Community 1171`, `Community 1173`, `Community 1174`, `Community 1198`, `Community 1199`, `Community 1202`, `Community 1228`, `Community 1242`, `Community 1247`, `Community 1268`, `Community 1274`, `Community 1276`, `Community 1284`, `Community 1285`, `Community 1295`, `Community 1307`, `Community 1308`, `Community 1323`, `Community 1326`, `Community 1347`, `Community 1348`, `Community 1365`, `Community 1368`, `Community 1394`, `Community 1395`, `Community 1448`, `Community 1450`, `Community 1456`, `Community 1460`, `Community 1467`, `Community 1469`, `Community 1474`, `Community 1486`, `Community 1487`, `Community 1490`, `Community 1550`, `Community 1586`, `Community 1588`, `Community 1601`, `Community 1614`, `Community 1615`, `Community 1621`, `Community 1626`, `Community 1627`, `Community 1628`, `Community 1629`, `Community 1630`, `Community 1631`, `Community 1632`, `Community 1633`, `Community 1634`, `Community 1635`, `Community 1636`, `Community 1637`, `Community 1675`, `Community 1677`, `Community 1723`, `Community 1727`, `Community 1728`, `Community 1729`, `Community 1730`, `Community 1738`, `Community 1754`, `Community 1758`, `Community 1842`, `Community 1897`, `Community 1907`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `std` connect `Community 1963` to `Community 256`, `Community 257`, `Community 131`, `Community 780`, `Community 524`, `Community 1292`, `Community 1551`, `Community 273`, `Community 19`, `Community 788`, `Community 21`, `Community 663`, `Community 152`, `Community 666`, `Community 1437`, `Community 414`, `Community 672`, `quality.rs`, `Community 1826`, `Community 163`, `Community 1313`, `Community 1315`, `Community 935`, `Community 1063`, `Community 297`, `Community 1451`, `Community 47`, `Community 688`, `Community 1842`, `Community 436`, `Community 1461`, `Community 2102`, `Community 54`, `Community 182`, `Community 568`, `Community 1472`, `Community 192`, `Community 69`, `Community 582`, `Community 1996`, `Community 460`, `Community 590`, `Community 79`, `Community 336`, `Community 593`, `Community 82`, `Community 724`, `Community 469`, `Community 99`, `Community 101`, `Community 1000`, `Community 1516`, `Community 879`, `Community 251`, `Community 124`, `Community 1264`, `Community 1011`, `Community 628`, `Community 502`, `Community 123`, `Community 1660`, `Community 126`, `Community 127`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `Types` connect `Community 122` to `Community 386`, `Community 522`, `Community 1675`, `Community 1166`, `Community 527`, `Community 661`, `Community 277`, `Community 1046`, `Community 533`, `Community 28`, `Community 416`, `EditingContext`, `Community 418`, `Community 1318`, `Community 1319`, `Community 1448`, `Community 169`, `Community 171`, `Community 1326`, `Community 177`, `Community 178`, `Community 690`, `Community 309`, `Community 1082`, `Community 1467`, `Community 700`, `Community 186`, `Community 577`, `Community 67`, `Community 198`, `Community 200`, `Community 458`, `Community 460`, `Community 1487`, `Community 208`, `Community 847`, `Community 1490`, `Community 1363`, `Community 478`, `Community 224`, `htmldocument.rs`, `Community 609`, `Community 1125`, `Community 488`, `Community 108`, `Community 750`, `Community 112`, `Community 124`, `Community 893`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **What connects `install.sh script`, `DEBIAN_FRONTEND`, `Write` to the rest of the system?**
-  _10639 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _10712 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.007979740405913377 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.009906872812286072 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.008250203902377816 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.008908575125665655 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.018123040752351098 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.019415609381007306 - nodes in this community are weakly interconnected._

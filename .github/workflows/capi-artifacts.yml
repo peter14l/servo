@@ -307,6 +307,6 @@ jobs:
       - name: Upload servo-capi artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: servo-capi-0.1.0-${{ matrix.name }}-${{ steps.meta.outputs.short_sha }}
+          name: servo-capi-0.3.0-${{ matrix.name }}-${{ steps.meta.outputs.short_sha }}
           path: target/artifacts
           if-no-files-found: error

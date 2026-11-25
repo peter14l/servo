@@ -46,9 +46,7 @@ def main():
     # Query Displays
     try:
         ps_cmd = (
-            "Get-CimInstance Win32_DesktopMonitor | "
-            "Select-Object DeviceID, ScreenHeight, ScreenWidth | "
-            "Format-Table"
+            "Get-CimInstance Win32_DesktopMonitor | Select-Object DeviceID, ScreenHeight, ScreenWidth | Format-Table"
         )
         res = subprocess.run(
             ["powershell.exe", "-NoProfile", "-Command", ps_cmd],

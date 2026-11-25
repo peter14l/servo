@@ -76,6 +76,18 @@ jobs:
         if: runner.os == 'Windows'
         uses: ./.github/actions/setup-python
 
+      # Fail if any exported `extern "C"` function in ffi/capi lacks a
+      # `ServoError::catch_ffi*` boundary. A panic that unwinds across the FFI
+      # boundary is undefined behaviour, so this is a hard gate.
+      - name: Check FFI panic boundaries
+        shell: bash
+        run: |
+          if command -v python3 >/dev/null 2>&1; then
+            python3 etc/ci/check_ffi_panic_boundary.py
+          else
+            python etc/ci/check_ffi_panic_boundary.py
+          fi
+
       - name: Install LLVM and Clang
         if: runner.os != 'macOS'
         uses: KyleMayes/install-llvm-action@v2

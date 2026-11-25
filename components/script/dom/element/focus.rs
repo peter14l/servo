@@ -111,8 +111,8 @@ impl Element {
                     html_element.is_a_summary_for_its_parent_details() ||
                         html_element.is_editing_host() ||
                         html_element.upcast::<Node>().is_editable_or_editing_host()
-                }) || self.get_string_attribute(&local_name!("role")) == "textbox"
-                   || self.get_string_attribute(&local_name!("draggable")) == "true"
+                }) || self.get_string_attribute(&local_name!("role")) == "textbox" ||
+                    self.get_string_attribute(&local_name!("draggable")) == "true"
             },
         };
 

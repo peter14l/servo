@@ -811,7 +811,26 @@ impl FlexContainer {
             AlignFlags::SPACE_AROUND => remaining_free_cross_space / num_lines as i32 / 2,
             AlignFlags::SPACE_EVENLY => remaining_free_cross_space / (num_lines as i32 + 1),
 
-            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "align-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_align_content
+                );
+                Au::zero()
+            },
+            AlignFlags::SELF_START |
+            AlignFlags::SELF_END |
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT |
+            AlignFlags::AUTO => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "align-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_align_content
+                );
+                Au::zero()
+            },
             _ => Au::zero(),
         };
 
@@ -1085,7 +1104,26 @@ fn allocate_free_cross_space_for_flex_line(
             remaining_free_cross_space / (remaining_line_count + 1),
         ),
 
-        // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+        AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                "align-content value {:?} is not valid for content distribution; using zero offset",
+                resolved_align_content
+            );
+            (Au::zero(), Au::zero())
+        },
+        AlignFlags::SELF_START |
+        AlignFlags::SELF_END |
+        AlignFlags::LEFT |
+        AlignFlags::RIGHT |
+        AlignFlags::AUTO => {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                "align-content value {:?} is not valid for content distribution; using zero offset",
+                resolved_align_content
+            );
+            (Au::zero(), Au::zero())
+        },
         _ => (Au::zero(), Au::zero()),
     }
 }
@@ -1700,7 +1738,26 @@ impl InitialFlexLineLayout<'_> {
             AlignFlags::SPACE_AROUND => (free_space_in_main_axis / item_count as i32) / 2,
             AlignFlags::SPACE_EVENLY => free_space_in_main_axis / (item_count + 1) as i32,
 
-            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "justify-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_justify_content
+                );
+                Au::zero()
+            },
+            AlignFlags::SELF_START |
+            AlignFlags::SELF_END |
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT |
+            AlignFlags::AUTO => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "justify-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_justify_content
+                );
+                Au::zero()
+            },
             _ => Au::zero(),
         };
 
@@ -1715,7 +1772,26 @@ impl InitialFlexLineLayout<'_> {
             AlignFlags::SPACE_AROUND => free_space_in_main_axis / item_count as i32,
             AlignFlags::SPACE_EVENLY => free_space_in_main_axis / (item_count + 1) as i32,
 
-            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "justify-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_justify_content
+                );
+                Au::zero()
+            },
+            AlignFlags::SELF_START |
+            AlignFlags::SELF_END |
+            AlignFlags::LEFT |
+            AlignFlags::RIGHT |
+            AlignFlags::AUTO => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "justify-content value {:?} is not valid for content distribution; using zero offset",
+                    resolved_justify_content
+                );
+                Au::zero()
+            },
             _ => Au::zero(),
         };
         let item_main_interval = item_main_interval + main_gap;

@@ -1099,7 +1099,11 @@ fn test_mixed_content_document_navigation_blocking() {
             ),
             Referrer::NoReferrer,
         )
-        .origin(ServoUrl::parse("https://secure.example.com").unwrap().origin())
+        .origin(
+            ServoUrl::parse("https://secure.example.com")
+                .unwrap()
+                .origin(),
+        )
         .destination(Destination::Document)
         .policy_container(Default::default())
         .client(client)
@@ -1110,10 +1114,7 @@ fn test_mixed_content_document_navigation_blocking() {
 
     // A top-level document navigation is not mixed content and is allowed.
     assert!(
-        !methods::should_request_be_blocked_as_mixed_content(
-            &document_request(false),
-            &protocols
-        ),
+        !methods::should_request_be_blocked_as_mixed_content(&document_request(false), &protocols),
         "a top-level insecure document navigation must not be blocked as mixed content"
     );
 

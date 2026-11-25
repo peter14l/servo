@@ -41,8 +41,8 @@ Run this suite using `etc/ci/site_smoketest.py` against a built `servoshell` bin
 
 ```bash
 # Execute smoke test across target sites (requires compiled servoshell):
-python etc/ci/site_smoketest.py --binary target/release/servoshell --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md --output-json docs/embedding/site_smoketest.json
+python etc/ci/site_smoketest.py --servo-binary target/release/servoshell --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md --output-json docs/embedding/site_smoketest.json
 
-# Generate placeholder planned status without running:
-python etc/ci/site_smoketest.py --dry-run --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md
+# Emit the PLANNED placeholder report (no binary needed; omitted --servo-binary is auto-detected):
+python etc/ci/site_smoketest.py --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md
 ```

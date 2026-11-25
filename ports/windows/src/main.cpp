@@ -10,6 +10,7 @@
 #include <objbase.h>
 #include <shlobj.h>
 #include <shellapi.h>
+#include <shobjidl_core.h>
 
 #include <servo/servo_capi.h>
 #include "browser_window.h"
@@ -380,6 +381,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     }
 
     LogDebug("--- Starting Servo Browser ---");
+
+    // Give the process a stable AppUserModelID. Without it Windows infers the
+    // taskbar grouping/icon from the shortcut path, which lets a stale .lnk
+    // pointing at an old build keep showing the old icon even after an update.
+    HRESULT aumidResult = SetCurrentProcessExplicitAppUserModelID(L"Servo.Browser.MainWindow");
+    LogDebug("SetCurrentProcessExplicitAppUserModelID result: 0x%08X", aumidResult);
 
     // 1. Initialize COM and Common Controls v6
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

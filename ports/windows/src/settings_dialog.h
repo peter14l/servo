@@ -58,6 +58,7 @@ private:
     HFONT m_titleFont;
     HFONT m_headerFont;
     HFONT m_bodyFont;
+    HBRUSH m_controlBrush;
 
     // Controls
     HWND m_comboSearchEngine;

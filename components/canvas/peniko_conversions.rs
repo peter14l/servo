@@ -42,12 +42,15 @@ impl Convert<kurbo::Cap> for LineCapStyle {
 
 impl Convert<peniko::Color> for AbsoluteColor {
     fn convert(self) -> peniko::Color {
-        let srgb = self.into_srgb_legacy();
+        // The color has already been converted to the canvas color space on
+        // the DOM side (see CanvasState), so the raw components are written
+        // verbatim into the canvas bitmap. This preserves Display-P3 (and
+        // other wide-gamut) colors instead of collapsing them to sRGB.
         peniko::Color::new([
-            srgb.components.0,
-            srgb.components.1,
-            srgb.components.2,
-            srgb.alpha,
+            self.components.0,
+            self.components.1,
+            self.components.2,
+            self.alpha,
         ])
     }
 }

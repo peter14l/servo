@@ -54,6 +54,8 @@ directories = [
     "./tests/wpt/meta/.cache",
     "./tests/wpt/mozilla/meta/.cache",
     "./tests/wpt/webgl/meta/.cache",
+    # Generated knowledge graph artifacts
+    "./graphify-out",
 ]
 
 # Directories that are checked for correct file extension

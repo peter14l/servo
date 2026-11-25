@@ -57,7 +57,7 @@ use crate::conversions::Convert;
 use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
-    CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
+    CanvasTextAlign, CanvasTextBaseline, ImageDataMethods, PredefinedColorSpace,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -223,6 +223,10 @@ pub(super) struct CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#current-default-path>
     #[no_trace]
     current_default_path: DomRefCell<Path>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-color-space>
+    #[no_trace]
+    color_space: PredefinedColorSpace,
+
     /// Buffered sender for batching canvas commands.
     #[no_trace]
     pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
@@ -276,7 +280,11 @@ pub(super) fn round_rect_error(error: RangeError) -> Error {
 }
 
 impl CanvasState {
-    pub(super) fn new(global: &GlobalScope, size: Size2D<u64>) -> Option<CanvasState> {
+    pub(super) fn new(
+        global: &GlobalScope,
+        size: Size2D<u64>,
+        color_space: PredefinedColorSpace,
+    ) -> Option<CanvasState> {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profile_traits::generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
@@ -309,12 +317,23 @@ impl CanvasState {
             saved_states: DomRefCell::new(Vec::new()),
             origin,
             current_default_path: DomRefCell::new(Path::new()),
+            color_space,
             buffered_sender: GenericBufferedSender::new(
                 canvas_thread_sender,
                 Box::new(move |cmds| (canvas_id, CanvasCommand::ProcessBatchMessages(cmds))),
                 servo_config::pref!(dom_canvas_msg_buffer_size) as usize,
             ),
         })
+    }
+
+    /// Converts a color to the canvas's color space so that the raw components
+    /// written by the paint backend match the canvas bitmap's color space.
+    fn to_canvas_color_space(&self, color: AbsoluteColor) -> AbsoluteColor {
+        let target = match self.color_space {
+            PredefinedColorSpace::Srgb => ColorSpace::Srgb,
+            PredefinedColorSpace::DisplayP3 => ColorSpace::DisplayP3,
+        };
+        color.to_color_space(target)
     }
 
     pub(super) fn set_image_key(&self, image_key: ImageKey) {
@@ -1310,6 +1329,7 @@ impl CanvasState {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
                 if let Ok(rgba) = parse_color(canvas, &string) {
+                    let rgba = self.to_canvas_color_space(rgba);
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },

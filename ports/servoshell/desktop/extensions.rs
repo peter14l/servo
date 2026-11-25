@@ -8,9 +8,9 @@ use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 
-use servo::user_contents::UserStyleSheet;
-use servo::UserScript;
 use serde::Deserialize;
+use servo::UserScript;
+use servo::user_contents::UserStyleSheet;
 use url::Url;
 
 /// Parsed `manifest.json` for WebExtensions.

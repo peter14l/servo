@@ -281,7 +281,9 @@ pub unsafe extern "C" fn servo_user_content_manager_remove_script(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let script = unsafe { &*script };
-        user_content_manager.inner.remove_script(script.inner.clone());
+        user_content_manager
+            .inner
+            .remove_script(script.inner.clone());
         ServoError::Ok
     })
 }
@@ -318,7 +320,9 @@ pub unsafe extern "C" fn servo_user_content_manager_add_style_sheet(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let stylesheet = unsafe { &*stylesheet };
-        user_content_manager.inner.add_stylesheet(stylesheet.inner.clone());
+        user_content_manager
+            .inner
+            .add_stylesheet(stylesheet.inner.clone());
         ServoError::Ok
     })
 }
@@ -352,7 +356,9 @@ pub unsafe extern "C" fn servo_user_content_manager_remove_style_sheet(
         // SAFETY: The caller is assumed to uphold the safety requirements above.
         let user_content_manager = unsafe { &*user_content_manager };
         let stylesheet = unsafe { &*stylesheet };
-        user_content_manager.inner.remove_stylesheet(stylesheet.inner.clone());
+        user_content_manager
+            .inner
+            .remove_stylesheet(stylesheet.inner.clone());
         ServoError::Ok
     })
 }
@@ -381,6 +387,10 @@ pub unsafe extern "C" fn servo_user_content_manager_create(
 ) -> *mut ServoUserContentManager {
     ServoError::catch_ffi_ptr(|| {
         if servo.is_null() {
+            return std::ptr::null_mut();
+        }
+
+        if !crate::handle_registry::is_live(servo, crate::handle_registry::HandleKind::Servo) {
             return std::ptr::null_mut();
         }
 
@@ -509,6 +519,13 @@ pub unsafe extern "C" fn servo_webview_builder_set_user_content_manager(
         }
         if user_content_manager.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !crate::handle_registry::is_live(
+            builder,
+            crate::handle_registry::HandleKind::WebViewBuilder,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements

@@ -106,6 +106,15 @@ pub enum WebStorageThreadMsg {
     /// clears storage data for given storage type and sites, affecting all matching origins
     ClearDataForSites(GenericSender<()>, WebStorageType, Vec<String>),
 
+    /// Drop every in-memory search-origin environment when the last browsing
+    /// context closes. Search storage is never persisted, so this is a pure
+    /// memory purge.
+    PurgeEphemeralSearchStorage(GenericSender<()>),
+
+    /// Drop in-memory search-origin sessionStorage belonging to one webview
+    /// when that top-level browsing context closes.
+    PurgeEphemeralSearchStorageForWebView(WebViewId, GenericSender<()>),
+
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
 

@@ -14,6 +14,7 @@ use std::thread;
 use log::warn;
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use net_traits::pub_domains::registered_domain_name;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
@@ -33,6 +34,14 @@ use crate::webstorage::engines::WebStorageEngine;
 use crate::webstorage::engines::sqlite::SqliteEngine;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+
+/// Whether a serialized origin belongs to a search engine. Search origins get
+/// an in-memory SQLite engine and are never listed in `localstorage.json`.
+fn is_search_storage_origin(origin: &ImmutableOrigin) -> bool {
+    ServoUrl::parse(&origin.ascii_serialization())
+        .ok()
+        .is_some_and(|url| is_search_origin(&url))
+}
 
 pub trait WebStorageThreadFactory {
     fn new(
@@ -282,6 +291,14 @@ impl WebStorageManager {
                     self.clear_data_for_sites(storage_type, &sites);
                     let _ = sender.send(());
                 },
+                WebStorageThreadMsg::PurgeEphemeralSearchStorage(sender) => {
+                    self.purge_ephemeral_search_storage();
+                    let _ = sender.send(());
+                },
+                WebStorageThreadMsg::PurgeEphemeralSearchStorageForWebView(webview_id, sender) => {
+                    self.purge_ephemeral_search_storage_for_webview(webview_id);
+                    let _ = sender.send(());
+                },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
@@ -314,9 +331,26 @@ impl WebStorageManager {
     }
 
     fn save_local_storage_origins(&self) {
-        if let Some(ref config_dir) = self.config_dir {
-            write_json_to_file(&self.local_storage_origins, config_dir, "localstorage.json");
+        let Some(ref config_dir) = self.config_dir else {
+            return;
+        };
+
+        // Search-origin storage is ephemeral: it must never appear in the
+        // on-disk origin registry, even though it still works during the
+        // lifetime of the browsing context.
+        let mut persisted = StorageOrigins::new();
+        for (name, descriptor) in &self.local_storage_origins.origin_descriptors {
+            if ServoUrl::parse(name)
+                .ok()
+                .is_some_and(|url| is_search_origin(&url))
+            {
+                continue;
+            }
+            persisted
+                .origin_descriptors
+                .insert(name.clone(), descriptor.clone());
         }
+        write_json_to_file(&persisted, config_dir, "localstorage.json");
     }
 
     fn get_origin_location(&self, origin: &ImmutableOrigin) -> Option<PathBuf> {
@@ -337,7 +371,11 @@ impl WebStorageManager {
     }
 
     fn add_new_environment(&mut self, origin: &ImmutableOrigin) -> Result<(), rusqlite::Error> {
-        let origin_location = self.get_origin_location(origin);
+        let origin_location = if is_search_storage_origin(origin) {
+            None
+        } else {
+            self.get_origin_location(origin)
+        };
 
         let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone())?;
         let environment = WebStorageEnvironment::new(engine);
@@ -638,6 +676,41 @@ impl WebStorageManager {
         match storage_type {
             WebStorageType::Session => self.session_storage_origins.origin_descriptors(),
             WebStorageType::Local => self.local_storage_origins.origin_descriptors(),
+        }
+    }
+
+    /// Drop all in-memory state belonging to search origins. The environments
+    /// are backed by in-memory SQLite, so dropping them cannot write to disk.
+    fn purge_ephemeral_search_storage(&mut self) {
+        let is_search_name =
+            |name: &String| ServoUrl::parse(name).is_ok_and(|url| is_search_origin(&url));
+
+        self.local_storage_origins
+            .origin_descriptors
+            .retain(|name, _| !is_search_name(name));
+        self.session_storage_origins
+            .origin_descriptors
+            .retain(|name, _| !is_search_name(name));
+
+        self.session_data.retain(|_, origins| {
+            origins.retain(|origin, _| !is_search_storage_origin(origin));
+            !origins.is_empty()
+        });
+        self.environments
+            .retain(|origin, _| !is_search_storage_origin(origin));
+    }
+
+    /// Drop one webview's search-origin sessionStorage when its browsing
+    /// context closes. Global origin descriptors are left in place until the
+    /// last webview closes, so a surviving tab can still enumerate its origins.
+    fn purge_ephemeral_search_storage_for_webview(&mut self, webview_id: WebViewId) {
+        let mut remove_webview = false;
+        if let Some(origins) = self.session_data.get_mut(&webview_id) {
+            origins.retain(|origin, _| !is_search_storage_origin(origin));
+            remove_webview = origins.is_empty();
+        }
+        if remove_webview {
+            self.session_data.remove(&webview_id);
         }
     }
 

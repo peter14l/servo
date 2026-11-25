@@ -365,6 +365,19 @@ pub struct Preferences {
     pub network_use_webpki_roots: bool,
     /// The maximum content size we will forward for preallocation, defaults to 5MB
     pub network_max_content_length: u64,
+    /// Apply engine-level privacy protections to requests and storage belonging
+    /// to search engine origins.
+    pub privacy_private_search_enabled: bool,
+    /// Comma-separated registrable domains treated as search engines. An empty
+    /// value uses the built-in list in `net_traits::private_search`.
+    pub privacy_private_search_domains: String,
+    /// Optional proxy URI used for search traffic. When empty, the regular
+    /// network proxy configuration is used.
+    pub privacy_private_search_proxy_uri: String,
+    /// Generic User-Agent sent to search origins. Empty uses the built-in template.
+    pub privacy_private_search_user_agent: String,
+    /// Fixed Accept-Language sent to search origins. Empty uses `en-US`.
+    pub privacy_private_search_accept_language: String,
     /// Experimental option. If enabled servo will attempt to optimize thread placement
     /// and/or priority of critical servo threads to optimize performance.
     #[doc(hidden)]
@@ -581,6 +594,11 @@ impl Preferences {
             network_local_directory_listing_enabled: true,
             network_use_webpki_roots: false,
             network_max_content_length: 5 * 1024 * 1024,
+            privacy_private_search_enabled: true,
+            privacy_private_search_domains: String::new(),
+            privacy_private_search_proxy_uri: String::new(),
+            privacy_private_search_user_agent: String::new(),
+            privacy_private_search_accept_language: String::new(),
             perf_thread_boost_enabled: true,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],

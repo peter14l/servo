@@ -466,6 +466,10 @@ impl ResourceChannelManager {
                 http_state.cookie_jar.write().clear_session_cookies();
                 let _ = sender.send(());
             },
+            CoreResourceMsg::PurgeEphemeralCookies(sender) => {
+                http_state.cookie_jar.write().purge_ephemeral_cookies();
+                let _ = sender.send(());
+            },
             CoreResourceMsg::DeleteCookies(request, sender) => {
                 http_state
                     .cookie_jar

@@ -13,6 +13,7 @@ use std::thread;
 use log::{debug, error, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
@@ -22,6 +23,7 @@ use rusqlite::Error as RusqliteError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use servo_base::threadpool::ThreadPool;
+use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::StorageProxyMap;
 use storage_traits::indexeddb::{
@@ -33,6 +35,15 @@ use uuid::Uuid;
 
 use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 use crate::shared::is_sqlite_disk_full_error;
+
+/// Whether an IndexedDB origin belongs to a search engine. Such databases are
+/// kept in a shared-cache in-memory SQLite database and never registered with
+/// client storage, so they cannot be written to disk.
+fn is_search_indexeddb_origin(origin: &ImmutableOrigin) -> bool {
+    ServoUrl::parse(&origin.ascii_serialization())
+        .ok()
+        .is_some_and(|url| is_search_origin(&url))
+}
 
 pub trait IndexedDBThreadFactory {
     fn new(mem_profiler_chan: MemProfilerChan, reporter_name: String) -> Self;
@@ -1134,6 +1145,10 @@ impl IndexedDBManager {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
                 },
+                IndexedDBThreadMsg::PurgeEphemeralSearchDatabases(sender) => {
+                    self.purge_ephemeral_search_databases();
+                    let _ = sender.send(());
+                },
                 IndexedDBThreadMsg::AsyncSchemaOperation {
                     origin,
                     database_name,
@@ -1403,16 +1418,20 @@ impl IndexedDBManager {
                 // Note: ensure db is dropped before deleting directory,
                 // to get around windows file locks.
                 drop(db);
-                let response = proxy_map
-                    .handle
-                    .delete_database(proxy_map.bottle_id, key.name.clone())
-                    .recv();
-                if response.is_err() {
-                    error!("Failed to communicate with client storage.");
-                    return;
-                }
-                if response.unwrap().is_err() {
-                    error!("Failed to delete database {:?}", key.name);
+                // Ephemeral search databases have no client-storage record to
+                // delete; dropping the engine above discards them completely.
+                if !is_search_indexeddb_origin(&key.origin) {
+                    let response = proxy_map
+                        .handle
+                        .delete_database(proxy_map.bottle_id, key.name.clone())
+                        .recv();
+                    if response.is_err() {
+                        error!("Failed to communicate with client storage.");
+                        return;
+                    }
+                    if response.unwrap().is_err() {
+                        error!("Failed to delete database {:?}", key.name);
+                    }
                 }
             }
             return;
@@ -1798,37 +1817,44 @@ impl IndexedDBManager {
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-                let Ok(response) = proxy_map
-                    .handle
-                    .create_database(proxy_map.bottle_id, db_name.clone())
-                    .recv()
-                else {
-                    if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
-                        id: *id,
-                        name: db_name.clone(),
-                        error: BackendError::DbErr(
-                            "Failed to communicate with client storage.".to_string(),
-                        ),
-                    }) {
-                        debug!("Script exit during indexeddb database open {:?}", e);
-                    }
-                    return;
-                };
-                let (path, created) = match response {
-                    Ok((path, created)) => (path, created),
-                    Err(err) => {
+                // Search-origin databases are deliberately kept out of client
+                // storage: no registry row, no directory, and no SQLite file.
+                let is_ephemeral = is_search_indexeddb_origin(&key.origin);
+                let engine_result = if is_ephemeral {
+                    SqliteEngine::new_in_memory(&key, self.thread_pool.clone())
+                } else {
+                    let Ok(response) = proxy_map
+                        .handle
+                        .create_database(proxy_map.bottle_id, db_name.clone())
+                        .recv()
+                    else {
                         if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
                             id: *id,
                             name: db_name.clone(),
-                            error: BackendError::DbErr(format!("{err:?}")),
+                            error: BackendError::DbErr(
+                                "Failed to communicate with client storage.".to_string(),
+                            ),
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
                         return;
-                    },
+                    };
+                    let (path, created) = match response {
+                        Ok((path, created)) => (path, created),
+                        Err(err) => {
+                            if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                                id: *id,
+                                name: db_name.clone(),
+                                error: BackendError::DbErr(format!("{err:?}")),
+                            }) {
+                                debug!("Script exit during indexeddb database open {:?}", e);
+                            }
+                            return;
+                        },
+                    };
+                    SqliteEngine::new(path, created, &key, self.thread_pool.clone())
                 };
-                let engine = match SqliteEngine::new(path, created, &key, self.thread_pool.clone())
-                {
+                let engine = match engine_result {
                     Ok(engine) => engine,
                     Err(err) => {
                         let error = backend_error_from_sqlite_error(err);
@@ -2074,31 +2100,35 @@ impl IndexedDBManager {
             // Step 11: Delete db.
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
-            let Ok(response) = proxy_map
-                .handle
-                .delete_database(proxy_map.bottle_id, db_name.clone())
-                .recv()
-            else {
-                if sender
-                    .send(BackendResult::Err(BackendError::DbErr(
-                        "Failed to communicate with client storage.".to_string(),
-                    )))
-                    .is_err()
-                {
-                    debug!("Script went away during pending database delete.");
+            // Ephemeral search databases are dropped with the engine above;
+            // there is no client-storage record to remove.
+            if !is_search_indexeddb_origin(&key.origin) {
+                let Ok(response) = proxy_map
+                    .handle
+                    .delete_database(proxy_map.bottle_id, db_name.clone())
+                    .recv()
+                else {
+                    if sender
+                        .send(BackendResult::Err(BackendError::DbErr(
+                            "Failed to communicate with client storage.".to_string(),
+                        )))
+                        .is_err()
+                    {
+                        debug!("Script went away during pending database delete.");
+                    }
+                    return;
+                };
+                if let Err(err) = response {
+                    if sender
+                        .send(BackendResult::Err(BackendError::DbErr(format!(
+                            "Client storage error: {err:?}"
+                        ))))
+                        .is_err()
+                    {
+                        debug!("Script went away during pending database delete.");
+                    }
+                    return;
                 }
-                return;
-            };
-            if let Err(err) = response {
-                if sender
-                    .send(BackendResult::Err(BackendError::DbErr(format!(
-                        "Client storage error: {err:?}"
-                    ))))
-                    .is_err()
-                {
-                    debug!("Script went away during pending database delete.");
-                }
-                return;
             }
             version
         } else {
@@ -2475,6 +2505,17 @@ impl IndexedDBManager {
         database.abort(&origin, &database_name, transaction);
     }
 
+    /// Drop all search-origin databases and their pending requests. Ephemeral
+    /// databases have no client-storage records, so no disk cleanup is needed.
+    fn purge_ephemeral_search_databases(&mut self) {
+        self.databases
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+        self.connection_queues
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+        self.connections
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+    }
+
     fn collect_memory_reports(&self) -> Vec<Report> {
         let mut reports = vec![];
         perform_memory_report(|ops| {
@@ -2492,13 +2533,15 @@ impl IndexedDBManager {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     use servo_base::generic_channel;
     use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
     use storage_traits::indexeddb::{IndexedDBTxnMode, KeyPath};
     use url::Host;
 
-    use super::{IndexedDBDescription, IndexedDBEnvironment};
+    use super::{IndexedDBDescription, IndexedDBEnvironment, IndexedDBManager};
     use crate::indexeddb::engines::SqliteEngine;
 
     fn test_origin() -> ImmutableOrigin {
@@ -2507,6 +2550,48 @@ mod tests {
             Host::Domain("localhost".to_string()),
             80,
         )
+    }
+
+    fn search_origin() -> ImmutableOrigin {
+        ImmutableOrigin::Tuple(
+            "https".to_string(),
+            Host::Domain("www.google.com".to_string()),
+            443,
+        )
+    }
+
+    #[test]
+    fn ephemeral_search_databases_are_purged() {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let mut manager = IndexedDBManager::new(receiver, sender);
+        let search_key = IndexedDBDescription {
+            origin: search_origin(),
+            name: "search".to_string(),
+        };
+        let normal_key = IndexedDBDescription {
+            origin: test_origin(),
+            name: "normal".to_string(),
+        };
+
+        manager
+            .connection_queues
+            .insert(search_key.clone(), VecDeque::new());
+        manager
+            .connections
+            .insert(search_key.clone(), Default::default());
+        manager
+            .connection_queues
+            .insert(normal_key.clone(), VecDeque::new());
+        manager
+            .connections
+            .insert(normal_key.clone(), Default::default());
+
+        manager.purge_ephemeral_search_databases();
+
+        assert!(!manager.connection_queues.contains_key(&search_key));
+        assert!(!manager.connections.contains_key(&search_key));
+        assert!(manager.connection_queues.contains_key(&normal_key));
+        assert!(manager.connections.contains_key(&normal_key));
     }
 
     #[test]

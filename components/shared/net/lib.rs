@@ -54,6 +54,7 @@ pub mod http_status;
 pub mod image_cache;
 pub mod mime_classifier;
 pub mod policy_container;
+pub mod private_search;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;
@@ -643,6 +644,15 @@ impl ResourceThreads {
         let _ = receiver.recv();
     }
 
+    /// Drop all search-origin cookies from the in-memory ephemeral partition.
+    pub fn purge_ephemeral_cookies(&self) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::PurgeEphemeralCookies(sender));
+        let _ = receiver.recv();
+    }
+
     pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
         let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
             url,
@@ -972,6 +982,9 @@ pub enum CoreResourceMsg {
     DeleteCookies(Option<ServoUrl>, Option<GenericSender<()>>),
     /// Delete all session cookies (cookies without an expiry or max-age).
     DeleteSessionCookies(GenericSender<()>),
+    /// Drop all cookies belonging to search origins. Sent when a browsing
+    /// context or tab is closed.
+    PurgeEphemeralCookies(GenericSender<()>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(

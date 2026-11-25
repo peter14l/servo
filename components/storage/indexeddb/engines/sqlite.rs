@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use log::{info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use rusqlite::{Connection, Error, OptionalExtension, params};
+use rusqlite::{Connection, Error, OpenFlags, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_base::threadpool::ThreadPool;
@@ -15,6 +15,7 @@ use storage_traits::indexeddb::{
     BackendError, CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBTxnMode, KeyPath, PutItemResult,
 };
+use uuid::Uuid;
 
 use crate::indexeddb::IndexedDBDescription;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
@@ -70,6 +71,22 @@ pub struct SqliteEngine {
 }
 
 impl SqliteEngine {
+    /// Open a backing connection. Shared-cache memory databases use a URI and
+    /// therefore need the `SQLITE_OPEN_URI` flag on every connection; using
+    /// plain `Connection::open` there would silently create separate databases.
+    fn open_connection(path: &Path) -> Result<Connection, Error> {
+        if path.to_string_lossy().starts_with("file:") {
+            Connection::open_with_flags(
+                path,
+                OpenFlags::SQLITE_OPEN_READ_WRITE |
+                    OpenFlags::SQLITE_OPEN_CREATE |
+                    OpenFlags::SQLITE_OPEN_URI,
+            )
+        } else {
+            Connection::open(path)
+        }
+    }
+
     fn object_store_by_name(
         connection: &Connection,
         store_name: &str,
@@ -105,13 +122,39 @@ impl SqliteEngine {
         })
     }
 
+    /// Create a private, shared-cache in-memory database for search origins.
+    /// Unlike [`SqliteEngine::new`], this never touches client storage or the
+    /// filesystem, so the whole database disappears with the engine.
+    pub fn new_in_memory(
+        db_info: &IndexedDBDescription,
+        pool: Arc<ThreadPool>,
+    ) -> Result<Self, Error> {
+        let db_path = PathBuf::from(format!(
+            "file:servo-private-search-{}?mode=memory&cache=shared",
+            Uuid::new_v4()
+        ));
+        let connection = Self::init_db(&db_path, db_info)?;
+
+        for stmt in DB_PRAGMAS {
+            let _ = connection.execute(stmt, ());
+        }
+
+        Ok(Self {
+            connection,
+            db_path,
+            read_pool: pool.clone(),
+            write_pool: pool,
+            created_db_path: false,
+        })
+    }
+
     /// Returns whether the physical db was created as part of `new`.
     pub(crate) fn created_db_path(&self) -> bool {
         self.created_db_path
     }
 
     fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {
-        let connection = Connection::open(path)?;
+        let connection = Self::open_connection(path)?;
         if connection.table_exists(None, "database")? {
             // Database already exists, no need to initialize
             return Ok(connection);
@@ -499,7 +542,7 @@ impl KvsEngine for SqliteEngine {
         };
         let path = self.db_path.clone();
         spawning_pool.spawn(move || {
-            let connection = match Connection::open(path) {
+            let connection = match Self::open_connection(&path) {
                 Ok(connection) => connection,
                 Err(error) => {
                     for request in transaction.requests {
@@ -896,6 +939,24 @@ mod tests {
 
     fn install_test_namespace() {
         PipelineNamespace::install(PipelineNamespaceId(1));
+    }
+
+    #[test]
+    fn in_memory_engine_is_shared_across_connections() {
+        let key = IndexedDBDescription {
+            origin: test_origin(),
+            name: "ephemeral".to_string(),
+        };
+        let engine = SqliteEngine::new_in_memory(&key, get_pool()).unwrap();
+        assert!(engine.db_path.to_string_lossy().starts_with("file:"));
+
+        // A second connection must see the same in-memory database; otherwise
+        // transactions running on the thread pool would see an empty store.
+        let connection = SqliteEngine::open_connection(&engine.db_path).unwrap();
+        let rows: i64 = connection
+            .query_row("SELECT COUNT(*) FROM database", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(rows, 1);
     }
 
     fn test_origin() -> ImmutableOrigin {

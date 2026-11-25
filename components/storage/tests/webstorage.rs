@@ -5,7 +5,7 @@
 use profile::mem as profile_mem;
 use servo_base::generic_channel as base_channel;
 use servo_base::generic_channel::GenericSend;
-use servo_base::id::TEST_WEBVIEW_ID;
+use servo_base::id::{BrowsingContextId, Index, TEST_NAMESPACE, TEST_WEBVIEW_ID, WebViewId};
 use servo_default_resources as _;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -137,6 +137,48 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
+                origin.clone(),
+                key.into(),
+                value.into(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub(crate) fn get_item_for_webview(
+        &self,
+        storage_type: WebStorageType,
+        webview_id: WebViewId,
+        origin: &ImmutableOrigin,
+        key: &str,
+    ) -> Option<String> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::GetItem(
+                sender,
+                storage_type,
+                webview_id,
+                origin.clone(),
+                key.into(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub(crate) fn set_item_for_webview(
+        &self,
+        storage_type: WebStorageType,
+        webview_id: WebViewId,
+        origin: &ImmutableOrigin,
+        key: &str,
+        value: &str,
+    ) -> Result<(bool, Option<String>), ()> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::SetItem(
+                sender,
+                storage_type,
+                webview_id,
                 origin.clone(),
                 key.into(),
                 value.into(),
@@ -432,4 +474,141 @@ fn no_storage_type_conflict() {
     // Get session storage item.
     let result = test.get_item(WebStorageType::Session, &url.origin(), "key".into());
     assert_eq!(result, None);
+}
+
+#[test]
+fn search_storage_is_purged_without_touching_normal_origins() {
+    let test = WebStorageTest::new();
+    let search_origin = ServoUrl::parse("https://www.google.com/search?q=private")
+        .unwrap()
+        .origin();
+    let normal_origin = ServoUrl::parse("https://example.com/page")
+        .unwrap()
+        .origin();
+
+    test.set_item(WebStorageType::Local, &search_origin, "query", "secret")
+        .unwrap();
+    test.set_item(WebStorageType::Local, &normal_origin, "answer", "keep")
+        .unwrap();
+
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &search_origin, "query"),
+        Some("secret".to_string())
+    );
+    assert!(
+        test.threads()
+            .webstorage_origins(WebStorageType::Local)
+            .iter()
+            .any(|descriptor| descriptor.name.contains("google.com"))
+    );
+
+    let (sender, receiver) = base_channel::channel().unwrap();
+    test.threads()
+        .send(WebStorageThreadMsg::PurgeEphemeralSearchStorage(sender))
+        .unwrap();
+    receiver.recv().unwrap();
+
+    // Check the registry before reading again: read-only access currently
+    // recreates an in-memory origin descriptor, even though it cannot persist
+    // a search origin to disk.
+    assert!(
+        !test
+            .threads()
+            .webstorage_origins(WebStorageType::Local)
+            .iter()
+            .any(|descriptor| descriptor.name.contains("google.com"))
+    );
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &search_origin, "query"),
+        None
+    );
+    assert_eq!(test.length(WebStorageType::Local, &search_origin), 0);
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &normal_origin, "answer"),
+        Some("keep".to_string())
+    );
+}
+
+#[test]
+fn search_session_storage_is_purged_per_webview() {
+    let test = WebStorageTest::new_in_memory();
+    let first_webview = TEST_WEBVIEW_ID;
+    let second_webview = WebViewId::mock_for_testing(BrowsingContextId {
+        namespace_id: TEST_NAMESPACE,
+        index: Index::new(2).unwrap(),
+    });
+    let search_origin = ServoUrl::parse("https://www.google.com/search?q=private")
+        .unwrap()
+        .origin();
+    let normal_origin = ServoUrl::parse("https://example.com/page")
+        .unwrap()
+        .origin();
+
+    test.set_item_for_webview(
+        WebStorageType::Session,
+        first_webview,
+        &search_origin,
+        "query",
+        "first",
+    )
+    .unwrap();
+    test.set_item_for_webview(
+        WebStorageType::Session,
+        second_webview,
+        &search_origin,
+        "query",
+        "second",
+    )
+    .unwrap();
+    test.set_item_for_webview(
+        WebStorageType::Session,
+        first_webview,
+        &normal_origin,
+        "keep",
+        "normal",
+    )
+    .unwrap();
+    test.set_item(WebStorageType::Local, &search_origin, "shared", "local")
+        .unwrap();
+
+    let (sender, receiver) = base_channel::channel().unwrap();
+    test.threads()
+        .send(WebStorageThreadMsg::PurgeEphemeralSearchStorageForWebView(
+            first_webview,
+            sender,
+        ))
+        .unwrap();
+    receiver.recv().unwrap();
+
+    assert_eq!(
+        test.get_item_for_webview(
+            WebStorageType::Session,
+            first_webview,
+            &search_origin,
+            "query"
+        ),
+        None
+    );
+    assert_eq!(
+        test.get_item_for_webview(
+            WebStorageType::Session,
+            second_webview,
+            &search_origin,
+            "query"
+        ),
+        Some("second".to_string())
+    );
+    assert_eq!(
+        test.get_item_for_webview(
+            WebStorageType::Session,
+            first_webview,
+            &normal_origin,
+            "keep"
+        ),
+        Some("normal".to_string())
+    );
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &search_origin, "shared"),
+        Some("local".to_string())
+    );
 }

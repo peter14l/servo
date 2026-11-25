@@ -24,6 +24,7 @@ use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
+use net_traits::private_search::SearchOriginPolicy;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
@@ -252,6 +253,10 @@ pub async fn fetch_with_cors_cache(
     // Step 12. If request’s header list does not contain `Accept-Language`, then user agents should
     // append (`Accept-Language, an appropriate header value) to request’s header list.
     set_default_accept_language(&mut request.headers);
+
+    // Private search: genericize identifying headers before the request is
+    // dispatched. This is a no-op for every other origin.
+    SearchOriginPolicy::from_prefs().sanitize_headers(&request.current_url(), &mut request.headers);
 
     // Step 15. If request’s internal priority is null, then use request’s priority, initiator,
     // destination, and render-blocking in an implementation-defined manner to set request’s

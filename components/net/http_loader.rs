@@ -41,6 +41,7 @@ use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{EmbedderPolicyValue, RequestPolicyContainer};
+use net_traits::private_search::SearchOriginPolicy;
 use net_traits::pub_domains::{is_same_site, reg_suffix};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
@@ -459,25 +460,19 @@ fn same_site_context_for_request(request: &Request) -> SameSiteContext {
 
     let top_level_navigation = matches!(request.destination, Destination::Document);
 
-    // CHIPS partition key:
-    // 1. For a top-level document navigation, the partition key is the site of the target URL.
-    // 2. For non-nested client requests (subresources of a top-level document), the client
-    //    origin's site is the partition key.
-    // 3. For nested contexts (iframes) without propagated top-level site or undetermined
-    //    origins, fail closed to `None` so partitioned cookies are withheld.
-    let partition_key = if top_level_navigation {
-        request.current_url().host_str().map(reg_host)
-    } else if let Some(ref client) = request.client {
-        if !client.is_nested_browsing_context {
-            match &client.origin {
-                Origin::Origin(origin) => origin.host().map(|h| reg_host(&h.to_string())),
-                Origin::Client => None,
-            }
-        } else {
-            None
+    // CHIPS partition key: the top-level site of the initiator browsing context.
+    // Partitioned cookies are scoped to the top-level site, not the URL of the
+    // resource being fetched, so the request URL's host must not be used. The
+    // client's origin is the top-level site; it is propagated to nested contexts
+    // as well so the key is always populated (fail-closed only when the origin is
+    // opaque or unavailable).
+    let partition_key = if let Some(ref client) = request.client {
+        match &client.origin {
+            Origin::Origin(origin) => origin.host().map(|h| reg_host(&h.to_string())),
+            Origin::Client => request.current_url().host_str().map(reg_host),
         }
     } else {
-        None
+        request.current_url().host_str().map(reg_host)
     };
 
     SameSiteContext {
@@ -1651,6 +1646,12 @@ async fn http_network_or_cache_fetch(
             .headers
             .typed_insert::<UserAgent>(context.user_agent.parse().unwrap());
     }
+
+    // Private search: this is the last point at which the default User-Agent is
+    // present, so enforce the generic template for search origins here as well
+    // as in the earlier Fetch step. Idempotent for non-search origins.
+    SearchOriginPolicy::from_prefs()
+        .sanitize_headers(&http_request.current_url(), &mut http_request.headers);
 
     // Steps 8.16 to 8.18
     append_cache_data_to_headers(http_request);

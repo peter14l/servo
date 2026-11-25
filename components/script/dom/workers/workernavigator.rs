@@ -13,7 +13,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::navigator::hardware_concurrency;
+use crate::dom::navigator::hardware_concurrency_for_url;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::storagemanager::StorageManager;
@@ -133,6 +133,6 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
-        hardware_concurrency()
+        hardware_concurrency_for_url(&self.global().get_url())
     }
 }

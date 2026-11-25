@@ -688,10 +688,6 @@ impl ImageCacheStore {
                 };
 
                 let vector_image = VectorImage {
-                    // The field currently has no readers, but the shared struct
-                    // requires it. Defaulting to `false` matches the previous
-                    // behaviour before this field was introduced.
-                    has_intrinsic_ratio: false,
                     id: key,
                     svg_id: None,
                     metadata,

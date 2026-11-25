@@ -144,9 +144,7 @@ impl ProtocolHandler for ServoProtocolHandler {
                 let mut list_html = String::new();
                 for item in items.iter().rev() {
                     if let Some(url) = item.get("url").and_then(|u| u.as_str()) {
-                        list_html.push_str(&format!(
-                            "<li><a href=\"{url}\">{url}</a></li>"
-                        ));
+                        list_html.push_str(&format!("<li><a href=\"{url}\">{url}</a></li>"));
                     }
                 }
                 if list_html.is_empty() {

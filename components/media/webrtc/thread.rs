@@ -73,14 +73,12 @@ impl WebRtcController {
         ice_transport_policy: IceTransportPolicy,
         rtcp_mux_policy: RtcpMuxPolicy,
     ) {
-        let _ = self
-            .sender
-            .send(RtcThreadEvent::ConfigureIceServers(
-                ice_servers,
-                bundle_policy,
-                ice_transport_policy,
-                rtcp_mux_policy,
-            ));
+        let _ = self.sender.send(RtcThreadEvent::ConfigureIceServers(
+            ice_servers,
+            bundle_policy,
+            ice_transport_policy,
+            rtcp_mux_policy,
+        ));
     }
     pub fn set_remote_description(
         &self,
@@ -292,9 +290,17 @@ pub fn handle_rtc_event(
     event: RtcThreadEvent,
 ) -> bool {
     let result = match event {
-        RtcThreadEvent::ConfigureIceServers(servers, bundle_policy, ice_transport_policy, rtcp_mux_policy) => {
-            controller.configure(&servers, bundle_policy, ice_transport_policy, rtcp_mux_policy)
-        },
+        RtcThreadEvent::ConfigureIceServers(
+            servers,
+            bundle_policy,
+            ice_transport_policy,
+            rtcp_mux_policy,
+        ) => controller.configure(
+            &servers,
+            bundle_policy,
+            ice_transport_policy,
+            rtcp_mux_policy,
+        ),
         RtcThreadEvent::SetRemoteDescription(desc, cb) => {
             controller.set_remote_description(desc, cb)
         },

@@ -19,9 +19,7 @@ use std::ffi::c_void;
 use std::os::raw::c_int;
 
 use embedder_traits::GamepadHapticEffectType;
-use servo_api::{
-    GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
-};
+use servo_api::{GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 
 use crate::ServoError;
 
@@ -175,19 +173,20 @@ pub unsafe extern "C" fn servo_webview_gamepad_haptic_effect_request_info(
             return ServoError::InvalidState;
         };
 
-        let (effect_type, duration, start_delay, strong_magnitude, weak_magnitude) =
-            match pending.request_type() {
-                GamepadHapticEffectRequestType::Stop => {
-                    (SERVO_GAMEPAD_HAPTIC_EFFECT_STOP, 0.0, 0.0, 0.0, 0.0)
-                },
-                GamepadHapticEffectRequestType::Play(GamepadHapticEffectType::DualRumble(params)) => (
-                    SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE,
-                    params.duration,
-                    params.start_delay,
-                    params.strong_magnitude,
-                    params.weak_magnitude,
-                ),
-            };
+        let (effect_type, duration, start_delay, strong_magnitude, weak_magnitude) = match pending
+            .request_type()
+        {
+            GamepadHapticEffectRequestType::Stop => {
+                (SERVO_GAMEPAD_HAPTIC_EFFECT_STOP, 0.0, 0.0, 0.0, 0.0)
+            },
+            GamepadHapticEffectRequestType::Play(GamepadHapticEffectType::DualRumble(params)) => (
+                SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE,
+                params.duration,
+                params.start_delay,
+                params.strong_magnitude,
+                params.weak_magnitude,
+            ),
+        };
 
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `out_info` documented above, and its `struct_size` was just checked

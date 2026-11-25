@@ -268,11 +268,12 @@ impl RTCPeerConnection {
             crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCRtcpMuxPolicy::Negotiate => RtcpMuxPolicy::Negotiate,
             crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCRtcpMuxPolicy::Require => RtcpMuxPolicy::Require,
         };
-        this.controller
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .configure(ice_servers, bundle_policy, ice_transport_policy, rtcp_mux_policy);
+        this.controller.borrow().as_ref().unwrap().configure(
+            ice_servers,
+            bundle_policy,
+            ice_transport_policy,
+            rtcp_mux_policy,
+        );
         Ok(this)
     }
 
@@ -342,7 +343,9 @@ impl RTCPeerConnection {
         );
 
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
 
         let event = RTCTrackEvent::new(
             cx,
@@ -679,7 +682,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> RootedPromise {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(current_realm, Error::InvalidState(None));
+            p.reject_error(
+                current_realm,
+                Error::InvalidState(Some(
+                    "Cannot create an offer when the connection is closed".into(),
+                )),
+            );
             return p;
         }
         self.offer_promises.borrow_mut().push(p.to_traced());
@@ -695,7 +703,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> RootedPromise {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(current_realm, Error::InvalidState(None));
+            p.reject_error(
+                current_realm,
+                Error::InvalidState(Some(
+                    "Cannot create an answer when the connection is closed".into(),
+                )),
+            );
             return p;
         }
         self.answer_promises.borrow_mut().push(p.to_traced());
@@ -878,14 +891,18 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _streams: &[&MediaStream],
     ) -> Fallible<DomRoot<RTCRtpSender>> {
         if self.closed.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot add a track when the connection is closed".into(),
+            )));
         }
 
         for sender in self.senders.borrow().iter() {
-            if let Some(existing_track) = sender.GetTrack()
-                && existing_track.id() == track.id()
+            if let Some(existing_track) = sender.GetTrack() &&
+                existing_track.id() == track.id()
             {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "The track is already attached to a sender".into(),
+                )));
             }
         }
 
@@ -902,7 +919,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
 
         self.senders.borrow_mut().push(Dom::from_ref(&*sender));
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
 
         if let Some(ref controller) = *self.controller.borrow() {
             controller.add_stream(&track.id());
@@ -916,7 +935,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         if self.closed.get() {
             return Err(Error::InvalidState(None));
         }
-        let found = self.senders.borrow().iter().any(|s| std::ptr::eq(&**s, sender));
+        let found = self
+            .senders
+            .borrow()
+            .iter()
+            .any(|s| std::ptr::eq(&**s, sender));
         if !found {
             return Err(Error::InvalidAccess(None));
         }
@@ -959,21 +982,18 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             MediaStreamTrack::new(cx, &self.global(), dummy_id, kind)
         };
         let receiver = RTCRtpReceiver::new(cx, &self.global(), &receiver_track);
-        let transceiver = RTCRtpTransceiver::new(
-            cx,
-            &self.global(),
-            init.direction,
-            &sender,
-            &receiver,
-        );
+        let transceiver =
+            RTCRtpTransceiver::new(cx, &self.global(), init.direction, &sender, &receiver);
 
-        if let Some(t) = track
-            && let Some(ref controller) = *self.controller.borrow()
+        if let Some(t) = track &&
+            let Some(ref controller) = *self.controller.borrow()
         {
             controller.add_stream(&t.id());
         }
 
-        self.transceivers.borrow_mut().push(Dom::from_ref(&*transceiver));
+        self.transceivers
+            .borrow_mut()
+            .push(Dom::from_ref(&*transceiver));
         self.senders.borrow_mut().push(Dom::from_ref(&*sender));
         self.receivers.borrow_mut().push(Dom::from_ref(&*receiver));
 

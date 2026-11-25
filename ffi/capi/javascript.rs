@@ -276,11 +276,11 @@ fn write_json_value(value: &JSValue, output: &mut String) {
         JSValue::Boolean(value) => output.push_str(if *value { "true" } else { "false" }),
         JSValue::Number(value) if value.is_finite() => output.push_str(&value.to_string()),
         JSValue::Number(_) => output.push_str("null"),
-        JSValue::String(value)
-        | JSValue::Element(value)
-        | JSValue::ShadowRoot(value)
-        | JSValue::Frame(value)
-        | JSValue::Window(value) => write_json_string(value, output),
+        JSValue::String(value) |
+        JSValue::Element(value) |
+        JSValue::ShadowRoot(value) |
+        JSValue::Frame(value) |
+        JSValue::Window(value) => write_json_string(value, output),
         JSValue::Array(items) => {
             output.push('[');
             for (index, item) in items.iter().enumerate() {

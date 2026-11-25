@@ -146,7 +146,10 @@ mod tests {
         assert_eq!(ctx.cache_path, Some("/tmp/cache".into()));
         assert_eq!(ctx.config_dir, Some("/tmp/config".into()));
         assert_eq!(ctx.proxy_config.mode, ProxyMode::FixedServers);
-        assert_eq!(ctx.proxy_config.server, Some("proxy.example.com:8080".to_string()));
+        assert_eq!(
+            ctx.proxy_config.server,
+            Some("proxy.example.com:8080".to_string())
+        );
         assert_eq!(ctx.accept_language, Some("en-US,en;q=0.9".to_string()));
         assert!(ctx.temporary_storage);
     }

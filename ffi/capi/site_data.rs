@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{c_char, c_void, CString};
+use std::ffi::{CString, c_char, c_void};
 use std::os::raw::c_int;
 
 use cookie::Cookie;
@@ -80,10 +80,14 @@ impl CookieStringStorage {
 
     fn store(&mut self, cookie: &Cookie<'static>) -> ServoCookie {
         // Store all strings as null-terminated CStrings and get their stable pointers
-        self.names.push(CString::new(cookie.name()).unwrap_or_default());
-        self.values.push(CString::new(cookie.value()).unwrap_or_default());
-        self.domains.push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
-        self.paths.push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
+        self.names
+            .push(CString::new(cookie.name()).unwrap_or_default());
+        self.values
+            .push(CString::new(cookie.value()).unwrap_or_default());
+        self.domains
+            .push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
+        self.paths
+            .push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
 
         let idx = self.names.len() - 1;
 
@@ -320,10 +324,10 @@ pub unsafe extern "C" fn servo_site_data_set_cookie(
 
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let cookie_ref = unsafe { &*cookie };
-        if cookie_ref.name.is_null()
-            || cookie_ref.value.is_null()
-            || cookie_ref.domain.is_null()
-            || cookie_ref.path.is_null()
+        if cookie_ref.name.is_null() ||
+            cookie_ref.value.is_null() ||
+            cookie_ref.domain.is_null() ||
+            cookie_ref.path.is_null()
         {
             return -1;
         }
@@ -541,7 +545,10 @@ pub unsafe extern "C" fn servo_site_data_visit_sites(
             rust_storage_types |= servo_api::StorageType::Session;
         }
 
-        let sites = manager.servo.site_data_manager().site_data(rust_storage_types);
+        let sites = manager
+            .servo
+            .site_data_manager()
+            .site_data(rust_storage_types);
         let total = sites.len();
 
         for (count, site_entry) in sites.into_iter().enumerate() {

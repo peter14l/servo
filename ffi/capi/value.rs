@@ -172,10 +172,10 @@ impl ServoValue {
                 }
             },
             JSValue::String(s) => Self::new(ValueData::String(s.clone())),
-            JSValue::Element(s)
-            | JSValue::ShadowRoot(s)
-            | JSValue::Frame(s)
-            | JSValue::Window(s) => Self::new(ValueData::String(s.clone())),
+            JSValue::Element(s) |
+            JSValue::ShadowRoot(s) |
+            JSValue::Frame(s) |
+            JSValue::Window(s) => Self::new(ValueData::String(s.clone())),
             JSValue::Array(items) => {
                 let list: Vec<ServoValue> = items.iter().map(ServoValue::from_jsvalue).collect();
                 Self::new(ValueData::List(list))
@@ -314,9 +314,7 @@ impl ServoDictionaryValue {
 
 impl ServoListValue {
     fn new() -> Self {
-        Self {
-            list: Vec::new(),
-        }
+        Self { list: Vec::new() }
     }
 
     fn get_list(&self) -> &Vec<ServoValue> {

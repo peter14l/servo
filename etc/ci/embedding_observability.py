@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -99,16 +100,11 @@ def delta_cell(value: Any, base: Any) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--metrics", required=True,
-                        help="directory holding the per-platform metric JSON files")
-    parser.add_argument("--baseline", required=True,
-                        help="path to the committed baseline JSON")
-    parser.add_argument("--summary", required=True,
-                        help="path of the markdown summary to write")
-    parser.add_argument("--out", required=True,
-                        help="path of the merged JSON report to write")
-    parser.add_argument("--capi-result", default="unknown",
-                        help="conclusion of the C API test job (the crash proxy)")
+    parser.add_argument("--metrics", required=True, help="directory holding the per-platform metric JSON files")
+    parser.add_argument("--baseline", required=True, help="path to the committed baseline JSON")
+    parser.add_argument("--summary", required=True, help="path of the markdown summary to write")
+    parser.add_argument("--out", required=True, help="path of the merged JSON report to write")
+    parser.add_argument("--capi-result", default="unknown", help="conclusion of the C API test job (the crash proxy)")
     args = parser.parse_args()
 
     platforms = load_metrics(args.metrics)
@@ -131,14 +127,17 @@ def main() -> int:
     }
 
     if not platforms:
-        lines.append("No metric files were found. The collecting job either did "
-                     "not run or failed before it wrote them.")
+        lines.append(
+            "No metric files were found. The collecting job either did not run or failed before it wrote them."
+        )
         if args.capi_result == "success":
             lines.append("")
-            lines.append("The C API test job **succeeded**, so the metrics it was "
-                         "supposed to write are missing for a reason other than a "
-                         "crash: failing this job is the point, otherwise the "
-                         "observability job reports success while measuring nothing.")
+            lines.append(
+                "The C API test job **succeeded**, so the metrics it was "
+                "supposed to write are missing for a reason other than a "
+                "crash: failing this job is the point, otherwise the "
+                "observability job reports success while measuring nothing."
+            )
     else:
         header = [metric[1] for metric in METRICS]
         lines.append("| Platform | " + " | ".join(header) + " |")
@@ -161,18 +160,22 @@ def main() -> int:
                 cells = [delta_cell(values.get(key), base.get(key)) for key, _label, _unit in METRICS]
                 lines.append(f"| {platform} | " + " | ".join(cells) + " |")
             lines.append("")
-            lines.append(f"A `(!)` marks a change of more than {FLAG_RATIO:.0%}. "
-                         "This job does not fail on it: see "
-                         "`docs/embedding/OBSERVABILITY.md` for the thresholds a "
-                         "real gate would need.")
+            lines.append(
+                f"A `(!)` marks a change of more than {FLAG_RATIO:.0%}. "
+                "This job does not fail on it: see "
+                "`docs/embedding/OBSERVABILITY.md` for the thresholds a "
+                "real gate would need."
+            )
 
     if baseline is None:
         lines.append("")
-        lines.append("**There is no committed baseline yet.** Copy the measured "
-                     "values from the table above into "
-                     "`docs/embedding/observability_baseline.json` (same shape as "
-                     "the `platforms` object reported here) so the next run shows "
-                     "a diff.")
+        lines.append(
+            "**There is no committed baseline yet.** Copy the measured "
+            "values from the table above into "
+            "`docs/embedding/observability_baseline.json` (same shape as "
+            "the `platforms` object reported here) so the next run shows "
+            "a diff."
+        )
 
     summary = "\n".join(lines) + "\n"
     os.makedirs(os.path.dirname(args.summary) or ".", exist_ok=True)
@@ -192,8 +195,7 @@ def main() -> int:
     # means the pipeline is broken, and a green job that measures nothing is
     # worse than a red one.
     if not platforms and args.capi_result == "success":
-        print("error: no metric files found although the C API job succeeded",
-              file=sys.stderr)
+        print("error: no metric files found although the C API job succeeded", file=sys.stderr)
         return 1
     return 0
 

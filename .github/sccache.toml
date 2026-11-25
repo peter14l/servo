@@ -1,0 +1,3 @@
+# sccache's default 10-second daemon startup timeout is too short when the
+# GitHub Actions cache backend is slow to become reachable.
+server_startup_timeout_ms = 60000

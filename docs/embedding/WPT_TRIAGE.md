@@ -1,6 +1,6 @@
 # WPT High-Impact Triage & Remediation Tickets
 
-Status: **Active Triage** · Milestone: `M1 / M4`
+Status: **Active Triage** ┬╖ Milestone: `M1 / M4`
 Companion docs: [`FULL_BROWSER_ROADMAP.md`](FULL_BROWSER_ROADMAP.md), [`PARITY_MATRIX.md`](PARITY_MATRIX.md), [`WPT_CONFORMANCE_BASELINE.md`](WPT_CONFORMANCE_BASELINE.md).
 
 ---
@@ -93,3 +93,44 @@ Analysis of the 154,583 non-pass metadata entries across `tests/wpt/meta` reveal
   2. MutationObserver delivery timing relative to custom element reactions.
   3. Event bubbling and capture across shadow boundaries.
 - **Milestone:** M1
+
+
+---
+
+## Real-site smoke triage (REL-3 step 2)
+
+This section tracks non-`PASS` smoke results and harness defects. A row is only `FIXED`
+when the correction is in the committed harness or engine, not when an expectation was
+weakened. Site `PASS` rows in [`SITE_SMOKETEST_REPORT.md`](SITE_SMOKETEST_REPORT.md) do
+not create tickets.
+
+| ID | Symptom | Timestamp (UTC) | Root cause category | Status | Fix / evidence |
+|---|---|---|---|---|---|
+| `SMOKE-001` | Five `TIMEOUT` rows when the harness was pointed at the downloaded Windows artifact; `ServoShell.exe --version` hung and showed `WixBurnMessageWindow`. | `2026-11-24 18:25:19Z` | Harness / provenance | `FIXED` | The artifact `checked-release-binary-windows` contains a **WiX Burn installer**, not a browser. The installer was completed, and the installed `servoshell.exe` self-reports `Servo 0.7.0-fd4655eb3`, matching green run `45428660357`. The invalid rows were discarded — not counted as site failures or passes. See `SITE_SMOKETEST_REPORT.md` §Provenance. |
+| `SMOKE-002` | Even with the real browser, a single-site run wrote a screenshot but never exited until killed. | `2026-11-24 18:37:39Z` | Harness | `FIXED` | `servoshell` needs `-x` / `--exit` to terminate after load. Added `-x` to the harness invocation. Verified: single-site `-f -x --headless … -o … https://example.com` exited `0` and wrote a 112,689-byte screenshot. No timeout was increased. |
+| `SMOKE-003` | Harness returned exit code `0` even when all five sites were `TIMEOUT`. | observed `2026-11-24 18:25:19Z` | Harness | `FIXED` | Added `exit_code_for()`: exit `0` only when every result is `PASS`; otherwise `1`. Re-evaluating the discarded report through the fixed function yields `expected_exit=1`, so a CI consumer can no longer read mass timeouts as green. |
+| `SMOKE-004` | A clean process exit was labelled `PASS` without any screenshot for visual targets. | pre-fix harness | Harness / evidence | `FIXED` | Added `--screenshot-dir`; visual targets #2–#5 are downgraded to `NOT_CONFIRMED` without a screenshot file. The executed run carries five 1280×740 PNGs referenced from `SITE_SMOKETEST_REPORT.md`. |
+
+### Discarded invalid run (not a result)
+
+| Site | URL | Reported status | Why it was discarded |
+|---|---|---|---|
+| Example Domain | `https://example.com` | `TIMEOUT` (30.06 s) | Harness launched the WiX installer, not the browser (`SMOKE-001`). |
+| Hacker News | `https://news.ycombinator.com` | `TIMEOUT` (30.03 s) | Same cause. |
+| Wikipedia Main Page | `https://en.wikipedia.org/wiki/Main_Page` | `TIMEOUT` (30.03 s) | Same cause. |
+| DuckDuckGo Lite | `https://lite.duckduckgo.com` | `TIMEOUT` (30.03 s) | Same cause. |
+| Httpbin JSON | `https://httpbin.org/get` | `TIMEOUT` (30.05 s) | Same cause. |
+
+**Blocker note:** no engine cause could be isolated from that run because the executable
+under test was the installer. The finding is therefore classified as harness/provenance,
+not `DOM/JS`, `CSS/layout`, `WebRender`, `DNS/TLS`, or an engine timeout. It must not be
+used as evidence for or against real-world compatibility.
+
+### Open engine work
+
+- **WPT delta (REL-3 step 3):** `WPT_STRICT_BASELINE.md` records 88.37% assertion passes
+  and 55.04% harness `OK`, with 109 harness-`OK` files containing failing assertions.
+  No engine fix or strict WPT re-run has been performed in this session, so no delta is
+  claimed. Fix engine behaviour first, then re-run strict WPT.
+- **No site-specific hacks:** none were added. All four fixes above are harness/provenance
+  corrections that make failures visible rather than hiding them.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -6,12 +7,15 @@
 """
 WPT Pass Rate Baseline Calculator and Reporter.
 
-Calculates the actual pass rate and failure distribution from either:
-1. WPT run output logs (structured JSON / raw logs from `mach test-wpt`), or
-2. The checked-in WPT expectation metadata (`tests/wpt/meta/**/*.ini`).
+Calculates the actual pass rate and failure distribution from one of:
+1. Per-shard `wptreport` JSON files from a strict CI run (`--reports-dir`);
+2. WPT run output logs (structured JSON / raw logs from `mach test-wpt`); or
+3. The checked-in WPT expectation metadata (`tests/wpt/meta/**/*.ini`).
 
 Produces an honest pass-rate baseline (JSON) and markdown summary without
-modifying test expectations.
+modifying test expectations. For CI reports, harness status and assertion
+status are kept separate: a harness `OK` can still contain failing assertions,
+and `SKIP`/`NOTRUN` are never passes.
 """
 
 from __future__ import annotations
@@ -22,7 +26,7 @@ import os
 import sys
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 def analyze_meta_directory(meta_dir: str) -> Dict[str, Any]:
@@ -128,6 +132,125 @@ def analyze_log_files(log_dir: str) -> Dict[str, Any]:
     }
 
 
+def _summarize_counts(counts: Counter[str], pass_statuses: tuple[str, ...]) -> Dict[str, Any]:
+    """Summarize one outcome dimension; `SKIP`/`NOTRUN` are never pass statuses."""
+    total = sum(counts.values())
+    passes = sum(counts[status] for status in pass_statuses)
+    return {
+        "pass_statuses": list(pass_statuses),
+        "total_results": total,
+        "pass_count": passes,
+        "pass_rate_percent": round(passes / total * 100.0, 2) if total else 0.0,
+        "counts": dict(counts.most_common()),
+    }
+
+
+def analyze_wpt_reports(
+    reports_dir: str, expected_revision: str | None = None, run_id: str | None = None
+) -> Dict[str, Any]:
+    """Aggregate the per-shard `wptreport` JSON files from a strict CI run.
+
+    Two dimensions are kept separate on purpose:
+
+    * **harness** — the per-test status CI gates on (`OK`/`SKIP`/`TIMEOUT`/...).
+    * **assertions** — each test's `subtests`; the real conformance signal.
+
+    The WPT webdriver harness can report a top-level `OK` while individual
+    assertions `FAIL` or `ERROR`. Counting harness `OK` as "passed" therefore
+    overstates conformance, so neither dimension is presented as the other.
+    `SKIP`/`NOTRUN` are never passes. The suite is the first path segment of
+    `test`, e.g. `/css/...` -> `css`.
+    """
+    if not os.path.exists(reports_dir):
+        raise FileNotFoundError(f"Reports directory not found: {reports_dir}")
+
+    harness: Counter[str] = Counter()
+    assertions: Counter[str] = Counter()
+    per_suite_harness: Dict[str, Counter[str]] = {}
+    per_suite_assertions: Dict[str, Counter[str]] = {}
+    ok_with_failing_assertions = 0
+    revisions: set[str] = set()
+    reports = 0
+
+    for root, _, files in os.walk(reports_dir):
+        for name in sorted(files):
+            if not name.endswith(".json"):
+                continue
+            path = os.path.join(root, name)
+            with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                report = json.load(fh)
+            if not isinstance(report, dict) or "results" not in report:
+                continue
+            reports += 1
+            revision = report.get("run_info", {}).get("revision")
+            if revision:
+                revisions.add(revision)
+
+            for result in report["results"]:
+                status = result.get("status")
+                if not status:
+                    continue
+                test = result.get("test") or ""
+                suite = test.lstrip("/").split("/")[0] or "root"
+                harness[status] += 1
+                per_suite_harness.setdefault(suite, Counter())[status] += 1
+
+                subtests = result.get("subtests") or []
+                subsuite_assertions = per_suite_assertions.setdefault(suite, Counter())
+                failing = False
+                for subtest in subtests:
+                    sub_status = subtest.get("status")
+                    if not sub_status:
+                        continue
+                    assertions[sub_status] += 1
+                    subsuite_assertions[sub_status] += 1
+                    if sub_status in ("FAIL", "ERROR"):
+                        failing = True
+                if status in ("OK", "PASS") and failing:
+                    ok_with_failing_assertions += 1
+
+    if not reports:
+        raise ValueError(f"No wptreport JSON files found under {reports_dir}")
+    if len(revisions) > 1:
+        raise ValueError(f"Reports mix revisions; refusing to publish: {sorted(revisions)}")
+    if expected_revision and revisions and expected_revision not in revisions:
+        raise ValueError(
+            f"Revision mismatch: expected {expected_revision}, got {sorted(revisions)}"
+        )
+
+    suites: Dict[str, Dict[str, Any]] = {}
+    for suite in set(per_suite_harness) | set(per_suite_assertions):
+        suites[suite] = {
+            "harness": _summarize_counts(
+                per_suite_harness.get(suite, Counter()), ("OK", "PASS")
+            ),
+            "assertions": _summarize_counts(
+                per_suite_assertions.get(suite, Counter()), ("PASS", "OK")
+            ),
+        }
+
+    return {
+        "source": "wpt_reports",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "reports": reports,
+        "revision": next(iter(revisions)) if revisions else None,
+        "run_id": run_id,
+        "harness": _summarize_counts(harness, ("OK", "PASS")),
+        "assertions": _summarize_counts(assertions, ("PASS", "OK")),
+        "ok_harness_results_with_failing_assertions": ok_with_failing_assertions,
+        "per_suite": {
+            suite: suites[suite]
+            for suite in sorted(
+                suites,
+                key=lambda s: -(
+                    suites[s]["harness"]["total_results"]
+                    + suites[s]["assertions"]["total_results"]
+                ),
+            )
+        },
+    }
+
+
 def generate_markdown_report(data: Dict[str, Any]) -> str:
     lines = [
         "# WPT Conformance Pass-Rate Baseline Report",
@@ -155,6 +278,81 @@ def generate_markdown_report(data: Dict[str, Any]) -> str:
         for status, count in data.get("counts", {}).items():
             pct = count / total * 100.0
             lines.append(f"| `{status}` | {count:,} | {pct:.2f}% |")
+    elif data.get("source") == "wpt_reports":
+        harness = data.get("harness", {})
+        assertions = data.get("assertions", {})
+        lines.extend(
+            [
+                "## Strict CI run baseline (executed tests only)",
+                "",
+                f"- **Revision:** `{data.get('revision', 'unknown')}`",
+                f"- **Source run:** `{data.get('run_id', 'unknown')}` "
+                f"(artifact `wpt-full-logs-linux`)",
+                f"- **Shards reported:** {data.get('reports', 0)}",
+                f"- **Assertion pass rate (headline):** "
+                f"**{assertions.get('pass_rate_percent', 0.0)}%** "
+                f"({assertions.get('pass_count', 0):,}/{assertions.get('total_results', 0):,})",
+                f"- **Harness `OK` results:** {harness.get('pass_count', 0):,} "
+                f"of {harness.get('total_results', 0):,} executed test files "
+                f"({harness.get('pass_rate_percent', 0.0)}%)",
+                f"- **Harness `OK` results containing failing assertions:** "
+                f"{data.get('ok_harness_results_with_failing_assertions', 0):,}",
+                "",
+                "The two figures measure different things and must not be conflated.",
+                "The WPT webdriver harness can mark a test file `OK` even when some of",
+                "its assertions `FAIL` or `ERROR`, so harness `OK` is **not** a conformance",
+                "pass. The assertion-level rate is the conformance signal; the harness",
+                "rate is what strict CI gates on after expectation metadata is applied.",
+                "",
+                "`SKIP`/`NOTRUN` are not passes in either dimension. This baseline covers",
+                "only the tests the strict CI run actually executed, not the full WPT tree;",
+                "`wpt_baseline.json` is the static full-tree expectations baseline and the",
+                "two must not be conflated either.",
+                "",
+                "### Harness outcomes (per test file — CI gate view)",
+                "",
+                "| Status | Count | Percentage |",
+                "|---|---:|---:|",
+            ]
+        )
+        total = harness.get("total_results", 1) or 1
+        for status, count in harness.get("counts", {}).items():
+            lines.append(f"| `{status}` | {count:,} | {count / total * 100.0:.2f}% |")
+
+        lines.extend(
+            [
+                "",
+                "### Assertion outcomes (per subtest — conformance view)",
+                "",
+                "| Status | Count | Percentage |",
+                "|---|---:|---:|",
+            ]
+        )
+        total = assertions.get("total_results", 1) or 1
+        for status, count in assertions.get("counts", {}).items():
+            lines.append(f"| `{status}` | {count:,} | {count / total * 100.0:.2f}% |")
+
+        lines.extend(
+            [
+                "",
+                "### Per-suite pass rate",
+                "",
+                "| Suite | Harness `OK` | Files | Assertion pass | Assertions | Rate |",
+                "|---|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for suite, stats in data.get("per_suite", {}).items():
+            h = stats.get("harness", {})
+            a = stats.get("assertions", {})
+            assertion_total = a.get("total_results", 0)
+            rate = (
+                f"{a.get('pass_rate_percent', 0.0)}%" if assertion_total else "n/a (all skipped)"
+            )
+            lines.append(
+                f"| `{suite}` | {h.get('pass_count', 0):,} | "
+                f"{h.get('total_results', 0):,} | {a.get('pass_count', 0):,} | "
+                f"{assertion_total:,} | {rate} |"
+            )
     else:
         total = data.get("total_expectation_entries", 0)
         lines.extend(
@@ -195,11 +393,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="WPT Pass Rate Baseline Tool")
     parser.add_argument("--meta-dir", default="tests/wpt/meta", help="Path to tests/wpt/meta directory")
     parser.add_argument("--logs-dir", help="Path to directory containing WPT run logs")
+    parser.add_argument(
+        "--reports-dir", help="Path to directory containing per-shard wptreport JSON files"
+    )
+    parser.add_argument(
+        "--expected-revision",
+        help="Refuse to publish unless every report has this revision (CI commit sha)",
+    )
+    parser.add_argument("--run-id", help="GitHub Actions run id the reports came from")
     parser.add_argument("--output-json", help="Path to write baseline JSON output")
     parser.add_argument("--output-markdown", help="Path to write markdown report")
     args = parser.parse_args()
 
-    if args.logs_dir and os.path.exists(args.logs_dir):
+    if args.reports_dir:
+        data = analyze_wpt_reports(args.reports_dir, args.expected_revision, args.run_id)
+    elif args.logs_dir and os.path.exists(args.logs_dir):
         data = analyze_log_files(args.logs_dir)
     else:
         data = analyze_meta_directory(args.meta_dir)

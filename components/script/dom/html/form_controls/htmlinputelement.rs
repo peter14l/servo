@@ -59,8 +59,8 @@ use crate::dom::html::form_controls::input_type::{
     InputActivationType, InputType, ValueChangeEvents,
 };
 use crate::dom::html::form_controls::text_control::TextControlElement;
-use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
+use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
@@ -1925,14 +1925,14 @@ impl HTMLInputElement {
         let submit_button: Option<DomRoot<Node>> = node
             .traverse_preorder(ShadowIncluding::No)
             .find_map(|child| {
-                if let Some(input) = child.downcast::<HTMLInputElement>()
-                    && matches!(*input.input_type(), InputType::Submit(_))
-                    && input.form_owner() == owner
+                if let Some(input) = child.downcast::<HTMLInputElement>() &&
+                    matches!(*input.input_type(), InputType::Submit(_)) &&
+                    input.form_owner() == owner
                 {
                     return Some(child);
-                } else if let Some(button) = child.downcast::<HTMLButtonElement>()
-                    && button.Type() == "submit"
-                    && button.form_owner() == owner
+                } else if let Some(button) = child.downcast::<HTMLButtonElement>() &&
+                    button.Type() == "submit" &&
+                    button.form_owner() == owner
                 {
                     return Some(child);
                 }

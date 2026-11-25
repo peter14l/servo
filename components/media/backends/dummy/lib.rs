@@ -109,8 +109,12 @@ impl Backend for DummyBackend {
                 title: None,
             };
             let _ = cb_clone.send(PlayerEvent::MetadataUpdated(metadata));
-            let _ = cb_clone.send(PlayerEvent::DurationChanged(Some(std::time::Duration::from_secs(60))));
-            let _ = cb_clone.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+            let _ = cb_clone.send(PlayerEvent::DurationChanged(Some(
+                std::time::Duration::from_secs(60),
+            )));
+            let _ = cb_clone.send(PlayerEvent::StateChanged(
+                servo_media_player::PlaybackState::Paused,
+            ));
             let _ = cb_clone.send(PlayerEvent::PositionChanged(0.0));
             let _ = cb_clone.send(PlayerEvent::VideoFrameUpdated);
         });
@@ -207,7 +211,9 @@ impl Player for DummyPlayer {
     fn play(&self) -> Result<(), PlayerError> {
         let was_paused = self.paused.swap(false, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
-            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Playing));
+            let _ = cb.send(PlayerEvent::StateChanged(
+                servo_media_player::PlaybackState::Playing,
+            ));
             let _ = cb.send(PlayerEvent::VideoFrameUpdated);
             if was_paused {
                 let cb_clone = cb.clone();
@@ -238,7 +244,9 @@ impl Player for DummyPlayer {
     fn pause(&self) -> Result<(), PlayerError> {
         self.paused.store(true, std::sync::atomic::Ordering::SeqCst);
         if let Some(ref cb) = self.callback {
-            let _ = cb.send(PlayerEvent::StateChanged(servo_media_player::PlaybackState::Paused));
+            let _ = cb.send(PlayerEvent::StateChanged(
+                servo_media_player::PlaybackState::Paused,
+            ));
         }
         Ok(())
     }

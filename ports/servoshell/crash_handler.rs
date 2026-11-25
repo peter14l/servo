@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android", target_os = "windows")))]
+#[cfg(not(any(
+    target_os = "macos",
+    target_os = "linux",
+    target_os = "android",
+    target_os = "windows"
+)))]
 pub fn install() {}
 
 #[cfg(target_os = "windows")]
@@ -11,9 +16,7 @@ pub fn install() {
     use std::sync::atomic;
     use std::thread;
 
-    unsafe extern "system" fn unhandled_exception_filter(
-        _info: *mut std::ffi::c_void,
-    ) -> i32 {
+    unsafe extern "system" fn unhandled_exception_filter(_info: *mut std::ffi::c_void) -> i32 {
         static BEEN_HERE: atomic::AtomicBool = atomic::AtomicBool::new(false);
         if !BEEN_HERE.swap(true, atomic::Ordering::SeqCst) {
             let stderr = std::io::stderr();

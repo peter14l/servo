@@ -83,6 +83,8 @@ env:
   # Increment this to purge the cache (https://github.com/mozilla/sccache/blob/main/docs/GHA.md)
   SCCACHE_GHA_VERSION: 1
   SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CONF: ${{ github.workspace }}/.github/sccache.toml
+  SCCACHE_SKIP_CACHE_CHECK: "on"
   RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
@@ -113,7 +115,7 @@ jobs:
       # coupled to the rustc version, and we may have the wrong version if the
       # commit we are building uses a different rustc version.
       - name: Install crown
-        run: cargo install --path support/crown
+        run: env -u RUSTC_WRAPPER -u CCACHE cargo install --path support/crown
 
       - name: Install cargo nextest
         if: ${{ inputs.unit-tests }}

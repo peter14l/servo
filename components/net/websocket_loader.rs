@@ -78,10 +78,7 @@ pub fn create_handshake_request(
     };
 
     let mut headers = HeaderMap::new();
-    headers.insert(
-        "Origin",
-        HeaderValue::from_str(&origin_str)?,
-    );
+    headers.insert("Origin", HeaderValue::from_str(&origin_str)?);
 
     let host = format!(
         "{}",

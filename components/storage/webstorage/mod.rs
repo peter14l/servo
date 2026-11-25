@@ -291,6 +291,10 @@ impl WebStorageManager {
                     self.clear_data_for_sites(storage_type, &sites);
                     let _ = sender.send(());
                 },
+                WebStorageThreadMsg::PurgeEphemeralSearchStorage(sender) => {
+                    self.purge_ephemeral_search_storage();
+                    let _ = sender.send(());
+                },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
@@ -666,6 +670,27 @@ impl WebStorageManager {
             WebStorageType::Session => self.session_storage_origins.origin_descriptors(),
             WebStorageType::Local => self.local_storage_origins.origin_descriptors(),
         }
+    }
+
+    /// Drop all in-memory state belonging to search origins. The environments
+    /// are backed by in-memory SQLite, so dropping them cannot write to disk.
+    fn purge_ephemeral_search_storage(&mut self) {
+        let is_search_name =
+            |name: &String| ServoUrl::parse(name).is_ok_and(|url| is_search_origin(&url));
+
+        self.local_storage_origins
+            .origin_descriptors
+            .retain(|name, _| !is_search_name(name));
+        self.session_storage_origins
+            .origin_descriptors
+            .retain(|name, _| !is_search_name(name));
+
+        self.session_data.retain(|_, origins| {
+            origins.retain(|origin, _| !is_search_storage_origin(origin));
+            !origins.is_empty()
+        });
+        self.environments
+            .retain(|origin, _| !is_search_storage_origin(origin));
     }
 
     fn clear_data_for_sites(&mut self, storage_type: WebStorageType, sites: &[String]) {

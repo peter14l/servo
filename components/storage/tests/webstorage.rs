@@ -433,3 +433,56 @@ fn no_storage_type_conflict() {
     let result = test.get_item(WebStorageType::Session, &url.origin(), "key".into());
     assert_eq!(result, None);
 }
+
+#[test]
+fn search_storage_is_purged_without_touching_normal_origins() {
+    let test = WebStorageTest::new();
+    let search_origin = ServoUrl::parse("https://www.google.com/search?q=private")
+        .unwrap()
+        .origin();
+    let normal_origin = ServoUrl::parse("https://example.com/page")
+        .unwrap()
+        .origin();
+
+    test.set_item(WebStorageType::Local, &search_origin, "query", "secret")
+        .unwrap();
+    test.set_item(WebStorageType::Local, &normal_origin, "answer", "keep")
+        .unwrap();
+
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &search_origin, "query"),
+        Some("secret".to_string())
+    );
+    assert!(
+        test.threads()
+            .webstorage_origins(WebStorageType::Local)
+            .iter()
+            .any(|descriptor| descriptor.name.contains("google.com"))
+    );
+
+    let (sender, receiver) = base_channel::channel().unwrap();
+    test.threads()
+        .send(WebStorageThreadMsg::PurgeEphemeralSearchStorage(sender))
+        .unwrap();
+    receiver.recv().unwrap();
+
+    // Check the registry before reading again: read-only access currently
+    // recreates an in-memory origin descriptor, even though it cannot persist
+    // a search origin to disk.
+    assert!(
+        !test
+            .threads()
+            .webstorage_origins(WebStorageType::Local)
+            .iter()
+            .any(|descriptor| descriptor.name.contains("google.com"))
+    );
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &search_origin, "query"),
+        None
+    );
+    assert_eq!(test.length(WebStorageType::Local, &search_origin), 0);
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &normal_origin, "answer"),
+        Some("keep".to_string())
+    );
+}

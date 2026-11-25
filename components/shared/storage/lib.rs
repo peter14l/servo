@@ -97,6 +97,27 @@ impl StorageThreads {
             ));
         let _ = receiver.recv();
     }
+
+    /// Drop all ephemeral search storage when the last browsing context closes.
+    /// This covers both localStorage and IndexedDB; cookies are purged through
+    /// the network thread separately.
+    pub fn purge_ephemeral_search_storage(&self) {
+        let (web_storage_sender, web_storage_receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .web_storage_thread
+            .send(WebStorageThreadMsg::PurgeEphemeralSearchStorage(
+                web_storage_sender,
+            ));
+        let _ = web_storage_receiver.recv();
+
+        let (indexeddb_sender, indexeddb_receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .idb_thread
+            .send(IndexedDBThreadMsg::PurgeEphemeralSearchDatabases(
+                indexeddb_sender,
+            ));
+        let _ = indexeddb_receiver.recv();
+    }
 }
 
 impl GenericSend<ClientStorageThreadMessage> for StorageThreads {

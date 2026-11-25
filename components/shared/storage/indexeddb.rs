@@ -662,6 +662,10 @@ pub enum IndexedDBThreadMsg {
 
     /// Measure memory used by this thread and send the report over the provided channel.
     CollectMemoryReport(ReportsChan),
+
+    /// Drop all ephemeral search-origin databases without touching client
+    /// storage; these databases were never registered on disk.
+    PurgeEphemeralSearchDatabases(GenericSender<()>),
 }
 
 #[cfg(test)]

@@ -12,8 +12,8 @@ use std::thread;
 
 use log::{debug, error, warn};
 use malloc_size_of::MallocSizeOf;
-use net_traits::private_search::is_search_origin;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::private_search::is_search_origin;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
@@ -1144,6 +1144,10 @@ impl IndexedDBManager {
                 IndexedDBThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
+                },
+                IndexedDBThreadMsg::PurgeEphemeralSearchDatabases(sender) => {
+                    self.purge_ephemeral_search_databases();
+                    let _ = sender.send(());
                 },
                 IndexedDBThreadMsg::AsyncSchemaOperation {
                     origin,
@@ -2501,6 +2505,17 @@ impl IndexedDBManager {
         database.abort(&origin, &database_name, transaction);
     }
 
+    /// Drop all search-origin databases and their pending requests. Ephemeral
+    /// databases have no client-storage records, so no disk cleanup is needed.
+    fn purge_ephemeral_search_databases(&mut self) {
+        self.databases
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+        self.connection_queues
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+        self.connections
+            .retain(|key, _| !is_search_indexeddb_origin(&key.origin));
+    }
+
     fn collect_memory_reports(&self) -> Vec<Report> {
         let mut reports = vec![];
         perform_memory_report(|ops| {
@@ -2518,13 +2533,15 @@ impl IndexedDBManager {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     use servo_base::generic_channel;
     use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
     use storage_traits::indexeddb::{IndexedDBTxnMode, KeyPath};
     use url::Host;
 
-    use super::{IndexedDBDescription, IndexedDBEnvironment};
+    use super::{IndexedDBDescription, IndexedDBEnvironment, IndexedDBManager};
     use crate::indexeddb::engines::SqliteEngine;
 
     fn test_origin() -> ImmutableOrigin {
@@ -2533,6 +2550,48 @@ mod tests {
             Host::Domain("localhost".to_string()),
             80,
         )
+    }
+
+    fn search_origin() -> ImmutableOrigin {
+        ImmutableOrigin::Tuple(
+            "https".to_string(),
+            Host::Domain("www.google.com".to_string()),
+            443,
+        )
+    }
+
+    #[test]
+    fn ephemeral_search_databases_are_purged() {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let mut manager = IndexedDBManager::new(receiver, sender);
+        let search_key = IndexedDBDescription {
+            origin: search_origin(),
+            name: "search".to_string(),
+        };
+        let normal_key = IndexedDBDescription {
+            origin: test_origin(),
+            name: "normal".to_string(),
+        };
+
+        manager
+            .connection_queues
+            .insert(search_key.clone(), VecDeque::new());
+        manager
+            .connections
+            .insert(search_key.clone(), Default::default());
+        manager
+            .connection_queues
+            .insert(normal_key.clone(), VecDeque::new());
+        manager
+            .connections
+            .insert(normal_key.clone(), Default::default());
+
+        manager.purge_ephemeral_search_databases();
+
+        assert!(!manager.connection_queues.contains_key(&search_key));
+        assert!(!manager.connections.contains_key(&search_key));
+        assert!(manager.connection_queues.contains_key(&normal_key));
+        assert!(manager.connections.contains_key(&normal_key));
     }
 
     #[test]

@@ -48,8 +48,8 @@ Evidence, not opinion:
 - **iOS does not exist as a port.** `ports/` contains only `servoshell`; there is
   no `aarch64-apple-ios` build, no iOS CI, and sandboxing is excluded by
   `cfg`.
-- **The C API is version 0.1.0** (`ffi/capi/lib.rs:306-318`), pre-1.0, 218
-  allowlisted symbols, no shipped prebuilt binaries.
+- **The C API is version 0.3.0** (`ffi/capi/lib.rs:493-522`), pre-1.0, 218
+  allowlisted symbols; prebuilt CI artifacts exist but there is no support window.
 - Servo has been in development since 2012; the incumbents have thousands of
   engineers on conformance and security. The gap is one of *scope*, not of a
   missing fix.
@@ -228,7 +228,7 @@ Remaining:
 | W5.1 | **Hang monitor: enable by default and kill permanently-hung scripts** — **done**: both defaults on in `Opts::default()` (what `servo_options_create()` returns); `HangAlert::Permanent` → `SignalComponentExit` → `signal_to_exit()` terminates the hung script and the interrupted JS call errors out. Verified end to end by `test_hang_monitor_kills_hung_script` (C API suite). See `HARDENING_PLAN.md` §A.1. servoshell's CLI flags remain opt-in (follow-up). | M |
 | W5.2 | **Prove `capi-artifacts.yml`**: dispatch it, fix failures, then compile `examples/c-embedder` against a real `cargo cinstall` sysroot in CI. | M |
 | W5.3 | **Prebuilt binaries per platform** (Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64) with header + CMake/pkg-config, **signed** (macOS notarization, Windows Authenticode), checksums, release cadence. | L |
-| W5.4 | **Move the C API from 0.1.0 to a 1.0 ABI commitment**: freeze the symbol set, exercise the deprecation policy once, publish support window. This is policy + release discipline, enforced by the existing CI allowlist. | M |
+| W5.4 | **Move the C API from 0.3.0 to a 1.0 ABI commitment**: freeze the symbol set, exercise the deprecation policy once, publish support window. This is policy + release discipline, enforced by the existing CI allowlist. | M |
 | W5.5 | Remaining reachable-panic review (`HARDENING_PLAN.md` §A.2) as a tracked, owner-per-item list. | M |
 | W5.6 | Observability: cdylib size, startup time, throughput, crash rate tracked in CI to catch regressions. | M |
 | W5.7 | Long-uptime/memory-discipline testing (leak detection over repeated load/unload). | L |
@@ -249,7 +249,7 @@ Remaining:
 |---|---|---|
 | ~146k WPT `FAIL` | **No — not by a small team** | W1 (measure it, target sites, upstream). Years. |
 | No Windows sandbox | **Yes — bounded but large** | W2.1; interim: `multiprocess` (crash isolation) already works on Windows |
-| v0.1.0, no prebuilt binaries | **Yes — most tractable** | W5.2, W5.3, W5.4 |
+| v0.3.0, prebuilt CI artifacts but no support window | **Yes — most tractable** | W5.2, W5.3, W5.4 |
 | Hang monitor opt-in + warn-only | **Yes — most tractable code fix** | **Fixed by W5.1**: both defaults on; permanent hangs kill the hung script (`HARDENING_PLAN.md` §A.1) |
 
 ---

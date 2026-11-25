@@ -211,7 +211,7 @@ Exported C functions, grouped (51 at baseline `3dcc4e02bc1`; **76 on this branch
 
 - `servo_builder_create`, `servo_builder_set_preferences`, `servo_builder_set_options`,
   `servo_builder_set_event_loop_waker`, `servo_builder_build`, `servo_builder_free`
-- *(added)* `servo_capi_version` — returns the release version string, e.g. `"0.1.0"`;
+- *(added)* `servo_capi_version` — returns the release version string, e.g. `"0.3.0"`;
   backed by `SERVO_CAPI_VERSION_MAJOR/MINOR/PATCH` constants.
 
 **Servo handle (`servo.rs`, 3 → 7)**

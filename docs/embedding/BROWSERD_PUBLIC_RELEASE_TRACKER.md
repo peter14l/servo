@@ -17,6 +17,30 @@ in [`AGENT_BUILD_PLAN.md`](./AGENT_BUILD_PLAN.md).
 > An item you could not execute is `NOT_RUN`, not `done`. This is the discipline used
 > throughout `AGENT_BUILD_PLAN.md` and it is not relaxed here.
 
+## Developer-preview caveats (required on every preview build)
+
+Until REL-1 … REL-8 are `PASSED`, a build from this branch is **developer preview /
+dogfood only**. Release notes, installer, and about screen must state all of the
+following verbatim in substance:
+
+- **Unsupported platforms.** There is no iOS port and no iOS CI. Android and
+  OpenHarmony are experimental. Windows, Android, iOS, OpenHarmony, and all
+  ARM/ARM64 and RISC-V targets have **no OS renderer sandbox**.
+- **No sandbox by default.** The content-process sandbox is off by default and
+  functional only on Linux x86_64 and macOS x86_64. Windows applies in-process
+  mitigation policies (DEP, ASLR, strict handle checking, extension-point
+  disable, Win32k lockdown, Job Object containment); these are **not** an OS
+  sandbox. Query `servo_capi_is_sandboxing_supported()` at runtime; do not assume.
+- **No site isolation.** Event loops are pooled by registrable domain. There is no
+  per-origin/per-site process partitioning and no out-of-process iframes.
+- **Storage limitations.** `Partitioned` (CHIPS) cookies are stored but never
+  sent. Do not rely on partitioned-cookie behaviour.
+- **Conformance is partial.** The executed strict-WPT subset reports 88.37%
+  assertion passes and 55.04% harness-`OK` files; `SKIP` is not a pass. This is
+  not browser-ready conformance.
+- **Not a public release.** REL-8 has no signed go/no-go decision. Do not describe
+  any preview build as production-ready or as a replacement for Blink/WebKit/CEF.
+
 ---
 
 ## 1. Status vocabulary

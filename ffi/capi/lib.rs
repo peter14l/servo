@@ -378,6 +378,65 @@ impl ServoError {
         }
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(false)
     }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return `u64`.
+    /// An off-thread call or a panic returns `0`.
+    #[inline]
+    pub fn catch_ffi_u64<F: FnOnce() -> u64>(f: F) -> u64 {
+        if entry_checks::check_main_thread().is_err() {
+            return 0;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(0)
+    }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return `i64`.
+    /// An off-thread call or a panic returns `0`.
+    #[inline]
+    pub fn catch_ffi_i64<F: FnOnce() -> i64>(f: F) -> i64 {
+        if entry_checks::check_main_thread().is_err() {
+            return 0;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(0)
+    }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return `u16`.
+    /// An off-thread call or a panic returns `0`.
+    #[inline]
+    pub fn catch_ffi_u16<F: FnOnce() -> u16>(f: F) -> u16 {
+        if entry_checks::check_main_thread().is_err() {
+            return 0;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(0)
+    }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return `f32`.
+    /// An off-thread call or a panic returns `1.0`, the neutral page-zoom factor.
+    #[inline]
+    pub fn catch_ffi_f32<F: FnOnce() -> f32>(f: F) -> f32 {
+        if entry_checks::check_main_thread().is_err() {
+            return 1.0;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(1.0)
+    }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return nothing.
+    /// An off-thread call or a panic writes no output and returns normally.
+    #[inline]
+    pub fn catch_ffi_void<F: FnOnce()>(f: F) {
+        if entry_checks::check_main_thread().is_err() {
+            return;
+        }
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    }
+
+    /// Panic-only boundary for an entry point documented as callable from any
+    /// thread, including callbacks invoked on a non-main thread. The caller
+    /// supplies the fallback because these APIs may not share the main-thread
+    /// return conventions.
+    #[inline]
+    pub fn catch_ffi_any_thread<R, F: FnOnce() -> R>(fallback: R, f: F) -> R {
+        Self::catch_ffi_panic(fallback, f)
+    }
 }
 
 /// Entry-point checks shared by the FFI boundary helpers.
@@ -788,17 +847,19 @@ pub fn ensure_panic_hook_installed() {
 mod panic_hook_ctor {
     use super::*;
 
-    #[cfg(target_os = "macos")]
-    extern "C" {
-        fn dispatch_async(...);
-    }
-
     unsafe fn init() {
         ensure_panic_hook_installed();
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     #[unsafe(link_section = ".init_array")]
+    #[used]
+    static PANIC_HOOK_CTOR: unsafe fn() = init;
+
+    // Mach-O constructors live in a named segment and section; `.init_array`
+    // is an ELF section name and is rejected by the macOS linker.
+    #[cfg(target_os = "macos")]
+    #[unsafe(link_section = "__DATA,__mod_init_func")]
     #[used]
     static PANIC_HOOK_CTOR: unsafe fn() = init;
 

@@ -190,22 +190,21 @@ pub(super) fn layout_layer(
         let is_default_svg_size = natural_sizes.width == Some(Au::from_px(300)) &&
             natural_sizes.height == Some(Au::from_px(150)) &&
             natural_sizes.ratio == Some(2.0);
-        if let Some(natural_ratio) = natural_sizes.ratio {
-            if !is_default_svg_size {
-                let positioning_ratio =
-                    positioning_area.size().width / positioning_area.size().height;
-                // Whether the tile width (as opposed to height)
-                // is scaled to that of the positioning area
-                let fit_width = match background_size {
-                    ContainOrCover::Contain => positioning_ratio <= natural_ratio,
-                    ContainOrCover::Cover => positioning_ratio > natural_ratio,
-                };
-                // The other dimension needs to be adjusted
-                if fit_width {
-                    tile_size.height = tile_size.width / natural_ratio
-                } else {
-                    tile_size.width = tile_size.height * natural_ratio
-                }
+        if let Some(natural_ratio) = natural_sizes.ratio &&
+            !is_default_svg_size
+        {
+            let positioning_ratio = positioning_area.size().width / positioning_area.size().height;
+            // Whether the tile width (as opposed to height)
+            // is scaled to that of the positioning area
+            let fit_width = match background_size {
+                ContainOrCover::Contain => positioning_ratio <= natural_ratio,
+                ContainOrCover::Cover => positioning_ratio > natural_ratio,
+            };
+            // The other dimension needs to be adjusted
+            if fit_width {
+                tile_size.height = tile_size.width / natural_ratio
+            } else {
+                tile_size.width = tile_size.height * natural_ratio
             }
         }
         tile_size

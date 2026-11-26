@@ -153,6 +153,10 @@ pub fn content_process_sandbox_profile() {
 /// browser process exits.
 #[cfg(target_os = "windows")]
 mod windows_job {
+    // Minimal Win32 FFI for process containment. The crate denies `unsafe_code`,
+    // but declaring and calling these Win32 entry points inherently requires it.
+    #![allow(unsafe_code)]
+
     use std::ffi::c_void;
     use std::os::windows::io::AsRawHandle;
 
@@ -211,7 +215,7 @@ mod windows_job {
         unsafe {
             let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
             if job.is_null() {
-                log::warn!("Windows sandbox: failed to create Job Object for content process");
+                log::warn!("Windows Job Object: failed to create Job Object for content process");
                 return;
             }
 
@@ -227,13 +231,13 @@ mod windows_job {
                 std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
             ) == 0
             {
-                log::warn!("Windows sandbox: failed to set Job Object limits");
+                log::warn!("Windows Job Object: failed to set Job Object limits");
                 CloseHandle(job);
                 return;
             }
 
             if AssignProcessToJobObject(job, child.as_raw_handle()) == 0 {
-                log::warn!("Windows sandbox: failed to assign content process to Job Object");
+                log::warn!("Windows Job Object: failed to assign content process to Job Object");
                 CloseHandle(job);
                 return;
             }

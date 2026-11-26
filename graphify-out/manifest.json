@@ -413,8 +413,8 @@
     "semantic_hash": "b08eb94701f6dcf2f10db23f769d63e6"
   },
   "components/constellation/sandboxing.rs": {
-    "mtime": 1794593734.741545,
-    "ast_hash": "6ab23e6413acef98db47e7b6b3b8c116",
+    "mtime": 1795680778.0847466,
+    "ast_hash": "cf0bf276fed414a8e0f594e4d82fc334",
     "semantic_hash": ""
   },
   "components/constellation/screenshot_readiness_request.rs": {
@@ -2676,8 +2676,8 @@
     "semantic_hash": "6e355416c8e8a965d2f65841fdcc245c"
   },
   "components/script/dom/canvas/2d/canvas_state.rs": {
-    "mtime": 1795677534.5537384,
-    "ast_hash": "690d6bb0ae06c3e89a89e5ad2b44ea69",
+    "mtime": 1795679391.9597096,
+    "ast_hash": "704c1fffa60be85cd4ccc7dd854dd5b3",
     "semantic_hash": ""
   },
   "components/script/dom/canvas/2d/canvasgradient.rs": {
@@ -3092,8 +3092,8 @@
     "semantic_hash": "62f1fb2eb5e78211e51df31513120278"
   },
   "components/script/dom/document/document.rs": {
-    "mtime": 1795677541.9297242,
-    "ast_hash": "3f1197f3346c3cfba49bf96f339240ee",
+    "mtime": 1795679525.8249407,
+    "ast_hash": "ca8faed7409ea289cad06b1de20d5fdf",
     "semantic_hash": ""
   },
   "components/script/dom/document/document_embedder_controls.rs": {

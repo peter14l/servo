@@ -329,8 +329,10 @@ impl CanvasState {
     /// written by the paint backend match the canvas bitmap's color space.
     fn to_canvas_color_space(&self, color: AbsoluteColor) -> AbsoluteColor {
         let target = match self.color_space {
-            PredefinedColorSpace::Srgb => ColorSpace::Srgb,
-            PredefinedColorSpace::Display_p3 => ColorSpace::DisplayP3,
+            PredefinedColorSpace::Srgb | PredefinedColorSpace::Srgb_linear => ColorSpace::Srgb,
+            PredefinedColorSpace::Display_p3 | PredefinedColorSpace::Display_p3_linear => {
+                ColorSpace::DisplayP3
+            },
         };
         color.to_color_space(target)
     }

@@ -339,7 +339,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
 
             known_dimensions_are_definite: taffy::Size {
                 width: true,
-                height: content_box_size_override.size.block.to_definite().is_some(),
+                height: true,
             },
             known_dimensions: taffy::Size::NONE,
             parent_size: taffy::Size::NONE,
@@ -353,7 +353,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
 
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
-                inline: SizeConstraint::default(),
+                inline: Au::zero(),
                 block: SizeConstraint::default(),
             },
             style,

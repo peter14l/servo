@@ -1911,7 +1911,7 @@ impl<'container> PlacementState<'container> {
     ) -> PlacementState<'container> {
         let is_inline_block_context =
             containing_block.style.get_box().get_display() == &Display::InlineBlock;
-        let block_gap = match containing_block.style.get_position().row_gap {
+        let block_gap = match &containing_block.style.get_position().row_gap {
             style::values::generics::length::LengthPercentageOrNormal::LengthPercentage(lp) => {
                 lp.to_used_value(Au::zero())
             },

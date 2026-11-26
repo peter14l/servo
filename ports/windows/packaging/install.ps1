@@ -37,7 +37,8 @@ Write-Host "      Binaries deployed." -ForegroundColor Green
 
 # 3. Create Shortcuts
 Write-Host "[3/4] Creating Start Menu and Desktop shortcuts..." -ForegroundColor Yellow
-$ExePath = Join-Path $TargetDir "servo_browser.exe"
+$WinUiExe = Join-Path $TargetDir "ServoBrowser.exe"
+$ExePath = if (Test-Path $WinUiExe) { $WinUiExe } else { Join-Path $TargetDir "servo_browser.exe" }
 $WshShell = New-Object -ComObject WScript.Shell
 
 # CreateShortcut() reopens an existing .lnk and Save() preserves its old

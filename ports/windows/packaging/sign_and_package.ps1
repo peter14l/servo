@@ -1,6 +1,10 @@
-# Sign binaries with self-signed certificate and prepare installable package
+# Sign binaries with a trusted CA certificate (or self-signed preview fallback) and prepare installable package
 param(
-    [string]$DistDir = "dist/servo-windows-browser"
+    [string]$DistDir = "dist/servo-windows-browser",
+    [string]$CertThumbprint = "",
+    [string]$PfxPath = "",
+    [string]$PfxPassword = "",
+    [string]$TimestampServer = "http://timestamp.digicert.com"
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,25 +17,42 @@ if (-not (Test-Path $DistDir)) {
     throw "Distribution directory not found: $DistDir"
 }
 
-# 1. Generate Self-Signed Code-Signing Certificate
-Write-Host "[1/3] Generating Self-Signed Code-Signing Certificate..." -ForegroundColor Yellow
+# 1. Resolve Code-Signing Certificate (Trusted CA if supplied, else self-signed preview)
+Write-Host "[1/3] Resolving Code-Signing Certificate..." -ForegroundColor Yellow
 $Cert = $null
+$IsSelfSigned = $false
 try {
     if (-not (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue)) {
         New-PSDrive -Name Cert -PSProvider Certificate -Root "\" -ErrorAction SilentlyContinue | Out-Null
     }
-    $Cert = New-SelfSignedCertificate `
-        -Type CodeSigningCert `
-        -Subject "CN=Servo Browser, O=Servo Project" `
-        -CertStoreLocation "Cert:\CurrentUser\My" `
-        -NotAfter (Get-Date).AddYears(5) `
-        -ErrorAction Stop
+    if ($PfxPath -and (Test-Path $PfxPath)) {
+        $secPwd = if ($PfxPassword) { ConvertTo-SecureString $PfxPassword -AsPlainText -Force } else { $null }
+        $Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($PfxPath, $secPwd)
+        Write-Host "      Loaded PFX signing certificate from $PfxPath" -ForegroundColor Green
+    } elseif ($CertThumbprint) {
+        $Cert = Get-ChildItem -Path "Cert:\CurrentUser\My\$CertThumbprint" -ErrorAction SilentlyContinue
+        if (-not $Cert) {
+            $Cert = Get-ChildItem -Path "Cert:\LocalMachine\My\$CertThumbprint" -ErrorAction SilentlyContinue
+        }
+        if ($Cert) {
+            Write-Host "      Loaded certificate store thumbprint $CertThumbprint" -ForegroundColor Green
+        }
+    }
+    if (-not $Cert) {
+        $IsSelfSigned = $true
+        $Cert = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject "CN=Servo Browser, O=Servo Project" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -NotAfter (Get-Date).AddYears(5) `
+            -ErrorAction Stop
 
-    $CertPath = Join-Path $DistDir "ServoBrowser.cer"
-    Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
-    Write-Host "      Exported public certificate to $CertPath" -ForegroundColor Green
+        $CertPath = Join-Path $DistDir "ServoBrowser.cer"
+        Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
+        Write-Host "      Exported self-signed preview certificate to $CertPath" -ForegroundColor Green
+    }
 } catch {
-    Write-Warning "Could not create self-signed certificate: $_"
+    Write-Warning "Could not resolve or create signing certificate: $_"
 }
 
 # 2. Sign Binaries (Authenticode)
@@ -46,7 +67,11 @@ if ($Cert) {
     foreach ($Bin in $Binaries) {
         if (Test-Path $Bin) {
             try {
-                $sig = Set-AuthenticodeSignature -FilePath $Bin -Certificate $Cert -HashAlgorithm SHA256
+                if (-not $IsSelfSigned -and $TimestampServer) {
+                    $sig = Set-AuthenticodeSignature -FilePath $Bin -Certificate $Cert -HashAlgorithm SHA256 -TimestampServer $TimestampServer
+                } else {
+                    $sig = Set-AuthenticodeSignature -FilePath $Bin -Certificate $Cert -HashAlgorithm SHA256
+                }
                 Write-Host "      Signed: $Bin (Status: $($sig.Status))" -ForegroundColor Green
             } catch {
                 Write-Warning "Failed to sign $Bin : $_"

@@ -504,12 +504,14 @@ void test_fluent_theme_tokens_and_icons() {
     // Verify dark palette properties
     TEST_ASSERT(dark.LayerBackground == RGB(32, 32, 32), "Dark Mica Alt background token");
     TEST_ASSERT(dark.TextPrimary == RGB(255, 255, 255), "Dark text primary token");
-    TEST_ASSERT(dark.Accent == RGB(96, 205, 255), "Dark WinUI 3 accent color");
+    TEST_ASSERT(dark.Accent == fluent::GetSystemAccentColor(true), "Dark WinUI 3 system accent color");
+    TEST_ASSERT(dark.ControlBorderFocused == dark.Accent, "Dark focus border matches accent");
 
     // Verify light palette properties
     TEST_ASSERT(light.LayerBackground == RGB(243, 243, 243), "Light Mica Alt background token");
     TEST_ASSERT(light.TextPrimary == RGB(0, 0, 0), "Light text primary token");
-    TEST_ASSERT(light.Accent == RGB(0, 95, 184), "Light WinUI 3 accent color");
+    TEST_ASSERT(light.Accent == fluent::GetSystemAccentColor(false), "Light WinUI 3 system accent color");
+    TEST_ASSERT(light.ControlBorderFocused == light.Accent, "Light focus border matches accent");
 
     // Verify Fluent Icons codepoints
     TEST_ASSERT(std::wstring(fluent::icons::Back) == L"\uE72B", "Fluent Back icon");

@@ -41,6 +41,11 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
 
+      - name: Setup .NET SDK (WinUI 3 Shell)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
@@ -160,13 +165,27 @@ jobs:
         run: |
           ctest --test-dir build-browser -C Release --output-on-failure
 
+      - name: Build WinUI 3 Fluent Browser Shell
+        shell: pwsh
+        run: |
+          dotnet publish ports/windows/csharp/ServoBrowser.WinUI.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -o dist/winui-shell
+
       - name: Assemble Distribution Package
         shell: pwsh
         run: |
           $Dist = "dist/servo-windows-browser"
           New-Item -ItemType Directory -Force -Path $Dist
-          
-          # Copy browser executable
+
+          # Copy WinUI 3 shell and Windows App SDK runtime payload
+          if (Test-Path "dist/winui-shell") {
+            Copy-Item "dist/winui-shell/*" -Destination $Dist/ -Recurse -Force
+          }
+
+          # Copy fallback C++ browser executable
           Copy-Item "build-browser/Release/servo_browser.exe" -Destination $Dist/ -ErrorAction SilentlyContinue
           if (-not (Test-Path "$Dist/servo_browser.exe")) {
             Copy-Item "build-browser/servo_browser.exe" -Destination $Dist/

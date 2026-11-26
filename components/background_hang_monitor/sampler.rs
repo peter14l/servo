@@ -22,6 +22,7 @@ impl Sampler for DummySampler {
     }
 }
 
+#[cfg_attr(not(feature = "sampler"), allow(dead_code))]
 pub struct NativeStack {
     instruction_ptrs: [*mut std::ffi::c_void; MAX_NATIVE_FRAMES],
     stack_ptrs: [*mut std::ffi::c_void; MAX_NATIVE_FRAMES],
@@ -39,11 +40,15 @@ impl Default for NativeStack {
 }
 
 impl NativeStack {
+    #[cfg_attr(not(feature = "sampler"), allow(dead_code))]
     #[cfg_attr(
-        any(
-            target_os = "windows",
-            target_env = "ohos",
-            all(target_os = "linux", target_arch = "aarch64")
+        all(
+            feature = "sampler",
+            any(
+                target_os = "windows",
+                target_env = "ohos",
+                all(target_os = "linux", target_arch = "aarch64")
+            )
         ),
         expect(dead_code)
     )]

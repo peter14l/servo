@@ -228,9 +228,9 @@
     "semantic_hash": "8086c3be1aad8e43eaf77d0fdc7d3efc"
   },
   "components/background_hang_monitor/sampler.rs": {
-    "mtime": 1793456483.5075033,
-    "ast_hash": "894db7b9204ef5773b17eb2f5b0ff494",
-    "semantic_hash": "894db7b9204ef5773b17eb2f5b0ff494"
+    "mtime": 1795677830.3306973,
+    "ast_hash": "4ad366e3b2661a1a52ac32319eaad8b8",
+    "semantic_hash": ""
   },
   "components/background_hang_monitor/sampler_linux.rs": {
     "mtime": 1793456483.5085025,
@@ -388,9 +388,9 @@
     "semantic_hash": ""
   },
   "components/constellation/event_loop.rs": {
-    "mtime": 1793456483.5314932,
-    "ast_hash": "a526e485894043be94214af9760002da",
-    "semantic_hash": "a526e485894043be94214af9760002da"
+    "mtime": 1795677571.29795,
+    "ast_hash": "48bdf55149bc6ec2f3b0cc63fe576925",
+    "semantic_hash": ""
   },
   "components/constellation/lib.rs": {
     "mtime": 1793456483.5314932,
@@ -2118,9 +2118,9 @@
     "semantic_hash": "f4a771ceeabf553ba1aa8b7177867423"
   },
   "components/paint/painter.rs": {
-    "mtime": 1793456483.7411659,
-    "ast_hash": "c2122a1595b1802c52a5d1be01e2aee5",
-    "semantic_hash": "c2122a1595b1802c52a5d1be01e2aee5"
+    "mtime": 1795677641.257799,
+    "ast_hash": "f45c77306123a796af8126ba2549d81a",
+    "semantic_hash": ""
   },
   "components/paint/pinch_zoom.rs": {
     "mtime": 1793456483.7411659,
@@ -2676,8 +2676,8 @@
     "semantic_hash": "6e355416c8e8a965d2f65841fdcc245c"
   },
   "components/script/dom/canvas/2d/canvas_state.rs": {
-    "mtime": 1795405512.7280996,
-    "ast_hash": "4eec0c9c3b6d17d2b73bbbe65fd77a51",
+    "mtime": 1795677534.5537384,
+    "ast_hash": "690d6bb0ae06c3e89a89e5ad2b44ea69",
     "semantic_hash": ""
   },
   "components/script/dom/canvas/2d/canvasgradient.rs": {
@@ -2691,9 +2691,9 @@
     "semantic_hash": "51bb320924e09356d116577c23128d68"
   },
   "components/script/dom/canvas/2d/canvasrenderingcontext2d.rs": {
-    "mtime": 1793456483.7664275,
-    "ast_hash": "58f897b5aeaab25ad6d2bafee8292beb",
-    "semantic_hash": "58f897b5aeaab25ad6d2bafee8292beb"
+    "mtime": 1795676539.3540435,
+    "ast_hash": "b3232af8a5c193726e552498ee6c78b9",
+    "semantic_hash": ""
   },
   "components/script/dom/canvas/2d/mod.rs": {
     "mtime": 1793456483.7664275,
@@ -2706,9 +2706,9 @@
     "semantic_hash": "60e2a5d225241aa902ef70814301b78f"
   },
   "components/script/dom/canvas/2d/paintrenderingcontext2d.rs": {
-    "mtime": 1793456483.7673707,
-    "ast_hash": "839c8afa68c059e7fe7425507bf5d5d7",
-    "semantic_hash": "839c8afa68c059e7fe7425507bf5d5d7"
+    "mtime": 1795676429.7353005,
+    "ast_hash": "293a568b74312ff2f8ff8d571ce9ec59",
+    "semantic_hash": ""
   },
   "components/script/dom/canvas/2d/path2d.rs": {
     "mtime": 1793456483.7673707,
@@ -3092,8 +3092,8 @@
     "semantic_hash": "62f1fb2eb5e78211e51df31513120278"
   },
   "components/script/dom/document/document.rs": {
-    "mtime": 1794288128.5946677,
-    "ast_hash": "0d39cd428e9dcdb4e5db70bee5d294fb",
+    "mtime": 1795677541.9297242,
+    "ast_hash": "3f1197f3346c3cfba49bf96f339240ee",
     "semantic_hash": ""
   },
   "components/script/dom/document/document_embedder_controls.rs": {
@@ -3987,9 +3987,9 @@
     "semantic_hash": "e8ac518652675aa4e1735d5fa3dad6a1"
   },
   "components/script/dom/html/embedded_content/htmlvideoelement.rs": {
-    "mtime": 1793456483.8314157,
-    "ast_hash": "0f1f951816a4fb71560549753b6381cf",
-    "semantic_hash": "0f1f951816a4fb71560549753b6381cf"
+    "mtime": 1795677585.4540834,
+    "ast_hash": "bd4fdd4f792046c3bcbaffd5eda1a917",
+    "semantic_hash": ""
   },
   "components/script/dom/html/embedded_content/mod.rs": {
     "mtime": 1793456483.8314157,
@@ -4617,8 +4617,8 @@
     "semantic_hash": "f1bbb6476bdd9a384a5ebf174e323b67"
   },
   "components/script/dom/mod.rs": {
-    "mtime": 1795660614.299693,
-    "ast_hash": "500737b341521b119e4e7118f94a812a",
+    "mtime": 1795677592.5378351,
+    "ast_hash": "0046a8e75967bc545c196b86fe4f970b",
     "semantic_hash": ""
   },
   "components/script/dom/mutationobserver/mod.rs": {
@@ -6477,8 +6477,8 @@
     "semantic_hash": "62fc6f30f103a9df6beb44fe121cf285"
   },
   "components/script/event_loop/script_mutation_observers.rs": {
-    "mtime": 1795405515.367986,
-    "ast_hash": "7fe4ede43a6ebfc4cb8f52e48288a9a1",
+    "mtime": 1795677130.2261536,
+    "ast_hash": "b5a4802d851349235f9625ef54a79b88",
     "semantic_hash": ""
   },
   "components/script/event_loop/script_thread.rs": {
@@ -8900,8 +8900,8 @@
     "semantic_hash": "180d75ead71e7eba36ac5acc2b6cfcbe"
   },
   "components/webgpu/lib.rs": {
-    "mtime": 1795660614.299693,
-    "ast_hash": "cc95d184a78a34d0be50b78a911ab6fd",
+    "mtime": 1795676993.4747074,
+    "ast_hash": "d7f23806b5c6b69a2c3c22d181d1db48",
     "semantic_hash": ""
   },
   "components/webgpu/poll_thread.rs": {
@@ -9315,8 +9315,8 @@
     "semantic_hash": ""
   },
   "ffi/capi/lib.rs": {
-    "mtime": 1795405516.7170749,
-    "ast_hash": "f27ada21f279d0466fba5314876cf8d6",
+    "mtime": 1795674644.0285652,
+    "ast_hash": "d722951e8452b7cb336052f278927ec9",
     "semantic_hash": ""
   },
   "ffi/capi/options.rs": {
@@ -9376,8 +9376,8 @@
     "semantic_hash": "d2640a6356a22696aeefbdb4ac0d69b4"
   },
   "ports/servoshell/crash_handler.rs": {
-    "mtime": 1795643467.855475,
-    "ast_hash": "9ffb4b34ad9c687e3c6a3d611c48bc02",
+    "mtime": 1795673834.7543736,
+    "ast_hash": "2c782dd3fe25414e038ea24d3c9b17fc",
     "semantic_hash": ""
   },
   "ports/servoshell/desktop/accelerated_gl_media.rs": {
@@ -10029,9 +10029,9 @@
     "semantic_hash": "c15b599275f4483a315163394aa5d0d4"
   },
   "python/wpt/run.py": {
-    "mtime": 1793456484.9764767,
-    "ast_hash": "7d29c502dbca6bf564dbc917adcee4f5",
-    "semantic_hash": "7d29c502dbca6bf564dbc917adcee4f5"
+    "mtime": 1795673642.3620815,
+    "ast_hash": "a30cc09a33eab0d8a6f1a62edc03c5df",
+    "semantic_hash": ""
   },
   "python/wpt/test.py": {
     "mtime": 1793456484.9764767,
@@ -10451,8 +10451,8 @@
     "semantic_hash": ""
   },
   "tests/capi/c/test_api.c": {
-    "mtime": 1793456485.3402562,
-    "ast_hash": "981893e896f1de66eea07f3a27f1dd02",
+    "mtime": 1795673884.982474,
+    "ast_hash": "d6f75e9530fef992994675f8bbbff6e0",
     "semantic_hash": ""
   },
   "tests/capi/c/test_integration.c": {
@@ -10865,8 +10865,8 @@
     "semantic_hash": ""
   },
   "ffi/capi/protocol_handler.rs": {
-    "mtime": 1795405516.738294,
-    "ast_hash": "a9c50307a0c4758909e0bc4b97799cf3",
+    "mtime": 1795674707.0782793,
+    "ast_hash": "143de50d679ac7d84daea56146a94c9f",
     "semantic_hash": ""
   },
   "ffi/capi/request_context.rs": {
@@ -11501,8 +11501,8 @@
     "semantic_hash": ""
   },
   "docs/embedding/ABI_STABILITY.md": {
-    "mtime": 1793456484.1765668,
-    "ast_hash": "0ec09defb3999ae7e25cf1572c5ed3f0",
+    "mtime": 1795674725.8471742,
+    "ast_hash": "f02779453e62524ba35b268eb8b040a1",
     "semantic_hash": ""
   },
   "docs/embedding/ACCESSIBILITY_AND_PRINTING.md": {
@@ -12280,16 +12280,6 @@
     "ast_hash": "94b74ab099e22c2cab77a2485627a0b2",
     "semantic_hash": ""
   },
-  "components/script/dom/eme/clearkey.rs": {
-    "mtime": 1795405513.136863,
-    "ast_hash": "702dcc2fc6c3dec15107e1cd2685b6f6",
-    "semantic_hash": ""
-  },
-  "components/script/dom/eme/mod.rs": {
-    "mtime": 1795405513.137876,
-    "ast_hash": "dea8f5905cb06f64aaec69d0c530eace",
-    "semantic_hash": ""
-  },
   "components/script/dom/svg/svganimationelement.rs": {
     "mtime": 1795660614.3102534,
     "ast_hash": "e500c47ca97963f5cd6b0d34efd4bdcc",
@@ -12381,13 +12371,13 @@
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_PLAN.md": {
-    "mtime": 1795643352.8648696,
-    "ast_hash": "016d033d98256590ccddfee3907e5018",
+    "mtime": 1795675001.8995607,
+    "ast_hash": "32c291787c860b9983c70d051e9bccf4",
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_TRACKER.md": {
-    "mtime": 1795661033.8408546,
-    "ast_hash": "563d9517b69df7e32f31f6497041ff1f",
+    "mtime": 1795674984.4754698,
+    "ast_hash": "fbec3059b7017383e65bcff4fa2f7834",
     "semantic_hash": ""
   },
   "docs/embedding/OBSERVABILITY_EVIDENCE.md": {

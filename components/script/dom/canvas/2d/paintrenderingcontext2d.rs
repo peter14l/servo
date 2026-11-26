@@ -15,7 +15,7 @@ use webrender_api::units::DevicePixel;
 
 use super::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
-    CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
+    CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin, PredefinedColorSpace,
 };
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
@@ -49,7 +49,8 @@ pub(crate) struct PaintRenderingContext2D {
 impl PaintRenderingContext2D {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(global: &PaintWorkletGlobalScope) -> Option<PaintRenderingContext2D> {
-        let canvas_state = CanvasState::new(global.upcast(), Size2D::zero())?;
+        let canvas_state =
+            CanvasState::new(global.upcast(), Size2D::zero(), PredefinedColorSpace::Srgb)?;
         let image_cache = global.image_cache();
         let image_key = image_cache.get_image_key()?;
         canvas_state.set_image_key(image_key);

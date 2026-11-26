@@ -97,8 +97,11 @@ impl CanvasRenderingContext2D {
         size: Size2D<u32>,
         settings: &CanvasRenderingContext2DSettings,
     ) -> Option<CanvasRenderingContext2D> {
-        let canvas_state =
-            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64))?;
+        let canvas_state = CanvasState::new(
+            global,
+            Size2D::new(size.width as u64, size.height as u64),
+            settings.colorSpace,
+        )?;
         Some(CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas,

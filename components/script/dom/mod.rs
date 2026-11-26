@@ -369,7 +369,3 @@ pub(crate) mod xmlhttprequest;
 pub(crate) use self::xmlhttprequest::*;
 pub(crate) mod xpath;
 pub(crate) use self::xpath::*;
-#[cfg(feature = "eme")]
-pub(crate) mod eme;
-#[cfg(feature = "eme")]
-pub(crate) use self::eme::*;

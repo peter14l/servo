@@ -224,7 +224,6 @@ pub(super) struct CanvasState {
     #[no_trace]
     current_default_path: DomRefCell<Path>,
     /// <https://html.spec.whatwg.org/multipage/#concept-canvas-color-space>
-    #[no_trace]
     color_space: PredefinedColorSpace,
 
     /// Buffered sender for batching canvas commands.
@@ -331,7 +330,7 @@ impl CanvasState {
     fn to_canvas_color_space(&self, color: AbsoluteColor) -> AbsoluteColor {
         let target = match self.color_space {
             PredefinedColorSpace::Srgb => ColorSpace::Srgb,
-            PredefinedColorSpace::DisplayP3 => ColorSpace::DisplayP3,
+            PredefinedColorSpace::Display_p3 => ColorSpace::DisplayP3,
         };
         color.to_color_space(target)
     }
@@ -970,7 +969,54 @@ impl CanvasState {
                         },
                     }
                 },
-                _ => {},
+                #[cfg(feature = "webgl")]
+                RenderingContext::WebGL(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_command(CanvasCommand::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
+                #[cfg(feature = "webgl")]
+                RenderingContext::WebGL2(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_command(CanvasCommand::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
+                #[cfg(feature = "webgpu")]
+                RenderingContext::WebGPU(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_command(CanvasCommand::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
             }
         } else {
             self.send_canvas_command(CanvasCommand::DrawEmptyImage(

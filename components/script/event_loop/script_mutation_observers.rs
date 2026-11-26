@@ -5,13 +5,11 @@
 use std::cell::Cell;
 
 use js::context::JSContext;
-use malloc_size_of::MallocSizeOf;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
-use crate::JSTraceable;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
 use crate::runtime::job_queue::{MicrotaskRunnable, NotifyMutationObserversMicrotask, enqueue};
 

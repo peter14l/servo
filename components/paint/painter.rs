@@ -18,6 +18,8 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
+#[cfg(any(feature = "webgl", feature = "webgpu"))]
+use paint_api::WebRenderImageHandlerType;
 use paint_api::display_list::{
     PaintDisplayListInfo, PaintTimingInfo, PaintTimingReport, ScrollType,
 };
@@ -25,7 +27,7 @@ use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
     ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableDisplayListPayload,
-    SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
+    SerializableImageData, WebRenderExternalImageHandlers, WebViewTrait,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;

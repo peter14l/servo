@@ -75,6 +75,35 @@ namespace ServoBrowser.WinUI
                     // keep session history compact for heavy SPAs.
                     ServoCapi.servo_preferences_set_i64(prefs, "js_mem_max", 2048);
                     ServoCapi.servo_preferences_set_i64(prefs, "session_history_max_length", 5);
+
+                    // Modern web platform & animation parity (matching ports/windows/src/main.cpp).
+                    ServoCapi.servo_preferences_set_bool(prefs, "network_use_webpki_roots", true);
+                    ServoCapi.servo_preferences_set_i64(prefs, "network_connection_timeout", 30);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_indexeddb_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_storage_manager_api_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_cookiestore_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_crypto_subtle_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_fontface_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_async_clipboard_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_offscreen_canvas_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_permissions_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_webgl2_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_visual_viewport_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_adoptedstylesheet_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_composition_event_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_credential_management_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_web_animations_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_entries_api_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_wakelock_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_webrtc_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_webrtc_transceiver_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_notification_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "dom_gamepad_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "layout_variable_fonts_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "layout_writing_mode_enabled", true);
+
                     ServoCapi.servo_builder_set_preferences(builder, prefs);
                     ServoCapi.servo_preferences_free(prefs);
                 }

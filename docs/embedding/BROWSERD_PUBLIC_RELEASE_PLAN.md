@@ -234,7 +234,10 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-4 — Security / stability
 
-- **State:** `NOT_CONFIRMED`.
+- **State:** `FAILED` on this release candidate (2026-11-26). `check_ffi_panic_boundary.py`
+  found 16 unwrapped `extern "C"` entry points and `cargo deny check` found duplicate
+  `mach2` versions. See tracker §6; no suppression was applied and no local build was run
+  after the operator instruction not to run heavy work.
 - **Prerequisites:** REL-2; `W2.x` security tickets.
 - **Touch points:** `SECURITY_AUDIT.md` §5/§8, `HARDENING_PLAN.md`,
   `.github/workflows/fuzzing.yml`.

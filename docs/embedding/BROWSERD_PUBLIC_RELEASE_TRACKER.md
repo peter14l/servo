@@ -1,6 +1,6 @@
 # browserd — Public Release Readiness Progress Tracker
 
-Status: **Living tracker** · Baseline: `5461673d1e9` (CI/WPT PASSED) · Written: 2026-11-24
+Status: **Living tracker** · Baseline: `5461673d1e9` (CI/WPT PASSED) · Written: 2026-11-24 · Last gate attempt: 2026-11-26
 
 This tracker records the gates that must be satisfied before `browserd` is offered for
 **public** use. It is deliberately separate from the CI/WPT work that preceded it: a
@@ -101,7 +101,7 @@ they provide a prerequisite.
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
 | **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
 | **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (steps 1–2 `DONE`; smoke `PASSED`; WPT delta pending) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); `SITE_SMOKETEST_REPORT.md` (run `45428660357`); `WPT_TRIAGE.md` |
-| **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
+| **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `FAILED` (FFI panic boundary + `cargo deny` bans) | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `BLOCKED` (measurements `DONE`, threshold gate not run) | REL-0, W5.6/W5.7 | `PERFORMANCE_BASELINE.md`; bencher token + Windows perf + leak evidence |
 | **REL-6** | Distribution (signed artifacts, installers, update story) | L | `NOT_CONFIRMED` | REL-1, REL-2, W5.3/W3.4 | Release workflow artifacts from successful runs only |
 | **REL-7** | Observability (size, startup, throughput, crash telemetry) | M | `BLOCKED` (metrics `DONE`; crash telemetry missing) | REL-4 | `OBSERVABILITY_EVIDENCE.md`; opt-in crash pipeline |
@@ -186,10 +186,23 @@ other multiplatform work is additive and must not regress the Windows path. A ga
   delta. REL-3 becomes `PASSED` only after that delta is measured with no unexplained hacks.
 
 ### REL-4 — Security / stability
-- **State:** `NOT_CONFIRMED`.
-- **Next action:** read `SECURITY_AUDIT.md` §5 / §8 and `HARDENING_PLAN.md`; close the
-  sandbox-honesty and reachable-panic items; verify the scheduled fuzzing workflow actually
-  runs with valid CLI syntax.
+- **State:** `FAILED` on this release candidate. Two locally executable subchecks found
+  genuine defects; neither was suppressed.
+- **Attempted 2026-11-26:** `python etc/ci/check_ffi_panic_boundary.py` exited `1` with
+  **16 of 257** exported `extern "C"` functions unwrapped (a Rust panic could cross the FFI
+  boundary): `servo_capi_version`, `servo_capi_get_version`,
+  `servo_capi_platform_name`, `servo_capi_is_multiprocess_enabled`,
+  `servo_capi_is_sandboxing_supported`, 10 `servo_web_resource_*` getters/setters and
+  `servo_web_resource_load_get_request`. `cargo deny check` exited `1` with
+  `advisories ok, bans FAILED, licenses ok, sources ok`: two `mach2` versions (`0.4.3`
+  and `0.7.0`) are present in this branch's `Cargo.lock`, introduced by the local
+  `minidump-writer 0.10.2` / `crash-context 0.6.3` crash-handler work; the origin lock has
+  only `mach2 0.7.0`.
+- **Next action:** wrap the 16 FFI entry points in `ServoError::catch_ffi*`, then resolve
+  the duplicate `mach2` by upgrading/aligning the minidump stack (requires a real build).
+  Read `SECURITY_AUDIT.md` §5 / §8 and `HARDENING_PLAN.md`; close the sandbox-honesty and
+  reachable-panic items; verify the scheduled fuzzing workflow actually runs with valid CLI
+  syntax. No local build was attempted after the operator instruction not to run heavy work.
 
 ### REL-5 — Performance
 - **State:** `BLOCKED` — measurements are recorded, but no threshold comparison ran.
@@ -253,3 +266,36 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 | 2026-11-24 | REL-5 measurements published in `PERFORMANCE_BASELINE.md` (Speedometer 5.5637 ± 0.1620; Layout mean 106.8 ms, Renderer mean 129.6 ms, FP/FCP mean 1.060 s), but the bencher threshold submission failed on a missing token and was masked by `continue-on-error: true`. No pass claimed; no Windows or leak evidence. REL-5 → `BLOCKED`. | Jobs `138599279029`, `138599178752`; artifact `14941829764` |
 | 2026-11-24 | REL-7 evidence published in `OBSERVABILITY_EVIDENCE.md`: clean three-platform metrics report from run `45371749676` (`ceade17166`, artifact `14910991391`); no crash telemetry or opt-in pipeline. REL-7 → `BLOCKED`. | Run `45371749676`; job `138376090700` |
 | 2026-11-25 | REL-3 step 2 executed `PASSED`: fixed five-site smoke run against the installed browser from successful run `45428660357` / artifact `14943064230` (binary reports `Servo 0.7.0-fd4655eb3`). All five sites `PASS` with five 1280×740 screenshots and harness exit `0`. Four harness/provenance defects found en route (`SMOKE-001`–`004`) were fixed and recorded; the invalid all-`TIMEOUT` installer run was discarded. REL-3 stays `IN_PROGRESS` pending the strict WPT delta. | `SITE_SMOKETEST_REPORT.md`, `site_smoketest.json`, `site_smoke_shots/`, `WPT_TRIAGE.md` |
+| 2026-11-26 | Release-candidate capture: committed all tracked + untracked work (`cd73716ed87`), merged `origin/private-search-isolation` by merge commit (`5eb4b20f987`, no rebase/force), and reconciled C API version/preview caveats (`45c72d20628`). No public-release sign-off. | Local `git` history |
+| 2026-11-26 | Gate attempts on the release candidate: tidy defects repaired (CRLF, empty placeholders, scratch tools, license/EOF issues); `cargo deny check` `FAILED` on duplicate `mach2`; FFI panic-boundary check `FAILED` on 16 unwrapped entry points; local C API test `BLOCKED` (no `cargo-c`), CI C API `PASSED` at `bff51f6786c` / run `45648587705`. REL-4 set to `FAILED`. | See §6 |
+| 2026-11-26 | Current-branch CI evidence reviewed: Main `45648587994` (`bff51f6786c`) `FAILED` only at artifact merge (`No artifacts found matching pattern 'cargo-timings-*'`); Main `45638582953` (`dd200ffad2c`) `FAILED` at tidy before repair. Post-repair CI is pending push and is **not** claimed green. | Runs `45648587994`, `45638582953`; job `139341442557` |
+| 2026-11-26 | Tidy repair verified at file level: 139 changed files scanned with 0 file-level errors after CRLF/license/EOF/scratch repairs. `uv run --frozen ruff check` `PASSED` (`[]`), WPT `flake8` `PASSED`, co-author check `PASSED`. Full `mach test-tidy` stayed hung in post-scan tools and was stopped; `pyrefly` still reports 5 platform-specific `resource` errors on Windows. No local formatting subchecks were reached. | Local tidy file-level runner; `ruff`, `flake8`, co-author and `pyrefly` outputs; full tidy shell `sh_215b6a54f001eTI4THIiTYXd5z` |
+
+---
+
+## 6. Release-gate attempt matrix — 2026-11-26 release candidate
+
+This section records **attempts**, not wishes. The candidate is the local branch
+`private-search-isolation` after commits `cd73716ed87`, `5eb4b20f987` and `45c72d20628`,
+plus the tidy-repair commit made after these checks. Heavy local builds/tests were
+explicitly forbidden by the operator, so build-dependent gates were attempted only where a
+CI artifact or an already-generated report existed.
+
+| Gate / check | State | Evidence | Honest conclusion |
+|---|---|---|---|
+| REL-0 strict CI/WPT baseline | `PASSED` (historical) / `NOT_RUN` for this exact RC | `fd4655eb3b6` / run `45428660357`; latest branch runs `45648587994` and `45638582953` failed before this RC | The old baseline remains valid for its commit. The post-repair RC has not been verified in CI; do not carry the old green run forward as if it were this commit. |
+| REL-1 runtime / GPU hardware | `BLOCKED` | No human/GPU checklist artifact | Requires real hardware and a signed manual runbook; cannot be faked by CI or a local lint. |
+| REL-2 C ABI / lifecycle | `NOT_CONFIRMED` | CI run `45648587705` at `bff51f6786c`: `C API (Linux)`, `C API (Windows)`, `C API (macOS)` all `success`; local `cargo test -p servo-capi-tests --locked` `BLOCKED` | Three-platform compile/test success is real, but the reverted lifecycle tests were not re-landed. Local test needs `cargo-c`; the pinned install timed out after 3600 s. No heavy retry was made after the operator instruction. |
+| REL-2 local C API tooling | `FAILED` → `BLOCKED` | `cargo test -p servo-capi-tests --locked` first failed: `no such command: cinstall`; `tests/capi/build.rs:111` panicked. `cargo install cargo-c --version 0.10.23 --locked` timed out; no `cinstall` command installed. | Tooling failure, not a code pass. `cargo install cargo-cinstall` was a wrong crate name and is not usable evidence. |
+| REL-3 real-world / WPT deltas | `IN_PROGRESS` | `docs/embedding/wpt_strict_baseline.json` from `45396797175` / revision `5461673d1e9`: 3,313/3,749 assertions (88.37%), 224/407 harness `OK` (55.04%), 109 harness-`OK` files with failing assertions; five-site smoke `PASSED` in `SITE_SMOKETEST_REPORT.md` | Pass-rate calculator was already executed against the strict artifact and is not re-run locally. Strict WPT delta on this RC is `NOT_RUN`; conformance remains partial. |
+| REL-4 FFI panic boundary | `FAILED` | `python etc/ci/check_ffi_panic_boundary.py` exit `1`; 16/257 exported `extern "C"` functions unwrapped | Genuine finding. No panic may cross the C boundary; no suppression applied. |
+| REL-4 dependency policy | `FAILED` | `cargo-deny 0.22.1`; `cargo deny check` exit `1`: `advisories ok, bans FAILED, licenses ok, sources ok`; `cargo-deny --format=json --all-features check` exit `2` with `code: duplicate` for `mach2 0.4.3` + `0.7` | Genuine finding introduced by the local crash-handler dependency stack; no new ignore/skip added. |
+| REL-4 tidy / hygiene | `FAILED` locally, `BLOCKED` for full gate | `.\mach test-tidy` needed `PYTHONIOENCODING=utf-8`; first real run exposed CRLF, empty placeholders, scratch TOML, license and EOF defects. After repair, the file-level scanner checked 139 changed files with 0 errors; `ruff check` and WPT `flake8` exited `0`; co-author check exited `0`. `pyrefly check` still reports 5 `missing-attribute` errors in `python/wpt/run.py` because Windows has no `resource` module. Full `mach test-tidy` reached 100% file scan, then hung in post-scan tools for ~48 min and was stopped before formatting checks. | Real defects were fixed; the remaining local failure is platform-specific type checking plus a hung post-scan tool. Tidy is not `PASSED`; CI on Linux remains the authority for this gate. |
+| REL-5 performance | `BLOCKED` | `PERFORMANCE_BASELINE.md`; bencher `Send results` failed on missing `--token` under `continue-on-error: true`; no Windows or leak evidence | No threshold comparison occurred. A green job with a masked submission error is not a pass. |
+| REL-6 signed distribution | `NOT_CONFIRMED` | No signed/notarized artifact or clean-VM install record for this RC | Distribution cannot be claimed from a developer-preview branch. |
+| REL-7 observability / telemetry | `BLOCKED` | Three-platform metrics from run `45371749676` / artifact `14910991391`; no opt-in crash pipeline; local crash-handler work is incomplete and breaks dependency policy | Size/startup reporting exists; crash telemetry does not. |
+| REL-8 public sign-off | `BLOCKED` | REL-1 … REL-7 not all `PASSED`; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED` | This branch is developer preview / dogfood only. Do not tag, announce, or describe it as a public release. |
+
+**Overall for this RC:** `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`; multiple subchecks are
+`FAILED`. Pushing the branch publishes the honest preview state; it does not constitute a
+release approval.

@@ -18,6 +18,8 @@ using ServoBrowser.WinUI.Services;
 using Windows.Foundation;
 using Windows.System;
 using WinRT.Interop;
+using DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue;
+using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 
 namespace ServoBrowser.WinUI
 {

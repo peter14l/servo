@@ -346,7 +346,7 @@ namespace ServoBrowser.WinUI.Controls
             _ => string.Empty,
         };
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnLoadStatusChanged(nint webview, int status, nint userData)
         {
             if (TryGetHost(userData, out var host))
@@ -361,7 +361,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnUrlChanged(nint webview, byte* urlPtr, nint userData)
         {
             string url = PtrToUtf8(urlPtr);
@@ -375,7 +375,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnTitleChanged(nint webview, byte* titlePtr, nint userData)
         {
             string title = PtrToUtf8(titlePtr);
@@ -389,7 +389,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnNewFrameReady(nint webview, nint userData)
         {
             if (TryGetHost(userData, out var host) && host._hwnd != nint.Zero && host._visible)
@@ -398,7 +398,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnAnimatingChanged(nint webview, byte animating, nint userData)
         {
             if (TryGetHost(userData, out var host))
@@ -408,7 +408,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnWebViewCrashed(nint webview, byte* reasonPtr, byte* backtracePtr, nint userData)
         {
             string reason = PtrToUtf8(reasonPtr);
@@ -416,7 +416,7 @@ namespace ServoBrowser.WinUI.Controls
             Services.CrashTelemetryService.RecordCrash("WebViewPipelineCrash", $"{reason}\n{backtrace}");
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnFindResult(nint webview, int identifier, int count, nint result, nint userData)
         {
             if (TryGetHost(userData, out var host))
@@ -425,7 +425,7 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnShowAlertDialog(nint webview, byte* messagePtr, nint callback, nint userData)
         {
             string message = PtrToUtf8(messagePtr);

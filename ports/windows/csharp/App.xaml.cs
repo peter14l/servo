@@ -43,7 +43,7 @@ namespace ServoBrowser.WinUI
             }
         }
 
-        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnServoWake()
         {
             s_dispatcherQueue?.TryEnqueue(SpinEventLoopOnce);

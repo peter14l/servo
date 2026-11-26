@@ -100,6 +100,13 @@ namespace Servo.Embedding
         }
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_capi_version();
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool servo_capi_is_sandboxing_supported();
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_builder_create();
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

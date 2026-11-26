@@ -360,10 +360,31 @@ namespace ServoBrowser.WinUI
                 themeCombo.Items.Add("Light");
                 themeCombo.Items.Add("Dark");
 
+                var crashToggle = new ToggleSwitch
+                {
+                    Header = "Opt-in local crash diagnostics (REL-7)",
+                    IsOn = CrashTelemetryService.IsOptedIn,
+                    OnContent = "Enabled (local minidumps only)",
+                    OffContent = "Disabled",
+                };
+
+                bool sandboxed = ServoCapi.servo_capi_is_sandboxing_supported();
+                var statusText = new TextBlock
+                {
+                    Text = $"Developer Preview · OS Renderer Sandbox: {(sandboxed ? "Supported" : "Not available on Windows (mitigations only)")}",
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = 12,
+                };
+
+                var panel = new StackPanel { Spacing = 12 };
+                panel.Children.Add(themeCombo);
+                panel.Children.Add(crashToggle);
+                panel.Children.Add(statusText);
+
                 var dialog = new ContentDialog
                 {
                     Title = "Browser Settings",
-                    Content = themeCombo,
+                    Content = panel,
                     PrimaryButtonText = "Apply",
                     CloseButtonText = "Cancel",
                     XamlRoot = RootGrid.XamlRoot,
@@ -371,6 +392,7 @@ namespace ServoBrowser.WinUI
 
                 if (await dialog.ShowAsync() == ContentDialogResult.Primary)
                 {
+                    CrashTelemetryService.IsOptedIn = crashToggle.IsOn;
                     bool dark = themeCombo.SelectedIndex == 1;
                     RootGrid.RequestedTheme = dark ? ElementTheme.Dark : ElementTheme.Light;
                     foreach (var host in _tabs.Values)

@@ -136,6 +136,7 @@ namespace ServoBrowser.WinUI.Controls
                 NotifyPageTitleChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnTitleChanged,
                 NotifyNewFrameReady = (nint)(delegate* unmanaged[Cdecl]<nint, nint, void>)&OnNewFrameReady,
                 NotifyAnimatingChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte, nint, void>)&OnAnimatingChanged,
+                NotifyCrashed = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, byte*, nint, void>)&OnWebViewCrashed,
                 OnFindResult = (nint)(delegate* unmanaged[Cdecl]<nint, int, int, nint, nint, void>)&OnFindResult,
                 ShowAlertDialog = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, nint, void>)&OnShowAlertDialog,
             };
@@ -405,6 +406,14 @@ namespace ServoBrowser.WinUI.Controls
                 bool isAnimating = animating != 0;
                 host._dispatcher.TryEnqueue(() => host.AnimatingChanged?.Invoke(host._session, isAnimating));
             }
+        }
+
+        [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnWebViewCrashed(nint webview, byte* reasonPtr, byte* backtracePtr, nint userData)
+        {
+            string reason = PtrToUtf8(reasonPtr);
+            string backtrace = PtrToUtf8(backtracePtr);
+            Services.CrashTelemetryService.RecordCrash("WebViewPipelineCrash", $"{reason}\n{backtrace}");
         }
 
         [UnmanagedCallersOnly(CallConventions = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

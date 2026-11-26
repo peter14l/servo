@@ -52,6 +52,7 @@ namespace ServoBrowser.WinUI
         protected override unsafe void OnLaunched(LaunchActivatedEventArgs args)
         {
             s_dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+            Services.CrashTelemetryService.Initialize();
 
             nint builder = ServoCapi.servo_builder_create();
             if (builder != nint.Zero)

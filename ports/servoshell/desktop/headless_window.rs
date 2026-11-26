@@ -174,7 +174,9 @@ impl PlatformWindow for HeadlessWindow {
     }
 
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
-        println!("{message}");
+        // Ignore broken-pipe / closed-stdout errors (e.g. Windows os error 232)
+        // when the parent process or GUI subsystem has closed stdout.
+        let _ = std::io::Write::write_all(&mut std::io::stdout(), format!("{message}\n").as_bytes());
         log::log!(level.into(), "{message}");
     }
 }

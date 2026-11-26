@@ -2140,6 +2140,191 @@ int test_options_handle_validation(void)
     return 0;
 }
 
+/* REL-2: the live-handle registry (ABI_STABILITY.md §4.5) covers every public
+ * handle kind, not just ServoOptions. A bogus address is used only as a key:
+ * the registry looks it up and never dereferences it. */
+int test_builder_handle_lifecycle(void)
+{
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = noop_wake_callback,
+    };
+
+    ServoBuilder* garbage = (ServoBuilder*)(uintptr_t)0x1;
+    if (servo_builder_set_event_loop_waker(garbage, waker) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+    if (servo_builder_free(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_builder_set_event_loop_waker(NULL, waker) != SERVO_ERROR_NULL_ARGUMENT)
+        return 3;
+
+    ServoBuilder* builder = servo_builder_create();
+    if (builder == NULL)
+        return 4;
+    if (servo_builder_set_event_loop_waker(builder, waker) != SERVO_ERROR_OK)
+        return 5;
+    if (servo_builder_free(builder) != SERVO_ERROR_OK)
+        return 6;
+
+    /* Use after free and double free are diagnosed, not dereferenced. */
+    if (servo_builder_set_event_loop_waker(builder, waker) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 7;
+    if (servo_builder_free(builder) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 8;
+    return 0;
+}
+
+int test_rendering_context_handle_lifecycle(void)
+{
+    RenderingContext* garbage = (RenderingContext*)(uintptr_t)0x1;
+    if (servo_rendering_context_present(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+    if (servo_rendering_context_free(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_rendering_context_present(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 3;
+
+    RenderingContext* context = servo_rendering_context_create_software(64, 64);
+    if (context == NULL)
+        return 4;
+    if (servo_rendering_context_free(context) != SERVO_ERROR_OK)
+        return 5;
+
+    /* `present` is deliberately not called on the live context: a software
+     * context has no window to swap. It is safe on a stale handle because the
+     * liveness check returns before the pointer is read. */
+    if (servo_rendering_context_present(context) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 6;
+    if (servo_rendering_context_free(context) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 7;
+    return 0;
+}
+
+int test_request_context_handle_lifecycle(void)
+{
+    ServoProxyConfig config = {
+        .struct_size = sizeof(ServoProxyConfig),
+        .mode = SERVO_PROXY_FIXED_SERVERS,
+        .server = "127.0.0.1:3128",
+        .bypass_list = "localhost",
+    };
+
+    ServoRequestContext* garbage = (ServoRequestContext*)(uintptr_t)0x1;
+    if (servo_request_context_set_proxy_config(garbage, &config) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+    if (servo_request_context_free(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_request_context_set_proxy_config(NULL, &config) != SERVO_ERROR_NULL_ARGUMENT)
+        return 3;
+
+    ServoRequestContext* context = servo_request_context_create();
+    if (context == NULL)
+        return 4;
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_OK)
+        return 5;
+    if (servo_request_context_free(context) != SERVO_ERROR_OK)
+        return 6;
+
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 7;
+    if (servo_request_context_free(context) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 8;
+    return 0;
+}
+
+int test_value_handle_lifecycle(void)
+{
+    int32_t type = SERVO_VALUE_TYPE_INVALID;
+
+    ServoValue* garbage = (ServoValue*)(uintptr_t)0x1;
+    if (servo_value_get_type(garbage, &type) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+    if (servo_value_free(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_value_get_type(NULL, &type) != SERVO_ERROR_NULL_ARGUMENT)
+        return 3;
+
+    ServoValue* value = servo_value_from_json("42");
+    if (value == NULL)
+        return 4;
+    if (servo_value_get_type(value, &type) != SERVO_ERROR_OK)
+        return 5;
+    if (servo_value_free(value) != SERVO_ERROR_OK)
+        return 6;
+
+    if (servo_value_get_type(value, &type) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 7;
+    if (servo_value_free(value) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 8;
+    return 0;
+}
+
+int test_webview_builder_handle_lifecycle(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    ServoWebViewBuilder* garbage = (ServoWebViewBuilder*)(uintptr_t)0x1;
+    if (servo_webview_builder_set_url(garbage, "https://example.com") != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_webview_builder_free(garbage) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 3;
+
+    RenderingContext* context = servo_rendering_context_create_software(64, 64);
+    if (context == NULL)
+        return 4;
+
+    /* The builder consumes `context`, so only `builder` is freed below. */
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 5;
+    if (servo_webview_builder_set_url(builder, "https://example.com") != SERVO_ERROR_OK)
+        return 6;
+    if (servo_webview_builder_free(builder) != SERVO_ERROR_OK)
+        return 7;
+
+    if (servo_webview_builder_set_url(builder, "https://example.com") != SERVO_ERROR_INVALID_ARGUMENT)
+        return 8;
+    if (servo_webview_builder_free(builder) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 9;
+    return 0;
+}
+
+/* The `HandleKind` tag in the registry key stops a live handle of one type
+ * from satisfying another type's entry points. Both casts below are never
+ * dereferenced: the lookup misses before ownership is taken. */
+int test_handle_kind_confusion(void)
+{
+    ServoOptions* options = servo_options_create();
+    if (options == NULL)
+        return 1;
+
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = noop_wake_callback,
+    };
+    if (servo_builder_free((ServoBuilder*)options) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 2;
+    if (servo_builder_set_event_loop_waker((ServoBuilder*)options, waker) !=
+        SERVO_ERROR_INVALID_ARGUMENT)
+        return 3;
+
+    ServoBuilder* builder = servo_builder_create();
+    if (builder == NULL) {
+        servo_options_free(options);
+        return 4;
+    }
+    if (servo_options_free((ServoOptions*)builder) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 5;
+    if (servo_builder_set_options(builder, (ServoOptions*)builder) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 6;
+
+    servo_options_free(options);
+    servo_builder_free(builder);
+    return 0;
+}
+
 /* Test the `struct_size` guard on the by-pointer input structs (W2.5,
  * ABI_STABILITY.md section 3.3): `ServoProxyConfig` and `ServoCookieFilter`
  * are filled in by the embedder, so a caller built against an older header
@@ -3324,6 +3509,12 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_popup_delegate_callback);
     RUN_TEST(test_delegate_struct_size_validation);
     RUN_TEST(test_options_handle_validation);
+    RUN_TEST(test_builder_handle_lifecycle);
+    RUN_TEST(test_rendering_context_handle_lifecycle);
+    RUN_TEST(test_request_context_handle_lifecycle);
+    RUN_TEST(test_value_handle_lifecycle);
+    RUN_TEST(test_webview_builder_handle_lifecycle);
+    RUN_TEST(test_handle_kind_confusion);
     RUN_TEST(test_proxy_config_struct_size_validation);
     RUN_TEST(test_cookie_filter_struct_size_validation);
     RUN_TEST(test_multiprocess_single_process_path);

@@ -188,18 +188,24 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-2 — browserd ABI / lifecycle contract
 
-- **State:** `NOT_CONFIRMED`.
+- **State:** `NOT_CONFIRMED` — handle-registry adoption is committed, six lifecycle tests are
+  re-landed, and the panic-boundary checker is locally clean; CI has not yet verified this set.
 - **Prerequisites:** REL-0; `W5.4` (ABI versioning) from `AGENT_BUILD_PLAN.md`.
 - **Touch points:** `ffi/capi/*`, `tests/capi/c/*`, `docs/embedding/ABI_STABILITY.md`.
 - **Steps:**
-  1. Enumerate every handle browserd touches; for each, state ownership and thread.
-  2. Add C lifecycle tests: create → use → suspend → resume → destroy, plus double-free /
-     use-after-free / bad-argument cases.
-  3. Verify no panic crosses the FFI boundary (`catch_unwind` where needed).
-  4. Confirm versioning rules for pre-1.0 changes are documented.
+  1. `DONE` — enumerate every handle browserd touches; for each, state ownership and thread.
+     `cd73716ed87` registers, checks and unregisters all eight `HandleKind` variants.
+  2. `DONE` locally — re-land six C lifecycle tests: create → use → suspend → resume →
+     destroy, plus double-free / use-after-free / bad-argument cases. They are in
+     `tests/capi/c/test_api.c`, pending CI on Linux, Windows and macOS.
+  3. `DONE` locally — `etc/ci/check_ffi_panic_boundary.py` reports all 257 exported C entry
+     points wrapped; version/capability and protocol-handler callback accessors use panic-only
+     wrappers so `ABI_STABILITY.md` §5.1 thread contracts remain unchanged.
+  4. `DONE` — confirm versioning rules for pre-1.0 changes are documented in
+     `ABI_STABILITY.md` §2.4; C API version source of truth is `0.3.0` in `ffi/capi/lib.rs`.
 - **Acceptance:** lifecycle tests pass in `embedding-api.yml` on all platforms; contract
   documented and linked from `ABI_STABILITY.md`.
-- **Tests:** `tests/capi/c/test_integration.c` additions + CI run id.
+- **Tests:** `tests/capi/c/test_api.c` additions + CI run id.
 - **Gotchas:** generated header is never hand-edited; `symbols.txt` is append-only.
 
 ### REL-3 — Real-world compatibility
@@ -234,18 +240,24 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-4 — Security / stability
 
-- **State:** `FAILED` on this release candidate (2026-11-26). `check_ffi_panic_boundary.py`
-  found 16 unwrapped `extern "C"` entry points and `cargo deny check` found duplicate
-  `mach2` versions. See tracker §6; no suppression was applied and no local build was run
-  after the operator instruction not to run heavy work.
+- **State:** `NOT_CONFIRMED` — the two locally executable failures from 2026-11-26 are
+  repaired locally (panic boundary: 257/257 wrapped; dependency policy: one `mach2 0.6.0`,
+  all `cargo deny` summaries `errors: 0`). CI has not verified the repair yet. The remaining
+  sandbox/site-isolation/fuzzing items are still open. See tracker §6; no suppression was
+  applied and no local build was run after the operator instruction not to run heavy work.
 - **Prerequisites:** REL-2; `W2.x` security tickets.
 - **Touch points:** `SECURITY_AUDIT.md` §5/§8, `HARDENING_PLAN.md`,
   `.github/workflows/fuzzing.yml`.
 - **Steps:**
-  1. Close sandbox-honesty and reachable-panic items from `AGENT_BUILD_PLAN.md`.
+  1. `DONE` locally, CI pending — close the reachable-panic item: all exported `extern "C"`
+     functions have a panic boundary; `ABI_STABILITY.md` §5.1 distinguishes full boundaries
+     from panic-only boundaries for any-thread/callback entry points. Sandbox-honesty and
+     site-isolation caveats remain visible in the tracker and preview notes.
   2. Verify the scheduled fuzzing workflow runs with valid CLI syntax (the known CLI
      syntax fix is out of scope unless the user approves — record it as `BLOCKED`).
   3. Confirm hang monitor, crash handling, and CSP/COOP/CORP/XCTO/TLS review evidence.
+     Crash-handler dependency alignment is local-only evidence; a successful CI build is
+     required before calling this closed.
 - **Acceptance:** audit items have evidence; fuzzing job green; no false capability claims.
 - **Tests:** `embedding-api.yml` + scheduled fuzzing run id.
 - **Gotchas:** do not claim sandboxing where none is applied.

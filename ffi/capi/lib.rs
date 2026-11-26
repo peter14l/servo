@@ -301,6 +301,54 @@ impl ServoError {
             .unwrap_or(ServoError::InternalPanic as i32)
     }
 
+    /// Catch a panic at an FFI boundary without applying the main-thread affinity
+    /// check. For entry points documented as callable from any thread, or from
+    /// the thread invoking a protocol-handler callback.
+    #[inline]
+    pub fn catch_ffi_panic<R, F: FnOnce() -> R>(fallback: R, f: F) -> R {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(fallback)
+    }
+
+    /// Panic-only boundary for a `u32` entry point.
+    #[inline]
+    pub fn catch_ffi_panic_u32<F: FnOnce() -> u32>(f: F) -> u32 {
+        Self::catch_ffi_panic(ServoError::InternalPanic as u32, f)
+    }
+
+    /// Panic-only boundary for a `usize` entry point.
+    #[inline]
+    pub fn catch_ffi_panic_usize<F: FnOnce() -> usize>(f: F) -> usize {
+        Self::catch_ffi_panic(0, f)
+    }
+
+    /// Panic-only boundary for an `i32` entry point.
+    #[inline]
+    pub fn catch_ffi_panic_i32<F: FnOnce() -> i32>(f: F) -> i32 {
+        Self::catch_ffi_panic(ServoError::InternalPanic as i32, f)
+    }
+
+    /// Panic-only boundary for a `bool` entry point.
+    #[inline]
+    pub fn catch_ffi_panic_bool<F: FnOnce() -> bool>(f: F) -> bool {
+        Self::catch_ffi_panic(false, f)
+    }
+
+    /// Panic-only boundary for a const-pointer entry point.
+    #[inline]
+    pub fn catch_ffi_panic_const_ptr<T, F: FnOnce() -> *const T>(f: F) -> *const T {
+        Self::catch_ffi_panic(std::ptr::null(), f)
+    }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return `usize`
+    /// (for example, a buffer length). An off-thread call or a panic returns `0`.
+    #[inline]
+    pub fn catch_ffi_usize<F: FnOnce() -> usize>(f: F) -> usize {
+        if entry_checks::check_main_thread().is_err() {
+            return 0;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(0)
+    }
+
     /// Like [`ServoError::catch_ffi`], for FFI functions that return a raw
     /// pointer. An off-thread call or a panic returns `NULL`.
     #[inline]
@@ -530,7 +578,7 @@ const SERVO_CAPI_VERSION_STRING: &CStr = c"0.3.0";
 /// the header they compiled against reports.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_version() -> *const c_char {
-    SERVO_CAPI_VERSION_STRING.as_ptr()
+    ServoError::catch_ffi_panic_const_ptr(|| SERVO_CAPI_VERSION_STRING.as_ptr())
 }
 
 /// Returns the version of the Servo C API as a packed integer.
@@ -541,7 +589,7 @@ pub extern "C" fn servo_capi_version() -> *const c_char {
 /// `servo_capi_get_version() != SERVO_CAPI_VERSION`.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_get_version() -> u32 {
-    SERVO_CAPI_VERSION
+    ServoError::catch_ffi_panic_u32(|| SERVO_CAPI_VERSION)
 }
 
 /// Returns the name of the platform this build targets.
@@ -556,22 +604,24 @@ pub extern "C" fn servo_capi_get_version() -> u32 {
 #[allow(unreachable_code)]
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_platform_name() -> *const c_char {
-    #[cfg(target_os = "windows")]
-    return c"windows".as_ptr();
-    #[cfg(target_os = "macos")]
-    return c"macos".as_ptr();
-    #[cfg(target_os = "linux")]
-    return c"linux".as_ptr();
-    #[cfg(target_os = "android")]
-    return c"android".as_ptr();
-    #[cfg(target_os = "ios")]
-    return c"ios".as_ptr();
-    #[cfg(target_env = "ohos")]
-    return c"ohos".as_ptr();
+    ServoError::catch_ffi_panic_const_ptr(|| {
+        #[cfg(target_os = "windows")]
+        return c"windows".as_ptr();
+        #[cfg(target_os = "macos")]
+        return c"macos".as_ptr();
+        #[cfg(target_os = "linux")]
+        return c"linux".as_ptr();
+        #[cfg(target_os = "android")]
+        return c"android".as_ptr();
+        #[cfg(target_os = "ios")]
+        return c"ios".as_ptr();
+        #[cfg(target_env = "ohos")]
+        return c"ohos".as_ptr();
 
-    // Fallback for targets not enumerated above. On the targets handled above
-    // this line is unreachable, hence the `allow` on the function.
-    c"unknown".as_ptr()
+        // Fallback for targets not enumerated above. On the targets handled above
+        // this line is unreachable, hence the `allow` on the function.
+        c"unknown".as_ptr()
+    })
 }
 
 /// Returns whether this build was compiled with multi-process support.
@@ -581,7 +631,7 @@ pub extern "C" fn servo_capi_platform_name() -> *const c_char {
 /// platform at runtime (see [`servo_capi_is_sandboxing_supported`]).
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
-    cfg!(feature = "multiprocess")
+    ServoError::catch_ffi_panic_bool(|| cfg!(feature = "multiprocess"))
 }
 
 /// Returns whether the content-process sandbox can be created on this platform
@@ -601,17 +651,19 @@ pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
 /// This predicate mirrors the platforms where a true sandbox profile is activated.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_is_sandboxing_supported() -> bool {
-    cfg!(feature = "multiprocess") &&
-        cfg!(not(any(
-            target_os = "windows",
-            target_os = "ios",
-            target_os = "android",
-            target_arch = "arm",
-            target_arch = "aarch64",
-            target_arch = "riscv32",
-            target_arch = "riscv64",
-            target_env = "ohos",
-        )))
+    ServoError::catch_ffi_panic_bool(|| {
+        cfg!(feature = "multiprocess") &&
+            cfg!(not(any(
+                target_os = "windows",
+                target_os = "ios",
+                target_os = "android",
+                target_arch = "arm",
+                target_arch = "aarch64",
+                target_arch = "riscv32",
+                target_arch = "riscv64",
+                target_env = "ohos",
+            )))
+    })
 }
 
 /// An opaque struct representing builder for a `Servo` instance.

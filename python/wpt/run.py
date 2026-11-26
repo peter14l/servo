@@ -47,19 +47,28 @@ def raise_file_handle_limit() -> None:
     if sys.platform == "win32":
         return
 
-    import resource
+    import importlib
+
+    # `resource` is POSIX-only. Import it dynamically so type checkers running
+    # on Windows do not report missing attributes for a module that cannot
+    # exist there.
+    resource = importlib.import_module("resource")
+    rlimit_nofile = getattr(resource, "RLIMIT_NOFILE")
+    rlim_infinity = getattr(resource, "RLIM_INFINITY")
+    getrlimit = getattr(resource, "getrlimit")
+    setrlimit = getattr(resource, "setrlimit")
 
     try:
         FILE_HANDLE_LIMIT = 8192
-        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        soft_limit, hard_limit = getrlimit(rlimit_nofile)
         # Don't change the value if we would be lowering it.
         if soft_limit > FILE_HANDLE_LIMIT:
             return
-        if soft_limit == resource.RLIM_INFINITY:
+        if soft_limit == rlim_infinity:
             new_soft_limit = FILE_HANDLE_LIMIT
         else:
             new_soft_limit = min(hard_limit, FILE_HANDLE_LIMIT)
-        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
+        setrlimit(rlimit_nofile, (new_soft_limit, hard_limit))
     except Exception as _:
         print("Could not raise the file handle limit")
 

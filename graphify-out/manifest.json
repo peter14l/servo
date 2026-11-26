@@ -9315,8 +9315,8 @@
     "semantic_hash": ""
   },
   "ffi/capi/lib.rs": {
-    "mtime": 1795405516.7170749,
-    "ast_hash": "f27ada21f279d0466fba5314876cf8d6",
+    "mtime": 1795674644.0285652,
+    "ast_hash": "d722951e8452b7cb336052f278927ec9",
     "semantic_hash": ""
   },
   "ffi/capi/options.rs": {
@@ -9376,8 +9376,8 @@
     "semantic_hash": "d2640a6356a22696aeefbdb4ac0d69b4"
   },
   "ports/servoshell/crash_handler.rs": {
-    "mtime": 1795643467.855475,
-    "ast_hash": "9ffb4b34ad9c687e3c6a3d611c48bc02",
+    "mtime": 1795673834.7543736,
+    "ast_hash": "2c782dd3fe25414e038ea24d3c9b17fc",
     "semantic_hash": ""
   },
   "ports/servoshell/desktop/accelerated_gl_media.rs": {
@@ -10029,9 +10029,9 @@
     "semantic_hash": "c15b599275f4483a315163394aa5d0d4"
   },
   "python/wpt/run.py": {
-    "mtime": 1793456484.9764767,
-    "ast_hash": "7d29c502dbca6bf564dbc917adcee4f5",
-    "semantic_hash": "7d29c502dbca6bf564dbc917adcee4f5"
+    "mtime": 1795673642.3620815,
+    "ast_hash": "a30cc09a33eab0d8a6f1a62edc03c5df",
+    "semantic_hash": ""
   },
   "python/wpt/test.py": {
     "mtime": 1793456484.9764767,
@@ -10451,8 +10451,8 @@
     "semantic_hash": ""
   },
   "tests/capi/c/test_api.c": {
-    "mtime": 1793456485.3402562,
-    "ast_hash": "981893e896f1de66eea07f3a27f1dd02",
+    "mtime": 1795673884.982474,
+    "ast_hash": "d6f75e9530fef992994675f8bbbff6e0",
     "semantic_hash": ""
   },
   "tests/capi/c/test_integration.c": {
@@ -10865,8 +10865,8 @@
     "semantic_hash": ""
   },
   "ffi/capi/protocol_handler.rs": {
-    "mtime": 1795405516.738294,
-    "ast_hash": "a9c50307a0c4758909e0bc4b97799cf3",
+    "mtime": 1795674707.0782793,
+    "ast_hash": "143de50d679ac7d84daea56146a94c9f",
     "semantic_hash": ""
   },
   "ffi/capi/request_context.rs": {
@@ -11501,8 +11501,8 @@
     "semantic_hash": ""
   },
   "docs/embedding/ABI_STABILITY.md": {
-    "mtime": 1793456484.1765668,
-    "ast_hash": "0ec09defb3999ae7e25cf1572c5ed3f0",
+    "mtime": 1795674725.8471742,
+    "ast_hash": "f02779453e62524ba35b268eb8b040a1",
     "semantic_hash": ""
   },
   "docs/embedding/ACCESSIBILITY_AND_PRINTING.md": {
@@ -12381,13 +12381,13 @@
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_PLAN.md": {
-    "mtime": 1795643352.8648696,
-    "ast_hash": "016d033d98256590ccddfee3907e5018",
+    "mtime": 1795675001.8995607,
+    "ast_hash": "32c291787c860b9983c70d051e9bccf4",
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_TRACKER.md": {
-    "mtime": 1795661033.8408546,
-    "ast_hash": "563d9517b69df7e32f31f6497041ff1f",
+    "mtime": 1795674984.4754698,
+    "ast_hash": "fbec3059b7017383e65bcff4fa2f7834",
     "semantic_hash": ""
   },
   "docs/embedding/OBSERVABILITY_EVIDENCE.md": {

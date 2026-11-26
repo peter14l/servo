@@ -264,29 +264,31 @@ impl ServoWebResourceResponse {
 pub extern "C" fn servo_web_resource_request_get_method(
     request: *const ServoWebResourceRequest,
 ) -> *const c_char {
-    if request.is_null() {
-        return std::ptr::null();
-    }
-    let request = unsafe { &*request };
-    static GET: &[u8] = b"GET\0";
-    static POST: &[u8] = b"POST\0";
-    static PUT: &[u8] = b"PUT\0";
-    static DELETE: &[u8] = b"DELETE\0";
-    static HEAD: &[u8] = b"HEAD\0";
-    static OPTIONS: &[u8] = b"OPTIONS\0";
-    static PATCH: &[u8] = b"PATCH\0";
-    static OTHER: &[u8] = b"OTHER\0";
+    ServoError::catch_ffi_panic_const_ptr(|| {
+        if request.is_null() {
+            return std::ptr::null();
+        }
+        let request = unsafe { &*request };
+        static GET: &[u8] = b"GET\0";
+        static POST: &[u8] = b"POST\0";
+        static PUT: &[u8] = b"PUT\0";
+        static DELETE: &[u8] = b"DELETE\0";
+        static HEAD: &[u8] = b"HEAD\0";
+        static OPTIONS: &[u8] = b"OPTIONS\0";
+        static PATCH: &[u8] = b"PATCH\0";
+        static OTHER: &[u8] = b"OTHER\0";
 
-    match request.method {
-        Method::GET => GET.as_ptr() as *const c_char,
-        Method::POST => POST.as_ptr() as *const c_char,
-        Method::PUT => PUT.as_ptr() as *const c_char,
-        Method::DELETE => DELETE.as_ptr() as *const c_char,
-        Method::HEAD => HEAD.as_ptr() as *const c_char,
-        Method::OPTIONS => OPTIONS.as_ptr() as *const c_char,
-        Method::PATCH => PATCH.as_ptr() as *const c_char,
-        _ => OTHER.as_ptr() as *const c_char,
-    }
+        match request.method {
+            Method::GET => GET.as_ptr() as *const c_char,
+            Method::POST => POST.as_ptr() as *const c_char,
+            Method::PUT => PUT.as_ptr() as *const c_char,
+            Method::DELETE => DELETE.as_ptr() as *const c_char,
+            Method::HEAD => HEAD.as_ptr() as *const c_char,
+            Method::OPTIONS => OPTIONS.as_ptr() as *const c_char,
+            Method::PATCH => PATCH.as_ptr() as *const c_char,
+            _ => OTHER.as_ptr() as *const c_char,
+        }
+    })
 }
 
 /// Get the URL of the request.
@@ -299,23 +301,25 @@ pub extern "C" fn servo_web_resource_request_get_url(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if request.is_null() {
-        return 0;
-    }
-    let request = unsafe { &*request };
-    let url_str = request.url.as_str();
-    let len = url_str.len() + 1; // +1 for NUL
+    ServoError::catch_ffi_panic_usize(|| {
+        if request.is_null() {
+            return 0;
+        }
+        let request = unsafe { &*request };
+        let url_str = request.url.as_str();
+        let len = url_str.len() + 1; // +1 for NUL
 
-    if buffer.is_null() || buffer_len == 0 {
-        return len;
-    }
+        if buffer.is_null() || buffer_len == 0 {
+            return len;
+        }
 
-    let write_len = std::cmp::min(len, buffer_len);
-    unsafe {
-        std::ptr::copy_nonoverlapping(url_str.as_ptr(), buffer as *mut u8, write_len - 1);
-        *buffer.add(write_len - 1) = 0;
-    }
-    len
+        let write_len = std::cmp::min(len, buffer_len);
+        unsafe {
+            std::ptr::copy_nonoverlapping(url_str.as_ptr(), buffer as *mut u8, write_len - 1);
+            *buffer.add(write_len - 1) = 0;
+        }
+        len
+    })
 }
 
 /// Get a request header value by name.
@@ -330,103 +334,83 @@ pub extern "C" fn servo_web_resource_request_get_header(
     buffer: *mut c_char,
     buffer_len: usize,
 ) -> usize {
-    if request.is_null() || name.is_null() {
-        return 0;
-    }
-    let request = unsafe { &*request };
-    let name_str = match unsafe { std::ffi::CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return 0,
-    };
-
-    let header_name = match HeaderName::from_bytes(name_str.as_bytes()) {
-        Ok(n) => n,
-        Err(_) => return 0,
-    };
-
-    let Some(value) = request.headers.get(&header_name) else {
-        return 0;
-    };
-
-    let value_bytes = value.as_bytes();
-    let len = value_bytes.len() + 1;
-
-    if buffer.is_null() || buffer_len == 0 {
-        return len;
-    }
-
-    let write_len = std::cmp::min(len, buffer_len);
-    unsafe {
-        std::ptr::copy_nonoverlapping(value_bytes.as_ptr(), buffer as *mut u8, write_len - 1);
-        *buffer.add(write_len - 1) = 0;
-    }
-    /// Get the request body data.
-    ///
-    /// Returns the number of bytes in the body if `buffer` is NULL or `buffer_len` is too small.
-    /// Otherwise, copies the body into `buffer` and returns the number of bytes written.
-    #[unsafe(no_mangle)]
-    pub unsafe extern "C" fn servo_web_resource_request_get_body(
-        request: *const ServoWebResourceRequest,
-        buffer: *mut u8,
-        buffer_len: usize,
-    ) -> usize {
-        if request.is_null() {
+    ServoError::catch_ffi_panic_usize(|| {
+        if request.is_null() || name.is_null() {
             return 0;
         }
+        let request = unsafe { &*request };
+        let name_str = match unsafe { std::ffi::CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return 0,
+        };
 
-        let _request = unsafe { &*request };
-        // ServoWebResourceRequest does not currently carry request body bytes.
-        let body: &[u8] = &[];
-        let len = body.len();
+        let header_name = match HeaderName::from_bytes(name_str.as_bytes()) {
+            Ok(n) => n,
+            Err(_) => return 0,
+        };
 
-        if buffer.is_null() || buffer_len < len {
+        let Some(value) = request.headers.get(&header_name) else {
+            return 0;
+        };
+
+        let value_bytes = value.as_bytes();
+        let len = value_bytes.len() + 1;
+
+        if buffer.is_null() || buffer_len == 0 {
             return len;
         }
 
-        if !body.is_empty() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(body.as_ptr(), buffer, len);
-            }
+        let write_len = std::cmp::min(len, buffer_len);
+        unsafe {
+            std::ptr::copy_nonoverlapping(value_bytes.as_ptr(), buffer as *mut u8, write_len - 1);
+            *buffer.add(write_len - 1) = 0;
         }
         len
-    }
-    let _request = unsafe { &*request };
-    // ServoWebResourceRequest does not currently carry request body bytes.
-    let body: &[u8] = &[];
-    let len = body.len();
-
-    if buffer.is_null() || buffer_len < len {
-        return len;
-    }
-
-    if !body.is_empty() {
-        unsafe {
-            std::ptr::copy_nonoverlapping(body.as_ptr(), buffer, len);
-        }
-    }
-    len
+    })
 }
+
+/// Get the request body data.
+///
+/// Returns the number of bytes in the body if `buffer` is NULL or `buffer_len` is too small.
+/// Otherwise, copies the body into `buffer` and returns the number of bytes written.
+#[unsafe(no_mangle)]
+pub extern "C" fn servo_web_resource_request_get_body(
+    request: *const ServoWebResourceRequest,
+    _buffer: *mut u8,
+    _buffer_len: usize,
+) -> usize {
+    ServoError::catch_ffi_panic_usize(|| {
+        if request.is_null() {
+            return 0;
+        }
+        // ServoWebResourceRequest does not currently carry request body bytes.
+        0
+    })
+}
+
 /// Set the response URL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_web_resource_response_set_url(
     response: *mut ServoWebResourceResponse,
     url: *const c_char,
 ) -> i32 {
-    if response.is_null() || url.is_null() {
-        return -1;
-    }
-    let response = unsafe { &mut *response };
-    let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return -1,
-    };
-    match Url::parse(url_str) {
-        Ok(u) => {
-            response.url = u;
-            0
-        },
-        Err(_) => -1,
-    }
+    ServoError::catch_ffi_panic_i32(|| {
+        if response.is_null() || url.is_null() {
+            return -1;
+        }
+        let response = unsafe { &mut *response };
+        let url_str = match unsafe { std::ffi::CStr::from_ptr(url) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        };
+        match Url::parse(url_str) {
+            Ok(u) => {
+                response.url = u;
+                0
+            },
+            Err(_) => -1,
+        }
+    })
 }
 
 /// Set the response status code.
@@ -436,21 +420,23 @@ pub unsafe extern "C" fn servo_web_resource_response_set_status(
     status_code: u16,
     status_message: *const c_char,
 ) -> i32 {
-    if response.is_null() {
-        return -1;
-    }
-    let response = unsafe { &mut *response };
-    match StatusCode::from_u16(status_code) {
-        Ok(sc) => {
-            response.status_code = sc;
-            if !status_message.is_null() {
-                let msg = unsafe { std::ffi::CStr::from_ptr(status_message) }.to_bytes();
-                response.status_message = msg.to_vec();
-            }
-            0
-        },
-        Err(_) => -1,
-    }
+    ServoError::catch_ffi_panic_i32(|| {
+        if response.is_null() {
+            return -1;
+        }
+        let response = unsafe { &mut *response };
+        match StatusCode::from_u16(status_code) {
+            Ok(sc) => {
+                response.status_code = sc;
+                if !status_message.is_null() {
+                    let msg = unsafe { std::ffi::CStr::from_ptr(status_message) }.to_bytes();
+                    response.status_message = msg.to_vec();
+                }
+                0
+            },
+            Err(_) => -1,
+        }
+    })
 }
 
 /// Set a response header.
@@ -460,30 +446,32 @@ pub unsafe extern "C" fn servo_web_resource_response_set_header(
     name: *const c_char,
     value: *const c_char,
 ) -> i32 {
-    if response.is_null() || name.is_null() || value.is_null() {
-        return -1;
-    }
-    let response = unsafe { &mut *response };
-    let name_str = match unsafe { std::ffi::CStr::from_ptr(name) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return -1,
-    };
-    let value_str = match unsafe { std::ffi::CStr::from_ptr(value) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return -1,
-    };
+    ServoError::catch_ffi_panic_i32(|| {
+        if response.is_null() || name.is_null() || value.is_null() {
+            return -1;
+        }
+        let response = unsafe { &mut *response };
+        let name_str = match unsafe { std::ffi::CStr::from_ptr(name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        };
+        let value_str = match unsafe { std::ffi::CStr::from_ptr(value) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        };
 
-    let header_name = match HeaderName::from_bytes(name_str.as_bytes()) {
-        Ok(n) => n,
-        Err(_) => return -1,
-    };
-    let header_value = match HeaderValue::from_bytes(value_str.as_bytes()) {
-        Ok(v) => v,
-        Err(_) => return -1,
-    };
+        let header_name = match HeaderName::from_bytes(name_str.as_bytes()) {
+            Ok(n) => n,
+            Err(_) => return -1,
+        };
+        let header_value = match HeaderValue::from_bytes(value_str.as_bytes()) {
+            Ok(v) => v,
+            Err(_) => return -1,
+        };
 
-    response.headers.insert(header_name, header_value);
-    0
+        response.headers.insert(header_name, header_value);
+        0
+    })
 }
 
 /// Set the response body data.
@@ -493,31 +481,39 @@ pub unsafe extern "C" fn servo_web_resource_response_set_body(
     data: *const u8,
     data_len: usize,
 ) -> i32 {
-    if response.is_null() {
-        return -1;
-    }
-    let response = unsafe { &mut *response };
-    if data.is_null() && data_len > 0 {
-        return -1;
-    }
-    response.body = if data.is_null() {
-        Vec::new()
-    } else {
-        unsafe { std::slice::from_raw_parts(data, data_len).to_vec() }
-    };
-    0
+    ServoError::catch_ffi_panic_i32(|| {
+        if response.is_null() {
+            return -1;
+        }
+        let response = unsafe { &mut *response };
+        if data.is_null() && data_len > 0 {
+            return -1;
+        }
+        response.body = if data.is_null() {
+            Vec::new()
+        } else {
+            unsafe { std::slice::from_raw_parts(data, data_len).to_vec() }
+        };
+        0
+    })
 }
 
 /// Free a web resource request (no-op, request is owned by Servo).
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_web_resource_request_free(_request: *mut ServoWebResourceRequest) {
-    // No-op: the request is owned by Servo and should not be freed by the embedder.
+    let _ = ServoError::catch_ffi_panic(ServoError::Ok, || {
+        // No-op: the request is owned by Servo and should not be freed by the embedder.
+        ServoError::Ok
+    });
 }
 
 /// Free a web resource response (no-op, response is owned by the embedder but allocated on stack).
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_web_resource_response_free(_response: *mut ServoWebResourceResponse) {
-    // No-op: the response is typically stack-allocated or owned by the embedder.
+    let _ = ServoError::catch_ffi_panic(ServoError::Ok, || {
+        // No-op: the response is typically stack-allocated or owned by the embedder.
+        ServoError::Ok
+    });
 }
 
 /// Get the request associated with this resource load.
@@ -527,11 +523,13 @@ pub extern "C" fn servo_web_resource_response_free(_response: *mut ServoWebResou
 pub unsafe extern "C" fn servo_web_resource_load_get_request(
     load: *const ServoWebResourceLoad,
 ) -> *const ServoWebResourceRequest {
-    if load.is_null() {
-        return std::ptr::null();
-    }
-    let load = unsafe { &*load };
-    &load.request as *const _
+    ServoError::catch_ffi_panic_const_ptr(|| {
+        if load.is_null() {
+            return std::ptr::null();
+        }
+        let load = unsafe { &*load };
+        &load.request as *const _
+    })
 }
 
 /// Begin intercepting this resource load with the given response headers and status code.

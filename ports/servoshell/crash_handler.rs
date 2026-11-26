@@ -285,14 +285,15 @@ pub fn install() {
 fn write_minidump_unix(path: &std::path::Path) -> std::io::Result<()> {
     #[cfg(target_os = "linux")]
     {
-        use minidump_writer::minidump_writer::MinidumpWriter;
+        use minidump_writer::minidump_writer::MinidumpWriterConfig;
         let mut file = std::fs::File::create(path)?;
         // The blamed thread is used both as the crashing-thread id in the
         // exception stream and for the `/proc/<tid>/…` process info streams,
         // so it must be the TID of the thread that received the signal.
         let tid = unsafe { libc::syscall(libc::SYS_gettid) } as i32;
-        let mut writer = MinidumpWriter::new(std::process::id() as i32, tid);
-        writer.dump(&mut file).map_err(std::io::Error::other)?;
+        MinidumpWriterConfig::new(std::process::id() as i32, tid)
+            .write(&mut file)
+            .map_err(std::io::Error::other)?;
         return Ok(());
     }
     #[cfg(target_os = "macos")]

@@ -444,13 +444,16 @@ called from it. A call from any other thread returns `SERVO_ERROR_WRONG_THREAD`
 (-10). This check is compiled into release builds (a check that disappears in
 release is a footgun) and costs one uncontended mutex acquisition per call.
 
-Not every exported function goes through the boundary. The following apply:
+Not every exported function goes through the main-thread boundary. Every exported
+function does have a panic boundary, but two kinds use the panic-only
+`ServoError::catch_ffi_panic*` helpers, which catch unwinding without claiming
+the owning thread:
 
-| Entry points | Thread | Notes |
-|-------------|--------|-------|
-| Functions wrapped by `ServoError::catch_ffi*` (the majority) | owning thread; **enforced** | These touch `Rc`-based handles or process-global Servo state. |
-| `servo_capi_version`, `servo_capi_get_version`, `servo_capi_platform_name`, `servo_capi_is_multiprocess_enabled`, `servo_capi_is_sandboxing_supported` | any thread | Pure functions over compile-time constants; no Servo state. |
-| `servo_web_resource_request_get_*`, `servo_web_resource_response_set_*`, `servo_web_resource_load_get_request`, `servo_web_resource_request_free`, `servo_web_resource_response_free` (plain accessors) | the thread invoking the callback (possibly a network/background thread) | These are called directly from a protocol handler or delegate callback; they do not go through the main-thread boundary. |
+| Entry points | Thread | Panic boundary | Notes |
+|-------------|--------|----------------|-------|
+| Functions wrapped by `ServoError::catch_ffi*` (the majority) | owning thread; **enforced** | full: thread check + unwind catch | These touch `Rc`-based handles or process-global Servo state. |
+| `servo_capi_version`, `servo_capi_get_version`, `servo_capi_platform_name`, `servo_capi_is_multiprocess_enabled`, `servo_capi_is_sandboxing_supported` | any thread | panic-only | Pure functions over compile-time constants; no Servo state. A background thread must not become the owning thread just by asking for the version. |
+| `servo_web_resource_request_get_*`, `servo_web_resource_response_set_*`, `servo_web_resource_load_get_request`, `servo_web_resource_request_free`, `servo_web_resource_response_free` (plain accessors) | the thread invoking the callback (possibly a network/background thread) | panic-only | These are called directly from a protocol handler or delegate callback; they do not go through the main-thread boundary. |
 
 The five `servo_web_resource_load_*` streaming functions do go through the
 boundary and are therefore owning-thread only: drive the streaming continuation

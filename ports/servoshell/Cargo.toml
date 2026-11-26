@@ -102,7 +102,7 @@ servo-allocator = { workspace = true, features = ["use-jemalloc"] }
 
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
-minidump-writer = "0.10"
+minidump-writer = "0.13"
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
 

@@ -52,18 +52,19 @@ Use exactly the tracker's states from `BROWSERD_PUBLIC_RELEASE_TRACKER.md` §1:
 | Fact | Value |
 |---|---|
 | Repo | `E:\servo`, remote `https://github.com/peter14l/servo.git` |
-| Working tree | `E:\servo` contains un-committed user work — never stage or commit it |
-| Isolated worktree | `C:\Users\LOQ\AppData\Local\Temp\opencode\servo-ci-fix` on `fix/ci-jobs` |
+| Current branch | `private-search-isolation` (developer preview / dogfood only) |
+| Working tree | The operator requires all dirty tracked and untracked paths to be committed and pushed; no work is left intentionally uncommitted |
+| Isolated worktree | Not used for this preview cycle; all verification runs are from `private-search-isolation` |
 | Last fully verified clean Main/WPT | `fd4655eb3b6`, Main run `45428660357` (includes WPT suite re-enables); 0 failures/cancellations |
 | Earlier clean baseline (pre-re-enable) | `5461673d1e9`, runs `45396796842` / `45396797175` |
-| Current pushed `main` | `687b6ed7d7` (revert + WPT baseline docs); differs from the verified commit only in docs and `etc/ci/wpt_pass_rate.py` |
+| Release-candidate HEAD | `e640ce8f8d0` after the compat-triage evidence commit; see the tracker change log for CI runs at this line |
 | Flagship shell | Windows + WinUI 3; Android/multiplatform is additive only |
 | `gh` CLI | authenticated as `peter14l` |
 
-Never stage or commit `graphify-out/` or `.project/`. A dirty `graphify-out/` after hooks
-is expected; it is not a reason to skip the graph. For codebase questions, run
-`graphify query "<question>"` before raw grep/source reads, and `graphify update .` after
-code changes.
+`graphify-out/` is rebuilt with `graphify update .` after code changes and is committed on
+this branch by explicit operator instruction; a large diff in `graph.json` is expected and
+is not evidence of churn. `.project/` is not touched. For codebase questions, run
+`graphify query "<question>"` before raw grep/source reads.
 
 ### 1.2 Build and verification reality — read twice
 
@@ -210,8 +211,9 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
 
 ### REL-3 — Real-world compatibility
 
-- **State:** `IN_PROGRESS` (steps 1 and 2 `DONE`; step 3 pending). The smoke set passed;
-  REL-3 is not `PASSED` until the strict WPT delta is measured.
+- **State:** `IN_PROGRESS` (steps 1 and 2 `DONE`; deeper `compat-v1` probe found four
+  failures, one renderer fix is committed but CI-pending, and the strict WPT delta is
+  pending). The load smoke set passed; REL-3 is not `PASSED` until the delta is measured.
 - **Prerequisites:** REL-0; W1 (WPT) workstream.
 - **Touch points:** WPT baseline report, real-site runbook, `docs/embedding/PARITY_MATRIX.md`.
 - **Steps:**
@@ -229,12 +231,20 @@ green. REL-0 is the gate already in progress; REL-8 is the decision record, not 
      screenshots for visual targets, and exits non-zero unless every row is `PASS`.
      Four harness/provenance defects (`SMOKE-001`–`004`) are recorded in `WPT_TRIAGE.md`;
      the earlier all-`TIMEOUT` installer run was discarded, not counted as a site result.
-  3. Fix engine behaviour, never expectations; re-run WPT to measure delta.
+  3. `DONE` (findings) — the bounded `compat-v1` set added GitHub, YouTube, three.js,
+     Anime.js and Google Maps. Load smoke passed with screenshots, but the deeper
+     DOM/RAF/screenshot probe found four failures. Triage in `COMPAT_TRIAGE_REPORT.md`
+     identifies one reproducible renderer panic (`SurfaceImportFailed(BadAttribute)`
+     `unwrap` at `components/shared/paint/rendering_context.rs:260`) fixed in source, plus
+     an open WebGL2 feature-gate gap. Diagnostic prefs were used only for isolation; no
+     shipped default, expectation, timeout, or check was weakened.
+  4. Fix engine behaviour, never expectations; re-run WPT to measure delta.
 - **Acceptance:** baseline published with run id (`DONE` for step 1); smoke executed with
-  screenshots (`DONE` for step 2); blocker list has owners; no unexplained site-specific
-  hacks. Overall gate still `NOT_CONFIRMED` until step 3 is complete.
-- **Tests:** strict WPT delta + real-site results in the tracker and
-  `SITE_SMOKETEST_REPORT.md`.
+  screenshots (`DONE` for step 2); findings have owners; no unexplained site-specific
+  hacks. Overall gate stays `IN_PROGRESS` until step 4 is complete.
+- **Tests:** strict WPT delta + real-site results in the tracker,
+  `SITE_SMOKETEST_REPORT.md`, `COMPAT_SMOKE_REPORT.md`, `COMPAT_PROBE_REPORT.md`, and
+  `COMPAT_TRIAGE_REPORT.md`.
 - **Gotchas:** W1 is measured in years; this gate tracks progress honestly, it is not a
   single-session "completion".
 

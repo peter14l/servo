@@ -85,7 +85,10 @@ by `903f8325122`, `f0fba21fa6f`, and `5461673d1e9`.
 **Overall status: `CI_AND_WPT = PASSED` at `fd4655eb3b6` (`45428660357`), including the
 re-enabled WPT suites; `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.** The separate Embedding
 API workflow on that commit is not green (see `45428660374`), so REL-2 remains unconfirmed;
-green Main/WPT is beta/dogfood readiness only.
+green Main/WPT is beta/dogfood readiness only. The current release-candidate line
+(`044f25042c5` → `e640ce8f8d0`) has had genuine CI failures and cancellations documented in
+§7; until a new full run is green, the old baseline is **not** carried forward as this
+commit's result.
 
 ---
 
@@ -99,9 +102,9 @@ they provide a prerequisite.
 |---|---|---|---|---|---|
 | **REL-0** | Strict CI/WPT baseline preserved (no masking, suites re-enabled) | S | `PASSED` (`fd4655eb3b6` / run `45428660357`) | — | Main workflow + strict WPT job conclusions |
 | **REL-1** | Runtime / platform validation (Windows + WinUI 3 flagship; Android additive) | L | `NOT_CONFIRMED` | REL-0 | Manual hardware checklist + platform CI artifacts |
-| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` (lifecycle tests re-landed, CI pending) | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
-| **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (steps 1–2 `DONE`; smoke `PASSED`; WPT delta pending) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); `SITE_SMOKETEST_REPORT.md` (run `45428660357`); `WPT_TRIAGE.md` |
-| **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` (local panic-boundary and deny failures repaired; CI pending) | REL-2, W2.x | `embedding-api.yml` + scheduled fuzzing + audit |
+| **REL-2** | browserd ABI / lifecycle contract (ownership, threading, teardown, versioning) | M | `NOT_CONFIRMED` (helpers restored locally; CI runs cancelled/failed, final run pending) | REL-0, W5.4 | `embedding-api.yml` + C ABI lifecycle tests |
+| **REL-3** | Real-world compatibility (top sites, WPT deltas, no site-specific hacks) | XL | `IN_PROGRESS` (steps 1–2 `DONE`; `compat-v1` deeper probe has 4 failures; renderer fix CI-pending; WPT delta pending) | REL-0, W1 | `WPT_STRICT_BASELINE.md` (run `45396797175`); `SITE_SMOKETEST_REPORT.md`; `COMPAT_PROBE_REPORT.md`; `COMPAT_TRIAGE_REPORT.md` |
+| **REL-4** | Security / stability (sandbox honesty, site isolation, fuzzing, crashes) | XL | `NOT_CONFIRMED` (local panic-boundary/deny checks clean; lint repaired; CI pending) | REL-2, W2.x | `embedding-api.yml` + Main + scheduled fuzzing + audit |
 | **REL-5** | Performance (Speedometer, startup, memory, long uptime) | L | `BLOCKED` (measurements `DONE`, threshold gate not run) | REL-0, W5.6/W5.7 | `PERFORMANCE_BASELINE.md`; bencher token + Windows perf + leak evidence |
 | **REL-6** | Distribution (signed artifacts, installers, update story) | L | `NOT_CONFIRMED` | REL-1, REL-2, W5.3/W3.4 | Release workflow artifacts from successful runs only |
 | **REL-7** | Observability (size, startup, throughput, crash telemetry) | M | `BLOCKED` (metrics `DONE`; crash telemetry missing) | REL-4 | `OBSERVABILITY_EVIDENCE.md`; opt-in crash pipeline |
@@ -160,6 +163,14 @@ other multiplatform work is additive and must not regress the Windows path. A ga
 - **Next action:** verify the `embedding-api.yml` C API jobs on the new commit, including the
   re-landed tests. REL-3's strict WPT delta is separate.
 - **Note:** the C API version is pre-1.0; versioning rules are in `ABI_STABILITY.md` §2.4.
+- **2026-11-26 CI attempts:** `45786718155` (`f75b5200e48`) `FAILED` with genuine build
+  errors: missing `catch_ffi_any_thread`/`catch_ffi_u64`/`catch_ffi_void` helpers,
+  `extern blocks must be unsafe`, and an invalid Mach-O section specifier. Commit
+  `d75a46454fa` restored the helpers and changed the macOS constructor section to
+  `__DATA,__mod_init_func`. The follow-up run `45791820289` (`d75a46454fa`) and run
+  `45795798769` (`044f25042c5`) both concluded `cancelled` before producing usable C API
+  results. Local checker still reports 257/257 wrapped entry points. A fresh final run is
+  required; REL-2 is **not** `PASSED`.
 
 ### REL-3 — Real-world compatibility
 - **State:** `IN_PROGRESS` (steps 1 and 2 `DONE`; step 3 pending). The smoke set passed;
@@ -189,6 +200,16 @@ other multiplatform work is additive and must not regress the Windows path. A ga
   No timeout was raised, no check weakened, and no site-specific hack added.
 - **Next action:** fix engine behaviour, never expectations; re-run strict WPT and record the
   delta. REL-3 becomes `PASSED` only after that delta is measured with no unexplained hacks.
+- **2026-11-26 deeper `compat-v1` sprint:** load smoke `PASSED` for all five targets with
+  screenshots, but the DOM/RAF/screenshot probe found four failures: GitHub screenshot
+  unavailable, three.js `canvasCount: 0`, Anime.js hidden page (`opacity: 0`), and a Google
+  Maps renderer crash. `COMPAT_PROBE_REPORT.md`, `COMPAT_TRIAGE_REPORT.md` and raw JSON
+  reports record the evidence. The reproducible `SurfaceImportFailed(BadAttribute)` panic at
+  `components/shared/paint/rendering_context.rs:260` was fixed in source at `044f25042c5`
+  (warn + `None`, preserving the existing `Option` contract). `dom_webgl2_enabled` remains
+  `false` by default; diagnostic prefs were used only for isolation. No site-specific hack
+  or weakened check was added. Renderer fix verification and the strict WPT delta remain
+  pending, so REL-3 stays `IN_PROGRESS`.
 
 ### REL-4 — Security / stability
 - **State:** `FAILED` subchecks repaired locally, `NOT_CONFIRMED` until CI verifies this
@@ -219,6 +240,13 @@ other multiplatform work is additive and must not regress the Windows path. A ga
   then close the remaining security/stability items (sandbox honesty, site isolation,
   fuzzing workflow). No local build was attempted after the operator instruction not to run
   heavy work.
+- **2026-11-26 CI repair:** Main run `45786718192` (`f75b5200e48`) `FAILED` with a genuine
+  `clippy::collapsible-if` at `components/layout/display_list/background.rs:193`; commit
+  `c94b8bcb080` collapsed the guards into a `let` chain with unchanged behavior. After the
+  missing FFI helper repair, local checks reported `All 257 exported extern "C" functions
+  are wrapped in catch_ffi*`, `pyrefly errors: []`, `ruff []`, and clean `ruff format`. A
+  fresh Main/Windows/Embedding API run at the final preview commit is still required; these
+  local checks do not close REL-4.
 
 ### REL-5 — Performance
 - **State:** `BLOCKED` — measurements are recorded, but no threshold comparison ran.
@@ -317,3 +345,25 @@ CI artifact or an already-generated report existed.
 panic-boundary and dependency-policy failures have local repairs pending CI; hardware,
 performance, distribution, telemetry and sign-off remain `BLOCKED`/`NOT_CONFIRMED`. Pushing the
 branch publishes the honest preview state; it does not constitute a release approval.
+
+---
+
+## 7. Final developer-preview cycle — 2026-11-26
+
+Current branch head: `e640ce8f8d0` on `private-search-isolation`. All dirty tracked and
+untracked paths were committed and pushed; no rebase or force push was used. This section
+supersedes only the *pending* parts of §6; §6 remains the historical attempt record.
+
+| Check | State | Evidence | Honest conclusion |
+|---|---|---|---|
+| FFI panic boundary | `PASSED` locally, CI pending | `d75a46454fa` restored `catch_ffi_*` helpers and the macOS `__DATA,__mod_init_func` section; `python etc/ci/check_ffi_panic_boundary.py` → `All 257 exported extern "C" functions are wrapped in catch_ffi*.` | Genuine `E0599`/Mach-O failures were fixed, not suppressed. Cancelled CI runs `45791820289` and `45795798769` are not results. |
+| Dependency policy | `PASSED` locally | `cargo deny --format json check` exit `0`, all four summaries `errors: 0`; one `mach2 v0.6.0` and one `uuid v1.26.1` in `cargo tree --target all --locked` | No broad ignore was added. CI compilation is still the authority. |
+| Lint / tidy | Local file checks clean; prior CI failure repaired | Main run `45786718192` failed on `clippy::collapsible-if`; `c94b8bcb080` fixed it. `git diff --check`, `pyrefly errors: []`, `ruff []`, `ruff format --check` clean after the repair. | Full `mach test-tidy` remains CI-only; no local heavy run. |
+| Renderer crash fix | `DONE` in source, old-artifact result still `FAIL` | `044f25042c5` replaces `create_surface_texture(...).unwrap()` with warn + `None`; old artifact still crashes in `servo_crash.log` and diagnostic logs. | Fix cannot be verified against the pre-fix installed binary. A successful artifact from the fixed line is required. |
+| `compat-v1` deeper probe | Findings recorded, REL-3 `IN_PROGRESS` | YouTube `PASS`; GitHub/three.js/Anime.js/Google Maps `FAIL`; full raw and diagnostic evidence in `COMPAT_PROBE_REPORT.md`, `COMPAT_TRIAGE_REPORT.md`, `compat_probe.json`, triage JSON/MD, screenshots and logs. | No site-specific hacks, no weakened checks, no default pref flip. WebGL2 feature-gate gap remains open. |
+| Strict WPT delta on current line | `NOT_RUN` | Historical baseline only (`45396797175`); final Main artifact not yet available. | The 88.37%/55.04% numbers are the old baseline, not a current-run delta. |
+| REL-1 / REL-5 / REL-6 / REL-7 / REL-8 | `BLOCKED` / `NOT_CONFIRMED` | No hardware checklist, bencher token/Windows/leak evidence, signed artifact, opt-in crash pipeline, or signed go/no-go. | Preview remains dogfood only. |
+
+Final CI runs will be dispatched only after this evidence commit, then recorded here with
+run ids and job-level conclusions. Until they are green, `REL-0` for the current line is
+`NOT_RUN` and `PUBLIC_RELEASE_READINESS = NOT_CONFIRMED`.

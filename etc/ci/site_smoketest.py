@@ -321,6 +321,7 @@ def main() -> int:
         if args.output_json:
             with open(args.output_json, "w", encoding="utf-8") as fh:
                 json.dump([asdict(r) for r in planned], fh, indent=2)
+                fh.write("\n")
         return 0
 
     if not binary or not os.path.exists(binary):
@@ -380,6 +381,7 @@ def main() -> int:
     if args.output_json:
         with open(args.output_json, "w", encoding="utf-8") as fh:
             json.dump([asdict(r) for r in results], fh, indent=2)
+            fh.write("\n")
         print(f"Wrote JSON report to {args.output_json}")
 
     # A non-PASS row must fail the harness. Exit 0 is necessary but not

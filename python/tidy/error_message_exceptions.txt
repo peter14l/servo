@@ -78,7 +78,6 @@
 ./components/script/dom/timeranges.rs 2
 ./components/script/dom/webgl/webglrenderingcontext.rs 4
 ./components/script/dom/webrtc/rtcdatachannel.rs 2
-./components/script/dom/webrtc/rtcpeerconnection.rs 2
 ./components/script/dom/webvtt/texttrack.rs 1
 ./components/script/dom/webvtt/vttcue.rs 2
 ./components/script/dom/webvtt/vttregion.rs 5

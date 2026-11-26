@@ -365,6 +365,7 @@ def main() -> int:
 
     with open(args.output_json, "w", encoding="utf-8") as fh:
         json.dump({"provenance": provenance, "results": results}, fh, indent=2)
+        fh.write("\n")
     with open(args.output_markdown, "w", encoding="utf-8") as fh:
         fh.write(markdown_report(results, provenance))
     return 0 if results and all(row["status"] == "PASS" for row in results) else 1

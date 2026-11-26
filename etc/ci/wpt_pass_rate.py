@@ -410,6 +410,7 @@ def main() -> int:
     if args.output_json:
         with open(args.output_json, "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2)
+            fh.write("\n")
         print(f"Wrote baseline JSON to {args.output_json}")
 
     return 0

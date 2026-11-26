@@ -2022,8 +2022,8 @@
     "semantic_hash": "cea5fd1c2ab7e23d84d11f59b577f25c"
   },
   "components/net/tests/cookie.rs": {
-    "mtime": 1795643352.856228,
-    "ast_hash": "4a5833c939f2f1c56154efd00847b85f",
+    "mtime": 1795695259.2378445,
+    "ast_hash": "58229caa8240629712416aa2c1eb74ef",
     "semantic_hash": ""
   },
   "components/net/tests/cookie_http_state.rs": {
@@ -7875,8 +7875,8 @@
     "semantic_hash": ""
   },
   "components/servo/webview.rs": {
-    "mtime": 1795405515.8428583,
-    "ast_hash": "76b99fa194bba7466711467218f3a557",
+    "mtime": 1795695250.0416825,
+    "ast_hash": "9c4efc324cdae88a5b0ac8cb7217d7b9",
     "semantic_hash": ""
   },
   "components/servo/webview_delegate.rs": {
@@ -11046,8 +11046,8 @@
     "semantic_hash": ""
   },
   "components/default-resources/resources/neterror.html": {
-    "mtime": 1794391934.480612,
-    "ast_hash": "b7020b8f77ff7bd421e992cbf4e4d9c8",
+    "mtime": 1795699619.9482064,
+    "ast_hash": "14cdab048069c569bc9b199f18501e46",
     "semantic_hash": ""
   },
   "components/default-resources/resources/public_domains.txt": {
@@ -12156,8 +12156,8 @@
     "semantic_hash": ""
   },
   "ports/windows/src/main.cpp": {
-    "mtime": 1795324126.2741654,
-    "ast_hash": "8a9bef5122b140be855592c3a44c7ac8",
+    "mtime": 1795699211.9182475,
+    "ast_hash": "d73a536681d45481742645003873f11b",
     "semantic_hash": ""
   },
   "ports/windows/src/omnibox.cpp": {
@@ -12176,8 +12176,8 @@
     "semantic_hash": ""
   },
   "ports/windows/src/servo_view_host.cpp": {
-    "mtime": 1795421588.1289785,
-    "ast_hash": "32cdc8a9722b9b257c1a76fa3c91d8dc",
+    "mtime": 1795699607.6682272,
+    "ast_hash": "bb0e75f6cd6e56b78b46a890ceca295b",
     "semantic_hash": ""
   },
   "ports/windows/src/servo_view_host.h": {
@@ -12206,8 +12206,8 @@
     "semantic_hash": ""
   },
   "ports/windows/tests/test_browser_unit.cpp": {
-    "mtime": 1794403199.3896477,
-    "ast_hash": "3a900315ecb2e180a48d0e73ebb19fd4",
+    "mtime": 1795699687.3391373,
+    "ast_hash": "31ab17dcf4db11a799bd901467f4dad5",
     "semantic_hash": ""
   },
   "ports/windows/packaging/install.ps1": {
@@ -12291,13 +12291,13 @@
     "semantic_hash": ""
   },
   "ports/windows/src/schannel_gateway.cpp": {
-    "mtime": 1795241213.574352,
-    "ast_hash": "3c44f499588ce41ab05ccbedb84758b6",
+    "mtime": 1795699593.2712648,
+    "ast_hash": "dd90e420ad9063d338fa186874d9463b",
     "semantic_hash": ""
   },
   "ports/windows/src/schannel_gateway.h": {
-    "mtime": 1794391750.1662092,
-    "ast_hash": "d557c83d9b76fa635034aa703022a870",
+    "mtime": 1795699304.3204055,
+    "ast_hash": "6b1521fc51e5eacc5f6663fc5924c769",
     "semantic_hash": ""
   },
   "ports/windows/src/servo_logo.h": {
@@ -12376,8 +12376,8 @@
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_TRACKER.md": {
-    "mtime": 1795687159.5885093,
-    "ast_hash": "ac1cea8e6046a38604b02c4d0cec1d1d",
+    "mtime": 1795699628.9553328,
+    "ast_hash": "fa80ea3b71b8f1fd54c63428a6feafe0",
     "semantic_hash": ""
   },
   "docs/embedding/OBSERVABILITY_EVIDENCE.md": {
@@ -12558,6 +12558,11 @@
   "docs/embedding/compat_triage_shots/webgl2/05-probe-google-maps.png": {
     "mtime": 1795686066.9479165,
     "ast_hash": "ea58b7e965a36f8d58a5d4a55799a1ec",
+    "semantic_hash": ""
+  },
+  "docs/embedding/WINDOWS_FLUENT_UI_AND_RELEASE_PLAN.md": {
+    "mtime": 1795699040.0343075,
+    "ast_hash": "306b34b55194bc655f38c54aa640d23b",
     "semantic_hash": ""
   }
 }

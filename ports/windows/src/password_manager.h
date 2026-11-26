@@ -9,7 +9,7 @@
 #include <cstdint>
 
 struct SavedCredential {
-    std::string origin;     // Normalized origin e.g. "https://www.sxuk.org"
+    std::string origin;     // Normalized origin e.g. "https://example.org"
     std::string username;   // User ID, email, login name
     std::string password;   // Decrypted plaintext in memory
     uint64_t timestamp = 0;

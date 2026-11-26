@@ -550,8 +550,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     servo_setup_logging(servo);
 
-    // Start local Windows Schannel HTTP gateway for legacy TLS sites (e.g. IIS 8.5 CBC/SHA-1)
-    SchannelGateway::Start();
+    // Start the opt-in Windows TLS gateway. A failure must be visible: pages
+    // that rely on the fallback would otherwise fail with a raw TCP error.
+    if (!SchannelGateway::Start()) {
+        LogDebug("Failed to start Windows TLS gateway on 127.0.0.1:51820; opt-in fallback unavailable.");
+    }
 
     // 3. Register Window Classes
     BrowserWindow::RegisterWindowClass(hInstance);

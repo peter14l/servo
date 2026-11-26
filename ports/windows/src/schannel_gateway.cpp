@@ -11,17 +11,19 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <winhttp.h>
+#include <shlobj.h>
 
 #include <thread>
 #include <atomic>
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cctype>
 #include <cwctype>
 #include <sstream>
 #include <mutex>
 #include <map>
-#include <regex>
+#include <set>
 #include <condition_variable>
 #include <memory>
 #include <vector>
@@ -44,6 +46,57 @@ static const int kMaxConcurrentClients = 64;
 static std::thread s_workerThread;
 static SOCKET s_listenSocket = INVALID_SOCKET;
 static unsigned short s_port = 51820;
+
+// The gateway is an explicit, local fallback. Only hosts the user has put in
+// this file may be proxied; there are no built-in site-specific defaults.
+static std::mutex s_allowlistMutex;
+static std::set<std::string> s_allowedHosts;
+
+static std::string GetAllowlistPath() {
+    wchar_t localAppData[MAX_PATH] = {};
+    if (FAILED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+        return "";
+    }
+    std::wstring wide(localAppData);
+    wide += L"\\Servo Browser\\gateway_allowlist.txt";
+    int len = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (len <= 0) return "";
+    std::string path(static_cast<size_t>(len) - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, &path[0], len, nullptr, nullptr);
+    return path;
+}
+
+static void LoadAllowlist() {
+    std::lock_guard<std::mutex> lock(s_allowlistMutex);
+    s_allowedHosts.clear();
+    std::string path = GetAllowlistPath();
+    if (path.empty()) return;
+    std::ifstream in(path);
+    std::string line;
+    while (std::getline(in, line)) {
+        size_t comment = line.find('#');
+        if (comment != std::string::npos) line.erase(comment);
+        while (!line.empty() && std::isspace(static_cast<unsigned char>(line.front()))) line.erase(0, 1);
+        while (!line.empty() && std::isspace(static_cast<unsigned char>(line.back()))) line.pop_back();
+        if (line.empty()) continue;
+        std::transform(line.begin(), line.end(), line.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        s_allowedHosts.insert(line);
+    }
+}
+
+static bool IsAllowedHost(const std::wstring& host) {
+    if (host.empty()) return false;
+    std::string narrow;
+    int len = WideCharToMultiByte(CP_UTF8, 0, host.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (len <= 0) return false;
+    narrow.resize(static_cast<size_t>(len) - 1);
+    WideCharToMultiByte(CP_UTF8, 0, host.c_str(), -1, &narrow[0], len, nullptr, nullptr);
+    std::transform(narrow.begin(), narrow.end(), narrow.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::lock_guard<std::mutex> lock(s_allowlistMutex);
+    return s_allowedHosts.count(narrow) != 0;
+}
 
 // WinHTTP keeps keep-alive connections alive for the lifetime of a session.
 // Reuse a small pool of long-lived sessions instead of opening (and closing) a
@@ -102,8 +155,7 @@ static void EnsureSession(GatewayContext& ctx) {
     if (!ctx.session) return;
     // Bound every phase so a stuck upstream cannot pin a worker thread forever.
     WinHttpSetTimeouts(ctx.session, 10000, 10000, 30000, 30000);
-    // Default every upstream to modern TLS. Legacy TLS 1.1 is enabled only for
-    // the known SXUK hosts on the request below, never globally.
+    // Modern TLS only. Certificate-chain, hostname and validity checks stay on.
     DWORD sessionProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
     WinHttpSetOption(ctx.session, WINHTTP_OPTION_SECURE_PROTOCOLS,
                      &sessionProtocols, sizeof(sessionProtocols));
@@ -162,6 +214,66 @@ static std::string UrlEncode(const std::string& in) {
         }
     }
     return escaped.str();
+}
+
+static std::string GetOrigin(const std::string& url) {
+    size_t schemeEnd = url.find("://");
+    if (schemeEnd == std::string::npos) return "";
+    size_t slash = url.find('/', schemeEnd + 3);
+    return slash == std::string::npos ? url : url.substr(0, slash);
+}
+
+static std::string Trim(const std::string& value) {
+    size_t begin = 0;
+    size_t end = value.size();
+    while (begin < end && std::isspace(static_cast<unsigned char>(value[begin]))) ++begin;
+    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1]))) --end;
+    return value.substr(begin, end - begin);
+}
+
+// Cookies belong to an upstream origin, not to the gateway origin. Prefix the
+// name so one gateway session cannot forward another site's cookies upstream.
+static std::string CookiePrefix(const std::wstring& host) {
+    std::string narrow;
+    int len = WideCharToMultiByte(CP_UTF8, 0, host.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (len > 0) {
+        narrow.resize(static_cast<size_t>(len) - 1);
+        WideCharToMultiByte(CP_UTF8, 0, host.c_str(), -1, &narrow[0], len, nullptr, nullptr);
+    }
+    uint32_t hash = 2166136261u;
+    for (unsigned char c : narrow) {
+        hash ^= c;
+        hash *= 16777619u;
+    }
+    char prefix[16] = {};
+    snprintf(prefix, sizeof(prefix), "gw_%08x_", hash);
+    return prefix;
+}
+
+static std::string PrefixSetCookie(const std::string& line, const std::string& prefix) {
+    size_t eq = line.find('=');
+    if (eq == std::string::npos) return line;
+    std::string name = Trim(line.substr(0, eq));
+    if (name.rfind(prefix, 0) == 0) return line;
+    return prefix + name + line.substr(eq);
+}
+
+static std::string FilterCookieHeader(const std::string& line, const std::string& prefix) {
+    size_t colon = line.find(':');
+    if (colon == std::string::npos) return "";
+    std::string value = line.substr(colon + 1);
+    std::string filtered;
+    std::istringstream pairs(value);
+    std::string pair;
+    while (std::getline(pairs, pair, ';')) {
+        size_t eq = pair.find('=');
+        if (eq == std::string::npos) continue;
+        std::string name = Trim(pair.substr(0, eq));
+        if (name.rfind(prefix, 0) != 0) continue;
+        if (!filtered.empty()) filtered += "; ";
+        filtered += name.substr(prefix.size()) + "=" + Trim(pair.substr(eq + 1));
+    }
+    return filtered.empty() ? "" : "Cookie: " + filtered;
 }
 
 // Send the whole buffer, handling partial sends and transient would-block errors.
@@ -417,22 +529,9 @@ static void HandleClient(SOCKET clientSock) {
         targetUrl = UrlDecode(uri.substr(qPos + 13));
     } else if (uri.find("/gateway/") == 0) {
         targetUrl = "https://" + uri.substr(9);
-    } else if (!uri.empty() && uri[0] == '/') {
-        // Direct path preservation: /services/student-registration.aspx, /Style/style.css, /services/Login.aspx
-        // Handle common root-relative login redirect if requested as /Login.aspx -> /services/Login.aspx
-        if (uri == "/Login.aspx" || uri.find("/Login.aspx?") == 0) {
-            std::string redirectTarget = "/services" + uri;
-            std::string redir = "HTTP/1.1 302 Found\r\nLocation: " + redirectTarget + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-            if (SendAll(clientSock, redir)) {
-                CloseGracefully(clientSock);
-            } else {
-                closesocket(clientSock);
-            }
-            return;
-        } else {
-            targetUrl = "https://www.sxuk.org" + uri;
-        }
     }
+    // Bare paths are intentionally unsupported: only an explicit absolute
+    // upstream URL can select an origin.
 
     if (targetUrl.empty()) {
         SendErrorResponse(clientSock, "404 Not Found", "");
@@ -480,6 +579,18 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
+    if (urlComp.nScheme != INTERNET_SCHEME_HTTPS && urlComp.nScheme != INTERNET_SCHEME_HTTP) {
+        SendErrorResponse(clientSock, "400 Bad Request", "Gateway Error: only http and https upstream URLs are allowed.");
+        return;
+    }
+
+    if (!IsAllowedHost(hostName)) {
+        SendErrorResponse(clientSock, "403 Forbidden",
+                          "Gateway Error: upstream host is not in gateway_allowlist.txt. "
+                          "Add one hostname per line to %LOCALAPPDATA%\\Servo Browser\\gateway_allowlist.txt.");
+        return;
+    }
+
     ScopedGatewayContext scopedCtx;
     if (!scopedCtx) {
         SendErrorResponse(clientSock, "503 Service Unavailable", "Gateway Error: gateway is shutting down.");
@@ -519,20 +630,9 @@ static void HandleClient(SOCKET clientSock) {
         return;
     }
 
-    // Relax TLS validation only for the legacy SXUK portal (IIS 8.5 with
-    // CBC/SHA-1 and a chain the modern stack rejects). Every other upstream
-    // proxied through this gateway keeps full chain, host and date validation.
-    std::wstring hostLower(hostName);
-    std::transform(hostLower.begin(), hostLower.end(), hostLower.begin(), ::towlower);
-    const bool legacyHost = hostLower.find(L"sxuk.org") != std::wstring::npos;
-    if (legacyHost) {
-        DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1;
-        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
-        DWORD secFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-                         SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
-                         SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
-        WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &secFlags, sizeof(secFlags));
-    }
+    // WinHTTP uses Schannel with full chain, hostname and validity checks.
+    // Never relax validation here: the gateway is an explicit fallback for
+    // sites whose cipher suites rustls rejects, not a certificate bypass.
 
     // Do NOT follow redirects automatically in WinHTTP!
     // The browser must receive 302/301 responses with Set-Cookie headers intact,
@@ -561,6 +661,8 @@ static void HandleClient(SOCKET clientSock) {
     }
 
     // Forward client headers (Content-Type, Cookie, User-Agent, Accept, Referer, etc.)
+    const std::string upstreamOrigin = GetOrigin(targetUrl);
+    const std::string cookiePrefix = CookiePrefix(hostName);
     std::ostringstream forwardHdrStream;
     size_t headerStart = request.find("\r\n");
     if (headerStart != std::string::npos && headerEnd != std::string::npos) {
@@ -576,16 +678,22 @@ static void HandleClient(SOCKET clientSock) {
                 lowerH.find("content-length:") == 0 || lowerH.find("accept-encoding:") == 0) {
                 continue;
             }
-            if (lowerH.find("referer:") == 0 || lowerH.find("origin:") == 0) {
-                // Rewrite 127.0.0.1:51820 to www.sxuk.org and http:// to https://
-                std::string portStr = std::to_string(s_port);
-                size_t p = hLine.find("127.0.0.1:" + portStr);
-                if (p != std::string::npos) {
-                    hLine.replace(p, 10 + portStr.length(), "www.sxuk.org");
-                }
-                size_t hp = hLine.find("http://www.sxuk.org");
-                if (hp != std::string::npos) {
-                    hLine.replace(hp, 19, "https://www.sxuk.org");
+            if (lowerH.find("cookie:") == 0) {
+                std::string filtered = FilterCookieHeader(hLine, cookiePrefix);
+                if (filtered.empty()) continue;
+                hLine = filtered;
+            } else if (lowerH.find("referer:") == 0 || lowerH.find("origin:") == 0) {
+                // Replace the gateway origin with the actual upstream origin.
+                const std::string gatewayOrigins[] = {
+                    "http://127.0.0.1:" + std::to_string(s_port),
+                    "http://localhost:" + std::to_string(s_port),
+                };
+                for (const auto& gatewayOrigin : gatewayOrigins) {
+                    size_t pos = 0;
+                    while ((pos = hLine.find(gatewayOrigin, pos)) != std::string::npos) {
+                        hLine.replace(pos, gatewayOrigin.size(), upstreamOrigin);
+                        pos += upstreamOrigin.size();
+                    }
                 }
             }
             forwardHdrStream << hLine << "\r\n";
@@ -675,7 +783,7 @@ static void HandleClient(SOCKET clientSock) {
     // 2. Remove Connection and replace with Connection: close
     // 3. Remove Content-Length and emit our own after buffering the body
     // 4. Rewrite Location header to keep browser on gateway
-    // 5. Strip '; secure' and '; domain=...' from Set-Cookie so the browser retains cookies on 127.0.0.1
+    // 5. Namespace Set-Cookie names per upstream host; attributes are unchanged
     std::istringstream hStream(rawHeaders);
     std::string line;
     std::ostringstream cleanedHeaders;
@@ -697,40 +805,37 @@ static void HandleClient(SOCKET clientSock) {
         if (lowerLine.find("content-length:") == 0) continue;
 
         if (lowerLine.find("location:") == 0) {
-            // Rewrite Location: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
             std::string locVal = line.substr(9);
             while (!locVal.empty() && locVal.front() == ' ') locVal.erase(0, 1);
-            std::string rewritten = locVal;
-            size_t sxPos = rewritten.find("sxuk.org");
-            if (sxPos != std::string::npos) {
-                size_t slashPos = rewritten.find('/', sxPos);
-                if (slashPos != std::string::npos) {
-                    rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten.substr(slashPos);
+            if (!locVal.empty()) {
+                // Resolve relative redirects against the upstream URL before
+                // wrapping, so the browser stays on the gateway without any
+                // site-specific host knowledge.
+                if (locVal.rfind("http://", 0) != 0 && locVal.rfind("https://", 0) != 0) {
+                    size_t schemeEnd = targetUrl.find("://");
+                    if (schemeEnd != std::string::npos) {
+                        size_t slash = targetUrl.find('/', schemeEnd + 3);
+                        std::string base = slash == std::string::npos ? targetUrl : targetUrl.substr(0, slash);
+                        if (locVal.front() == '/') {
+                            locVal = base + locVal;
+                        } else {
+                            size_t firstSlash = targetUrl.find('/', schemeEnd + 3);
+                            std::string path = firstSlash == std::string::npos ? "" : targetUrl.substr(firstSlash);
+                            size_t lastSlash = path.rfind('/');
+                            std::string dir = lastSlash == std::string::npos ? "/" : path.substr(0, lastSlash + 1);
+                            locVal = base + dir + locVal;
+                        }
+                    }
                 }
-            } else if (!rewritten.empty() && rewritten[0] == '/') {
-                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + rewritten;
-            } else if (!rewritten.empty() && rewritten.find("http://") != 0 && rewritten.find("https://") != 0) {
-                // Relative redirect like "StudentHome.aspx"
-                std::string dir = "/";
-                size_t lastSlash = uri.rfind('/');
-                if (lastSlash != std::string::npos) {
-                    dir = uri.substr(0, lastSlash + 1);
-                }
-                rewritten = "http://127.0.0.1:" + std::to_string(s_port) + dir + rewritten;
+                cleanedHeaders << "Location: " << WrapUrl(locVal) << "\r\n";
             }
-            cleanedHeaders << "Location: " << rewritten << "\r\n";
             continue;
         }
 
         if (lowerLine.find("set-cookie:") == 0) {
-            std::string cookieVal = line;
-            std::regex secRegex(R"(;\s*secure)", std::regex_constants::icase);
-            cookieVal = std::regex_replace(cookieVal, secRegex, "");
-            std::regex domRegex(R"(;\s*domain=[^;]+)", std::regex_constants::icase);
-            cookieVal = std::regex_replace(cookieVal, domRegex, "");
-            std::regex sameSiteNone(R"(;\s*samesite=none)", std::regex_constants::icase);
-            cookieVal = std::regex_replace(cookieVal, sameSiteNone, "; SameSite=Lax");
-            cleanedHeaders << cookieVal << "\r\n";
+            // Keep Secure, Domain and SameSite attributes exactly as sent by
+            // the upstream. Only the cookie name is namespaced per host.
+            cleanedHeaders << PrefixSetCookie(line, cookiePrefix) << "\r\n";
             continue;
         }
 
@@ -827,6 +932,7 @@ bool Start(unsigned short port) {
         }
     }
 
+    LoadAllowlist();
     s_running.store(true);
     s_workerThread = std::thread(ServerLoop);
     return true;
@@ -850,40 +956,14 @@ unsigned short GetPort() {
     return s_port;
 }
 
-bool ShouldUseGateway(const std::string& url) {
-    std::string lower = url;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-    // Legacy servers requiring outdated CBC/SHA-1 cipher suites rejected by modern Rustls
-    if (lower.find("sxuk.org") != std::string::npos) return true;
-    return false;
-}
-
 bool IsGatewayUrl(const std::string& url) {
-    return url.find("http://127.0.0.1:51820") == 0 ||
-           url.find("http://localhost:51820") == 0;
+    const std::string port = std::to_string(s_port);
+    return url.find("http://127.0.0.1:" + port) == 0 ||
+           url.find("http://localhost:" + port) == 0;
 }
 
 std::string WrapUrl(const std::string& originalUrl) {
     if (IsGatewayUrl(originalUrl)) return originalUrl;
-
-    // Direct path preservation: https://www.sxuk.org/path -> http://127.0.0.1:51820/path
-    // This guarantees that relative links (Login.aspx) and relative assets (../Style/style.css)
-    // resolve to their exact matching paths on the gateway!
-    const std::string prefixes[] = {
-        "https://www.sxuk.org",
-        "http://www.sxuk.org",
-        "https://sxuk.org",
-        "http://sxuk.org"
-    };
-
-    for (const auto& prefix : prefixes) {
-        if (originalUrl.find(prefix) == 0) {
-            std::string path = originalUrl.substr(prefix.length());
-            if (path.empty() || path[0] != '/') path = "/" + path;
-            return "http://127.0.0.1:" + std::to_string(s_port) + path;
-        }
-    }
-
     return "http://127.0.0.1:" + std::to_string(s_port) + "/gateway?url=" + UrlEncode(originalUrl);
 }
 
@@ -892,12 +972,6 @@ std::string UnwrapUrl(const std::string& url) {
     size_t qPos = url.find("?url=");
     if (qPos != std::string::npos) {
         return UrlDecode(url.substr(qPos + 5));
-    }
-    // Unwrap http://127.0.0.1:51820/path -> https://www.sxuk.org/path
-    size_t portPos = url.find(":51820");
-    if (portPos != std::string::npos) {
-        std::string path = url.substr(portPos + 6);
-        return "https://www.sxuk.org" + path;
     }
     return url;
 }

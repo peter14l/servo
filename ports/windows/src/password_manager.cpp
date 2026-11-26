@@ -14,6 +14,7 @@
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#include <cctype>
 #include <iomanip>
 
 #pragma comment(lib, "crypt32.lib")
@@ -28,12 +29,32 @@ std::wstring PasswordManager::GetPasswordsFilePath() {
     return L"passwords.json";
 }
 
+static std::string DecodeGatewayUrl(const std::string& encoded) {
+    static const char* hex = "0123456789ABCDEF";
+    std::string out;
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        if (encoded[i] == '%' && i + 2 < encoded.size()) {
+            int hi = std::find(hex, hex + 16, toupper(static_cast<unsigned char>(encoded[i + 1]))) - hex;
+            int lo = std::find(hex, hex + 16, toupper(static_cast<unsigned char>(encoded[i + 2]))) - hex;
+            if (hi < 16 && lo < 16) {
+                out.push_back(static_cast<char>(hi * 16 + lo));
+                i += 2;
+                continue;
+            }
+        }
+        out.push_back(encoded[i]);
+    }
+    return out;
+}
+
 std::string PasswordManager::NormalizeOrigin(const std::string& url) {
     if (url.empty()) return "";
     std::string s = url;
-    // Unwrap gateway URL: http://127.0.0.1:51820/... -> https://www.sxuk.org
+    // Unwrap the explicit gateway fallback to the real upstream origin.
     if (s.find("127.0.0.1:51820") != std::string::npos || s.find("localhost:51820") != std::string::npos) {
-        return "https://www.sxuk.org";
+        size_t q = s.find("?url=");
+        if (q == std::string::npos) return "";
+        s = DecodeGatewayUrl(s.substr(q + 5));
     }
     size_t schemeEnd = s.find("://");
     if (schemeEnd == std::string::npos) {

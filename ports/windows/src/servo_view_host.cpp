@@ -143,47 +143,16 @@ static const char* s_platformCompatScript = R"JS(
             }, false);
         }
 
-        // 11. Legacy TLS host bridge (e.g. sxuk.org IIS 8.5 with legacy CBC/SHA-1 ciphers)
-        if (typeof window !== 'undefined') {
-            var rewriteSxuk = function(u) {
-                if (!u || typeof u !== 'string') return u;
-                return u.replace(/^https?:\/\/(?:www\.)?sxuk\.org/i, 'http://127.0.0.1:51820');
-            };
-            var origOpen = window.open;
-            window.open = function(url, target, features) {
-                return origOpen ? origOpen.call(this, rewriteSxuk(url), target, features) : null;
-            };
-
-            if (typeof document !== 'undefined') {
-                document.addEventListener('click', function(e) {
-                    var el = e.target;
-                    while (el && el.tagName !== 'A') {
-                        el = el.parentElement;
-                    }
-                    if (el) {
-                        var href = el.getAttribute('href') || el.href;
-                        if (href && typeof href === 'string' && /^(?:https?:)?\/\/(?:www\.)?sxuk\.org/i.test(href)) {
-                            el.href = rewriteSxuk(href);
-                        }
-                    }
-                }, true);
-
-                document.addEventListener('submit', function(e) {
-                    var form = e.target;
-                    if (form && form.action && /^(?:https?:)?\/\/(?:www\.)?sxuk\.org/i.test(form.action)) {
-                        form.action = rewriteSxuk(form.action);
-                    }
-                }, true);
-            }
-        }
-
-        // 12. Password & Credential Autofill and Capture
+        // 11. Password & Credential Autofill and Capture
         if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             function getCleanOrigin() {
                 var o = window.location.origin;
                 if (!o) o = window.location.protocol + '//' + window.location.host;
-                if (o && (o.indexOf('127.0.0.1:51820') !== -1 || o.indexOf('localhost:51820') !== -1)) {
-                    return 'https://www.sxuk.org';
+                var gw = /\?url=([^&]+)/.exec(window.location.href);
+                if (gw) {
+                    try {
+                        return new URL(decodeURIComponent(gw[1])).origin;
+                    } catch (e) {}
                 }
                 return o;
             }
@@ -1111,8 +1080,6 @@ void ServoViewHost::LoadUrl(const std::string& url) {
             target = BrowserData::EnsureAboutPageExists();
         } else if (clean == "servo://newtab" || clean == "servo:newtab" || clean == "about:newtab" || clean == "newtab") {
             target = NewTabPage::EnsureNewTabPageExists();
-        } else if (SchannelGateway::ShouldUseGateway(clean)) {
-            target = SchannelGateway::WrapUrl(clean);
         }
 
         ServoError err = servo_webview_load(m_webview, target.c_str());

@@ -18,10 +18,6 @@ void Stop();
 /// Returns the port number the gateway is listening on.
 unsigned short GetPort();
 
-/// Returns true if the URL targets a domain known to require legacy TLS ciphers
-/// (e.g. sxuk.org IIS 8.5 with CBC/SHA-1 ciphers).
-bool ShouldUseGateway(const std::string& url);
-
 /// Returns true if the URL is an internal gateway wrapper URL.
 bool IsGatewayUrl(const std::string& url);
 

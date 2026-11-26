@@ -70,9 +70,9 @@
     <p class="help-text">Servo was unable to establish a secure connection to the server.</p>
     <div class="reason-box" id="reason-text">${reason}</div>
     <div id="tls-advice" style="display:none;" class="help-text">
-      <strong>Note:</strong> Error 10054 indicates the server abruptly terminated the TLS handshake. This typically occurs on legacy servers (such as older IIS installations) that require outdated CBC or SHA-1 cipher suites which modern secure browsers disallow.
+      <strong>Note:</strong> The server may require TLS settings that Servo's default TLS stack rejects. The option below uses Windows TLS instead, with full certificate-chain, hostname and validity checks still enforced. It is opt-in, does not disable certificate validation, and only works for hosts listed in <code>gateway_allowlist.txt</code> in the Servo Browser data folder.
       <br><br>
-      <a class="btn" id="gateway-btn" href="#" style="background:#0b8043;">Load via Windows Schannel Bridge</a>
+      <a class="btn" id="gateway-btn" href="#" style="background:#0b8043;">Load via Windows TLS (full certificate validation)</a>
     </div>
     <button class="btn" onclick="location.reload()">Try Again</button>
   </div>

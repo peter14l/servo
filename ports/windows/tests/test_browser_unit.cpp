@@ -688,7 +688,8 @@ void test_vertical_tabs_and_logo() {
 void test_password_manager() {
     // 1. Origin normalization
     TEST_ASSERT(PasswordManager::NormalizeOrigin("https://www.sxuk.org/services/Login.aspx") == "https://www.sxuk.org", "Normalize SXUK URL");
-    TEST_ASSERT(PasswordManager::NormalizeOrigin("http://127.0.0.1:51820/services/student-registration.aspx") == "https://www.sxuk.org", "Unwrap gateway URL to SXUK origin");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("http://127.0.0.1:51820/gateway?url=https://www.sxuk.org/services/student-registration.aspx") == "https://www.sxuk.org", "Unwrap explicit gateway URL to origin");
+    TEST_ASSERT(PasswordManager::NormalizeOrigin("http://127.0.0.1:51820/services/Login.aspx").empty(), "Bare gateway path must not map to an origin");
     TEST_ASSERT(PasswordManager::NormalizeOrigin("https://Instagram.COM/direct/t/123") == "https://instagram.com", "Normalize Instagram origin");
 
     // 2. Clean start
@@ -704,8 +705,8 @@ void test_password_manager() {
 
     // 5. FindCredential check
     SavedCredential cred;
-    bool found = PasswordManager::FindCredential("http://127.0.0.1:51820/services/Login.aspx", cred);
-    TEST_ASSERT(found, "FindCredential via gateway URL must match SXUK origin");
+    bool found = PasswordManager::FindCredential("http://127.0.0.1:51820/gateway?url=https://www.sxuk.org/services/Login.aspx", cred);
+    TEST_ASSERT(found, "FindCredential via explicit gateway URL must match origin");
     TEST_ASSERT(cred.username == "student_42", "Username must match");
     TEST_ASSERT(cred.password == "SecretPass123!", "Password must match decrypted");
 

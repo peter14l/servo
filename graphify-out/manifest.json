@@ -7785,8 +7785,8 @@
     "semantic_hash": "fd26bad057024e621b4385c07988f988"
   },
   "components/servo/servo.rs": {
-    "mtime": 1795643467.7094703,
-    "ast_hash": "ba4e47a0d6eeef6583ef7043cc42649f",
+    "mtime": 1795687812.5396903,
+    "ast_hash": "3000fd2c6a896d9497a4ef496037b0a4",
     "semantic_hash": ""
   },
   "components/servo/servo_delegate.rs": {
@@ -12371,13 +12371,13 @@
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_PLAN.md": {
-    "mtime": 1795675001.8995607,
-    "ast_hash": "32c291787c860b9983c70d051e9bccf4",
+    "mtime": 1795687068.2263527,
+    "ast_hash": "3c5d2c1756ca53ef1b30cedb903f0617",
     "semantic_hash": ""
   },
   "docs/embedding/BROWSERD_PUBLIC_RELEASE_TRACKER.md": {
-    "mtime": 1795674984.4754698,
-    "ast_hash": "fbec3059b7017383e65bcff4fa2f7834",
+    "mtime": 1795687159.5885093,
+    "ast_hash": "ac1cea8e6046a38604b02c4d0cec1d1d",
     "semantic_hash": ""
   },
   "docs/embedding/OBSERVABILITY_EVIDENCE.md": {
@@ -12391,8 +12391,8 @@
     "semantic_hash": ""
   },
   "docs/embedding/SITE_SMOKE_RUNBOOK.md": {
-    "mtime": 1795683291.964391,
-    "ast_hash": "994cb8893feb3a475171eae3ab7c0bbb",
+    "mtime": 1795686961.794258,
+    "ast_hash": "59e3756f7d452216b9557eabf2ade1d1",
     "semantic_hash": ""
   },
   "docs/embedding/WPT_STRICT_BASELINE.md": {
@@ -12441,13 +12441,13 @@
     "semantic_hash": ""
   },
   "docs/embedding/COMPAT_PROBE_REPORT.md": {
-    "mtime": 1795684309.6042526,
-    "ast_hash": "228b8bb3881ba32cc2d8f2ef9ff2f068",
+    "mtime": 1795686969.8566978,
+    "ast_hash": "8bb46fdb8e249b5720304f3d49cb2afa",
     "semantic_hash": ""
   },
   "docs/embedding/COMPAT_SMOKE_REPORT.md": {
-    "mtime": 1795683332.409341,
-    "ast_hash": "f0c62b70616889cb3cc496d543ad700a",
+    "mtime": 1795686951.9034767,
+    "ast_hash": "42abec651704521d9b5d5201a5dc698d",
     "semantic_hash": ""
   },
   "docs/embedding/compat_probe_shots/02-probe-youtube-watch-page.png": {
@@ -12498,6 +12498,66 @@
   "docs/embedding/compat_triage_webgl2.json": {
     "mtime": 1795685992.6093383,
     "ast_hash": "6905df6d4052e2ad98a59dc3cca38823",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_animations_run.json": {
+    "mtime": 1795686126.1027865,
+    "ast_hash": "6d4c13efd5f18da47bd5c71a73cde2b8",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_webgl2_run.json": {
+    "mtime": 1795686071.961702,
+    "ast_hash": "137f763aac9f4673b55458319c9478a0",
+    "semantic_hash": ""
+  },
+  "docs/embedding/COMPAT_TRIAGE_REPORT.md": {
+    "mtime": 1795686942.9325795,
+    "ast_hash": "8261c42ef43044e0d8bc0bc02f416a71",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_animations_run.md": {
+    "mtime": 1795686126.1037345,
+    "ast_hash": "1ac22b7c3cc777ed9b21b7145f42656b",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_webgl2_run.md": {
+    "mtime": 1795686071.9637158,
+    "ast_hash": "2363de091700efe7eafe34f3fe7582b1",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/animations/01-probe-github-servo-repository.png": {
+    "mtime": 1795686098.0767958,
+    "ast_hash": "621e4c708992ef4503bcf87d530affa9",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/animations/02-probe-youtube-watch-page.png": {
+    "mtime": 1795686115.9236512,
+    "ast_hash": "340850b308f5d5c381b35be2212d9b59",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/animations/03-probe-three.js-skinning-demo.png": {
+    "mtime": 1795686117.6231928,
+    "ast_hash": "bd17295f202996a4e21fa7014c7fbe5a",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/animations/04-probe-anime.js-showcase.png": {
+    "mtime": 1795686121.0720847,
+    "ast_hash": "805dec4e8cf273b2429dc1af2b1bfdec",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/webgl2/01-probe-github-servo-repository.png": {
+    "mtime": 1795686032.900356,
+    "ast_hash": "a572d22ecb60e646c4f752a211a34cf4",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/webgl2/02-probe-youtube-watch-page.png": {
+    "mtime": 1795686052.4984257,
+    "ast_hash": "dcc177ce18631c6c88c521d71d5af506",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_shots/webgl2/05-probe-google-maps.png": {
+    "mtime": 1795686066.9479165,
+    "ast_hash": "ea58b7e965a36f8d58a5d4a55799a1ec",
     "semantic_hash": ""
   }
 }

@@ -8312,8 +8312,8 @@
     "semantic_hash": "c503c3f85cb3c0a458033147979ee3d1"
   },
   "components/shared/paint/rendering_context.rs": {
-    "mtime": 1795405516.188305,
-    "ast_hash": "38e74b24f4ba86989c4341bab93efac9",
+    "mtime": 1795685927.420174,
+    "ast_hash": "37aa70105d66843cecda334340749c04",
     "semantic_hash": ""
   },
   "components/shared/paint/tests/compositor.rs": {
@@ -12436,8 +12436,8 @@
     "semantic_hash": ""
   },
   "etc/ci/compat_probe.py": {
-    "mtime": 1795684250.0815732,
-    "ast_hash": "b4a74294204f9d398907f9584a8e5e46",
+    "mtime": 1795685982.111806,
+    "ast_hash": "768b63276a895d21ee007056aff80604",
     "semantic_hash": ""
   },
   "docs/embedding/COMPAT_PROBE_REPORT.md": {
@@ -12488,6 +12488,16 @@
   "docs/embedding/compat_smoke_shots/05-google-maps.png": {
     "mtime": 1795683332.0877054,
     "ast_hash": "4c5d39f36e8cdf89fb7283958c013cbe",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_animations.json": {
+    "mtime": 1795685992.6093383,
+    "ast_hash": "7c6664980378bc103ce54a3681e4fd42",
+    "semantic_hash": ""
+  },
+  "docs/embedding/compat_triage_webgl2.json": {
+    "mtime": 1795685992.6093383,
+    "ast_hash": "6905df6d4052e2ad98a59dc3cca38823",
     "semantic_hash": ""
   }
 }

@@ -1437,9 +1437,18 @@ pub fn run_content_process(token: String) {
     opts::initialize_options(unprivileged_content.opts());
     prefs::set(unprivileged_content.prefs().clone());
 
-    // Enter the sandbox if necessary.
+    // Enter the sandbox if necessary. Windows returns a Result; the other
+    // platform backends return unit, so keep each call site lint-clean without
+    // changing the existing ignore-on-error behaviour.
     if opts::get().sandbox {
-        let _ = create_sandbox();
+        #[cfg(target_os = "windows")]
+        {
+            let _ = create_sandbox();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            create_sandbox();
+        }
     }
 
     let _js_engine_setup = script::init();

@@ -1,0 +1,4 @@
+Error at :0:1 uncaught exception: undefined
+[2026-11-26T09:54:00Z ERROR servoshell::desktop::headless_window] Error at :0:1 uncaught exception: undefined
+called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1bafd336270)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[2026-11-26T09:54:05Z ERROR servoshell::panic_hook] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1bafd336270))

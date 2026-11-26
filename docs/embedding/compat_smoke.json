@@ -1,0 +1,57 @@
+[
+  {
+    "name": "GitHub Servo repository",
+    "url": "https://github.com/servo/servo",
+    "category": "Large dynamic application / SVG icons / code view",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 6.0,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/compat_smoke_shots\\01-github-servo-repository.png"
+  },
+  {
+    "name": "YouTube watch page",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "category": "Heavy media / canvas / continuous animation",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 3.61,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/compat_smoke_shots\\02-youtube-watch-page.png"
+  },
+  {
+    "name": "three.js skinning demo",
+    "url": "https://threejs.org/examples/webgl_animation_skinning_blending.html",
+    "category": "WebGL animation",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 2.06,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/compat_smoke_shots\\03-three-js-skinning-demo.png"
+  },
+  {
+    "name": "Anime.js showcase",
+    "url": "https://animejs.com/",
+    "category": "JS/CSS/SVG animation showcase",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 2.83,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/compat_smoke_shots\\04-anime-js-showcase.png"
+  },
+  {
+    "name": "Google Maps",
+    "url": "https://www.google.com/maps/@37.7749,-122.4194,12z",
+    "category": "WebGL tiles / continuous pan and zoom",
+    "exit_code": 0,
+    "status": "PASS",
+    "elapsed_seconds": 6.75,
+    "root_cause": null,
+    "error_summary": null,
+    "screenshot_path": "docs/embedding/compat_smoke_shots\\05-google-maps.png"
+  }
+]

@@ -1,0 +1,8 @@
+[CRASH] failed printing to stdout: The pipe is being closed. (os error 232) (thread main, at /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library\std\src\io\stdio.rs:1166)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1608ba681b0)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(167c8d78bf0)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1182aa9e150)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1dccda7e290)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(230c311c6b0)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1f0c05b0af0)) (thread main, at components\shared\paint\rendering_context.rs:260)
+[CRASH] called `Result::unwrap()` on an `Err` value: (SurfaceImportFailed(BadAttribute), Surface(1bafd336270)) (thread main, at components\shared\paint\rendering_context.rs:260)

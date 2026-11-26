@@ -1,0 +1,144 @@
+{
+  "provenance": {
+    "binary": "C:\\Program Files\\Servo\\Servo Tech Demo\\servoshell.exe",
+    "version": "Version: Servo 0.7.0-fd4655eb3",
+    "sha256": "E0E28202B914ECDC0EC1E352D69FDEE76AE25A307C59B2551316A512415D7314",
+    "source_run_id": "45428660357",
+    "artifact_id": "14943064230",
+    "extra_args": [
+      "--prefs-file=docs/embedding/compat_triage_animations.json"
+    ]
+  },
+  "results": [
+    {
+      "name": "GitHub Servo repository",
+      "url": "https://github.com/servo/servo",
+      "category": "Large dynamic application / SVG icons / code view",
+      "status": "PASS",
+      "reason": null,
+      "title": "GitHub - servo/servo: Servo aims to empower developers with a lightweight, high-performance alternative for embedding web technologies in applications. \u00b7 GitHub",
+      "general": {
+        "elementCount": 2642,
+        "canvasSizes": [],
+        "bodyTextLength": 8184,
+        "hasWebGL": true,
+        "readyState": "complete",
+        "title": "GitHub - servo/servo: Servo aims to empower developers with a lightweight, high-performance alternative for embedding web technologies in applications. \u00b7 GitHub",
+        "canvasCount": 0,
+        "scriptCount": 13,
+        "rafCount": 13
+      },
+      "site_check": {
+        "detail": {
+          "bodyTextLength": 8184,
+          "codeRows": 0,
+          "title": "GitHub - servo/servo: Servo aims to empower developers with a lightweight, high-performance alternative for embedding web technologies in applications. \u00b7 GitHub",
+          "regions": 10
+        },
+        "ok": true
+      },
+      "raf_count": 13,
+      "screenshot": "C:\\Users\\LOQ\\AppData\\Local\\Temp\\opencode\\compat_triage_anim_shots\\01-probe-github-servo-repository.png"
+    },
+    {
+      "name": "YouTube watch page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "category": "Heavy media / canvas / continuous animation",
+      "status": "FAIL",
+      "reason": "document.readyState never reached complete",
+      "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster) - YouTube",
+      "general": {
+        "hasWebGL": true,
+        "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster) - YouTube",
+        "canvasCount": 0,
+        "scriptCount": 59,
+        "bodyTextLength": 1333,
+        "canvasSizes": [],
+        "elementCount": 4167,
+        "rafCount": 3,
+        "readyState": "interactive"
+      },
+      "site_check": {
+        "ok": true,
+        "detail": {
+          "readyState": 4,
+          "videoCount": 1,
+          "playerNodes": 44,
+          "duration": 213.043046875
+        }
+      },
+      "raf_count": 3,
+      "screenshot": "C:\\Users\\LOQ\\AppData\\Local\\Temp\\opencode\\compat_triage_anim_shots\\02-probe-youtube-watch-page.png"
+    },
+    {
+      "name": "three.js skinning demo",
+      "url": "https://threejs.org/examples/webgl_animation_skinning_blending.html",
+      "category": "WebGL animation",
+      "status": "FAIL",
+      "reason": "Site-specific DOM/animation check failed",
+      "title": "three.js webgl - animation - skinning",
+      "general": {
+        "canvasSizes": [],
+        "rafCount": 24,
+        "title": "three.js webgl - animation - skinning",
+        "hasWebGL": true,
+        "elementCount": 121,
+        "readyState": "complete",
+        "bodyTextLength": 540,
+        "scriptCount": 2,
+        "canvasCount": 0
+      },
+      "site_check": {
+        "ok": false,
+        "detail": {
+          "canvasCount": 0,
+          "sizes": [],
+          "rafCount": 25
+        }
+      },
+      "raf_count": 24,
+      "screenshot": "C:\\Users\\LOQ\\AppData\\Local\\Temp\\opencode\\compat_triage_anim_shots\\03-probe-three.js-skinning-demo.png"
+    },
+    {
+      "name": "Anime.js showcase",
+      "url": "https://animejs.com/",
+      "category": "JS/CSS/SVG animation showcase",
+      "status": "FAIL",
+      "reason": "Site-specific DOM/animation check failed",
+      "title": "Anime.js | JavaScript Animation Engine",
+      "general": {
+        "scriptCount": 5,
+        "hasWebGL": true,
+        "bodyTextLength": 3660,
+        "readyState": "complete",
+        "title": "Anime.js | JavaScript Animation Engine",
+        "elementCount": 726,
+        "canvasSizes": [],
+        "canvasCount": 0,
+        "rafCount": 39
+      },
+      "site_check": {
+        "ok": false,
+        "detail": {
+          "rafCount": 40,
+          "bodyTextLength": 3660,
+          "animatedElements": 0
+        }
+      },
+      "raf_count": 39,
+      "screenshot": "C:\\Users\\LOQ\\AppData\\Local\\Temp\\opencode\\compat_triage_anim_shots\\04-probe-anime.js-showcase.png"
+    },
+    {
+      "name": "Google Maps",
+      "url": "https://www.google.com/maps/@37.7749,-122.4194,12z",
+      "category": "WebGL tiles / continuous pan and zoom",
+      "status": "FAIL",
+      "reason": "URLError: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>",
+      "title": null,
+      "general": null,
+      "site_check": null,
+      "raf_count": 0,
+      "screenshot": null
+    }
+  ]
+}

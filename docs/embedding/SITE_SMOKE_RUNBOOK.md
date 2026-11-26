@@ -93,3 +93,53 @@ harness exit `0`. See [`SITE_SMOKETEST_REPORT.md`](SITE_SMOKETEST_REPORT.md) for
 provenance, results and screenshots, and [`WPT_TRIAGE.md`](WPT_TRIAGE.md) for the four
 resolved harness tickets. This is a smoke result, not a conformance pass; REL-3 step 3
 (engine fixes and a strict WPT delta) is still pending.
+
+## Extended compatibility set (`compat-v1`)
+
+`compat-v1` is a **separate, versioned** target list for the bounded compatibility sprint.
+It is not a replacement for the fixed five-site smoke set and must not be used to rewrite
+that baseline. Every target is visual, so a row without screenshot evidence is
+`NOT_CONFIRMED` even if the process exits cleanly.
+
+| # | Site | Category | Expected features |
+|---|---|---|---|
+| 1 | `https://github.com/servo/servo` | Large dynamic application / SVG icons / code view | SPA navigation, SVG icons, syntax-highlighted code, dynamic panels |
+| 2 | `https://www.youtube.com/watch?v=dQw4w9WgXcQ` | Heavy media / canvas / continuous animation | Video metadata, canvas/SVG controls, dynamic thumbnails |
+| 3 | `https://threejs.org/examples/webgl_animation_skinning_blending.html` | WebGL animation | WebGL context, canvas animation, continuous rendering |
+| 4 | `https://animejs.com/` | JS/CSS/SVG animation showcase | `requestAnimationFrame`, CSS transforms, SVG animation |
+| 5 | `https://www.google.com/maps/@37.7749,-122.4194,12z` | WebGL tiles / continuous pan and zoom | Canvas tiles, WebGL, pointer input, dynamic overlays |
+
+Execute from the repository root with the same provenance rules as the fixed smoke set:
+
+```powershell
+python etc/ci/site_smoketest.py `
+  --servo-binary <installed-servoshell-from-successful-artifact> `
+  --site-set compat-v1 `
+  --timeout 30 `
+  --screenshot-dir docs/embedding/compat_smoke_shots `
+  --output-markdown docs/embedding/COMPAT_SMOKE_REPORT.md `
+  --output-json docs/embedding/compat_smoke.json
+```
+
+Any non-`PASS` row becomes a triage ticket using the same root-cause rules and must be
+fixed in engine code, never by a site-specific exception. The result is a compatibility
+finding set, not a conformance pass and not a release gate by itself.
+
+For DOM/RAF/screenshot evidence, run the deeper probe:
+
+```powershell
+python etc/ci/compat_probe.py `
+  --servo-binary <installed-servoshell-from-successful-artifact> `
+  --port 7011 `
+  --timeout 25 `
+  --screenshot-dir docs/embedding/compat_probe_shots `
+  --output-json docs/embedding/compat_probe.json `
+  --output-markdown docs/embedding/COMPAT_PROBE_REPORT.md `
+  --source-run-id <run-id> `
+  --artifact-id <artifact-id>
+```
+
+`--extra-servo-arg="--prefs-file=<path>"` is available for **diagnostic isolation only**.
+It must be recorded in the report provenance and must never be used to make a target pass
+by changing shipped defaults or adding a site-specific exception. The executed findings
+are in [`COMPAT_TRIAGE_REPORT.md`](COMPAT_TRIAGE_REPORT.md).

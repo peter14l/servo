@@ -1,0 +1,4 @@
+Error at :0:1 uncaught exception: undefined
+[2026-11-26T09:54:50Z ERROR servoshell::desktop::headless_window] Error at :0:1 uncaught exception: undefined
+THREE.WebGLRenderer: Error creating WebGL context.
+[2026-11-26T09:54:50Z ERROR servoshell::desktop::headless_window] THREE.WebGLRenderer: Error creating WebGL context.

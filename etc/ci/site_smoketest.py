@@ -67,6 +67,47 @@ DEFAULT_TARGET_SITES: list[TargetSite] = [
     },
 ]
 
+# A separate, versioned set for the bounded REL-3 compatibility sprint. Do not mix it
+# with the fixed five-site smoke set above: a compat failure is a finding, not a
+# regression in the smoke baseline.
+COMPATIBILITY_TARGET_SITES: list[TargetSite] = [
+    {
+        "name": "GitHub Servo repository",
+        "url": "https://github.com/servo/servo",
+        "category": "Large dynamic application / SVG icons / code view",
+        "expected_features": ["SPA navigation", "SVG icons", "syntax-highlighted code", "dynamic panels"],
+    },
+    {
+        "name": "YouTube watch page",
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "category": "Heavy media / canvas / continuous animation",
+        "expected_features": ["HTML5 video metadata", "canvas/SVG player controls", "dynamic thumbnails"],
+    },
+    {
+        "name": "three.js skinning demo",
+        "url": "https://threejs.org/examples/webgl_animation_skinning_blending.html",
+        "category": "WebGL animation",
+        "expected_features": ["WebGL context", "canvas animation", "continuous rendering"],
+    },
+    {
+        "name": "Anime.js showcase",
+        "url": "https://animejs.com/",
+        "category": "JS/CSS/SVG animation showcase",
+        "expected_features": ["requestAnimationFrame", "CSS transforms", "SVG animation"],
+    },
+    {
+        "name": "Google Maps",
+        "url": "https://www.google.com/maps/@37.7749,-122.4194,12z",
+        "category": "WebGL tiles / continuous pan and zoom",
+        "expected_features": ["canvas tiles", "WebGL", "pointer input", "dynamic overlays"],
+    },
+]
+
+SITE_SETS = {
+    "smoke": DEFAULT_TARGET_SITES,
+    "compat-v1": COMPATIBILITY_TARGET_SITES,
+}
+
 
 @dataclass
 class SiteTestResult:
@@ -213,6 +254,12 @@ def generate_site_report(results: List[SiteTestResult], header: str = "") -> str
 def main() -> int:
     parser = argparse.ArgumentParser(description="Servo Real-World Website Smoke Test")
     parser.add_argument("--servo-binary", help="Path to servoshell binary", default=None)
+    parser.add_argument(
+        "--site-set",
+        choices=sorted(SITE_SETS),
+        default="smoke",
+        help="Curated site list to execute (default: fixed five-site smoke set)",
+    )
     parser.add_argument("--timeout", type=int, default=15, help="Timeout per site in seconds")
     parser.add_argument(
         "--screenshot-dir",
@@ -257,12 +304,13 @@ def main() -> int:
                 root_cause="Dry-run plan only; no binary was executed",
                 error_summary=None,
             )
-            for s in DEFAULT_TARGET_SITES
+            for s in SITE_SETS[args.site_set]
         ]
         report = generate_site_report(
             planned,
-            "> **NOT_RUN plan.** No servoshell binary was executed. This is not test evidence. "
-            "See [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) for the execution and triage procedure.",
+            f"> **NOT_RUN plan.** Site set `{args.site_set}`. No servoshell binary was executed. "
+            "This is not test evidence. See [SITE_SMOKE_RUNBOOK.md](SITE_SMOKE_RUNBOOK.md) "
+            "for the execution and triage procedure.",
         )
         if args.output_markdown:
             with open(args.output_markdown, "w", encoding="utf-8") as fh:
@@ -287,15 +335,17 @@ def main() -> int:
 
     print(f"Running site smoke tests using binary: {binary}")
     run_header = (
-        f"> **Executed smoke run.** Binary: `{binary}`. Record the source CI run id "
-        "and artifact hash next to this report before treating it as evidence."
+        f"> **Executed smoke run.** Site set: `{args.site_set}`. Binary: `{binary}`. "
+        "Record the source CI run id and artifact hash next to this report before treating "
+        "it as evidence."
     )
     screenshot_dir = args.screenshot_dir
     if screenshot_dir:
         os.makedirs(screenshot_dir, exist_ok=True)
 
     results = []
-    for index, site in enumerate(DEFAULT_TARGET_SITES):
+    target_sites = SITE_SETS[args.site_set]
+    for index, site in enumerate(target_sites):
         print(f"Testing {site['name']} ({site['url']})...")
         extra_args: List[str] = []
         screenshot_path = None
@@ -306,8 +356,11 @@ def main() -> int:
         res = run_site_test(binary, site, timeout_seconds=args.timeout, extra_args=extra_args)
         res.screenshot_path = screenshot_path
 
-        # Runbook: visual targets #2-#5 need screenshot evidence, not just a clean exit.
-        if index >= 1 and (not screenshot_path or not os.path.isfile(screenshot_path)):
+        # The fixed smoke set requires screenshots for visual targets #2-#5. Every
+        # compatibility target is visual, so a compat row without a screenshot is not
+        # confirmed even when the process exits cleanly.
+        requires_screenshot = args.site_set != "smoke" or index >= 1
+        if requires_screenshot and (not screenshot_path or not os.path.isfile(screenshot_path)):
             if res.status == "PASS":
                 res.status = "NOT_CONFIRMED"
                 res.root_cause = "No screenshot evidence for visual target"

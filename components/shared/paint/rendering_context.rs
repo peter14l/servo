@@ -257,7 +257,15 @@ impl SurfmanRenderingContext {
             ..
         } = device.surface_info(&surface);
         debug!("... getting texture for surface {:?}", front_buffer_id);
-        let surface_texture = device.create_surface_texture(context, surface).unwrap();
+        let surface_texture = match device.create_surface_texture(context, surface) {
+            Ok(texture) => texture,
+            Err((error, _surface)) => {
+                // A failed surface import must not unwind through the renderer:
+                // callers already treat `None` as "no external image available".
+                warn!("Failed to import surface {front_buffer_id:?}: {error:?}");
+                return None;
+            },
+        };
         let gl_texture = device
             .surface_texture_object(&surface_texture)
             .map(|tex| tex.0.get())

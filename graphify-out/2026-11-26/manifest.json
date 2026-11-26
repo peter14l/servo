@@ -938,8 +938,8 @@
     "semantic_hash": "0442216922b5cbce91842a020596a811"
   },
   "components/layout/display_list/background.rs": {
-    "mtime": 1795405484.4323666,
-    "ast_hash": "b7d8fa3bd17491d1033ae6ad874669d9",
+    "mtime": 1795685164.6628377,
+    "ast_hash": "abad5bf908e21ea046256c8eee37a657",
     "semantic_hash": ""
   },
   "components/layout/display_list/clip.rs": {

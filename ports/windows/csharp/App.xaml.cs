@@ -65,8 +65,12 @@ namespace ServoBrowser.WinUI
                         "ServoBrowser");
                     Directory.CreateDirectory(configDir);
                     ServoCapi.servo_options_set_config_dir(options, configDir);
-                    ServoCapi.servo_builder_set_options(builder, options);
-                    ServoCapi.servo_options_free(options);
+                    if (ServoCapi.servo_builder_set_options(builder, options) != 0)
+                    {
+                        ServoCapi.servo_options_free(options);
+                    }
+                    // Ownership transferred on success.
+                    options = nint.Zero;
                 }
 
                 nint prefs = ServoCapi.servo_preferences_create();
@@ -105,8 +109,12 @@ namespace ServoBrowser.WinUI
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_variable_fonts_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_writing_mode_enabled", true);
 
-                    ServoCapi.servo_builder_set_preferences(builder, prefs);
-                    ServoCapi.servo_preferences_free(prefs);
+                    if (ServoCapi.servo_builder_set_preferences(builder, prefs) != 0)
+                    {
+                        ServoCapi.servo_preferences_free(prefs);
+                    }
+                    // Ownership transferred on success.
+                    prefs = nint.Zero;
                 }
 
                 var waker = new ServoCapi.ServoEventLoopWaker

@@ -35,7 +35,7 @@ pub fn install() {
         static BEEN_HERE: atomic::AtomicBool = atomic::AtomicBool::new(false);
         if !BEEN_HERE.swap(true, atomic::Ordering::SeqCst) {
             let path = minidump_path();
-            let result = write_minidump_windows(info, &path);
+            let result = unsafe { write_minidump_windows(info, &path) };
             let stderr = std::io::stderr();
             let mut stderr = stderr.lock();
             let _ = write!(

@@ -289,6 +289,13 @@ namespace Servo.Embedding
         public static extern int servo_webview_find_clear(nint webview, int identifier);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_webview_evaluate_javascript(
+            nint webview,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string script,
+            nint callback,
+            nint userData);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int servo_webview_get_favicon_image(nint webview, uint* width, uint* height, uint* format, byte* buffer, nuint* bufferLen);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

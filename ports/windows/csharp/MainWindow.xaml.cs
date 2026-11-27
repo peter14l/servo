@@ -467,6 +467,15 @@ namespace ServoBrowser.WinUI
                 OnToggleFindClick(sender, e);
                 e.Handled = true;
             }
+            else if (e.Key == VirtualKey.D)
+            {
+                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+                if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                {
+                    _activeHost?.DumpDiagnostics();
+                    e.Handled = true;
+                }
+            }
         }
 
         private void OnWindowClosed(object sender, WindowEventArgs args)

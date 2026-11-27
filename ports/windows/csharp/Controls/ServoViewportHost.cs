@@ -283,6 +283,55 @@ namespace ServoBrowser.WinUI.Controls
             }
         }
 
+        public void DumpDiagnostics()
+        {
+            if (_webview == nint.Zero) return;
+            const string script = @"(function(){
+  function pick(el){
+    if(!el) return null;
+    var cs = getComputedStyle(el);
+    var r = el.getBoundingClientRect();
+    return {
+      tag: el.tagName, id: el.id || '', cls: (el.className && typeof el.className === 'string' ? el.className.slice(0,60) : ''),
+      rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)],
+      disp: cs.display, vis: cs.visibility, op: cs.opacity,
+      color: cs.color, bg: cs.backgroundColor, bgImg: (cs.backgroundImage || '').slice(0,80),
+      ml: cs.marginLeft, pl: cs.paddingLeft, ov: cs.overflow, tf: cs.transform,
+      gtc: cs.gridTemplateColumns
+    };
+  }
+  var imgs = Array.from(document.images);
+  var brokenImgs = imgs.filter(function(i){ return !i.complete || i.naturalWidth === 0; }).slice(0,5).map(function(i){ return i.currentSrc || i.src; });
+  var h1s = Array.from(document.querySelectorAll('h1, [data-testid=""hero""], main > div:first-child, #center_col, #rcnt, #main')).slice(0,8).map(pick);
+  var canvases = Array.from(document.querySelectorAll('canvas')).slice(0,5).map(pick);
+  var videos = Array.from(document.querySelectorAll('video')).slice(0,5).map(function(v){ return { rect: pick(v).rect, ready: v.readyState, src: (v.currentSrc||'').slice(0,80) }; });
+  return JSON.stringify({
+    url: location.href,
+    vp: [innerWidth, innerHeight, devicePixelRatio],
+    body: pick(document.body),
+    targets: h1s,
+    imgTotal: imgs.length,
+    brokenImgCount: imgs.filter(function(i){ return !i.complete || i.naturalWidth === 0; }).length,
+    brokenImgs: brokenImgs,
+    canvases: canvases,
+    videos: videos
+  });
+})()";
+            ServoCapi.servo_webview_evaluate_javascript(
+                _webview,
+                script,
+                (nint)(delegate* unmanaged[Cdecl]<byte*, byte*, nint, void>)&OnDiagEvalResult,
+                nint.Zero);
+        }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnDiagEvalResult(byte* resultJsonPtr, byte* errorPtr, nint userData)
+        {
+            string res = PtrToUtf8(resultJsonPtr);
+            string err = PtrToUtf8(errorPtr);
+            Services.CrashTelemetryService.Log(!string.IsNullOrEmpty(err) ? $"[DIAG_ERR] {err}" : $"[DIAG] {res}");
+        }
+
         private nint HandleWndProc(nint hwnd, uint msg, nint wParam, nint lParam)
         {
             switch (msg)
@@ -376,6 +425,12 @@ namespace ServoBrowser.WinUI.Controls
 
                 case WM_KEYDOWN:
                 case WM_KEYUP:
+                    if (msg == WM_KEYDOWN && (wParam.ToInt64() & 0xFF) == 'D' &&
+                        (GetKeyState(0x11) < 0) && (GetKeyState(0x10) < 0)) // Ctrl+Shift+D
+                    {
+                        DumpDiagnostics();
+                        return 0;
+                    }
                     if (_webview != nint.Zero)
                     {
                         int vk = (int)(wParam.ToInt64() & 0xFF);
@@ -709,6 +764,9 @@ namespace ServoBrowser.WinUI.Controls
 
         [DllImport("user32.dll")]
         private static extern nint SetFocus(nint hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern short GetKeyState(int nVirtKey);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

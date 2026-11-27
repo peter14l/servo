@@ -161,6 +161,7 @@ namespace ServoBrowser.WinUI.Controls
                 NotifyPageTitleChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnTitleChanged,
                 NotifyNewFrameReady = (nint)(delegate* unmanaged[Cdecl]<nint, nint, void>)&OnNewFrameReady,
                 NotifyLoadError = (nint)(delegate* unmanaged[Cdecl]<nint, int, byte*, nint, void>)&OnLoadError,
+                ShowConsoleMessage = (nint)(delegate* unmanaged[Cdecl]<nint, int, byte*, nint, void>)&OnConsoleMessage,
                 NotifyAnimatingChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte, nint, void>)&OnAnimatingChanged,
                 NotifyCrashed = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, byte*, nint, void>)&OnWebViewCrashed,
                 OnFindResult = (nint)(delegate* unmanaged[Cdecl]<nint, int, int, nint, nint, void>)&OnFindResult,
@@ -454,6 +455,16 @@ namespace ServoBrowser.WinUI.Controls
         {
             string errorText = PtrToUtf8(errorTextPtr);
             Services.CrashTelemetryService.Log($"[LOAD_ERROR] code={errorCode} msg={errorText}");
+        }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnConsoleMessage(nint webview, int level, byte* messagePtr, nint userData)
+        {
+            if (level >= 3) // Warn / Error
+            {
+                string msg = PtrToUtf8(messagePtr);
+                Services.CrashTelemetryService.Log($"[JS:{level}] {msg}");
+            }
         }
 
         [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

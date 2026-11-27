@@ -92,6 +92,13 @@ namespace ServoBrowser.WinUI
                     ServoCapi.servo_preferences_set_i64(prefs, "js_mem_max", 2048);
                     ServoCapi.servo_preferences_set_i64(prefs, "session_history_max_length", 5);
 
+                    // Match desktop Firefox persona (SpiderMonkey) so Google, Bing, and GitHub
+                    // serve full modern layouts and assets instead of legacy fallback pages.
+                    ServoCapi.servo_preferences_set_string(
+                        prefs,
+                        "user_agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0");
+
                     // Modern web platform & animation parity (matching ports/windows/src/main.cpp).
                     ServoCapi.servo_preferences_set_bool(prefs, "network_use_webpki_roots", true);
                     ServoCapi.servo_preferences_set_i64(prefs, "network_connection_timeout", 30);

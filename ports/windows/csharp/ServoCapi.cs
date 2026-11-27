@@ -149,6 +149,9 @@ namespace Servo.Embedding
         public static extern int servo_preferences_set_bool(nint preferences, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.U1)] bool value);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_preferences_set_string(nint preferences, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_rendering_context_create_window(void* displayHandle, void* windowHandle, uint width, uint height);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

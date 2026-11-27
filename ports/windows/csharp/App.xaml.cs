@@ -14,6 +14,7 @@ namespace ServoBrowser.WinUI
     public partial class App : Application
     {
         private static DispatcherQueue? s_dispatcherQueue;
+        private static DispatcherQueueTimer? s_pumpTimer;
         private static nint s_servo = nint.Zero;
         private static bool s_spinning;
         private MainWindow? _window;
@@ -125,7 +126,13 @@ namespace ServoBrowser.WinUI
                 };
                 ServoCapi.servo_builder_set_event_loop_waker(builder, waker);
                 s_servo = ServoCapi.servo_builder_build(builder);
+                Services.CrashTelemetryService.Log($"servo_builder_build => 0x{s_servo:X}");
             }
+
+            s_pumpTimer = s_dispatcherQueue.CreateTimer();
+            s_pumpTimer.Interval = TimeSpan.FromMilliseconds(33);
+            s_pumpTimer.Tick += (_, _) => SpinEventLoopOnce();
+            s_pumpTimer.Start();
 
             _window = new MainWindow();
             _window.Activate();

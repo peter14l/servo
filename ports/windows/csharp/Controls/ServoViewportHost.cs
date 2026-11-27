@@ -56,6 +56,7 @@ namespace ServoBrowser.WinUI.Controls
         private nint _hwnd;
         private nint _webview;
         private bool _visible;
+        private bool _loggedFirstPaint;
         private bool _trackingMouseLeave;
         private uint _width = 1;
         private uint _height = 1;
@@ -121,6 +122,7 @@ namespace ServoBrowser.WinUI.Controls
             nint ctx = ServoCapi.servo_rendering_context_create_windows_hwnd((void*)_hwnd, (void*)hInstance, _width, _height);
             if (ctx == nint.Zero)
             {
+                Services.CrashTelemetryService.Log("[ERR] servo_rendering_context_create_windows_hwnd returned null");
                 if (newWebViewRequest != nint.Zero)
                 {
                     ServoCapi.servo_create_new_webview_request_free(newWebViewRequest);
@@ -135,6 +137,7 @@ namespace ServoBrowser.WinUI.Controls
             ctx = nint.Zero;
             if (builder == nint.Zero)
             {
+                Services.CrashTelemetryService.Log("[ERR] webview_builder_create returned null");
                 return;
             }
 
@@ -164,6 +167,7 @@ namespace ServoBrowser.WinUI.Controls
 
             _webview = ServoCapi.servo_webview_builder_build(builder);
             _session.WebView = _webview;
+            Services.CrashTelemetryService.Log($"CreateWebView hwnd=0x{_hwnd:X} webview=0x{_webview:X} url={initialUrl}");
         }
 
         public void SetBounds(int x, int y, int width, int height, float scale, bool visible)
@@ -178,7 +182,9 @@ namespace ServoBrowser.WinUI.Controls
             _height = (uint)Math.Max(1, height);
             _scale = Math.Max(1.0f, scale);
 
-            uint flags = SWP_NOZORDER | SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
+            // Place at HWND_TOP (without SWP_NOZORDER) so the native child viewport
+            // sits above WinUI 3's DesktopChildSiteBridge HWND in the Z-order.
+            uint flags = SWP_NOACTIVATE | (visible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
             SetWindowPos(_hwnd, nint.Zero, x, y, (int)_width, (int)_height, flags);
 
             if (_webview != nint.Zero)
@@ -232,8 +238,13 @@ namespace ServoBrowser.WinUI.Controls
                     if (_webview != nint.Zero && _visible)
                     {
                         // GEMINI.md invariant #1: paint must be immediately followed by present.
-                        ServoCapi.servo_webview_paint(_webview);
-                        ServoCapi.servo_webview_present(_webview);
+                        int paintRc = ServoCapi.servo_webview_paint(_webview);
+                        int presentRc = ServoCapi.servo_webview_present(_webview);
+                        if (!_loggedFirstPaint)
+                        {
+                            _loggedFirstPaint = true;
+                            Services.CrashTelemetryService.Log($"First WM_PAINT size={_width}x{_height} paint={paintRc} present={presentRc}");
+                        }
                     }
                     EndPaint(hwnd, ref ps);
                     return 0;

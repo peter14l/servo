@@ -55,6 +55,7 @@ namespace ServoBrowser.WinUI
             _animTimer.Tick += (_, _) => App.SpinEventLoopOnce();
 
             RootGrid.KeyDown += OnRootKeyDown;
+            ViewportPlaceholder.Loaded += (_, _) => UpdateViewportBounds();
             Closed += OnWindowClosed;
 
             CreateNewTab(HomeUrl);

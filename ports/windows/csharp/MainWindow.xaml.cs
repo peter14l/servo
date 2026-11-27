@@ -60,7 +60,7 @@ namespace ServoBrowser.WinUI
             CreateNewTab(HomeUrl);
         }
 
-        private void CreateNewTab(string url)
+        private void CreateNewTab(string url, nint newWebViewRequest = default)
         {
             var session = new TabSession { Url = url, Title = "New Tab" };
             var tabItem = new TabViewItem
@@ -71,7 +71,7 @@ namespace ServoBrowser.WinUI
             };
 
             float scale = (float)(ViewportPlaceholder.XamlRoot?.RasterizationScale ?? 1.0);
-            var host = new ServoViewportHost(_hwnd, _dispatcher, session, url, scale);
+            var host = new ServoViewportHost(_hwnd, _dispatcher, session, url, scale, newWebViewRequest);
 
             host.TitleChanged += (s, title) =>
             {
@@ -122,6 +122,11 @@ namespace ServoBrowser.WinUI
             host.AlertRequested += async (_, message) =>
             {
                 await ShowAlertAsync(message);
+            };
+
+            host.NewTabRequested += request =>
+            {
+                CreateNewTab(string.Empty, request);
             };
 
             _tabs[tabItem] = host;

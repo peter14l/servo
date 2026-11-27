@@ -68,8 +68,9 @@ namespace ServoBrowser.WinUI.Controls
         public event Action<TabSession, bool>? AnimatingChanged;
         public event Action<TabSession, int, int>? FindResultReceived;
         public event Action<TabSession, string>? AlertRequested;
+        public event Action<nint>? NewTabRequested;
 
-        public ServoViewportHost(nint parentHwnd, DispatcherQueue dispatcher, TabSession session, string initialUrl, float scale)
+        public ServoViewportHost(nint parentHwnd, DispatcherQueue dispatcher, TabSession session, string initialUrl, float scale, nint newWebViewRequest = default)
         {
             _dispatcher = dispatcher;
             _session = session;
@@ -93,7 +94,11 @@ namespace ServoBrowser.WinUI.Controls
             {
                 s_hosts[_hwnd] = this;
                 _session.ChildHwnd = _hwnd;
-                CreateWebView(hInstance, initialUrl);
+                CreateWebView(hInstance, initialUrl, newWebViewRequest);
+            }
+            else if (newWebViewRequest != nint.Zero)
+            {
+                ServoCapi.servo_create_new_webview_request_free(newWebViewRequest);
             }
         }
 
@@ -101,29 +106,42 @@ namespace ServoBrowser.WinUI.Controls
         public nint WebView => _webview;
         public TabSession Session => _session;
 
-        private void CreateWebView(nint hInstance, string initialUrl)
+        private void CreateWebView(nint hInstance, string initialUrl, nint newWebViewRequest)
         {
             nint servo = App.ServoHandle;
             if (servo == nint.Zero || _hwnd == nint.Zero)
             {
+                if (newWebViewRequest != nint.Zero)
+                {
+                    ServoCapi.servo_create_new_webview_request_free(newWebViewRequest);
+                }
                 return;
             }
 
             nint ctx = ServoCapi.servo_rendering_context_create_windows_hwnd((void*)_hwnd, (void*)hInstance, _width, _height);
             if (ctx == nint.Zero)
             {
+                if (newWebViewRequest != nint.Zero)
+                {
+                    ServoCapi.servo_create_new_webview_request_free(newWebViewRequest);
+                }
                 return;
             }
 
-            nint builder = ServoCapi.servo_webview_builder_create(servo, ctx);
-            // Ownership of ctx transferred to servo_webview_builder_create (GEMINI.md invariant #3).
+            nint builder = newWebViewRequest != nint.Zero
+                ? ServoCapi.servo_create_new_webview_builder_create(newWebViewRequest, ctx)
+                : ServoCapi.servo_webview_builder_create(servo, ctx);
+            // Ownership of ctx transferred to builder (GEMINI.md invariant #3).
             ctx = nint.Zero;
             if (builder == nint.Zero)
             {
                 return;
             }
 
-            ServoCapi.servo_webview_builder_set_url(builder, initialUrl);
+            if (newWebViewRequest == nint.Zero)
+            {
+                ServoCapi.servo_webview_builder_set_url(builder, initialUrl);
+            }
             ServoCapi.servo_webview_builder_set_hidpi_scale_factor(builder, _scale);
 
             var del = new ServoCapi.ServoWebViewDelegate
@@ -135,10 +153,12 @@ namespace ServoBrowser.WinUI.Controls
                 NotifyUrlChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnUrlChanged,
                 NotifyPageTitleChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnTitleChanged,
                 NotifyNewFrameReady = (nint)(delegate* unmanaged[Cdecl]<nint, nint, void>)&OnNewFrameReady,
+                NotifyLoadError = (nint)(delegate* unmanaged[Cdecl]<nint, int, byte*, nint, void>)&OnLoadError,
                 NotifyAnimatingChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte, nint, void>)&OnAnimatingChanged,
                 NotifyCrashed = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, byte*, nint, void>)&OnWebViewCrashed,
                 OnFindResult = (nint)(delegate* unmanaged[Cdecl]<nint, int, int, nint, nint, void>)&OnFindResult,
                 ShowAlertDialog = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, nint, void>)&OnShowAlertDialog,
+                RequestCreateNew = (nint)(delegate* unmanaged[Cdecl]<nint, nint, nint, byte>)&OnRequestCreateNew,
             };
             ServoCapi.servo_webview_builder_set_delegate(builder, del);
 
@@ -414,11 +434,43 @@ namespace ServoBrowser.WinUI.Controls
         }
 
         [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnLoadError(nint webview, int errorCode, byte* errorTextPtr, nint userData)
+        {
+            string errorText = PtrToUtf8(errorTextPtr);
+            Services.CrashTelemetryService.Log($"[LOAD_ERROR] code={errorCode} msg={errorText}");
+        }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
         private static void OnWebViewCrashed(nint webview, byte* reasonPtr, byte* backtracePtr, nint userData)
         {
             string reason = PtrToUtf8(reasonPtr);
             string backtrace = PtrToUtf8(backtracePtr);
+            Services.CrashTelemetryService.Log($"[WEBVIEW_CRASH] {reason}");
             Services.CrashTelemetryService.RecordCrash("WebViewPipelineCrash", $"{reason}\n{backtrace}");
+        }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static byte OnRequestCreateNew(nint parentWebview, nint request, nint userData)
+        {
+            if (request == nint.Zero) return 0;
+            if (TryGetHost(userData, out var host))
+            {
+                if (host._dispatcher.TryEnqueue(() =>
+                {
+                    if (!host._disposed)
+                    {
+                        host.NewTabRequested?.Invoke(request);
+                    }
+                    else
+                    {
+                        ServoCapi.servo_create_new_webview_request_free(request);
+                    }
+                }))
+                {
+                    return 1;
+                }
+            }
+            return 0;
         }
 
         [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

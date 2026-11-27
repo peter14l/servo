@@ -17,6 +17,11 @@ namespace ServoBrowser.WinUI.Services
     public static class CrashTelemetryService
     {
         private const int MaxRetainedDumps = 5;
+        private static readonly object LogLock = new();
+        private static readonly string LogPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ServoBrowser",
+            "servo_winui.log");
         private static readonly string DumpDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ServoBrowser",
@@ -24,12 +29,31 @@ namespace ServoBrowser.WinUI.Services
 
         public static bool IsOptedIn { get; set; }
 
+        public static void Log(string message)
+        {
+            try
+            {
+                lock (LogLock)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+                    File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}\n");
+                }
+            }
+            catch
+            {
+                // Logging must never throw.
+            }
+        }
+
         public static void Initialize()
         {
+            Log("ServoBrowser WinUI 3 starting...");
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
+                string msg = args.ExceptionObject?.ToString() ?? "Unknown";
+                Log($"[FATAL] UnhandledException: {msg}");
                 if (!IsOptedIn) return;
-                RecordCrash("UnhandledException", args.ExceptionObject?.ToString() ?? "Unknown");
+                RecordCrash("UnhandledException", msg);
             };
         }
 

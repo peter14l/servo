@@ -167,6 +167,12 @@ namespace Servo.Embedding
         public static extern nint servo_webview_builder_create(nint servo, nint context);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_create_new_webview_builder_create(nint request, nint context);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_create_new_webview_request_free(nint request);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int servo_webview_builder_set_url(nint builder, [MarshalAs(UnmanagedType.LPUTF8Str)] string url);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

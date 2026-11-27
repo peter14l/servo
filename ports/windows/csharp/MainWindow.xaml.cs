@@ -5,8 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -56,6 +58,7 @@ namespace ServoBrowser.WinUI
 
             RootGrid.KeyDown += OnRootKeyDown;
             ViewportPlaceholder.Loaded += (_, _) => UpdateViewportBounds();
+            AppWindow.Changed += OnAppWindowChanged;
             Closed += OnWindowClosed;
 
             CreateNewTab(HomeUrl);
@@ -213,21 +216,48 @@ namespace ServoBrowser.WinUI
                 return;
             }
 
+            bool minimized = AppWindow.Presenter is OverlappedPresenter op &&
+                             op.State == OverlappedPresenterState.Minimized;
+
             double scale = ViewportPlaceholder.XamlRoot.RasterizationScale;
             var transform = ViewportPlaceholder.TransformToVisual(RootGrid);
             Point topLeft = transform.TransformPoint(new Point(0, 0));
 
-            int x = (int)Math.Round(topLeft.X * scale);
-            int y = (int)Math.Round(topLeft.Y * scale);
+            var screenPt = new POINT
+            {
+                X = (int)Math.Round(topLeft.X * scale),
+                Y = (int)Math.Round(topLeft.Y * scale),
+            };
+            ClientToScreen(_hwnd, ref screenPt);
+
             int w = Math.Max(1, (int)Math.Round(ViewportPlaceholder.ActualWidth * scale));
             int h = Math.Max(1, (int)Math.Round(ViewportPlaceholder.ActualHeight * scale));
 
             foreach (var kvp in _tabs)
             {
-                bool isVisible = !_modalOpen && kvp.Value == _activeHost;
-                kvp.Value.SetBounds(x, y, w, h, (float)scale, isVisible);
+                bool isVisible = !minimized && !_modalOpen && kvp.Value == _activeHost;
+                kvp.Value.SetBounds(screenPt.X, screenPt.Y, w, h, (float)scale, isVisible);
             }
         }
+
+        private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+        {
+            if (args.DidPositionChange || args.DidSizeChange || args.DidPresenterChange || args.DidVisibilityChange)
+            {
+                UpdateViewportBounds();
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ClientToScreen(nint hWnd, ref POINT lpPoint);
 
         private void OnViewportSizeChanged(object sender, SizeChangedEventArgs e) => UpdateViewportBounds();
 
@@ -447,6 +477,7 @@ namespace ServoBrowser.WinUI
                 host.Dispose();
             }
             _tabs.Clear();
+            App.StopEventLoopAndFree();
         }
     }
 }

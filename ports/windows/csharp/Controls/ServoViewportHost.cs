@@ -17,10 +17,12 @@ namespace ServoBrowser.WinUI.Controls
         private delegate nint WndProcDelegate(nint hwnd, uint msg, nint wParam, nint lParam);
 
         private const string WindowClassName = "ServoWinUIChildViewport";
-        private const int WS_CHILD = 0x40000000;
+        private const int WS_POPUP = unchecked((int)0x80000000);
         private const int WS_VISIBLE = 0x10000000;
         private const int WS_CLIPCHILDREN = 0x02000000;
         private const int WS_CLIPSIBLINGS = 0x04000000;
+        private const uint WS_EX_TOOLWINDOW = 0x00000080;
+        private const uint WS_EX_NOACTIVATE = 0x08000000;
 
         private const uint WM_DESTROY = 0x0002;
         private const uint WM_PAINT = 0x000F;
@@ -58,8 +60,8 @@ namespace ServoBrowser.WinUI.Controls
         private bool _visible;
         private bool _loggedFirstPaint;
         private bool _trackingMouseLeave;
-        private uint _width = 1;
-        private uint _height = 1;
+        private uint _width = 800;
+        private uint _height = 600;
         private float _scale = 1.0f;
         private bool _disposed;
 
@@ -80,12 +82,14 @@ namespace ServoBrowser.WinUI.Controls
 
             EnsureWindowClassRegistered();
             nint hInstance = GetModuleHandleW(null);
+            // Owned borderless WS_POPUP sits cleanly above WinUI 3's DirectComposition
+            // DesktopChildSiteBridge surface without Z-order occlusion.
             _hwnd = CreateWindowExW(
-                0,
+                WS_EX_TOOLWINDOW,
                 WindowClassName,
                 string.Empty,
-                WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-                0, 0, 1, 1,
+                WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+                0, 0, (int)_width, (int)_height,
                 parentHwnd,
                 nint.Zero,
                 hInstance,
@@ -382,6 +386,7 @@ namespace ServoBrowser.WinUI.Controls
         {
             if (TryGetHost(userData, out var host))
             {
+                Services.CrashTelemetryService.Log($"OnLoadStatusChanged status={status}");
                 // Query navigation state synchronously: `webview` is a temporary
                 // callback pointer and must not be retained past callback return.
                 bool canGoBack = webview != nint.Zero && ServoCapi.servo_webview_can_go_back(webview);

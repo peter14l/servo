@@ -26,6 +26,16 @@ namespace ServoBrowser.WinUI
 
         public static nint ServoHandle => s_servo;
 
+        public static void StopEventLoopAndFree()
+        {
+            s_pumpTimer?.Stop();
+            if (s_servo != nint.Zero)
+            {
+                ServoCapi.servo_free(s_servo);
+                s_servo = nint.Zero;
+            }
+        }
+
         public static void SpinEventLoopOnce()
         {
             if (s_servo == nint.Zero || s_spinning)

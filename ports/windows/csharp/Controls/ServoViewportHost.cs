@@ -17,6 +17,43 @@ namespace ServoBrowser.WinUI.Controls
         private delegate nint WndProcDelegate(nint hwnd, uint msg, nint wParam, nint lParam);
 
         private const string WindowClassName = "ServoWinUIChildViewport";
+        private const string CompatPolyfillScript = @"
+(function() {
+  if (typeof window === 'undefined') return;
+  if (typeof window.SVGAnimatedString === 'undefined') {
+    function SVGAnimatedString(el) { this._el = el; }
+    Object.defineProperty(SVGAnimatedString.prototype, 'baseVal', {
+      get: function() { return this._el ? (this._el.getAttribute('class') || '') : ''; },
+      set: function(v) { if (this._el) this._el.setAttribute('class', String(v)); }
+    });
+    Object.defineProperty(SVGAnimatedString.prototype, 'animVal', {
+      get: function() { return this.baseVal; }
+    });
+    window.SVGAnimatedString = SVGAnimatedString;
+    if (typeof window.SVGElement !== 'undefined' && !('className' in window.SVGElement.prototype)) {
+      Object.defineProperty(window.SVGElement.prototype, 'className', {
+        configurable: true,
+        get: function() { return new SVGAnimatedString(this); }
+      });
+    }
+  }
+  if (typeof window.MediaSource === 'undefined') {
+    function DummyMediaSource() { this.sourceBuffers = []; this.activeSourceBuffers = []; this.readyState = 'closed'; }
+    DummyMediaSource.isTypeSupported = function() { return false; };
+    DummyMediaSource.prototype.addSourceBuffer = function() { throw new DOMException('Not supported', 'NotSupportedError'); };
+    window.MediaSource = DummyMediaSource;
+  }
+  if (typeof window.ShadyCSS === 'undefined') {
+    var noop = function() {};
+    window.ShadyCSS = {
+      nativeCss: true, nativeShadow: true,
+      prepareTemplate: noop, prepareTemplateStyles: noop, prepareTemplateDom: noop,
+      styleElement: noop, styleSubtree: noop, styleDocument: noop,
+      getComputedStyleValue: function(el, prop) { return getComputedStyle(el).getPropertyValue(prop); }
+    };
+  }
+})();
+";
         private const uint WS_POPUP = 0x80000000u;
         private const uint WS_VISIBLE = 0x10000000u;
         private const uint WS_CLIPCHILDREN = 0x02000000u;
@@ -150,6 +187,22 @@ namespace ServoBrowser.WinUI.Controls
                 ServoCapi.servo_webview_builder_set_url(builder, initialUrl);
             }
             ServoCapi.servo_webview_builder_set_hidpi_scale_factor(builder, _scale);
+
+            // Inject standards-compliant Web API polyfills (SVGAnimatedString, MediaSource fallback, ShadyCSS).
+            nint ucm = ServoCapi.servo_user_content_manager_create(servo);
+            if (ucm != nint.Zero)
+            {
+                nint script = ServoCapi.servo_user_script_create(CompatPolyfillScript, nint.Zero);
+                if (script != nint.Zero)
+                {
+                    ServoCapi.servo_user_content_manager_add_script(ucm, script);
+                    ServoCapi.servo_user_script_free(script);
+                }
+                if (ServoCapi.servo_webview_builder_set_user_content_manager(builder, ucm) != 0)
+                {
+                    ServoCapi.servo_user_content_manager_free(ucm);
+                }
+            }
 
             var del = new ServoCapi.ServoWebViewDelegate
             {

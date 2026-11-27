@@ -203,6 +203,24 @@ namespace Servo.Embedding
         public static extern int servo_webview_builder_set_hidpi_scale_factor(nint builder, float scaleFactor);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_user_content_manager_create(nint servo);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_user_content_manager_free(nint ucm);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_user_script_create([MarshalAs(UnmanagedType.LPUTF8Str)] string source, nint sourceFile);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_user_script_free(nint script);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_user_content_manager_add_script(nint ucm, nint script);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_webview_builder_set_user_content_manager(nint builder, nint ucm);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_webview_builder_build(nint builder);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

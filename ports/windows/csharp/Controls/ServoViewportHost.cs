@@ -351,11 +351,16 @@ namespace ServoBrowser.WinUI.Controls
         {
             if (TryGetHost(userData, out var host))
             {
+                // Query navigation state synchronously: `webview` is a temporary
+                // callback pointer and must not be retained past callback return.
+                bool canGoBack = webview != nint.Zero && ServoCapi.servo_webview_can_go_back(webview);
+                bool canGoForward = webview != nint.Zero && ServoCapi.servo_webview_can_go_forward(webview);
                 host._dispatcher.TryEnqueue(() =>
                 {
+                    if (host._disposed) return;
                     host._session.IsLoading = status != ServoCapi.SERVO_LOAD_STATUS_COMPLETE;
-                    host._session.CanGoBack = ServoCapi.servo_webview_can_go_back(webview);
-                    host._session.CanGoForward = ServoCapi.servo_webview_can_go_forward(webview);
+                    host._session.CanGoBack = canGoBack;
+                    host._session.CanGoForward = canGoForward;
                     host.LoadStatusChanged?.Invoke(host._session, status);
                 });
             }

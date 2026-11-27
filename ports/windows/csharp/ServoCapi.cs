@@ -119,6 +119,24 @@ namespace Servo.Embedding
         public static extern int servo_builder_set_preferences(nint builder, nint preferences);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_builder_set_request_context(nint builder, nint context);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern nint servo_request_context_create();
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_request_context_free(nint context);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_request_context_set_cookie_path(nint context, [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_request_context_set_cache_path(nint context, [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int servo_request_context_set_accept_language(nint context, [MarshalAs(UnmanagedType.LPUTF8Str)] string acceptLanguage);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern nint servo_builder_build(nint builder);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]

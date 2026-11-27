@@ -87,9 +87,16 @@ namespace ServoBrowser.WinUI
                 nint prefs = ServoCapi.servo_preferences_create();
                 if (prefs != nint.Zero)
                 {
-                    // Guardrails from GEMINI.md: cap SpiderMonkey heap <= 4096 MB and
-                    // keep session history compact for heavy SPAs.
-                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_max", 2048);
+                    // Guardrails from GEMINI.md & main.cpp: bound SpiderMonkey heap and
+                    // disable compacting/incremental GC stalls on heavy SPAs.
+                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_max", 1024);
+                    ServoCapi.servo_preferences_set_bool(prefs, "js_mem_gc_incremental_enabled", false);
+                    ServoCapi.servo_preferences_set_bool(prefs, "js_mem_gc_per_zone_enabled", false);
+                    ServoCapi.servo_preferences_set_bool(prefs, "js_mem_gc_compacting_enabled", false);
+                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_high_limit_mb", 512);
+                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_gc_high_frequency_low_limit_mb", 128);
+                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_gc_malloc_threshold_base_mb", 64);
+                    ServoCapi.servo_preferences_set_i64(prefs, "js_mem_gc_urgent_threshold_mb", 32);
                     ServoCapi.servo_preferences_set_i64(prefs, "session_history_max_length", 5);
 
                     // Match desktop Firefox persona (SpiderMonkey) so Google, Bing, and GitHub
@@ -126,6 +133,9 @@ namespace ServoBrowser.WinUI
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_variable_fonts_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_writing_mode_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "layout_css_ellipse_corners_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "media_glvideo_enabled", true);
+                    ServoCapi.servo_preferences_set_bool(prefs, "perf_thread_boost_enabled", true);
 
                     if (ServoCapi.servo_builder_set_preferences(builder, prefs) != 0)
                     {
@@ -133,6 +143,27 @@ namespace ServoBrowser.WinUI
                     }
                     // Ownership transferred on success.
                     prefs = nint.Zero;
+                }
+
+                // Persistent Cookies, HTTP Cache & Accept-Language
+                nint reqCtx = ServoCapi.servo_request_context_create();
+                if (reqCtx != nint.Zero)
+                {
+                    string baseDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "ServoBrowser");
+                    string cookieDir = Path.Combine(baseDir, "Cookies");
+                    string cacheDir = Path.Combine(baseDir, "Cache");
+                    Directory.CreateDirectory(cookieDir);
+                    Directory.CreateDirectory(cacheDir);
+                    ServoCapi.servo_request_context_set_cookie_path(reqCtx, cookieDir);
+                    ServoCapi.servo_request_context_set_cache_path(reqCtx, cacheDir);
+                    ServoCapi.servo_request_context_set_accept_language(reqCtx, "en-US,en;q=0.9");
+                    if (ServoCapi.servo_builder_set_request_context(builder, reqCtx) != 0)
+                    {
+                        ServoCapi.servo_request_context_free(reqCtx);
+                    }
+                    reqCtx = nint.Zero;
                 }
 
                 var waker = new ServoCapi.ServoEventLoopWaker

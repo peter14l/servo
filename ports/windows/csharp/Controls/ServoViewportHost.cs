@@ -297,12 +297,18 @@ namespace ServoBrowser.WinUI.Controls
       disp: cs.display, vis: cs.visibility, op: cs.opacity,
       color: cs.color, bg: cs.backgroundColor, bgImg: (cs.backgroundImage || '').slice(0,80),
       ml: cs.marginLeft, pl: cs.paddingLeft, ov: cs.overflow, tf: cs.transform,
-      gtc: cs.gridTemplateColumns
+      gtc: cs.gridTemplateColumns, gcs: cs.gridColumnStart, gce: cs.gridColumnEnd,
+      w: cs.width, mw: cs.maxWidth, zi: cs.zIndex, cp: cs.clipPath
     };
   }
   var imgs = Array.from(document.images);
   var brokenImgs = imgs.filter(function(i){ return !i.complete || i.naturalWidth === 0; }).slice(0,5).map(function(i){ return i.currentSrc || i.src; });
   var h1s = Array.from(document.querySelectorAll('h1, [data-testid=""hero""], main > div:first-child, #center_col, #rcnt, #main')).slice(0,8).map(pick);
+  var h1Ancestors = [];
+  var firstH1 = document.querySelector('h1');
+  for (var p = firstH1 ? firstH1.parentElement : null; p && p !== document.body && h1Ancestors.length < 6; p = p.parentElement) {
+    h1Ancestors.push(pick(p));
+  }
   var canvases = Array.from(document.querySelectorAll('canvas')).slice(0,5).map(pick);
   var videos = Array.from(document.querySelectorAll('video')).slice(0,5).map(function(v){ return { rect: pick(v).rect, ready: v.readyState, src: (v.currentSrc||'').slice(0,80) }; });
   return JSON.stringify({
@@ -310,6 +316,7 @@ namespace ServoBrowser.WinUI.Controls
     vp: [innerWidth, innerHeight, devicePixelRatio],
     body: pick(document.body),
     targets: h1s,
+    h1Ancestors: h1Ancestors,
     imgTotal: imgs.length,
     brokenImgCount: imgs.filter(function(i){ return !i.complete || i.naturalWidth === 0; }).length,
     brokenImgs: brokenImgs,

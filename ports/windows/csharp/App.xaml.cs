@@ -122,18 +122,15 @@ namespace ServoBrowser.WinUI
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_adoptedstylesheet_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_composition_event_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_credential_management_enabled", true);
-                    ServoCapi.servo_preferences_set_bool(prefs, "dom_web_animations_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_entries_api_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_wakelock_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_webrtc_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_webrtc_transceiver_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_notification_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "dom_gamepad_enabled", true);
-                    ServoCapi.servo_preferences_set_bool(prefs, "layout_container_queries_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_columns_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_variable_fonts_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "layout_writing_mode_enabled", true);
-                    ServoCapi.servo_preferences_set_bool(prefs, "layout_css_ellipse_corners_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "media_glvideo_enabled", true);
                     ServoCapi.servo_preferences_set_bool(prefs, "perf_thread_boost_enabled", true);
 

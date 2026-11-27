@@ -17,10 +17,10 @@ namespace ServoBrowser.WinUI.Controls
         private delegate nint WndProcDelegate(nint hwnd, uint msg, nint wParam, nint lParam);
 
         private const string WindowClassName = "ServoWinUIChildViewport";
-        private const int WS_POPUP = unchecked((int)0x80000000);
-        private const int WS_VISIBLE = 0x10000000;
-        private const int WS_CLIPCHILDREN = 0x02000000;
-        private const int WS_CLIPSIBLINGS = 0x04000000;
+        private const uint WS_POPUP = 0x80000000u;
+        private const uint WS_VISIBLE = 0x10000000u;
+        private const uint WS_CLIPCHILDREN = 0x02000000u;
+        private const uint WS_CLIPSIBLINGS = 0x04000000u;
         private const uint WS_EX_TOOLWINDOW = 0x00000080;
         private const uint WS_EX_NOACTIVATE = 0x08000000;
 

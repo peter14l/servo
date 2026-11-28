@@ -30,6 +30,20 @@
             </muxc:TabView.TabStripFooter>
         </muxc:TabView>
 
+        <!-- Row 0 (Vertical Tabs mode): Dedicated spaced title bar so caption buttons never overlap the toolbar -->
+        <Grid
+            x:Name="VerticalTabsTitleBar"
+            Grid.Row="0"
+            Height="36"
+            Padding="14,0,152,0"
+            Background="Transparent"
+            Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/app_logo.png" Width="16" Height="16" VerticalAlignment="Center" />
+                <TextBlock Text="Servo Browser" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Grid>
+
         <!-- Row 1: Safari-minimal centered pill toolbar + Edge/Chrome overflow menu -->
         <Grid
             Grid.Row="1"
@@ -196,7 +210,9 @@
                 </Grid>
             </Border>
 
-            <Grid x:Name="ViewportPlaceholder" Grid.Column="1" Background="Transparent" SizeChanged="OnViewportSizeChanged" />
+            <Grid x:Name="ViewportPlaceholder" Grid.Column="1" Background="Transparent" SizeChanged="OnViewportSizeChanged">
+                <ContentControl x:Name="ViewportFocusSink" Width="1" Height="1" Opacity="0" IsTabStop="True" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            </Grid>
         </Grid>
 
         <!-- Row 4: Fixed-height link-hover status bar (never resizes viewport on hover) -->

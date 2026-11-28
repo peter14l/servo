@@ -66,6 +66,8 @@ namespace ServoBrowser.WinUI.Controls
         private const uint WM_SETFOCUS = 0x0007;
         private const uint WM_KILLFOCUS = 0x0008;
         private const uint WM_ERASEBKGND = 0x0014;
+        private const uint WM_MOUSEACTIVATE = 0x0021;
+        private const int MA_NOACTIVATE = 3;
         private const uint WM_KEYDOWN = 0x0100;
         private const uint WM_KEYUP = 0x0101;
         private const uint WM_CHAR = 0x0102;
@@ -110,6 +112,7 @@ namespace ServoBrowser.WinUI.Controls
         public event Action<TabSession, string>? AlertRequested;
         public event Action<nint>? NewTabRequested;
         public event Action<TabSession, string>? StatusTextChanged;
+        public event Action? ViewportClicked;
 
         public ServoViewportHost(nint parentHwnd, DispatcherQueue dispatcher, TabSession session, string initialUrl, float scale, nint newWebViewRequest = default)
         {
@@ -122,8 +125,9 @@ namespace ServoBrowser.WinUI.Controls
             nint hInstance = GetModuleHandleW(null);
             // Owned borderless WS_POPUP sits cleanly above WinUI 3's DirectComposition
             // DesktopChildSiteBridge surface without Z-order occlusion.
+            // WS_EX_NOACTIVATE keeps MainWindow active so Windows DWM Mica Alt stays enabled.
             _hwnd = CreateWindowExW(
-                WS_EX_TOOLWINDOW,
+                WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
                 WindowClassName,
                 string.Empty,
                 WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
@@ -148,6 +152,14 @@ namespace ServoBrowser.WinUI.Controls
         public nint Hwnd => _hwnd;
         public nint WebView => _webview;
         public TabSession Session => _session;
+
+        public void SendKeyEvent(int keyEventType, string key, bool repeat)
+        {
+            if (_webview != nint.Zero && !string.IsNullOrEmpty(key))
+            {
+                ServoCapi.servo_webview_notify_key_event(_webview, keyEventType, key, key, 0, 0, repeat, false);
+            }
+        }
 
         private void CreateWebView(nint hInstance, string initialUrl, nint newWebViewRequest)
         {
@@ -403,6 +415,10 @@ namespace ServoBrowser.WinUI.Controls
                 case WM_ERASEBKGND:
                     return 1;
 
+                case WM_MOUSEACTIVATE:
+                    // Never steal activation from MainWindow so Windows DWM Mica Alt stays active.
+                    return (nint)MA_NOACTIVATE;
+
                 case WM_PAINT:
                 {
                     BeginPaint(hwnd, out var ps);
@@ -461,7 +477,8 @@ namespace ServoBrowser.WinUI.Controls
                     {
                         if (msg is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MBUTTONDOWN)
                         {
-                            SetFocus(hwnd);
+                            ServoCapi.servo_webview_set_focused(_webview, true);
+                            ViewportClicked?.Invoke();
                         }
                         int evt = msg is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MBUTTONDOWN
                             ? ServoCapi.SERVO_MOUSE_BUTTON_EVENT_DOWN

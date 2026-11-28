@@ -48,6 +48,11 @@ namespace ServoBrowser.WinUI
             _dispatcher = DispatcherQueue.GetForCurrentThread();
 
             Title = "Servo Browser";
+            string iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app_logo.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                AppWindow.SetIcon(iconPath);
+            }
             SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(TitleBarDragRegion);
@@ -57,6 +62,8 @@ namespace ServoBrowser.WinUI
             _animTimer.Tick += (_, _) => App.SpinEventLoopOnce();
 
             RootGrid.KeyDown += OnRootKeyDown;
+            RootGrid.KeyUp += OnRootKeyUp;
+            RootGrid.CharacterReceived += OnRootCharacterReceived;
             ViewportPlaceholder.Loaded += (_, _) => UpdateViewportBounds();
             AppWindow.Changed += OnAppWindowChanged;
             Closed += OnWindowClosed;
@@ -122,6 +129,8 @@ namespace ServoBrowser.WinUI
                     UpdateToolbarFromSession(s);
                 }
             };
+
+            host.ViewportClicked += OnViewportClicked;
 
             host.AnimatingChanged += (_, animating) =>
             {
@@ -255,6 +264,8 @@ namespace ServoBrowser.WinUI
             bool showVertical = VerticalTabsPanel.Visibility == Visibility.Collapsed;
             VerticalTabsPanel.Visibility = showVertical ? Visibility.Visible : Visibility.Collapsed;
             BrowserTabView.Visibility = showVertical ? Visibility.Collapsed : Visibility.Visible;
+            VerticalTabsTitleBar.Visibility = showVertical ? Visibility.Visible : Visibility.Collapsed;
+            SetTitleBar(showVertical ? VerticalTabsTitleBar : TitleBarDragRegion);
             SyncVerticalTabsList();
             UpdateViewportBounds();
         }
@@ -597,6 +608,18 @@ namespace ServoBrowser.WinUI
             }
         }
 
+        private void OnViewportClicked()
+        {
+            ViewportFocusSink.Focus(FocusState.Programmatic);
+        }
+
+        private bool IsTextInputFocused()
+        {
+            return _modalOpen
+                || Omnibox.FocusState != FocusState.Unfocused
+                || FindTextBox.FocusState != FocusState.Unfocused;
+        }
+
         private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
         {
             if (e.Key == VirtualKey.F5)
@@ -615,95 +638,150 @@ namespace ServoBrowser.WinUI
 
             var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
             bool isCtrl = ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-            if (!isCtrl) return;
-
-            if (e.Key == VirtualKey.T)
+            if (isCtrl)
             {
-                CreateNewTab(HomeUrl);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.N)
-            {
-                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
-                if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                if (e.Key == VirtualKey.T)
                 {
-                    CreateNewTab(HomeUrl, isPrivate: true);
+                    CreateNewTab(HomeUrl);
                     e.Handled = true;
                 }
-            }
-            else if (e.Key == VirtualKey.P)
-            {
-                _activeHost?.PrintPage();
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.U)
-            {
-                OnViewSourceClick(sender, e);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.W && BrowserTabView.SelectedItem is TabViewItem activeTab)
-            {
-                if (_tabs.TryGetValue(activeTab, out var host))
+                else if (e.Key == VirtualKey.N)
                 {
-                    _tabs.Remove(activeTab);
-                    if (_activeHost == host) _activeHost = null;
-                    host.Dispose();
+                    var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+                    if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                    {
+                        CreateNewTab(HomeUrl, isPrivate: true);
+                        e.Handled = true;
+                    }
                 }
-                BrowserTabView.TabItems.Remove(activeTab);
-                if (BrowserTabView.TabItems.Count == 0) Close();
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.Tab && BrowserTabView.TabItems.Count > 1)
-            {
-                int next = (BrowserTabView.SelectedIndex + 1) % BrowserTabView.TabItems.Count;
-                BrowserTabView.SelectedIndex = next;
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.R)
-            {
-                _activeHost?.Reload();
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.H)
-            {
-                OnLibraryClick(sender, e);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.L)
-            {
-                Omnibox.Focus(FocusState.Programmatic);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.F)
-            {
-                OnToggleFindClick(sender, e);
-                e.Handled = true;
-            }
-            else if (e.Key == (VirtualKey)187 || e.Key == VirtualKey.Add)
-            {
-                if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() + 0.1f);
-                e.Handled = true;
-            }
-            else if (e.Key == (VirtualKey)189 || e.Key == VirtualKey.Subtract)
-            {
-                if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() - 0.1f);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.Number0 || e.Key == VirtualKey.NumberPad0)
-            {
-                SetActiveZoom(1.0f);
-                e.Handled = true;
-            }
-            else if (e.Key == VirtualKey.D)
-            {
-                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
-                if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                else if (e.Key == VirtualKey.P)
                 {
-                    _activeHost?.DumpDiagnostics();
+                    _activeHost?.PrintPage();
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.U)
+                {
+                    OnViewSourceClick(sender, e);
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.W && BrowserTabView.SelectedItem is TabViewItem activeTab)
+                {
+                    if (_tabs.TryGetValue(activeTab, out var host))
+                    {
+                        _tabs.Remove(activeTab);
+                        if (_activeHost == host) _activeHost = null;
+                        host.Dispose();
+                    }
+                    BrowserTabView.TabItems.Remove(activeTab);
+                    if (BrowserTabView.TabItems.Count == 0) Close();
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.Tab && BrowserTabView.TabItems.Count > 1)
+                {
+                    int next = (BrowserTabView.SelectedIndex + 1) % BrowserTabView.TabItems.Count;
+                    BrowserTabView.SelectedIndex = next;
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.R)
+                {
+                    _activeHost?.Reload();
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.H)
+                {
+                    OnLibraryClick(sender, e);
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.L)
+                {
+                    Omnibox.Focus(FocusState.Programmatic);
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.F)
+                {
+                    OnToggleFindClick(sender, e);
+                    e.Handled = true;
+                }
+                else if (e.Key == (VirtualKey)187 || e.Key == VirtualKey.Add)
+                {
+                    if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() + 0.1f);
+                    e.Handled = true;
+                }
+                else if (e.Key == (VirtualKey)189 || e.Key == VirtualKey.Subtract)
+                {
+                    if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() - 0.1f);
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.Number0 || e.Key == VirtualKey.NumberPad0)
+                {
+                    SetActiveZoom(1.0f);
+                    e.Handled = true;
+                }
+                else if (e.Key == VirtualKey.D)
+                {
+                    var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+                    if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                    {
+                        _activeHost?.DumpDiagnostics();
+                        e.Handled = true;
+                    }
+                }
+                if (e.Handled) return;
+            }
+
+            if (!IsTextInputFocused() && _activeHost != null)
+            {
+                string keyName = VirtualKeyToWebKey(e.Key);
+                if (!string.IsNullOrEmpty(keyName))
+                {
+                    _activeHost.SendKeyEvent(ServoCapi.SERVO_KEY_EVENT_DOWN, keyName, e.KeyStatus.WasKeyDown);
                     e.Handled = true;
                 }
             }
         }
+
+        private void OnRootKeyUp(object sender, KeyRoutedEventArgs e)
+        {
+            if (IsTextInputFocused() || _activeHost == null) return;
+            string keyName = VirtualKeyToWebKey(e.Key);
+            if (!string.IsNullOrEmpty(keyName))
+            {
+                _activeHost.SendKeyEvent(ServoCapi.SERVO_KEY_EVENT_UP, keyName, false);
+                e.Handled = true;
+            }
+        }
+
+        private void OnRootCharacterReceived(UIElement sender, CharacterReceivedRoutedEventArgs e)
+        {
+            if (IsTextInputFocused() || _activeHost == null) return;
+            var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
+            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)) return;
+
+            char ch = e.Character;
+            if (!char.IsControl(ch))
+            {
+                _activeHost.SendKeyEvent(ServoCapi.SERVO_KEY_EVENT_DOWN, ch.ToString(), false);
+                e.Handled = true;
+            }
+        }
+
+        private static string VirtualKeyToWebKey(VirtualKey key) => key switch
+        {
+            VirtualKey.Back => "Backspace",
+            VirtualKey.Tab => "Tab",
+            VirtualKey.Enter => "Enter",
+            VirtualKey.Escape => "Escape",
+            VirtualKey.PageUp => "PageUp",
+            VirtualKey.PageDown => "PageDown",
+            VirtualKey.End => "End",
+            VirtualKey.Home => "Home",
+            VirtualKey.Left => "ArrowLeft",
+            VirtualKey.Up => "ArrowUp",
+            VirtualKey.Right => "ArrowRight",
+            VirtualKey.Down => "ArrowDown",
+            VirtualKey.Delete => "Delete",
+            _ => string.Empty,
+        };
 
         private void OnWindowClosed(object sender, WindowEventArgs args)
         {

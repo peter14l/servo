@@ -19,6 +19,7 @@ namespace ServoBrowser.WinUI.Models
         private ImageSource? _favicon;
 
         public Guid Id { get; } = Guid.NewGuid();
+        public bool IsPrivate { get; set; }
         public nint WebView { get; set; }
         public nint ChildHwnd { get; set; }
 

@@ -10,13 +10,14 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Native Mica Alt Titlebar + TabView -->
+        <!-- Row 0: Safari-minimal Mica Alt Titlebar + TabView -->
         <muxc:TabView
             x:Name="BrowserTabView"
             Grid.Row="0"
-            Padding="8,4,0,0"
+            Padding="10,4,0,0"
             TabWidthMode="Equal"
             CanDragTabs="True"
             CanReorderTabs="True"
@@ -25,20 +26,19 @@
             TabCloseRequested="OnTabCloseRequested"
             SelectionChanged="OnTabSelectionChanged">
             <muxc:TabView.TabStripFooter>
-                <Grid x:Name="TitleBarDragRegion" Background="Transparent" MinWidth="160" HorizontalAlignment="Stretch" />
+                <Grid x:Name="TitleBarDragRegion" Background="Transparent" MinWidth="180" HorizontalAlignment="Stretch" />
             </muxc:TabView.TabStripFooter>
         </muxc:TabView>
 
-        <!-- Row 1: Fluent Navigation & Omnibox Toolbar -->
+        <!-- Row 1: Safari-minimal centered pill toolbar + Edge/Chrome overflow menu -->
         <Grid
             Grid.Row="1"
-            Padding="10,6,10,8"
+            Padding="12,4,12,8"
             Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,0,0,1"
-            ColumnSpacing="6">
+            ColumnSpacing="4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -46,59 +46,93 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button x:Name="BackButton" Grid.Column="0" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnBackClick" ToolTipService.ToolTip="Back">
-                <FontIcon Glyph="&#xE72B;" FontSize="14" />
+            <Button x:Name="BackButton" Grid.Column="0" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" Click="OnBackClick" ToolTipService.ToolTip="Back (Alt+Left)">
+                <FontIcon Glyph="&#xE72B;" FontSize="13" />
             </Button>
-            <Button x:Name="ForwardButton" Grid.Column="1" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnForwardClick" ToolTipService.ToolTip="Forward">
-                <FontIcon Glyph="&#xE72A;" FontSize="14" />
+            <Button x:Name="ForwardButton" Grid.Column="1" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" Click="OnForwardClick" ToolTipService.ToolTip="Forward (Alt+Right)">
+                <FontIcon Glyph="&#xE72A;" FontSize="13" />
             </Button>
-            <Button x:Name="ReloadButton" Grid.Column="2" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnReloadClick" ToolTipService.ToolTip="Reload">
-                <FontIcon x:Name="ReloadIcon" Glyph="&#xE72C;" FontSize="14" />
-            </Button>
-            <Button x:Name="HomeButton" Grid.Column="3" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnHomeClick" ToolTipService.ToolTip="Home">
-                <FontIcon Glyph="&#xE80F;" FontSize="14" />
+            <Button x:Name="ReloadButton" Grid.Column="2" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" Click="OnReloadClick" ToolTipService.ToolTip="Reload (Ctrl+R)">
+                <FontIcon x:Name="ReloadIcon" Glyph="&#xE72C;" FontSize="13" />
             </Button>
 
-            <!-- Omnibox -->
-            <AutoSuggestBox
-                x:Name="Omnibox"
-                Grid.Column="4"
-                Margin="4,0"
-                VerticalAlignment="Center"
-                PlaceholderText="Search DuckDuckGo or enter web address"
-                QuerySubmitted="OnOmniboxQuerySubmitted"
-                TextChanged="OnOmniboxTextChanged"
-                GotFocus="OnOmniboxGotFocus">
-                <AutoSuggestBox.QueryIcon>
-                    <FontIcon Glyph="&#xE721;" FontSize="13" />
-                </AutoSuggestBox.QueryIcon>
-            </AutoSuggestBox>
+            <!-- Centered Safari-style pill Omnibox -->
+            <Grid Grid.Column="3" MaxWidth="680" Margin="12,0" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <FontIcon x:Name="SecurityIcon" Grid.Column="0" Glyph="&#xE72E;" FontSize="12" Margin="6,0,4,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                <AutoSuggestBox
+                    x:Name="Omnibox"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    CornerRadius="16"
+                    PlaceholderText="Search or enter website name"
+                    QuerySubmitted="OnOmniboxQuerySubmitted"
+                    TextChanged="OnOmniboxTextChanged"
+                    GotFocus="OnOmniboxGotFocus">
+                    <AutoSuggestBox.QueryIcon>
+                        <FontIcon Glyph="&#xE721;" FontSize="12" />
+                    </AutoSuggestBox.QueryIcon>
+                </AutoSuggestBox>
+                <Button x:Name="BookmarkButton" Grid.Column="2" Width="30" Height="30" Padding="0" Margin="2,0,0,0" Background="Transparent" BorderThickness="0" CornerRadius="15" Click="OnBookmarkClick" ToolTipService.ToolTip="Bookmark this page">
+                    <FontIcon x:Name="BookmarkIcon" Glyph="&#xE734;" FontSize="13" />
+                </Button>
+            </Grid>
 
-            <Button x:Name="BookmarkButton" Grid.Column="5" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnBookmarkClick" ToolTipService.ToolTip="Bookmark this page">
-                <FontIcon x:Name="BookmarkIcon" Glyph="&#xE734;" FontSize="14" />
+            <Button x:Name="SidebarToggleButton" Grid.Column="4" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" Click="OnToggleVerticalTabsClick" ToolTipService.ToolTip="Toggle vertical tabs">
+                <FontIcon Glyph="&#xE8A0;" FontSize="13" />
             </Button>
-            <Button x:Name="LibraryButton" Grid.Column="6" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnLibraryClick" ToolTipService.ToolTip="Bookmarks &amp; History (Ctrl+H)">
-                <FontIcon Glyph="&#xE81C;" FontSize="14" />
+            <Button x:Name="LibraryButton" Grid.Column="5" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" Click="OnLibraryClick" ToolTipService.ToolTip="Bookmarks &amp; History (Ctrl+H)">
+                <FontIcon Glyph="&#xE81C;" FontSize="13" />
             </Button>
-            <Button x:Name="FindButton" Grid.Column="7" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnToggleFindClick" ToolTipService.ToolTip="Find in page (Ctrl+F)">
-                <FontIcon Glyph="&#xE721;" FontSize="14" />
-            </Button>
-            <Button x:Name="ZoomButton" Grid.Column="8" Height="34" Padding="8,0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnResetZoomClick" ToolTipService.ToolTip="Reset zoom (Ctrl+0)">
-                <TextBlock x:Name="ZoomLabel" Text="100%" FontSize="12" VerticalAlignment="Center" />
-            </Button>
-            <Button x:Name="SettingsButton" Grid.Column="9" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnSettingsClick" ToolTipService.ToolTip="Settings">
-                <FontIcon Glyph="&#xE713;" FontSize="14" />
+
+            <!-- Edge/Chrome-style comprehensive menu tucked cleanly under '...' -->
+            <Button x:Name="MoreButton" Grid.Column="6" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8" ToolTipService.ToolTip="More tools">
+                <FontIcon Glyph="&#xE712;" FontSize="13" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuFlyoutItem Text="New Tab" Icon="Add" Click="OnMenuNewTabClick" KeyboardAcceleratorTextOverride="Ctrl+T" />
+                        <MenuFlyoutItem Text="New Private Tab" Click="OnNewPrivateTabClick" KeyboardAcceleratorTextOverride="Ctrl+Shift+N">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72E;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Home" Icon="Home" Click="OnHomeClick" />
+                        <MenuFlyoutItem Text="Bookmarks &amp; History" Click="OnLibraryClick" KeyboardAcceleratorTextOverride="Ctrl+H">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE81C;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Find in Page" Icon="Find" Click="OnToggleFindClick" KeyboardAcceleratorTextOverride="Ctrl+F" />
+                        <MenuFlyoutSubItem Text="Zoom">
+                            <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE8A3;" /></MenuFlyoutSubItem.Icon>
+                            <MenuFlyoutItem Text="Zoom In" Click="OnZoomInClick" KeyboardAcceleratorTextOverride="Ctrl++" />
+                            <MenuFlyoutItem Text="Zoom Out" Click="OnZoomOutClick" KeyboardAcceleratorTextOverride="Ctrl+-" />
+                            <MenuFlyoutItem Text="Reset (100%)" Click="OnResetZoomClick" KeyboardAcceleratorTextOverride="Ctrl+0" />
+                        </MenuFlyoutSubItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Print..." Click="OnPrintClick" KeyboardAcceleratorTextOverride="Ctrl+P">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE749;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="View Page Source" Click="OnViewSourceClick" KeyboardAcceleratorTextOverride="Ctrl+U">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE943;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Dump Page Diagnostics" Click="OnDiagnosticsClick" KeyboardAcceleratorTextOverride="Ctrl+Shift+D">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEBE8;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Settings" Icon="Setting" Click="OnSettingsClick" />
+                    </MenuFlyout>
+                </Button.Flyout>
             </Button>
 
             <muxc:ProgressBar
                 x:Name="LoadProgressBar"
-                Grid.ColumnSpan="10"
+                Grid.ColumnSpan="7"
                 VerticalAlignment="Bottom"
-                Margin="-10,0,-10,-8"
+                Margin="-12,0,-12,-8"
                 Height="2"
                 IsIndeterminate="True"
                 Visibility="Collapsed" />
@@ -136,7 +170,45 @@
             </Button>
         </Grid>
 
-        <!-- Row 3: Native Servo Child HWND Viewport Container -->
-        <Grid x:Name="ViewportPlaceholder" Grid.Row="3" Background="Transparent" SizeChanged="OnViewportSizeChanged" />
+        <!-- Row 3: Optional Edge-style Vertical Tab Sidebar + Servo Viewport -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                x:Name="VerticalTabsPanel"
+                Grid.Column="0"
+                Width="220"
+                Visibility="Collapsed"
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="6">
+                <Grid RowSpacing="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Button Grid.Row="0" HorizontalAlignment="Stretch" Content="+ New Tab" Click="OnMenuNewTabClick" CornerRadius="6" />
+                    <ListView x:Name="VerticalTabsList" Grid.Row="1" SelectionChanged="OnVerticalTabSelectionChanged" />
+                </Grid>
+            </Border>
+
+            <Grid x:Name="ViewportPlaceholder" Grid.Column="1" Background="Transparent" SizeChanged="OnViewportSizeChanged" />
+        </Grid>
+
+        <!-- Row 4: Subtle link-hover status bar -->
+        <Border
+            x:Name="StatusBar"
+            Grid.Row="4"
+            Visibility="Collapsed"
+            Padding="10,2"
+            Background="{ThemeResource LayerOnMicaBaseAltFillColorSecondaryBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0">
+            <TextBlock x:Name="StatusTextBlock" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+        </Border>
     </Grid>
 </Window>

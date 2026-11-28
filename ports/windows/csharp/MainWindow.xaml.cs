@@ -64,13 +64,18 @@ namespace ServoBrowser.WinUI
             CreateNewTab(HomeUrl);
         }
 
-        private void CreateNewTab(string url, nint newWebViewRequest = default)
+        private void CreateNewTab(string url, nint newWebViewRequest = default, bool isPrivate = false)
         {
-            var session = new TabSession { Url = url, Title = "New Tab" };
+            var session = new TabSession
+            {
+                Url = url,
+                Title = isPrivate ? "Private Tab" : "New Tab",
+                IsPrivate = isPrivate,
+            };
             var tabItem = new TabViewItem
             {
                 Header = session.Title,
-                IconSource = new FontIconSource { Glyph = "\uE774" },
+                IconSource = new FontIconSource { Glyph = isPrivate ? "\uE72E" : "\uE774" },
                 Tag = session,
             };
 
@@ -79,7 +84,9 @@ namespace ServoBrowser.WinUI
 
             host.TitleChanged += (s, title) =>
             {
-                tabItem.Header = string.IsNullOrWhiteSpace(title) ? "New Tab" : title;
+                string label = string.IsNullOrWhiteSpace(title) ? (s.IsPrivate ? "Private Tab" : "New Tab") : title;
+                tabItem.Header = s.IsPrivate ? $"[Private] {label}" : label;
+                SyncVerticalTabsList();
                 if (host == _activeHost)
                 {
                     Title = $"{tabItem.Header} - Servo Browser";
@@ -88,12 +95,25 @@ namespace ServoBrowser.WinUI
 
             host.UrlChanged += (s, newUrl) =>
             {
-                _dataService.RecordHistory(newUrl, s.Title);
-                if (host == _activeHost && Omnibox.FocusState == FocusState.Unfocused)
+                if (!s.IsPrivate)
                 {
-                    Omnibox.Text = newUrl;
+                    _dataService.RecordHistory(newUrl, s.Title);
+                }
+                if (host == _activeHost)
+                {
+                    if (Omnibox.FocusState == FocusState.Unfocused) Omnibox.Text = newUrl;
+                    UpdateSecurityIcon(s);
                 }
                 UpdateBookmarkIcon();
+            };
+
+            host.StatusTextChanged += (_, text) =>
+            {
+                if (host == _activeHost)
+                {
+                    StatusTextBlock.Text = text;
+                    StatusBar.Visibility = string.IsNullOrWhiteSpace(text) ? Visibility.Collapsed : Visibility.Visible;
+                }
             };
 
             host.LoadStatusChanged += (s, status) =>
@@ -136,6 +156,7 @@ namespace ServoBrowser.WinUI
             _tabs[tabItem] = host;
             BrowserTabView.TabItems.Add(tabItem);
             BrowserTabView.SelectedItem = tabItem;
+            SyncVerticalTabsList();
         }
 
         private async System.Threading.Tasks.Task ShowAlertAsync(string message)
@@ -189,6 +210,7 @@ namespace ServoBrowser.WinUI
             }
 
             sender.TabItems.Remove(args.Tab);
+            SyncVerticalTabsList();
             if (sender.TabItems.Count == 0)
             {
                 Close();
@@ -201,6 +223,49 @@ namespace ServoBrowser.WinUI
             ForwardButton.IsEnabled = session.CanGoForward;
             ReloadIcon.Glyph = session.IsLoading ? "\uE711" : "\uE72C";
             LoadProgressBar.Visibility = session.IsLoading ? Visibility.Visible : Visibility.Collapsed;
+            UpdateSecurityIcon(session);
+        }
+
+        private void UpdateSecurityIcon(TabSession session)
+        {
+            if (session.IsPrivate)
+            {
+                SecurityIcon.Glyph = "\uE72E";
+                return;
+            }
+            bool isHttps = session.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+            SecurityIcon.Glyph = isHttps ? "\uE72E" : "\uE774";
+        }
+
+        private void SyncVerticalTabsList()
+        {
+            if (VerticalTabsPanel.Visibility != Visibility.Visible) return;
+            VerticalTabsList.Items.Clear();
+            foreach (var item in BrowserTabView.TabItems.OfType<TabViewItem>())
+            {
+                VerticalTabsList.Items.Add(item.Header?.ToString() ?? "New Tab");
+            }
+            if (BrowserTabView.SelectedIndex >= 0 && BrowserTabView.SelectedIndex < VerticalTabsList.Items.Count)
+            {
+                VerticalTabsList.SelectedIndex = BrowserTabView.SelectedIndex;
+            }
+        }
+
+        private void OnToggleVerticalTabsClick(object sender, RoutedEventArgs e)
+        {
+            bool showVertical = VerticalTabsPanel.Visibility == Visibility.Collapsed;
+            VerticalTabsPanel.Visibility = showVertical ? Visibility.Visible : Visibility.Collapsed;
+            BrowserTabView.Visibility = showVertical ? Visibility.Collapsed : Visibility.Visible;
+            SyncVerticalTabsList();
+            UpdateViewportBounds();
+        }
+
+        private void OnVerticalTabSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (VerticalTabsList.SelectedIndex >= 0 && VerticalTabsList.SelectedIndex < BrowserTabView.TabItems.Count)
+            {
+                BrowserTabView.SelectedIndex = VerticalTabsList.SelectedIndex;
+            }
         }
 
         private void UpdateBookmarkIcon()
@@ -387,7 +452,50 @@ namespace ServoBrowser.WinUI
             if (_activeHost == null) return;
             float clamped = Math.Clamp(zoom, 0.5f, 3.0f);
             _activeHost.SetZoom(clamped);
-            ZoomLabel.Text = $"{Math.Round(clamped * 100)}%";
+        }
+
+        private void OnMenuNewTabClick(object sender, RoutedEventArgs e) => CreateNewTab(HomeUrl);
+        private void OnNewPrivateTabClick(object sender, RoutedEventArgs e) => CreateNewTab(HomeUrl, isPrivate: true);
+        private void OnZoomInClick(object sender, RoutedEventArgs e) { if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() + 0.1f); }
+        private void OnZoomOutClick(object sender, RoutedEventArgs e) { if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() - 0.1f); }
+        private void OnPrintClick(object sender, RoutedEventArgs e) => _activeHost?.PrintPage();
+        private void OnDiagnosticsClick(object sender, RoutedEventArgs e) => _activeHost?.DumpDiagnostics();
+
+        private void OnViewSourceClick(object sender, RoutedEventArgs e)
+        {
+            if (_activeHost == null || _modalOpen || RootGrid.XamlRoot == null) return;
+            _activeHost.EvaluateAndShowSource(async source =>
+            {
+                if (_modalOpen || RootGrid.XamlRoot == null) return;
+                _modalOpen = true;
+                UpdateViewportBounds();
+                try
+                {
+                    var box = new TextBox
+                    {
+                        Text = source,
+                        IsReadOnly = true,
+                        AcceptsReturn = true,
+                        TextWrapping = TextWrapping.Wrap,
+                        MaxHeight = 420,
+                        FontFamily = new FontFamily("Consolas"),
+                        FontSize = 11,
+                    };
+                    var dialog = new ContentDialog
+                    {
+                        Title = "Page Source",
+                        Content = box,
+                        CloseButtonText = "Close",
+                        XamlRoot = RootGrid.XamlRoot,
+                    };
+                    await dialog.ShowAsync();
+                }
+                finally
+                {
+                    _modalOpen = false;
+                    UpdateViewportBounds();
+                }
+            });
         }
 
         private async void OnLibraryClick(object sender, RoutedEventArgs e)
@@ -513,6 +621,25 @@ namespace ServoBrowser.WinUI
             if (e.Key == VirtualKey.T)
             {
                 CreateNewTab(HomeUrl);
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.N)
+            {
+                var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+                if (shift.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+                {
+                    CreateNewTab(HomeUrl, isPrivate: true);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == VirtualKey.P)
+            {
+                _activeHost?.PrintPage();
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.U)
+            {
+                OnViewSourceClick(sender, e);
                 e.Handled = true;
             }
             else if (e.Key == VirtualKey.W && BrowserTabView.SelectedItem is TabViewItem activeTab)

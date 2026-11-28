@@ -109,6 +109,7 @@ namespace ServoBrowser.WinUI.Controls
         public event Action<TabSession, int, int>? FindResultReceived;
         public event Action<TabSession, string>? AlertRequested;
         public event Action<nint>? NewTabRequested;
+        public event Action<TabSession, string>? StatusTextChanged;
 
         public ServoViewportHost(nint parentHwnd, DispatcherQueue dispatcher, TabSession session, string initialUrl, float scale, nint newWebViewRequest = default)
         {
@@ -188,6 +189,18 @@ namespace ServoBrowser.WinUI.Controls
             }
             ServoCapi.servo_webview_builder_set_hidpi_scale_factor(builder, _scale);
 
+            if (_session.IsPrivate)
+            {
+                nint privateCtx = ServoCapi.servo_request_context_create();
+                if (privateCtx != nint.Zero)
+                {
+                    if (ServoCapi.servo_webview_builder_set_request_context(builder, privateCtx) != 0)
+                    {
+                        ServoCapi.servo_request_context_free(privateCtx);
+                    }
+                }
+            }
+
             // Inject standards-compliant Web API polyfills (SVGAnimatedString, MediaSource fallback, ShadyCSS).
             nint ucm = ServoCapi.servo_user_content_manager_create(servo);
             if (ucm != nint.Zero)
@@ -214,6 +227,7 @@ namespace ServoBrowser.WinUI.Controls
                 NotifyPageTitleChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnTitleChanged,
                 NotifyNewFrameReady = (nint)(delegate* unmanaged[Cdecl]<nint, nint, void>)&OnNewFrameReady,
                 NotifyLoadError = (nint)(delegate* unmanaged[Cdecl]<nint, int, byte*, nint, void>)&OnLoadError,
+                NotifyStatusTextChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, nint, void>)&OnStatusTextChanged,
                 ShowConsoleMessage = (nint)(delegate* unmanaged[Cdecl]<nint, int, byte*, nint, void>)&OnConsoleMessage,
                 NotifyAnimatingChanged = (nint)(delegate* unmanaged[Cdecl]<nint, byte, nint, void>)&OnAnimatingChanged,
                 NotifyCrashed = (nint)(delegate* unmanaged[Cdecl]<nint, byte*, byte*, nint, void>)&OnWebViewCrashed,
@@ -280,6 +294,37 @@ namespace ServoBrowser.WinUI.Controls
             if (_webview != nint.Zero)
             {
                 ServoCapi.servo_webview_notify_theme_change(_webview, isDark ? ServoCapi.SERVO_THEME_DARK : ServoCapi.SERVO_THEME_LIGHT);
+            }
+        }
+
+        public void PrintPage()
+        {
+            if (_webview == nint.Zero) return;
+            ServoCapi.servo_webview_evaluate_javascript(_webview, "window.print()", nint.Zero, nint.Zero);
+        }
+
+        public void EvaluateAndShowSource(Action<string> onSource)
+        {
+            if (_webview == nint.Zero) return;
+            _pendingSourceCallback = onSource;
+            ServoCapi.servo_webview_evaluate_javascript(
+                _webview,
+                "document.documentElement ? document.documentElement.outerHTML : ''",
+                (nint)(delegate* unmanaged[Cdecl]<byte*, byte*, nint, void>)&OnSourceEvalResult,
+                GCHandle.ToIntPtr(_selfHandle));
+        }
+
+        private Action<string>? _pendingSourceCallback;
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnSourceEvalResult(byte* resultJsonPtr, byte* errorPtr, nint userData)
+        {
+            if (TryGetHost(userData, out var host) && host._pendingSourceCallback != null)
+            {
+                string raw = PtrToUtf8(resultJsonPtr);
+                var cb = host._pendingSourceCallback;
+                host._pendingSourceCallback = null;
+                host._dispatcher.TryEnqueue(() => cb(raw));
             }
         }
 
@@ -570,6 +615,19 @@ namespace ServoBrowser.WinUI.Controls
         {
             string errorText = PtrToUtf8(errorTextPtr);
             Services.CrashTelemetryService.Log($"[LOAD_ERROR] code={errorCode} msg={errorText}");
+        }
+
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static void OnStatusTextChanged(nint webview, byte* textPtr, nint userData)
+        {
+            string text = PtrToUtf8(textPtr);
+            if (TryGetHost(userData, out var host))
+            {
+                host._dispatcher.TryEnqueue(() =>
+                {
+                    if (!host._disposed) host.StatusTextChanged?.Invoke(host._session, text);
+                });
+            }
         }
 
         [UnmanagedCallersOnly(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

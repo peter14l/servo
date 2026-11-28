@@ -199,16 +199,16 @@
             <Grid x:Name="ViewportPlaceholder" Grid.Column="1" Background="Transparent" SizeChanged="OnViewportSizeChanged" />
         </Grid>
 
-        <!-- Row 4: Subtle link-hover status bar -->
+        <!-- Row 4: Fixed-height link-hover status bar (never resizes viewport on hover) -->
         <Border
             x:Name="StatusBar"
             Grid.Row="4"
-            Visibility="Collapsed"
+            Height="22"
             Padding="10,2"
             Background="{ThemeResource LayerOnMicaBaseAltFillColorSecondaryBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
-            <TextBlock x:Name="StatusTextBlock" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="StatusTextBlock" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
         </Border>
     </Grid>
 </Window>

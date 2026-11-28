@@ -111,8 +111,7 @@ namespace ServoBrowser.WinUI
             {
                 if (host == _activeHost)
                 {
-                    StatusTextBlock.Text = text;
-                    StatusBar.Visibility = string.IsNullOrWhiteSpace(text) ? Visibility.Collapsed : Visibility.Visible;
+                    StatusTextBlock.Text = text ?? string.Empty;
                 }
             };
 

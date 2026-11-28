@@ -249,10 +249,16 @@ namespace ServoBrowser.WinUI.Controls
                 return;
             }
 
+            uint newWidth = (uint)Math.Max(1, width);
+            uint newHeight = (uint)Math.Max(1, height);
+            float newScale = Math.Max(1.0f, scale);
+            bool sizeChanged = newWidth != _width || newHeight != _height;
+            bool scaleChanged = Math.Abs(newScale - _scale) > 0.001f;
+
             _visible = visible;
-            _width = (uint)Math.Max(1, width);
-            _height = (uint)Math.Max(1, height);
-            _scale = Math.Max(1.0f, scale);
+            _width = newWidth;
+            _height = newHeight;
+            _scale = newScale;
 
             // Place at HWND_TOP (without SWP_NOZORDER) so the native child viewport
             // sits above WinUI 3's DesktopChildSiteBridge HWND in the Z-order.
@@ -261,12 +267,18 @@ namespace ServoBrowser.WinUI.Controls
 
             if (_webview != nint.Zero)
             {
-                ServoCapi.servo_webview_set_hidpi_scale_factor(_webview, _scale);
-                ServoCapi.servo_webview_resize(_webview, _width, _height);
+                if (scaleChanged)
+                {
+                    ServoCapi.servo_webview_set_hidpi_scale_factor(_webview, _scale);
+                }
+                if (sizeChanged)
+                {
+                    ServoCapi.servo_webview_resize(_webview, _width, _height);
+                }
                 if (visible)
                 {
                     ServoCapi.servo_webview_show(_webview);
-                    InvalidateRect(_hwnd, nint.Zero, false);
+                    if (sizeChanged) InvalidateRect(_hwnd, nint.Zero, false);
                 }
                 else
                 {

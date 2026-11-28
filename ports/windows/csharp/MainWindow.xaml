@@ -47,6 +47,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <Button x:Name="BackButton" Grid.Column="0" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnBackClick" ToolTipService.ToolTip="Back">
@@ -80,19 +81,22 @@
             <Button x:Name="BookmarkButton" Grid.Column="5" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnBookmarkClick" ToolTipService.ToolTip="Bookmark this page">
                 <FontIcon x:Name="BookmarkIcon" Glyph="&#xE734;" FontSize="14" />
             </Button>
-            <Button x:Name="FindButton" Grid.Column="6" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnToggleFindClick" ToolTipService.ToolTip="Find in page (Ctrl+F)">
+            <Button x:Name="LibraryButton" Grid.Column="6" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnLibraryClick" ToolTipService.ToolTip="Bookmarks &amp; History (Ctrl+H)">
+                <FontIcon Glyph="&#xE81C;" FontSize="14" />
+            </Button>
+            <Button x:Name="FindButton" Grid.Column="7" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnToggleFindClick" ToolTipService.ToolTip="Find in page (Ctrl+F)">
                 <FontIcon Glyph="&#xE721;" FontSize="14" />
             </Button>
-            <Button x:Name="ZoomButton" Grid.Column="7" Height="34" Padding="8,0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnResetZoomClick" ToolTipService.ToolTip="Reset zoom">
+            <Button x:Name="ZoomButton" Grid.Column="8" Height="34" Padding="8,0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnResetZoomClick" ToolTipService.ToolTip="Reset zoom (Ctrl+0)">
                 <TextBlock x:Name="ZoomLabel" Text="100%" FontSize="12" VerticalAlignment="Center" />
             </Button>
-            <Button x:Name="SettingsButton" Grid.Column="8" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnSettingsClick" ToolTipService.ToolTip="Settings">
+            <Button x:Name="SettingsButton" Grid.Column="9" Width="34" Height="34" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="6" Click="OnSettingsClick" ToolTipService.ToolTip="Settings">
                 <FontIcon Glyph="&#xE713;" FontSize="14" />
             </Button>
 
             <muxc:ProgressBar
                 x:Name="LoadProgressBar"
-                Grid.ColumnSpan="9"
+                Grid.ColumnSpan="10"
                 VerticalAlignment="Bottom"
                 Margin="-10,0,-10,-8"
                 Height="2"

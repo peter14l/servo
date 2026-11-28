@@ -380,11 +380,55 @@ namespace ServoBrowser.WinUI
             }
         }
 
-        private void OnResetZoomClick(object sender, RoutedEventArgs e)
+        private void OnResetZoomClick(object sender, RoutedEventArgs e) => SetActiveZoom(1.0f);
+
+        private void SetActiveZoom(float zoom)
         {
             if (_activeHost == null) return;
-            _activeHost.SetZoom(1.0f);
-            ZoomLabel.Text = "100%";
+            float clamped = Math.Clamp(zoom, 0.5f, 3.0f);
+            _activeHost.SetZoom(clamped);
+            ZoomLabel.Text = $"{Math.Round(clamped * 100)}%";
+        }
+
+        private async void OnLibraryClick(object sender, RoutedEventArgs e)
+        {
+            if (_modalOpen || RootGrid.XamlRoot == null) return;
+            _modalOpen = true;
+            UpdateViewportBounds();
+            try
+            {
+                var list = new ListView { MaxHeight = 360, SelectionMode = ListViewSelectionMode.Single };
+                var bookmarks = _dataService.GetBookmarks();
+                var history = _dataService.GetHistory();
+
+                foreach (var b in bookmarks) list.Items.Add($"[Bookmark] {b}");
+                foreach (var h in history.Take(30)) list.Items.Add(h);
+                if (list.Items.Count == 0) list.Items.Add("No bookmarks or history yet.");
+
+                var dialog = new ContentDialog
+                {
+                    Title = "Bookmarks & History",
+                    Content = list,
+                    PrimaryButtonText = "Open",
+                    CloseButtonText = "Close",
+                    XamlRoot = RootGrid.XamlRoot,
+                };
+
+                if (await dialog.ShowAsync() == ContentDialogResult.Primary &&
+                    list.SelectedItem is string selected &&
+                    !selected.StartsWith("No bookmarks", StringComparison.Ordinal))
+                {
+                    string url = selected.StartsWith("[Bookmark] ", StringComparison.Ordinal)
+                        ? selected.Substring("[Bookmark] ".Length)
+                        : selected;
+                    _activeHost?.Load(url);
+                }
+            }
+            finally
+            {
+                _modalOpen = false;
+                UpdateViewportBounds();
+            }
         }
 
         private async void OnSettingsClick(object sender, RoutedEventArgs e)
@@ -448,6 +492,20 @@ namespace ServoBrowser.WinUI
 
         private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
         {
+            if (e.Key == VirtualKey.F5)
+            {
+                _activeHost?.Reload();
+                e.Handled = true;
+                return;
+            }
+
+            var alt = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Menu);
+            if (alt.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+            {
+                if (e.Key == VirtualKey.Left) { _activeHost?.GoBack(); e.Handled = true; return; }
+                if (e.Key == VirtualKey.Right) { _activeHost?.GoForward(); e.Handled = true; return; }
+            }
+
             var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
             bool isCtrl = ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
             if (!isCtrl) return;
@@ -455,6 +513,34 @@ namespace ServoBrowser.WinUI
             if (e.Key == VirtualKey.T)
             {
                 CreateNewTab(HomeUrl);
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.W && BrowserTabView.SelectedItem is TabViewItem activeTab)
+            {
+                if (_tabs.TryGetValue(activeTab, out var host))
+                {
+                    _tabs.Remove(activeTab);
+                    if (_activeHost == host) _activeHost = null;
+                    host.Dispose();
+                }
+                BrowserTabView.TabItems.Remove(activeTab);
+                if (BrowserTabView.TabItems.Count == 0) Close();
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.Tab && BrowserTabView.TabItems.Count > 1)
+            {
+                int next = (BrowserTabView.SelectedIndex + 1) % BrowserTabView.TabItems.Count;
+                BrowserTabView.SelectedIndex = next;
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.R)
+            {
+                _activeHost?.Reload();
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.H)
+            {
+                OnLibraryClick(sender, e);
                 e.Handled = true;
             }
             else if (e.Key == VirtualKey.L)
@@ -465,6 +551,21 @@ namespace ServoBrowser.WinUI
             else if (e.Key == VirtualKey.F)
             {
                 OnToggleFindClick(sender, e);
+                e.Handled = true;
+            }
+            else if (e.Key == (VirtualKey)187 || e.Key == VirtualKey.Add)
+            {
+                if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() + 0.1f);
+                e.Handled = true;
+            }
+            else if (e.Key == (VirtualKey)189 || e.Key == VirtualKey.Subtract)
+            {
+                if (_activeHost != null) SetActiveZoom(_activeHost.GetZoom() - 0.1f);
+                e.Handled = true;
+            }
+            else if (e.Key == VirtualKey.Number0 || e.Key == VirtualKey.NumberPad0)
+            {
+                SetActiveZoom(1.0f);
                 e.Handled = true;
             }
             else if (e.Key == VirtualKey.D)

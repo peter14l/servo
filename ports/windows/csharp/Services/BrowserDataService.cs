@@ -35,6 +35,10 @@ namespace ServoBrowser.WinUI.Services
             !string.IsNullOrWhiteSpace(url) &&
             _store.Bookmarks.Contains(url, StringComparer.OrdinalIgnoreCase);
 
+        public IReadOnlyList<string> GetBookmarks() => _store.Bookmarks;
+
+        public IReadOnlyList<string> GetHistory() => _store.History;
+
         public void ToggleBookmark(string url, string title)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
